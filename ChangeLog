@@ -1,4 +1,9 @@
 
+2004-06-09  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-rules-arm.c (flush_constants): update the instruction
+	location after flushing the constant table.
+
 2004-06-08  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/Makefile.am, jit/jit-cpuid-x86.c, jit/jit-cpuid-x86.h:

@@ -143,6 +143,7 @@ static void flush_constants(jit_gencode_t gen, int after_epilog)
 	gen->num_constants = 0;
 	gen->align_constants = 0;
 	gen->first_constant_use = 0;
+	gen->posn.ptr = (unsigned char *)inst;
 }
 
 /*
