@@ -12,6 +12,10 @@
 	global register and it is not going to be destroyed by an instruction,
 	then use the global register as the operand.
 
+	* jit/jit-insn.c: recognise "t = a op b; a = t" and turn it
+	into "a = a op b" to make it easier for back ends to recognise
+	special idioms such as increments and decrements.
+
 2004-06-01  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-cache.c, jit/jit-elf-read.c, tools/gen-apply.c:
