@@ -28,6 +28,9 @@
 	register allocation on stacked parameters because it confuses
 	the register spill logic.
 
+	* jit/jit-reg-alloc.c (_jit_regs_load_value): avoid unnecessary
+	spills if a temporary value won't be used again in the current block.
+
 2004-06-09  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-rules-arm.c (flush_constants): update the instruction

@@ -90,7 +90,9 @@ int main(int argc, char **argv)
 	jit_insn_return(function, temp4);
 
 	/* Compile the function */
+	jit_dump_function(stdout, function, "gcd");
 	jit_function_compile(function);
+	jit_dump_function(stdout, function, "gcd");
 
 	/* Unlock the context */
 	jit_context_build_end(context);

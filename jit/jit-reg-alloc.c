@@ -1050,6 +1050,18 @@ int _jit_regs_load_value
 		}
 		else
 		{
+			if(gen->contents[reg].num_values == 1 &&
+			   (value->in_frame || value->in_global_register || !used_again))
+			{
+				/* We are the only value in this register, and the
+				   value is duplicated in the frame, or will never
+				   be used again in this block.  In this case,
+				   we can disassociate the register from the value
+				   and just return the register as-is */
+				value->in_register = 0;
+				gen->contents[reg].num_values = 0;
+				gen->contents[reg].used_for_temp = 1;
+			}
 			gen->contents[reg].age = gen->current_age;
 			if(need_pair)
 			{
