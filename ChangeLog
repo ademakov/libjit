@@ -3,6 +3,10 @@
 
 	* tools/gen-apply.c: fix a crash in gen-apply under x86-64.
 
+	* jit/jit-apply-func.h, jit/jit-apply-x86-64.h, tools/gen-apply.c:
+	write an x86-64 assembly version of "__builtin_apply", because
+	the version inside gcc has an unusable register ordering.
+
 2004-06-24  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-reg-alloc.c, jit/jit-rules-arm.h, jit/jit-rules-interp.c,

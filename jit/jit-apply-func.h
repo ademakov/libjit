@@ -29,6 +29,10 @@
 
 #include "jit-apply-arm.h"
 
+#elif defined(__x86_64) || defined(__x86_64__)
+
+#include "jit-apply-x86-64.h"
+
 #endif
 
 #if !defined(jit_builtin_apply)

@@ -19,6 +19,7 @@
  */
 
 #include <jit/jit-defs.h>
+#define	JIT_MEMCPY		"mem_copy"
 #include "jit-apply-func.h"
 #include <stdio.h>
 #include <config.h>
