@@ -27,6 +27,10 @@
 	* jit/jit-rules-x86.c: fix misnaming of jit_type_get_abi,
 	jit_abi_stdcall, and jit_abi_fastcall.
 
+	* tools/gen-apply-macosx.h, tools/gen-apply.c: bypass the
+	auto-detection logic in gen-apply under MacOSX because
+	it doesn't work with Apple's version of gcc.
+
 2004-06-06  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c (jit_flush_exec): flush cache lines properly
