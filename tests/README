@@ -1,0 +1,43 @@
+
+This directory contains test cases for libjit, written in the
+"Dynamic Pascal" language.  To add a new test case, perform the
+following steps:
+
+    1. Create the "foo.pas" file, containing the source code for the
+       test case.  The test case should exit normally if it succeeds,
+       or call "Terminate(1)" if it fails.
+
+    2. Add "foo.pas" to the "TESTS" list in "Makefile.am".
+
+    3. Re-run "auto_gen.sh" and "configure".
+
+    4. Type "make check" in this directory to run all of the test cases.
+
+Or you can run the test case manually with "../dpas/dpas foo.pas".
+The test case is compiled and executed in a single step, in a similar
+fashion to using a scripting language.
+
+The following two options to "dpas" can help with debugging problems
+in libjit:
+
+    -d
+        Dump the three-address form of each function as it is compiled.
+
+    -D
+        Dump the three-address and compiled forms of each function.
+
+If you are unfamiliar with the syntax of Pascal, or merely a little rusty,
+then the following EBNF grammar should help:
+
+    http://www.cs.qub.ac.uk/~S.Fitzpatrick/Teaching/Pascal/EBNF.html
+
+You can also get copies of the Pascal standards at:
+
+    http://www.pascal-central.com/
+
+Dynamic Pascal is a subset of Standard Pascal, designed primarily for
+testing libjit.  Patches are welcome to make it a more faithful Pascal
+implementation.
+
+Also see the file "dpas-builtin.c" for a list of builtin procedures and
+functions that you can use in your test cases.
