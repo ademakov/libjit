@@ -496,18 +496,14 @@ extern jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES];
 /*
  * Dump the interpreted bytecode representation of a function.
  */
-static void dump_interp_code(FILE *stream, void **pc)
+static void dump_interp_code(FILE *stream, void **pc, void **end)
 {
 	int opcode;
 	const jit_opcode_info_t *info;
-	for(;;)
+	while(pc < end)
 	{
 		/* Fetch the next opcode */
 		opcode = (int)(jit_nint)(*pc);
-		if(opcode == JIT_OP_END_MARKER)
-		{
-			break;
-		}
 
 		/* Dump the address of the opcode */
 		fprintf(stream, "\t%08lX: ", (long)(jit_nint)pc);
@@ -546,31 +542,50 @@ static void dump_interp_code(FILE *stream, void **pc)
 
 			case JIT_OPCODE_CONST_LONG:
 			{
-				/* TODO */
+				jit_ulong value;
+				jit_memcpy(&value, pc, sizeof(jit_ulong));
+				pc += (sizeof(jit_ulong) + sizeof(void *) - 1) &
+					  ~(sizeof(void *) - 1);
+				fprintf(stream, " 0x%lX%08lX",
+						(long)((value >> 32) & jit_max_uint),
+						(long)(value & jit_max_uint));
 			}
 			break;
 
 			case JIT_OPCODE_CONST_FLOAT32:
 			{
-				/* TODO */
+				jit_float32 value;
+				jit_memcpy(&value, pc, sizeof(jit_float32));
+				pc += (sizeof(jit_float32) + sizeof(void *) - 1) &
+					  ~(sizeof(void *) - 1);
+				fprintf(stream, " %g", (double)value);
 			}
 			break;
 
 			case JIT_OPCODE_CONST_FLOAT64:
 			{
-				/* TODO */
+				jit_float64 value;
+				jit_memcpy(&value, pc, sizeof(jit_float64));
+				pc += (sizeof(jit_float64) + sizeof(void *) - 1) &
+					  ~(sizeof(void *) - 1);
+				fprintf(stream, " %g", (double)value);
 			}
 			break;
 
 			case JIT_OPCODE_CONST_NFLOAT:
 			{
-				/* TODO */
+				jit_nfloat value;
+				jit_memcpy(&value, pc, sizeof(jit_nfloat));
+				pc += (sizeof(jit_nfloat) + sizeof(void *) - 1) &
+					  ~(sizeof(void *) - 1);
+				fprintf(stream, " %g", (double)value);
 			}
 			break;
 
 			case JIT_OPCODE_CALL_INDIRECT_ARGS:
 			{
-				/* TODO */
+				fprintf(stream, " %ld", (long)(jit_nint)(pc[1]));
+				pc += 2;
 			}
 			break;
 
@@ -738,6 +753,8 @@ void jit_dump_function(FILE *stream, jit_function_t func, const char *name)
 	}
 	else if(func->is_compiled)
 	{
+		void *end = _jit_cache_get_end_method
+			(func->context->cache, func->entry_point);
 #if defined(JIT_BACKEND_INTERP)
 		/* Dump the interpreter's bytecode representation */
 		jit_function_interp_t interp;
@@ -746,7 +763,7 @@ void jit_dump_function(FILE *stream, jit_function_t func, const char *name)
 				(long)(jit_nint)interp, (long)(jit_nint)func,
 				(int)(interp->args_size), (int)(interp->frame_size),
 				(int)(interp->working_area));
-		dump_interp_code(stream, (void **)(interp + 1));
+		dump_interp_code(stream, (void **)(interp + 1), (void **)end);
 #else
 		/* TODO: use objdump to dump native code */
 #endif

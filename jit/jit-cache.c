@@ -977,6 +977,149 @@ void *_jit_cache_get_method(jit_cache_t cache, void *pc, void **cookie)
 }
 
 /*
+ * Add a parent pointer to a list.  Returns null if out of memory.
+ */
+static int add_parent(jit_cache_method_t *parent_buf,
+					  jit_cache_method_t **parents,
+					  int *num_parents, int *max_parents,
+					  jit_cache_method_t node)
+{
+	jit_cache_method_t *new_list;
+	if(*num_parents >= *max_parents)
+	{
+		if(*parents == parent_buf)
+		{
+			new_list = (jit_cache_method_t *)jit_malloc
+				((*max_parents * 2) * sizeof(jit_cache_method_t));
+			if(new_list)
+			{
+				jit_memcpy(new_list, *parents,
+						   (*num_parents) * sizeof(jit_cache_method_t));
+			}
+		}
+		else
+		{
+			new_list = (jit_cache_method_t *)jit_realloc
+				(*parents, (*max_parents * 2) * sizeof(jit_cache_method_t));
+		}
+		if(!new_list)
+		{
+			return 0;
+		}
+		*parents = new_list;
+		*max_parents *= 2;
+	}
+	(*parents)[*num_parents] = node;
+	++(*num_parents);
+	return 1;
+}
+
+void *_jit_cache_get_end_method(jit_cache_t cache, void *pc)
+{
+	jit_cache_method_t parent_buf[16];
+	jit_cache_method_t *parents = parent_buf;
+	int num_parents = 0;
+	int max_parents = 16;
+	jit_cache_method_t node = cache->head.right;
+	jit_cache_method_t last;
+	jit_cache_method_t parent;
+	void *method;
+	while(node != &(cache->nil))
+	{
+		if(((unsigned char *)pc) < node->start)
+		{
+			if(!add_parent(parent_buf, &parents, &num_parents,
+			   &max_parents, node))
+			{
+				break;
+			}
+			node = GetLeft(node);
+		}
+		else if(((unsigned char *)pc) >= node->end)
+		{
+			if(!add_parent(parent_buf, &parents, &num_parents,
+			   &max_parents, node))
+			{
+				break;
+			}
+			node = GetRight(node);
+		}
+		else
+		{
+			/* This is the node that contains the starting position.
+			   We now need to do an inorder traversal from this point
+			   to find the last node that mentions this method */
+			method = node->method;
+			last = node;
+			do
+			{
+				if(GetRight(node) != &(cache->nil))
+				{
+					/* Move down the left-most sub-tree of the right */
+					if(!add_parent(parent_buf, &parents, &num_parents,
+					   &max_parents, node))
+					{
+						goto failed;
+					}
+					node = GetRight(node);
+					while(GetLeft(node) != &(cache->nil))
+					{
+						if(!add_parent(parent_buf, &parents, &num_parents,
+						   &max_parents, node))
+						{
+							goto failed;
+						}
+						node = GetLeft(node);
+					}
+				}
+				else
+				{
+					/* Find a parent or other ancestor that contains this
+					   node within its left sub-tree */
+					for(;;)
+					{
+						if(num_parents == 0)
+						{
+							node = 0;
+							break;
+						}
+						parent = parents[--num_parents];
+						if(GetLeft(parent) == node)
+						{
+							/* We are on our parent's left, so next is parent */
+							node = parent;
+							break;
+						}
+						node = parent;
+					}
+					if(!node)
+					{
+						/* We reached the root of the tree */
+						break;
+					}
+				}
+				if(node->method == method)
+				{
+					last = node;
+				}
+			}
+			while(node->method == method);
+			if(parents != parent_buf)
+			{
+				jit_free(parents);
+			}
+			return last->end;
+		}
+	}
+failed:
+	if(parents != parent_buf)
+	{
+		jit_free(parents);
+	}
+	return 0;
+}
+
+/*
  * Count the number of methods in a sub-tree.
  */
 static unsigned long CountMethods(jit_cache_method_t node,

@@ -189,7 +189,7 @@ public:
 #define	JIT_OP_CALL_FINALLY					(JIT_OP_NUM_OPCODES + 0x0038)
 
 /*
- * Marker opcode for the end of a function.
+ * Marker opcode for the end of the interpreter-specific opcodes.
  */
 #define	JIT_OP_END_MARKER					(JIT_OP_NUM_OPCODES + 0x0039)
 

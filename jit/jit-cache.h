@@ -130,6 +130,12 @@ void _jit_cache_set_cookie(jit_cache_posn *posn, void *cookie);
 void *_jit_cache_get_method(jit_cache_t cache, void *pc, void **cookie);
 
 /*
+ * Get the end of a method with a particular starting PC.
+ * Returns NULL if the PC could not be located.
+ */
+void *_jit_cache_get_end_method(jit_cache_t cache, void *pc);
+
+/*
  * Get a list of all method that are presently in the cache.
  * The list is terminated by a NULL, and must be free'd with
  * "ILFree".  Returns NULL if out of memory.

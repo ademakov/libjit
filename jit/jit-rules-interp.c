@@ -621,7 +621,7 @@ void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 @*/
 void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 {
-	jit_cache_opcode(&(gen->posn), JIT_OP_END_MARKER);
+	/* The interpreter doesn't use epilogs */
 }
 
 /*@

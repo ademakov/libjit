@@ -1,4 +1,10 @@
 
+2004-05-08  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-cache.c, jit/jit-cache.h, jit/jit-dump.c, jit/jit-interp.h,
+	jit/jit-rules-interp.c: add "_jit_cache_get_end_method", to allow
+	the end of a method's code to be located without explicit marking.
+
 2004-05-07  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* dpas/dpas-function.c, dpas/dpas-internal.h, dpas/dpas-main.c,
