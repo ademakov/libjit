@@ -12,6 +12,8 @@ libjit_la_SOURCES = \
 		jit-block.c \
 		jit-cache.c \
 		jit-context.c \
+		jit-cpuid-x86.h \
+		jit-cpuid-x86.c \
 		jit-dump.c \
 		jit-elf-defs.h \
 		jit-elf-read.c \

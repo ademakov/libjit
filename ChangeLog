@@ -1,4 +1,9 @@
 
+2004-06-08  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/Makefile.am, jit/jit-cpuid-x86.c, jit/jit-cpuid-x86.h:
+	add an API for querying the x86 "cpuid" information.
+
 2004-06-08  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c: fix ROUND_END_PTR so that it adds the size
