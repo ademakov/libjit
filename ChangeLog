@@ -12,6 +12,9 @@
 	fix a bug that caused global variables in Dynamic Pascal
 	to be incorrectly allocated as locals.
 
+	* jit/jit-reg-alloc.c (_jit_regs_load_to_top_two): handle the
+	case where the second value is on the stack but not the first.
+
 2004-05-10  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-reg-alloc.c, jit/jit-reg-alloc.h, jit/jit-rules-interp.c:

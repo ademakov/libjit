@@ -1142,6 +1142,11 @@ int _jit_regs_load_to_top_two
 		}
 		spill_all_stack(gen, type_reg);
 	}
+	else if(value2->in_register && !(value->in_register))
+	{
+		/* We'll probably need to rearrange the stack, so spill first */
+		spill_all_stack(gen, type_reg);
+	}
 
 	/* If there are free registers of this type, then load the values now */
 	if(stack_regs_free(gen, type_reg, 2))
