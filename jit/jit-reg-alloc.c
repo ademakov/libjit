@@ -551,7 +551,7 @@ static void free_reg_and_spill
 }
 
 /*@
- * @deftypefun void _jit_regs_want_reg (jit_gencode_t gen, int reg)
+ * @deftypefun void _jit_regs_want_reg (jit_gencode_t gen, int reg, int for_long)
  * Tell the register allocator that we want a particular register
  * for a specific purpose.  The current contents of the register
  * are spilled.  If @code{reg} is part of a register pair, then the
@@ -821,75 +821,21 @@ static void load_value(jit_gencode_t gen, int reg, int other_reg,
 	}
 }
 
-/*@
- * @deftypefun int _jit_regs_load_value (jit_gencode_t gen, jit_value_t value, int destroy, int used_again)
- * Load a value into any register that is suitable and return that register.
- * If the value needs a long pair, then this will return the first register
- * in the pair.  Returns -1 if the value will not fit into any register.
- *
- * If @code{destroy} is non-zero, then we are about to destroy the register,
- * so the system must make sure that such destruction will not side-effect
- * @code{value} or any of the other values currently in that register.
- *
- * If @code{used_again} is non-zero, then it indicates that the value is
- * used again further down the block.
- * @end deftypefun
-@*/
-int _jit_regs_load_value
-	(jit_gencode_t gen, jit_value_t value, int destroy, int used_again)
+/*
+ * Find a free register to hold the contents of a value.
+ */
+static int free_register_for_value
+	(jit_gencode_t gen, jit_value_t value, int *other_reg)
 {
-	int reg, other_reg, type;
+	int reg, type;
 	int suitable_reg, need_pair;
 	int suitable_age;
 
+	/* Clear the other register before we start */
+	*other_reg = -1;
+
 	/* Determine if we need a long pair for this value */
 	need_pair = _jit_regs_needs_long_pair(value->type);
-
-	/* If the value is already in a register, then try to use that register */
-	if(value->in_register)
-	{
-		reg = value->reg;
-		if(destroy)
-		{
-			if(gen->contents[reg].num_values == 1 &&
-			   (value->in_frame || !used_again))
-			{
-				/* We are the only value in this register, and the
-				   value is duplicated in the frame, or will never
-				   be used again in this block.  In this case,
-				   we can disassociate the register from the value
-				   and just return the register as-is */
-				value->in_register = 0;
-				gen->contents[reg].num_values = 0;
-				gen->contents[reg].used_for_temp = 1;
-				gen->contents[reg].age = gen->current_age;
-				if(need_pair)
-				{
-					other_reg = _jit_reg_info[reg].other_reg;
-					gen->contents[other_reg].used_for_temp = 1;
-					gen->contents[other_reg].age = gen->current_age;
-				}
-				++(gen->current_age);
-				return reg;
-			}
-			else
-			{
-				/* We need to spill the register and then reload it */
-				spill_register(gen, reg);
-			}
-		}
-		else
-		{
-			gen->contents[reg].age = gen->current_age;
-			if(need_pair)
-			{
-				other_reg = _jit_reg_info[reg].other_reg;
-				gen->contents[other_reg].age = gen->current_age;
-			}
-			++(gen->current_age);
-			return reg;
-		}
-	}
 
 	/* Determine the type of register that we need */
 	switch(jit_type_normalize(value->type)->kind)
@@ -943,7 +889,6 @@ int _jit_regs_load_value
 			{
 				/* We always load stack values to the top of the stack */
 				reg = create_stack_reg(gen, reg, 1);
-				load_value(gen, reg, -1, value, destroy);
 				return reg;
 			}
 			else if(!need_pair)
@@ -951,19 +896,17 @@ int _jit_regs_load_value
 				if(gen->contents[reg].num_values == 0 &&
 				   !(gen->contents[reg].used_for_temp))
 				{
-					load_value(gen, reg, -1, value, destroy);
 					return reg;
 				}
 			}
 			else
 			{
-				other_reg = _jit_reg_info[reg].other_reg;
+				*other_reg = _jit_reg_info[reg].other_reg;
 				if(gen->contents[reg].num_values == 0 &&
 				   !(gen->contents[reg].used_for_temp) &&
-				   gen->contents[other_reg].num_values == 0 &&
-				   !(gen->contents[other_reg].used_for_temp))
+				   gen->contents[*other_reg].num_values == 0 &&
+				   !(gen->contents[*other_reg].used_for_temp))
 				{
-					load_value(gen, reg, other_reg, value, destroy);
 					return reg;
 				}
 			}
@@ -983,17 +926,114 @@ int _jit_regs_load_value
 	}
 
 	/* Eject the current contents of the register */
-	reg = _jit_regs_want_reg(gen, reg, need_pair);
+	reg = _jit_regs_want_reg(gen, suitable_reg, need_pair);
+	if(need_pair)
+	{
+		*other_reg = _jit_reg_info[reg].other_reg;
+	}
+	return reg;
+}
 
-	/* Load the value into the register */
-	if(!need_pair)
+/*@
+ * @deftypefun int _jit_regs_load_value (jit_gencode_t gen, jit_value_t value, int destroy, int used_again)
+ * Load a value into any register that is suitable and return that register.
+ * If the value needs a long pair, then this will return the first register
+ * in the pair.  Returns -1 if the value will not fit into any register.
+ *
+ * If @code{destroy} is non-zero, then we are about to destroy the register,
+ * so the system must make sure that such destruction will not side-effect
+ * @code{value} or any of the other values currently in that register.
+ *
+ * If @code{used_again} is non-zero, then it indicates that the value is
+ * used again further down the block.
+ * @end deftypefun
+@*/
+int _jit_regs_load_value
+	(jit_gencode_t gen, jit_value_t value, int destroy, int used_again)
+{
+	int reg, other_reg, need_pair;
+
+	/* Determine if we need a long pair for this value */
+	need_pair = _jit_regs_needs_long_pair(value->type);
+
+	/* If the value is already in a register, then try to use that register */
+	if(value->in_register)
 	{
-		load_value(gen, reg, -1, value, destroy);
+		reg = value->reg;
+		if(destroy)
+		{
+			if(gen->contents[reg].num_values == 1 &&
+			   (value->in_frame || !used_again))
+			{
+				/* We are the only value in this register, and the
+				   value is duplicated in the frame, or will never
+				   be used again in this block.  In this case,
+				   we can disassociate the register from the value
+				   and just return the register as-is */
+				value->in_register = 0;
+				gen->contents[reg].num_values = 0;
+				gen->contents[reg].used_for_temp = 1;
+				gen->contents[reg].age = gen->current_age;
+				if(need_pair)
+				{
+					other_reg = _jit_reg_info[reg].other_reg;
+					gen->contents[other_reg].used_for_temp = 1;
+					gen->contents[other_reg].age = gen->current_age;
+				}
+				++(gen->current_age);
+				return reg;
+			}
+			else
+			{
+				/* We need to spill the register and then reload it */
+				spill_register(gen, reg);
+			}
+		}
+		else
+		{
+			gen->contents[reg].age = gen->current_age;
+			if(need_pair)
+			{
+				other_reg = _jit_reg_info[reg].other_reg;
+				gen->contents[other_reg].age = gen->current_age;
+			}
+			++(gen->current_age);
+			return reg;
+		}
 	}
-	else
+
+	/* Search for a free register to hold the value */
+	reg = free_register_for_value(gen, value, &other_reg);
+	load_value(gen, reg, other_reg, value, destroy);
+	return reg;
+}
+
+/*@
+ * @deftypefun int _jit_regs_dest_value (jit_gencode_t gen, jit_value_t value)
+ * Get a new register to hold @code{value} as a destination.  This cannot
+ * be used for stack register destinations (use @code{_jit_regs_new_top}
+ * for that).
+ * @end deftypefun
+@*/
+int _jit_regs_dest_value(jit_gencode_t gen, jit_value_t value)
+{
+	int reg, other_reg;
+
+	/* If the value is exclusively in a register already, then use that */
+	if(value->in_register)
 	{
-		load_value(gen, reg, _jit_reg_info[reg].other_reg, value, destroy);
+		reg = value->reg;
+		if(gen->contents[reg].num_values == 1)
+		{
+			value->in_frame = 0;
+			return reg;
+		}
+		free_reg_and_spill(gen, reg, 0, 1);
 	}
+
+	/* Find a suitable register to hold the destination */
+	reg = free_register_for_value(gen, value, &other_reg);
+	_jit_regs_set_value(gen, reg, value, 0);
 	return reg;
 }
 
@@ -1281,4 +1321,27 @@ int _jit_regs_new_top(jit_gencode_t gen, jit_value_t value, int type_reg)
 
 	/* Return the allocated register to the caller */
 	return reg;
+}
+
+/*@
+ * @deftypefun void _jit_regs_force_out (jit_gencode_t gen, jit_value_t value, int is_dest)
+ * If @code{value} is currently in a register, then force its value out
+ * into the stack frame.  The @code{is_dest} flag indicates that the value
+ * will be a destination, so we don't care about the original value.
+ * @end deftypefun
+@*/
+void _jit_regs_force_out(jit_gencode_t gen, jit_value_t value, int is_dest)
+{
+	if(value->in_register)
+	{
+		if((_jit_reg_info[value->reg].flags & JIT_REG_IN_STACK) == 0)
+		{
+			free_reg_and_spill(gen, value->reg, 0, !is_dest);
+		}
+		else
+		{
+			/* Always do a spill for a stack register */
+			_jit_regs_want_reg(gen, value->reg, 0);
+		}
+	}
 }

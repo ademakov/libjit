@@ -26,6 +26,7 @@
 
 #include "jit-gen-x86.h"
 #include "jit-reg-alloc.h"
+#include <stdio.h>
 
 /*
  * Pseudo register numbers for the x86 registers.  These are not the
@@ -1400,6 +1401,11 @@ static unsigned char *mov_membase_reg_byte
 	return inst;
 }
 
+#define	TODO()		\
+	do { \
+		fprintf(stderr, "TODO at %s, %d\n", __FILE__, (int)__LINE__); \
+	} while (0)
+
 void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 				   jit_block_t block, jit_insn_t insn)
 {
@@ -1408,6 +1414,13 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		#define JIT_INCLUDE_RULES
 		#include "jit-rules-x86.slc"
 		#undef JIT_INCLUDE_RULES
+
+		default:
+		{
+			fprintf(stderr, "TODO(%x) at %s, %d\n",
+					(int)(insn->opcode), __FILE__, (int)__LINE__);
+		}
+		break;
 	}
 }
 

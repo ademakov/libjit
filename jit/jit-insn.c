@@ -5449,10 +5449,10 @@ jit_value_t jit_insn_call_intrinsic
 	{
 		const1 = jit_value_get_constant(arg1);
 		const2 = jit_value_get_constant(arg2);
-		return_const.type = descriptor->ptr_result_type;
 		if(return_value)
 		{
 			jit_int result;
+			return_const.type = descriptor->ptr_result_type;
 			temp_const.un.ptr_value = &return_const.un;
 			apply_args[0] = &temp_const.un;
 			apply_args[1] = &const1.un;
@@ -5468,6 +5468,7 @@ jit_value_t jit_insn_call_intrinsic
 		}
 		else
 		{
+			return_const.type = descriptor->return_type;
 			apply_args[0] = &const1.un;
 			apply_args[1] = &const2.un;
 			jit_apply(signature, intrinsic_func, apply_args,

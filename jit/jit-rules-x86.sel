@@ -548,6 +548,7 @@ JIT_OP_CHECK_NULL: unary_note
 	[reg] -> {
 		/* TODO: won't work in a function with a "try" block */
 		unsigned char *patch;
+		TODO();
 		x86_alu_reg_reg(inst, X86_OR, $1, $1);
 		patch = inst;
 		x86_branch8(inst, X86_CC_NE, 0, 0);
@@ -640,6 +641,7 @@ JIT_OP_RETURN_NFLOAT: unary_note, stack, only
 JIT_OP_RETURN_SMALL_STRUCT: spill_before
 	[] -> {
 		/* TODO: load the structure value into EAX:EDX */
+		TODO();
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
@@ -691,6 +693,7 @@ JIT_OP_SETUP_FOR_SIBLING: spill_before
 JIT_OP_IMPORT:
 	[] -> {
 		/* TODO */
+		TODO();
 	}
 
 /*
@@ -715,6 +718,7 @@ JIT_OP_COPY_INT: unary
 JIT_OP_COPY_LONG: spill_before
 	[] -> {
 		/* TODO */
+		TODO();
 	}
 
 JIT_OP_COPY_FLOAT32: unary
@@ -726,25 +730,101 @@ JIT_OP_COPY_FLOAT64: unary
 JIT_OP_COPY_NFLOAT: unary
 	[freg] -> {}
 
-JIT_OP_COPY_STRUCT:
+JIT_OP_COPY_STRUCT: manual
 	[] -> {
 		/* TODO */
+		TODO();
 	}
 
-JIT_OP_COPY_STORE_BYTE:
+JIT_OP_COPY_STORE_BYTE: manual
 	[] -> {
-		/* TODO */
+		unsigned char *inst;
+		int reg;
+		_jit_regs_force_out(gen, insn->dest, 1);
+		_jit_gen_fix_value(insn->dest);
+		if(!(insn->value1->is_constant))
+		{
+			reg = _jit_regs_load_value
+				(gen, insn->value1, 0,
+				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+				 				 JIT_INSN_VALUE1_LIVE)));
+			inst = gen->posn.ptr;
+			if(!jit_cache_check_for_n(&(gen->posn), 32))
+			{
+				jit_cache_mark_full(&(gen->posn));
+				return;
+			}
+			inst = mov_membase_reg_byte
+				(inst, X86_EBP, insn->dest->frame_offset,
+				 _jit_reg_info[reg].cpu_reg);
+			gen->posn.ptr = inst;
+		}
+		else
+		{
+			inst = gen->posn.ptr;
+			if(!jit_cache_check_for_n(&(gen->posn), 32))
+			{
+				jit_cache_mark_full(&(gen->posn));
+				return;
+			}
+			x86_mov_membase_imm(inst, X86_EBP, insn->dest->frame_offset,
+								insn->value1->address, 1);
+			gen->posn.ptr = inst;
+		}
 	}
 
-JIT_OP_COPY_STORE_SHORT:
+JIT_OP_COPY_STORE_SHORT: manual
 	[] -> {
-		/* TODO */
+		unsigned char *inst;
+		int reg;
+		_jit_regs_force_out(gen, insn->dest, 1);
+		_jit_gen_fix_value(insn->dest);
+		if(!(insn->value1->is_constant))
+		{
+			reg = _jit_regs_load_value
+				(gen, insn->value1, 0,
+				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+				 				 JIT_INSN_VALUE1_LIVE)));
+			inst = gen->posn.ptr;
+			if(!jit_cache_check_for_n(&(gen->posn), 32))
+			{
+				jit_cache_mark_full(&(gen->posn));
+				return;
+			}
+			x86_mov_membase_reg(inst, X86_EBP, insn->dest->frame_offset,
+								_jit_reg_info[reg].cpu_reg, 2);
+			gen->posn.ptr = inst;
+		}
+		else
+		{
+			inst = gen->posn.ptr;
+			if(!jit_cache_check_for_n(&(gen->posn), 32))
+			{
+				jit_cache_mark_full(&(gen->posn));
+				return;
+			}
+			x86_mov_membase_imm(inst, X86_EBP, insn->dest->frame_offset,
+								insn->value1->address, 2);
+			gen->posn.ptr = inst;
+		}
 	}
 
-JIT_OP_ADDRESS_OF:
+JIT_OP_ADDRESS_OF: manual
 	[] -> {
+		unsigned char *inst;
+		int reg;
+		_jit_regs_force_out(gen, insn->value1, 0);
 		_jit_gen_fix_value(insn->value1);
-		/* TODO: get a register to hold the result */
+		inst = gen->posn.ptr;
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		reg = _jit_regs_dest_value(gen, insn->dest);
+		reg = _jit_reg_info[reg].cpu_reg;
+		x86_lea_membase(inst, reg, X86_EBP, insn->value1->frame_offset);
+		gen->posn.ptr = inst;
 	}
 
 /*
@@ -838,6 +918,7 @@ JIT_OP_PUSH_NFLOAT: unary_note
 JIT_OP_PUSH_STRUCT: unary_note
 	[reg] -> {
 		/* TODO */
+		TODO();
 	}
 
 JIT_OP_POP_STACK:
@@ -1037,6 +1118,7 @@ JIT_OP_LOAD_RELATIVE_NFLOAT: manual
 JIT_OP_LOAD_RELATIVE_STRUCT: manual
 	[] -> {
 		/* TODO */
+		TODO();
 	}
 
 JIT_OP_STORE_RELATIVE_BYTE: manual
@@ -1339,6 +1421,7 @@ JIT_OP_STORE_RELATIVE_NFLOAT: manual
 JIT_OP_STORE_RELATIVE_STRUCT: manual
 	[] -> {
 		/* TODO */
+		TODO();
 	}
 
 JIT_OP_ADD_RELATIVE: unary

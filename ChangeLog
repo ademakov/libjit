@@ -1,4 +1,10 @@
 
+2004-05-29  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-insn.c, jit/jit-reg-alloc.c, jit/jit-reg-alloc.h,
+	jit/jit-rules-x86.c, jit/jit-rules-x86.sel: continue the
+	x86 back end; particularly byte/short stores.
+
 2004-05-27  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* tools/gen-apply.c: split "detect_struct_conventions" up a bit

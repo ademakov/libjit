@@ -42,6 +42,7 @@ int _jit_regs_is_top_two
 	(jit_gencode_t gen, jit_value_t value1, jit_value_t value2);
 int _jit_regs_load_value
 	(jit_gencode_t gen, jit_value_t value, int destroy, int used_again);
+int _jit_regs_dest_value(jit_gencode_t gen, jit_value_t value);
 int _jit_regs_load_to_top
 	(jit_gencode_t gen, jit_value_t value, int used_again, int type_reg);
 int _jit_regs_load_to_top_two
@@ -53,6 +54,7 @@ void _jit_regs_load_to_top_three
 	 int used_again3, int type_reg);
 int _jit_regs_num_used(jit_gencode_t gen, int type_reg);
 int _jit_regs_new_top(jit_gencode_t gen, jit_value_t value, int type_reg);
+void _jit_regs_force_out(jit_gencode_t gen, jit_value_t value, int is_dest);
 
 #ifdef	__cplusplus
 };
