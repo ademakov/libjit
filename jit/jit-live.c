@@ -199,8 +199,19 @@ void _jit_function_compute_liveness(jit_function_t func)
 	jit_block_t block = func->builder->first_block;
 	while(block != 0)
 	{
+		/* If the block is never entered, then replace it with empty */
+		if(!(block->entered_via_top) && !(block->entered_via_branch))
+		{
+			block->last_insn = block->first_insn - 1;
+		}
+
+		/* Perform peephole optimization on branches to branches */
 		_jit_block_peephole_branch(block);
+
+		/* Compute the liveness flags for the block */
 		compute_liveness_for_block(block);
+
+		/* Move on to the next block in the function */
 		block = block->next;
 	}
 }

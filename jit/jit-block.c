@@ -384,6 +384,25 @@ int jit_block_ends_in_dead(jit_block_t block)
 }
 
 /*
+ * Determine if a block is empty or is never entered.
+ */
+static int block_is_empty_or_dead(jit_block_t block)
+{
+	if(block->first_insn > block->last_insn)
+	{
+		return 1;
+	}
+	else if(!(block->entered_via_top) && !(block->entered_via_branch))
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+/*
  * Determine if the next block after "block" has "label".
  */
 static int block_branches_to_next(jit_block_t block, jit_label_t label)
@@ -396,29 +415,33 @@ static int block_branches_to_next(jit_block_t block, jit_label_t label)
 		{
 			return 1;
 		}
-		if(block->first_insn < block->last_insn)
+		if(!block_is_empty_or_dead(block))
 		{
-			/* This block contains more than one instruction, so the
-			   first cannot be an unconditional branch */
-			break;
-		}
-		else if(block->first_insn == block->last_insn)
-		{
-			insn = block->func->builder->insns[block->first_insn];
-			if(insn->opcode == JIT_OP_BR)
+			if(block->first_insn < block->last_insn)
 			{
-				/* If the instruction branches to its next block,
-				   then it is equivalent to an empty block.  If it
-				   does not, then we have to stop scanning here */
-				if(!block_branches_to_next(block, (jit_label_t)(insn->dest)))
-				{
-					return 0;
-				}
+				/* This block contains more than one instruction, so the
+				   first cannot be an unconditional branch */
+				break;
 			}
 			else
 			{
-				/* The block does not contain an unconditional branch */
-				break;
+				insn = block->func->builder->insns[block->first_insn];
+				if(insn->opcode == JIT_OP_BR)
+				{
+					/* If the instruction branches to its next block,
+					   then it is equivalent to an empty block.  If it
+					   does not, then we have to stop scanning here */
+					if(!block_branches_to_next
+							(block, (jit_label_t)(insn->dest)))
+					{
+						return 0;
+					}
+				}
+				else
+				{
+					/* The block does not contain an unconditional branch */
+					break;
+				}
 			}
 		}
 		block = block->next;
@@ -449,7 +472,7 @@ void _jit_block_peephole_branch(jit_block_t block)
 	while(label != block->label && count > 0)
 	{
 		new_block = jit_block_from_label(block->func, label);
-		while(new_block != 0 && new_block->first_insn > new_block->last_insn)
+		while(new_block != 0 && block_is_empty_or_dead(new_block))
 		{
 			/* Skip past empty blocks */
 			new_block = new_block->next;

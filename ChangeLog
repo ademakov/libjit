@@ -10,6 +10,9 @@
 	branches to branches before live variable analysis, so that
 	the back ends don't need to worry about jump threading.
 
+	* jit/jit-block.c, jit/jit-live.c: treat dead blocks as empty
+	when peepholing branches to the next block.
+
 2004-05-15  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* tools/gen-apply.c: fix a macro generation bug for Win32 systems.
