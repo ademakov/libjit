@@ -3324,7 +3324,7 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 			call_func = (jit_function_t)VM_NINT_ARG;
 			VM_MODIFY_PC_AND_STACK(2, 0);
 			entry = call_func->entry_point;
-			_jit_backtrace_push(&call_trace, pc, 0, 0);
+			_jit_backtrace_push(&call_trace, pc);
 			if(!entry)
 			{
 				entry = _jit_function_compile_on_demand(call_func);
@@ -3341,7 +3341,7 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 			tempptr = (void *)VM_NINT_ARG;
 			temparg = VM_NINT_ARG2;
 			VM_MODIFY_PC_AND_STACK(3, 2);
-			_jit_backtrace_push(&call_trace, pc, 0, 0);
+			_jit_backtrace_push(&call_trace, pc);
 			apply_from_interpreter((jit_type_t)tempptr,
 								   (void *)VM_STK_PTRP2,
 								   stacktop,
@@ -3361,7 +3361,7 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 			}
 			VM_MODIFY_PC_AND_STACK(1, 1);
 			entry = call_func->entry_point;
-			_jit_backtrace_push(&call_trace, pc, 0, 0);
+			_jit_backtrace_push(&call_trace, pc);
 			if(!entry)
 			{
 				entry = _jit_function_compile_on_demand(call_func);
@@ -3379,7 +3379,7 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 			tempptr2 = (void *)VM_NINT_ARG2;
 			temparg = VM_NINT_ARG3;
 			VM_MODIFY_PC_AND_STACK(4, 1);
-			_jit_backtrace_push(&call_trace, pc, 0, 0);
+			_jit_backtrace_push(&call_trace, pc);
 			apply_from_interpreter((jit_type_t)tempptr,
 								   (void *)tempptr2,
 								   stacktop,
@@ -4478,6 +4478,7 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 		VMCASE(JIT_OP_CALL_FILTER_RETURN):
 		VMCASE(JIT_OP_PREPARE_FOR_LEAVE):
 		VMCASE(JIT_OP_PREPARE_FOR_RETURN):
+		VMCASE(JIT_OP_JUMP_TO_CATCHER):
 		{
 			/* Shouldn't happen, but skip the instruction anyway */
 			VM_MODIFY_PC_AND_STACK(1, 0);
@@ -4533,7 +4534,7 @@ int jit_function_apply_vararg
 	}
 
 	/* Initialize the backtrace information */
-	_jit_backtrace_push(&call_trace, 0, 0, 0);
+	_jit_backtrace_push(&call_trace, 0);
 
 	/* Clear the exception context */
 	jit_exception_clear_last();

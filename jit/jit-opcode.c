@@ -429,6 +429,7 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	{"call_filter_return",			F_(ANY, EMPTY, EMPTY)},
 	{"prepare_for_leave",			F_(EMPTY, EMPTY, EMPTY)},
 	{"prepare_for_return",			F_(EMPTY, EMPTY, EMPTY)},
+	{"jump_to_catcher",				F_(EMPTY, PTR, EMPTY)},
 
 	/*
 	 * Data manipulation.

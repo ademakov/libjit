@@ -432,16 +432,13 @@ void jit_stack_trace_free(jit_stack_trace_t trace)
 	}
 }
 
-void _jit_backtrace_push
-	(jit_backtrace_t trace, void *pc, void *catch_pc, void *sp)
+void _jit_backtrace_push(jit_backtrace_t trace, void *pc)
 {
 	jit_thread_control_t control = _jit_thread_get_control();
 	if(control)
 	{
 		trace->parent = control->backtrace_head;
 		trace->pc = pc;
-		trace->catch_pc = catch_pc;
-		trace->sp = sp;
 		trace->security_object = 0;
 		trace->free_security_object = 0;
 		control->backtrace_head = trace;
@@ -450,8 +447,6 @@ void _jit_backtrace_push
 	{
 		trace->parent = 0;
 		trace->pc = pc;
-		trace->catch_pc = catch_pc;
-		trace->sp = sp;
 		trace->security_object = 0;
 		trace->free_security_object = 0;
 	}
@@ -490,6 +485,7 @@ void _jit_unwind_push_setjmp(jit_jmp_buf *jbuf)
 	if(control)
 	{
 		jbuf->trace = control->backtrace_head;
+		jbuf->catcher = 0;
 		jbuf->parent = control->setjmp_head;
 		control->setjmp_head = jbuf;
 	}
@@ -503,4 +499,10 @@ void _jit_unwind_pop_setjmp(void)
 		control->backtrace_head = control->setjmp_head->trace;
 		control->setjmp_head = control->setjmp_head->parent;
 	}
+}
+
+void _jit_unwind_pop_and_rethrow(void)
+{
+	_jit_unwind_pop_setjmp();
+	jit_exception_throw(jit_exception_get_last());
 }

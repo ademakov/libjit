@@ -298,6 +298,8 @@ struct _jit_builder
 	/* Exception handlers for the function */
 	jit_block_eh_t		exception_handlers;
 	jit_block_eh_t		current_handler;
+	jit_value_t			setjmp_value;
+	jit_label_t			longjmp_label;
 
 	/* Flag that is set to indicate that this function is not a leaf */
 	int					non_leaf : 1;
@@ -458,8 +460,6 @@ struct jit_backtrace
 {
 	jit_backtrace_t		parent;
 	void			   *pc;
-	void			   *catch_pc;
-	void			   *sp;
 	void			   *security_object;
 	jit_meta_free_func  free_security_object;
 };
@@ -467,8 +467,7 @@ struct jit_backtrace
 /*
  * Push a new backtrace onto the stack.  The fields in "trace" are filled in.
  */
-void _jit_backtrace_push
-	(jit_backtrace_t trace, void *pc, void *catch_pc, void *sp);
+void _jit_backtrace_push(jit_backtrace_t trace, void *pc);
 
 /*
  * Pop the top-most backtrace item.

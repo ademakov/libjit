@@ -20,6 +20,7 @@
 
 #include "jit-internal.h"
 #include "jit-rules.h"
+#include "jit-setjmp.h"
 #include <config.h>
 #if HAVE_ALLOCA_H
 	#include <alloca.h>
@@ -4624,8 +4625,22 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 	jit_type_t params[2];
 	jit_value_t struct_return;
 
-	/* If the "nothrow" or "tail" flags are set, then we don't
-	   need to worry about this */
+	/* If "tail" is set, then we need to pop the "setjmp" context */
+	if((flags & JIT_CALL_TAIL) != 0 && func->has_try)
+	{
+		type = jit_type_create_signature
+			(jit_abi_cdecl, jit_type_void, 0, 0, 1);
+		if(!type)
+		{
+			return 0;
+		}
+		jit_insn_call_native
+			(func, "_jit_unwind_pop_setjmp",
+			 (void *)_jit_unwind_pop_setjmp, type, 0, 0, JIT_CALL_NOTHROW);
+		jit_type_free(type);
+	}
+
+	/* If "nothrow" or "tail" is set, then there is no more to do */
 	if((flags & (JIT_CALL_NOTHROW | JIT_CALL_TAIL)) != 0)
 	{
 		return 1;
@@ -4634,6 +4649,7 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 	/* This function may throw an exception */
 	func->builder->may_throw = 1;
 
+#if JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
 	/* Get the value that holds the exception frame information */
 	if((eh_frame_info = func->builder->eh_frame_info) == 0)
 	{
@@ -4685,43 +4701,44 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 		return 0;
 	}
 
-	/* Set up to call the "_jit_backtrace_push" intrinsic */
-	if(!_jit_create_call_setup_insns
-			(func, type, args, 2, 0, 0, &struct_return))
-	{
-		jit_type_free(type);
-		return 0;
-	}
+	/* Call the "_jit_backtrace_push" function */
+	jit_insn_call_native
+		(func, "_jit_backtrace_push",
+		 (void *)_jit_backtrace_push, type, args, 2, JIT_CALL_NOTHROW);
+	jit_type_free(type);
+#endif
 
-	/* Terminate the current block and then call "_jit_backtrace_push" */
-	block = _jit_block_create(func, 0);
-	if(!block)
+	/* Are we currently within a "try" context covered by a "catch"? */
+	block = func->builder->current_block;
+	if(block->block_eh &&
+	   block->block_eh->catch_label != jit_label_undefined &&
+	   func->builder->setjmp_value != 0)
 	{
-		jit_type_free(type);
-		return 0;
-	}
-	block->entered_via_top = 1;
-	func->builder->current_block = block;
-	insn = _jit_block_add_insn(block);
-	if(!insn)
-	{
-		jit_type_free(type);
-		return 0;
-	}
-	insn->opcode = JIT_OP_CALL_EXTERNAL;
-	insn->flags = JIT_INSN_DEST_IS_NATIVE | JIT_INSN_VALUE1_IS_NAME;
-	insn->dest = (jit_value_t)(void *)_jit_backtrace_push;
-	insn->value1 = (jit_value_t)"_jit_backtrace_push";
-
-	/* Clean up after the function call */
-	if(!_jit_create_call_return_insns(func, type, args, 2, 0, 0))
-	{
-		jit_type_free(type);
-		return 0;
+		/* Set the "catcher" field within "setjmp_value" to the catcher */
+		args[0] = jit_value_create(func, jit_type_void_ptr);
+		if(!(args[0]))
+		{
+			return 0;
+		}
+		insn = _jit_block_add_insn(func->builder->current_block);
+		if(!insn)
+		{
+			return 0;
+		}
+		jit_value_ref(func, args[1]);
+		insn->opcode = JIT_OP_LOAD_CATCHER_PC;
+		insn->flags |= JIT_INSN_VALUE1_IS_LABEL;
+		insn->dest = args[0];
+		insn->value1 = (jit_value_t)(block->block_eh->catch_label);
+		if(!jit_insn_store_relative
+			(func, jit_insn_address_of(func->builder->setjmp_value),
+			 jit_jmp_catcher_offset, args[0]))
+		{
+			return 0;
+		}
 	}
 
 	/* We are now ready to make the actual function call */
-	jit_type_free(type);
 	return 1;
 #else /* JIT_BACKEND_INTERP */
 	/* The interpreter handles exception frames for us */
@@ -4751,6 +4768,7 @@ static int restore_eh_frame_after_call(jit_function_t func, int flags)
 		return 1;
 	}
 
+#if JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
 	/* Create the signature prototype "void (void)" */
 	type = jit_type_create_signature
 		(jit_abi_cdecl, jit_type_void, 0, 0, 0);
@@ -4759,43 +4777,34 @@ static int restore_eh_frame_after_call(jit_function_t func, int flags)
 		return 0;
 	}
 
-	/* Set up to call the "_jit_backtrace_pop" intrinsic */
-	if(!_jit_create_call_setup_insns
-			(func, type, 0, 0, 0, 0, &struct_return))
-	{
-		jit_type_free(type);
-		return 0;
-	}
+	/* Call the "_jit_backtrace_pop" function */
+	jit_insn_call_native
+		(func, "_jit_backtrace_pop",
+		 (void *)_jit_backtrace_pop, type, 0, 0, JIT_CALL_NOTHROW);
+	jit_type_free(type);
+#endif
 
-	/* Terminate the current block and then call "_jit_backtrace_pop" */
-	block = _jit_block_create(func, 0);
-	if(!block)
+	/* Are we currently within a "try" context covered by a "catch"? */
+	block = func->builder->current_block;
+	if(block->block_eh &&
+	   block->block_eh->catch_label != jit_label_undefined &&
+	   func->builder->setjmp_value != 0)
 	{
-		jit_type_free(type);
-		return 0;
-	}
-	block->entered_via_top = 1;
-	func->builder->current_block = block;
-	insn = _jit_block_add_insn(block);
-	if(!insn)
-	{
-		jit_type_free(type);
-		return 0;
-	}
-	insn->opcode = JIT_OP_CALL_EXTERNAL;
-	insn->flags = JIT_INSN_DEST_IS_NATIVE | JIT_INSN_VALUE1_IS_NAME;
-	insn->dest = (jit_value_t)(void *)_jit_backtrace_pop;
-	insn->value1 = (jit_value_t)"_jit_backtrace_pop";
-
-	/* Clean up after the function call */
-	if(!_jit_create_call_return_insns(func, type, 0, 0, 0, 0))
-	{
-		jit_type_free(type);
-		return 0;
+		/* Set the "catcher" field within "setjmp_value" to NULL */
+		args[0] = jit_value_create_nint_constant(func, jit_type_void_ptr, 0);
+		if(!(args[0]))
+		{
+			return 0;
+		}
+		if(!jit_insn_store_relative
+			(func, jit_insn_address_of(func->builder->setjmp_value),
+			 jit_jmp_catcher_offset, args[0]))
+		{
+			return 0;
+		}
 	}
 
 	/* Everything is back to where it should be */
-	jit_type_free(type);
 	return 1;
 #else /* JIT_BACKEND_INTERP */
 	/* The interpreter handles exception frames for us */
@@ -4961,12 +4970,11 @@ jit_value_t jit_insn_call
 	   it will be eliminated during later code generation */
 	if((flags & JIT_CALL_NORETURN) != 0)
 	{
-		block = _jit_block_create(func, 0);
-		if(!block)
+		func->builder->current_block->ends_in_dead = 1;
+		if(!jit_insn_label(func, 0))
 		{
 			return 0;
 		}
-		func->builder->current_block = block;
 	}
 
 	/* Create space for the return value, if we don't already have one */
@@ -5076,12 +5084,11 @@ jit_value_t jit_insn_call_indirect
 	   it will be eliminated during later code generation */
 	if((flags & JIT_CALL_NORETURN) != 0)
 	{
-		block = _jit_block_create(func, 0);
-		if(!block)
+		func->builder->current_block->ends_in_dead = 1;
+		if(!jit_insn_label(func, 0))
 		{
 			return 0;
 		}
-		func->builder->current_block = block;
 	}
 
 	/* Create space for the return value, if we don't already have one */
@@ -5193,12 +5200,11 @@ jit_value_t jit_insn_call_indirect_vtable
 	   it will be eliminated during later code generation */
 	if((flags & JIT_CALL_NORETURN) != 0)
 	{
-		block = _jit_block_create(func, 0);
-		if(!block)
+		func->builder->current_block->ends_in_dead = 1;
+		if(!jit_insn_label(func, 0))
 		{
 			return 0;
 		}
-		func->builder->current_block = block;
 	}
 
 	/* Create space for the return value, if we don't already have one */
@@ -5306,12 +5312,11 @@ jit_value_t jit_insn_call_native
 	   it will be eliminated during later code generation */
 	if((flags & JIT_CALL_NORETURN) != 0)
 	{
-		block = _jit_block_create(func, 0);
-		if(!block)
+		func->builder->current_block->ends_in_dead = 1;
+		if(!jit_insn_label(func, 0))
 		{
 			return 0;
 		}
-		func->builder->current_block = block;
 	}
 
 	/* Create space for the return value, if we don't already have one */
@@ -6218,6 +6223,184 @@ jit_value_t jit_insn_get_call_stack(jit_function_t func)
 	return value;
 }
 
+/*
+ * Initialize the "setjmp" setup block that is needed to catch exceptions
+ * thrown back to this level of execution.  The block looks like this:
+ *
+ *		jit_jmp_buf jbuf;
+ *		void *catcher;
+ *
+ *      _jit_unwind_push_setjmp(&jbuf);
+ *      if(setjmp(&jbuf.buf))
+ *		{
+ *			catcher = jbuf.catcher;
+ *			if(catcher)
+ *			{
+ *				jbuf.catcher = 0;
+ *				goto *catcher;
+ *			}
+ *			else
+ *			{
+ *				_jit_unwind_pop_and_rethrow();
+ *			}
+ *		}
+ *
+ * The field "jbuf.catcher" will be set to the address of the relevant
+ * "catch" block just before a subroutine call that may involve exceptions.
+ * It will be reset to NULL after such subroutine calls.
+ *
+ * Native back ends are responsible for outputting a call to the function
+ * "_jit_unwind_pop_setjmp()" just before "return" instructions if the
+ * "has_try" flag is set on the function.
+ */
+static int initialize_setjmp_block(jit_function_t func)
+{
+#if !defined(JIT_BACKEND_INTERP)
+	jit_label_t start_label = jit_label_undefined;
+	jit_label_t end_label = jit_label_undefined;
+	jit_label_t rethrow_label = jit_label_undefined;
+	jit_type_t type;
+	jit_value_t args[1];
+	jit_value_t value;
+
+	/* Bail out if we have already done this before */
+	if(func->builder->setjmp_value)
+	{
+		return 1;
+	}
+	func->builder->longjmp_label = jit_label_undefined;
+
+	/* Force the start of a new block to mark the start of the init code */
+	if(!jit_insn_label(func, &start_label))
+	{
+		return 0;
+	}
+
+	/* Create a value to hold an item of type "jit_jmp_buf" */
+	type = jit_type_create_struct(0, 0, 1);
+	if(!type)
+	{
+		return 0;
+	}
+	jit_type_set_size_and_alignment
+		(type, sizeof(jit_jmp_buf), JIT_BEST_ALIGNMENT);
+	if((func->builder->setjmp_value = jit_value_create(func, type)) == 0)
+	{
+		jit_type_free(type);
+		return 0;
+	}
+	jit_type_free(type);
+
+	/* Call "_jit_unwind_push_setjmp" with "&setjmp_value" as its argument */
+	type = jit_type_void_ptr;
+	type = jit_type_create_signature
+		(jit_abi_cdecl, jit_type_void, &type, 1, 1);
+	if(!type)
+	{
+		return 0;
+	}
+	args[0] = jit_insn_address_of(func, func->builder->setjmp_value);
+	jit_insn_call_native
+		(func, "_jit_unwind_push_setjmp",
+		 (void *)_jit_unwind_push_setjmp, type, args, 1, JIT_CALL_NOTHROW);
+	jit_type_free(type);
+
+	/* Call "setjmp" with "&setjmp_value" as its argument */
+	type = jit_type_void_ptr;
+	type = jit_type_create_signature
+		(jit_abi_cdecl, jit_type_int, &type, 1, 1);
+	if(!type)
+	{
+		return 0;
+	}
+	args[0] = jit_insn_address_of(func, func->builder->setjmp_value);
+	value = jit_insn_call_native
+		(func, "setjmp", (void *)setjmp, type, args, 1, JIT_CALL_NOTHROW);
+	jit_type_free(type);
+	if(!value)
+	{
+		return 0;
+	}
+
+	/* Branch to the end of the init code if "setjmp" returned zero */
+	if(!jit_insn_branch_if_not(func, value, &end_label))
+	{
+		return 0;
+	}
+
+	/* The current point in the code is where "longjmp" will resume from */
+	if(!jit_insn_label(func, &(func->builder->longjmp_label)))
+	{
+		return 0;
+	}
+
+	/* Get the value of "catcher" from within "setjmp_value".  This indicates
+	   which catcher we should use to handle the thrown exception.  If the
+	   catcher is NULL, then we need to rethrow the exception higher up
+	   because it isn't covered by any of the catch blocks that we have */
+	value = jit_insn_load_relative
+		(func, jit_insn_address_of(func, func->builder->setjmp_value),
+		 jit_jmp_catcher_offset, jit_type_void_ptr);
+	if(!value)
+	{
+		return 0;
+	}
+	if(!jit_insn_branch_if_not(func, value, &rethrow_label))
+	{
+		return 0;
+	}
+
+	/* Clear the original "catcher" value within "setjmp_value" */
+	if(!jit_insn_store_relative
+		(func, jit_insn_address_of(func, func->builder->setjmp_value),
+		 jit_jmp_catcher_offset, jit_value_create_nint_constant
+		 	(func, jit_type_void_ptr, 0)))
+	{
+		return 0;
+	}
+
+	/* Jump to the address indicated by the catcher */
+	if(!create_unary_note(func, JIT_OP_JUMP_TO_CATCHER, value))
+	{
+		return 0;
+	}
+	func->builder->current_block->ends_in_dead = 1;
+
+	/* Mark the position of the rethrow label */
+	if(!jit_insn_label(func, &rethrow_label))
+	{
+		return 0;
+	}
+
+	/* Call "_jit_unwind_pop_and_rethrow" to pop the current
+	   "setjmp" context and then rethrow the current exception */
+	type = jit_type_create_signature
+		(jit_abi_cdecl, jit_type_void, 0, 0, 1);
+	if(!type)
+	{
+		return 0;
+	}
+	jit_insn_call_native
+		(func, "_jit_unwind_pop_and_rethrow",
+		 (void *)_jit_unwind_pop_and_rethrow, type, 0, 0,
+		 JIT_CALL_NOTHROW | JIT_CALL_NORETURN);
+	jit_type_free(type);
+
+	/* Force the start of a new block to mark the end of the init code */
+	if(!jit_insn_label(func, &end_label))
+	{
+		return 0;
+	}
+
+	/* Move the initialization code to the head of the function so that
+	   it is performed once upon entry to the function */
+	return jit_insn_move_blocks_to_start(func, start_label, end_label);
+#else
+	/* The interpreter doesn't need the "setjmp" setup block */
+	return 1;
+#endif
+}
+
 /*@
  * @deftypefun int jit_insn_start_try (jit_function_t func, {jit_label_t *} catch_label, {jit_label_t *} finally_label, int finally_on_fault)
  * Start an exception-handling @code{try} block at the current position
@@ -6279,6 +6462,12 @@ int jit_insn_start_try
 	   back ends know when they must be careful about global
 	   register allocation */
 	func->has_try = 1;
+
+	/* Make sure that the "setjmp" setup block is present in this function */
+	if(!initialize_setjmp_block(func))
+	{
+		return 0;
+	}
 
 	/* Anything with a finally handler makes the function not a leaf,
 	   because we may need to do a native "call" to invoke the handler */

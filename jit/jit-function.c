@@ -1284,7 +1284,7 @@ int jit_function_apply_vararg
 
 	/* Create a backtrace entry that blocks exceptions from
 	   flowing further than this up the stack */
-	_jit_backtrace_push(&call_trace, 0, 0, 0);
+	_jit_backtrace_push(&call_trace, 0);
 
 	/* Get the function's entry point */
 	if(!func)
