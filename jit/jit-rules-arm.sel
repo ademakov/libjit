@@ -149,6 +149,26 @@ JIT_OP_INEG: unary
 		arm_alu_reg_imm8(inst, ARM_RSB, $1, $1, 0);
 	}
 
+JIT_OP_LADD: binary
+	[lreg, lreg] -> {
+		arm_alu_cc_reg_reg(inst, ARM_ADD, $1, $1, $2);
+		arm_alu_reg_reg(inst, ARM_ADC, %1, %1, %2);
+	}
+
+JIT_OP_LSUB: binary
+	[lreg, lreg] -> {
+		arm_alu_cc_reg_reg(inst, ARM_SUB, $1, $1, $2);
+		arm_alu_reg_reg(inst, ARM_SBC, %1, %1, %2);
+	}
+
+JIT_OP_LNEG: unary
+	[lreg] -> {
+		arm_alu_reg(inst, ARM_MVN, $1, $1);
+		arm_alu_reg(inst, ARM_MVN, %1, %1);
+		arm_alu_cc_reg_imm8(inst, ARM_ADD, $1, $1, 1);
+		arm_alu_reg_imm8(inst, ARM_ADC, %1, %1, 0);
+	}
+
 JIT_OP_FADD (JIT_ARM_HAS_FLOAT_REGS): binary
 	[freg, freg] -> {
 		arm_alu_freg_freg_32(inst, ARM_ADF, $1, $1, $2);
@@ -258,6 +278,30 @@ JIT_OP_ISHR_UN: binary
 	[reg, reg] -> {
 		arm_alu_reg_imm8(inst, ARM_AND, ARM_WORK, $2, 0x1F);
 		arm_shift_reg_reg(inst, ARM_SHR, $1, $1, ARM_WORK);
+	}
+
+JIT_OP_LAND: binary
+	[lreg, lreg] -> {
+		arm_alu_reg_reg(inst, ARM_AND, $1, $1, $2);
+		arm_alu_reg_reg(inst, ARM_AND, %1, %1, %2);
+	}
+
+JIT_OP_LOR: binary
+	[lreg, lreg] -> {
+		arm_alu_reg_reg(inst, ARM_ORR, $1, $1, $2);
+		arm_alu_reg_reg(inst, ARM_ORR, %1, %1, %2);
+	}
+
+JIT_OP_LXOR: binary
+	[lreg, lreg] -> {
+		arm_alu_reg_reg(inst, ARM_EOR, $1, $1, $2);
+		arm_alu_reg_reg(inst, ARM_EOR, %1, %1, %2);
+	}
+
+JIT_OP_LNOT: unary
+	[lreg] -> {
+		arm_alu_reg(inst, ARM_MVN, $1, $1);
+		arm_alu_reg(inst, ARM_MVN, %1, %1);
 	}
 
 /*
@@ -599,22 +643,22 @@ JIT_OP_RETURN_INT: unary_branch
 		jump_to_epilog(gen, &inst, block);
 	}
 
-JIT_OP_RETURN_LONG: spill_before
-	[] -> {
-		if(jit_value_is_constant(insn->value1))
+JIT_OP_RETURN_LONG: unary_branch
+	[imm] -> {
+		mov_reg_imm(gen, &inst, ARM_R0, ((jit_int *)($1))[0]);
+		mov_reg_imm(gen, &inst, ARM_R1, ((jit_int *)($1))[1]);
+		jump_to_epilog(gen, &inst, block);
+	}
+	[local] -> {
+		arm_load_membase(inst, ARM_R0, ARM_FP, $1);
+		arm_load_membase(inst, ARM_R1, ARM_FP, $1 + 4);
+		jump_to_epilog(gen, &inst, block);
+	}
+	[lreg] -> {
+		if($1 != 0)
 		{
-			mov_reg_imm
-				(gen, &inst, ARM_R0, ((jit_int *)(insn->value1->address))[0]);
-			mov_reg_imm
-				(gen, &inst, ARM_R1, ((jit_int *)(insn->value1->address))[1]);
-		}
-		else
-		{
-			jit_nint offset;
-			_jit_gen_fix_value(insn->value1);
-			offset = insn->value1->frame_offset;
-			arm_load_membase(inst, ARM_R0, ARM_FP, offset);
-			arm_load_membase(inst, ARM_R1, ARM_FP, offset + 4);
+			arm_mov_reg_reg(inst, ARM_R0, $1);
+			arm_mov_reg_reg(inst, ARM_R1, %1);
 		}
 		jump_to_epilog(gen, &inst, block);
 	}
@@ -815,38 +859,8 @@ JIT_OP_COPY_LOAD_USHORT: unary
 JIT_OP_COPY_INT: unary
 	[reg] -> {}
 
-JIT_OP_COPY_LONG: manual
-	[] -> {
-		arm_inst_buf inst;
-		_jit_regs_force_out(gen, insn->value1, 0);
-		_jit_regs_force_out(gen, insn->dest, 1);
-		_jit_gen_fix_value(insn->value1);
-		_jit_gen_fix_value(insn->dest);
-		jit_gen_load_inst_ptr(gen, inst);
-		if(insn->value1->is_constant)
-		{
-			mov_reg_imm
-				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
-			arm_store_membase(inst, ARM_WORK, ARM_FP,
-							  insn->dest->frame_offset);
-			mov_reg_imm
-				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
-			arm_store_membase(inst, ARM_WORK, ARM_FP,
-							  insn->dest->frame_offset + 4);
-		}
-		else
-		{
-			arm_load_membase(inst, ARM_WORK, ARM_FP,
-							 insn->value1->frame_offset);
-			arm_store_membase(inst, ARM_WORK, ARM_FP,
-							  insn->dest->frame_offset);
-			arm_load_membase(inst, ARM_WORK, ARM_FP,
-							 insn->value1->frame_offset + 4);
-			arm_store_membase(inst, ARM_WORK, ARM_FP,
-							  insn->dest->frame_offset + 4);
-		}
-		jit_gen_save_inst_ptr(gen, inst);
-	}
+JIT_OP_COPY_LONG: unary
+	[lreg] -> {}
 
 JIT_OP_COPY_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary
 	[freg] -> {}
@@ -985,31 +999,10 @@ JIT_OP_PUSH_INT: unary_note
 		arm_push_reg(inst, $1);
 	}
 
-JIT_OP_PUSH_LONG: manual
-	[] -> {
-		arm_inst_buf inst;
-		_jit_regs_force_out(gen, insn->value1, 0);
-		_jit_gen_fix_value(insn->value1);
-		jit_gen_load_inst_ptr(gen, inst);
-		if(insn->value1->is_constant)
-		{
-			mov_reg_imm
-				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
-			arm_push_reg(inst, ARM_WORK);
-			mov_reg_imm
-				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
-			arm_push_reg(inst, ARM_WORK);
-		}
-		else
-		{
-			arm_load_membase(inst, ARM_WORK, ARM_FP,
-							 insn->value1->frame_offset + 4);
-			arm_push_reg(inst, ARM_WORK);
-			arm_load_membase(inst, ARM_WORK, ARM_FP,
-							 insn->value1->frame_offset);
-			arm_push_reg(inst, ARM_WORK);
-		}
-		jit_gen_save_inst_ptr(gen, inst);
+JIT_OP_PUSH_LONG: unary_note
+	[lreg] -> {
+		arm_push_reg(inst, %1);
+		arm_push_reg(inst, $1);
 	}
 
 JIT_OP_PUSH_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary_note
@@ -1154,35 +1147,10 @@ JIT_OP_SET_PARAM_INT: unary_note
 		arm_store_membase(inst, $1, ARM_SP, insn->value2->address);
 	}
 
-JIT_OP_SET_PARAM_LONG: manual
-	[] -> {
-		arm_inst_buf inst;
-		_jit_regs_force_out(gen, insn->value1, 0);
-		_jit_gen_fix_value(insn->value1);
-		jit_gen_load_inst_ptr(gen, inst);
-		if(insn->value1->is_constant)
-		{
-			mov_reg_imm
-				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
-			arm_store_membase
-				(inst, ARM_WORK, ARM_SP, insn->value2->address);
-			mov_reg_imm
-				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
-			arm_store_membase
-				(inst, ARM_WORK, ARM_SP, insn->value2->address + 4);
-		}
-		else
-		{
-			arm_load_membase(inst, ARM_WORK, ARM_FP,
-							 insn->value1->frame_offset);
-			arm_store_membase
-				(inst, ARM_WORK, ARM_SP, insn->value2->address);
-			arm_load_membase(inst, ARM_WORK, ARM_FP,
-							 insn->value1->frame_offset + 4);
-			arm_store_membase
-				(inst, ARM_WORK, ARM_SP, insn->value2->address + 4);
-		}
-		jit_gen_save_inst_ptr(gen, inst);
+JIT_OP_SET_PARAM_LONG: unary_note
+	[lreg] -> {
+		arm_store_membase(inst, $1, ARM_SP, insn->value2->address);
+		arm_store_membase(inst, %1, ARM_SP, insn->value2->address + 4);
 	}
 
 JIT_OP_SET_PARAM_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary_note

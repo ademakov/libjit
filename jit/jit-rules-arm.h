@@ -48,9 +48,9 @@ extern	"C" {
 	#define	JIT_REG_ARM_FLOAT	JIT_REG_FIXED
 #endif
 #define	JIT_REG_INFO	\
-	{"r0",   0,  1, JIT_REG_WORD | JIT_REG_CALL_USED}, \
+	{"r0",   0,  1, JIT_REG_WORD | JIT_REG_LONG | JIT_REG_CALL_USED}, \
 	{"r1",   1, -1, JIT_REG_WORD | JIT_REG_CALL_USED}, \
-	{"r2",   2,  3, JIT_REG_WORD | JIT_REG_CALL_USED}, \
+	{"r2",   2,  3, JIT_REG_WORD | JIT_REG_LONG | JIT_REG_CALL_USED}, \
 	{"r3",   3, -1, JIT_REG_WORD | JIT_REG_CALL_USED}, \
 	{"r4",   4, -1, JIT_REG_WORD}, \
 	{"r5",   5, -1, JIT_REG_WORD}, \

@@ -257,6 +257,26 @@ static void gensel_output_clause_code(gensel_clause_t clause)
 			}
 			code += 2;
 		}
+		else if(*code == '%' && code[1] >= '1' && code[1] <= '9')
+		{
+			index = code[1] - '1';
+			switch(clause->pattern[index])
+			{
+				case GENSEL_PATT_REG:
+				case GENSEL_PATT_LREG:
+				case GENSEL_PATT_FREG:
+				{
+					if(index == 0)
+						printf("_jit_reg_info[_jit_reg_info[reg].other_reg].cpu_reg");
+					else if(index == 1)
+						printf("_jit_reg_info[_jit_reg_info[reg2].other_reg].cpu_reg");
+					else
+						printf("_jit_reg_info[_jit_reg_info[reg3].other_reg].cpu_reg");
+				}
+				break;
+			}
+			code += 2;
+		}
 		else if(*code == '\n')
 		{
 			putc(*code, stdout);

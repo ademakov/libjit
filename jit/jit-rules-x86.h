@@ -29,8 +29,8 @@ extern	"C" {
  * Information about all of the registers, in allocation order.
  */
 #define	JIT_REG_INFO	\
-	{"eax", 0, 2, JIT_REG_WORD | JIT_REG_CALL_USED}, \
-	{"ecx", 1, 3, JIT_REG_WORD | JIT_REG_CALL_USED}, \
+	{"eax", 0, 2, JIT_REG_WORD | JIT_REG_LONG | JIT_REG_CALL_USED}, \
+	{"ecx", 1, 3, JIT_REG_WORD | JIT_REG_LONG | JIT_REG_CALL_USED}, \
 	{"edx", 2, -1, JIT_REG_WORD | JIT_REG_CALL_USED}, \
 	{"ebx", 3, -1, JIT_REG_WORD | JIT_REG_GLOBAL}, \
 	{"esi", 6, -1, JIT_REG_WORD | JIT_REG_GLOBAL}, \
