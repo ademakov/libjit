@@ -746,7 +746,42 @@ void _jit_regs_set_incoming(jit_gencode_t gen, int reg, jit_value_t value)
 @*/
 void _jit_regs_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value)
 {
-	/* TODO */
+	int other_reg;
+
+	if(value->in_register && value->reg == reg)
+	{
+		/* The value is already in the register, but we may need to spill
+		   if the frame copy is not up to date with the register */
+		if(!(value->in_global_register) && !(value->in_frame) &&
+		   !(value->is_temporary))
+		{
+			free_reg_and_spill(gen, reg, 1, 1);
+		}
+
+		/* The value is no longer "really" in the register.  A copy is
+		   left behind, but the value itself reverts to the frame copy
+		   as we are about to kill the registers in a function call */
+		value->in_register = 0;
+		value->reg = -1;
+	}
+	else
+	{
+		/* Force the value out of whatever register it is already in */
+		_jit_regs_force_out(gen, value, 0);
+
+		/* Reload the value into the specified register */
+		if(_jit_regs_needs_long_pair(value->type))
+		{
+			_jit_regs_want_reg(gen, reg, 1);
+			other_reg = _jit_reg_info[reg].other_reg;
+			_jit_gen_load_value(gen, reg, other_reg, value);
+		}
+		else
+		{
+			_jit_regs_want_reg(gen, reg, 0);
+			_jit_gen_load_value(gen, reg, -1, value);
+		}
+	}
 }
 
 /*@
