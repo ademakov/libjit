@@ -149,6 +149,11 @@ int _jit_function_ensure_builder(jit_function_t func)
 		return 0;
 	}
 
+	/* The current position is where initialization code will be
+	   inserted by "jit_insn_move_blocks_to_start" */
+	func->builder->init_block = func->builder->current_block;
+	func->builder->init_insn = func->builder->current_block->last_insn + 1;
+
 	/* The builder is ready to go */
 	return 1;
 }

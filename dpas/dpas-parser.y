@@ -1857,7 +1857,7 @@ WhileStatement
 			} Statement			{
 
 				/* Move the expression blocks down to this point */
-				jit_insn_move_blocks
+				jit_insn_move_blocks_to_end
 					(dpas_current_function(),
 					 loop_stack[loop_stack_size - 1].expr_label,
 					 loop_stack[loop_stack_size - 1].top_label);

@@ -291,6 +291,10 @@ struct _jit_builder
 	/* The current block that is being constructed */
 	jit_block_t			current_block;
 
+	/* The position to insert initialization blocks */
+	jit_block_t			init_block;
+	int					init_insn;
+
 	/* Exception handlers for the function */
 	jit_block_eh_t		exception_handlers;
 	jit_block_eh_t		current_handler;

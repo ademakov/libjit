@@ -5,6 +5,11 @@
 	conditional branches to cross an exception context boundary,
 	because doing so will violate "finally" semantics.
 
+	* dpas/dpas-parser.y, include/jit/jit-insn.h, jit/jit-function.c,
+	jit/jit-insn.c, jit/jit-internal.h: rename "jit_insn_move_blocks"
+	to "jit_insn_move_blocks_to_end" and add a new function
+	"jit_insn_move_blocks_to_start" for creating initialization code.
+
 2004-05-21  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-gen-arm.c, jit/jit-gen-arm.h: modify the ARM codegen

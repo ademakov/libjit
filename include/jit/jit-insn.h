@@ -282,7 +282,9 @@ int jit_insn_memset
 jit_value_t jit_insn_alloca
 	(jit_function_t func, jit_value_t size) JIT_NOTHROW;
 
-int jit_insn_move_blocks
+int jit_insn_move_blocks_to_end
+	(jit_function_t func, jit_label_t from_label, jit_label_t to_label);
+int jit_insn_move_blocks_to_start
 	(jit_function_t func, jit_label_t from_label, jit_label_t to_label);
 
 void jit_insn_iter_init(jit_insn_iter_t *iter, jit_block_t block) JIT_NOTHROW;

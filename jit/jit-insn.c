@@ -6649,8 +6649,60 @@ jit_value_t jit_insn_alloca(jit_function_t func, jit_value_t size)
 	return apply_unary(func, JIT_OP_ALLOCA, size, jit_type_void_ptr);
 }
 
+/*
+ * Detach a block from its current position in a function.
+ */
+static void detach_block(jit_block_t block)
+{
+	if(block->next)
+	{
+		block->next->prev = block->prev;
+	}
+	else
+	{
+		block->func->builder->last_block = block->prev;
+	}
+	if(block->prev)
+	{
+		block->prev->next = block->next;
+	}
+	else
+	{
+		block->func->builder->first_block = block->next;
+	}
+}
+
+/*
+ * Attach a block to a function after a specific position.
+ */
+static void attach_block_after(jit_block_t block, jit_block_t after)
+{
+	if(after)
+	{
+		block->next = after->next;
+		block->prev = after;
+		if(after->next)
+		{
+			after->next->prev = block;
+		}
+		else
+		{
+			block->func->builder->last_block = block;
+		}
+		after->next = block;
+	}
+	else
+	{
+		/* Can only happen if the block list is empty */
+		block->next = 0;
+		block->prev = 0;
+		block->func->builder->first_block = block;
+		block->func->builder->last_block = block;
+	}
+}
+
 /*@
- * @deftypefun int jit_insn_move_blocks (jit_function_t func, jit_label_t from_label, jit_label_t to_label)
+ * @deftypefun int jit_insn_move_blocks_to_end (jit_function_t func, jit_label_t from_label, jit_label_t to_label)
  * Move all of the blocks between @code{from_label} (inclusive) and
  * @code{to_label} (exclusive) to the end of the current function.
  * This is typically used to move the expression in a @code{while}
@@ -6658,7 +6710,7 @@ jit_value_t jit_insn_alloca(jit_function_t func, jit_value_t size)
  * efficiently.
  * @end deftypefun
 @*/
-int jit_insn_move_blocks
+int jit_insn_move_blocks_to_end
 	(jit_function_t func, jit_label_t from_label, jit_label_t to_label)
 {
 	jit_block_t first_block;
@@ -6677,33 +6729,8 @@ int jit_insn_move_blocks
 	while(block != 0 && block->label != to_label)
 	{
 		next = block->next;
-		if(block->next != 0)
-		{
-			block->next->prev = block->prev;
-		}
-		else
-		{
-			func->builder->last_block = block->prev;
-		}
-		if(block->prev != 0)
-		{
-			block->prev->next = block->next;
-		}
-		else
-		{
-			func->builder->first_block = block->next;
-		}
-		block->next = 0;
-		block->prev = func->builder->last_block;
-		if(func->builder->last_block)
-		{
-			func->builder->last_block->next = block;
-		}
-		else
-		{
-			func->builder->first_block = block;
-		}
-		func->builder->last_block = block;
+		detach_block(block);
+		attach_block_after(block, func->builder->last_block);
 		block = next;
 	}
 	func->builder->current_block = func->builder->last_block;
@@ -6713,6 +6740,86 @@ int jit_insn_move_blocks
 
 	/* Create a new block after the last one we moved, to start fresh */
 	return jit_insn_label(func, 0);
+}
+
+/*@
+ * @deftypefun int jit_insn_move_blocks_to_start (jit_function_t func, jit_label_t from_label, jit_label_t to_label)
+ * Move all of the blocks between @code{from_label} (inclusive) and
+ * @code{to_label} (exclusive) to the start of the current function.
+ * This is typically used to move initialization code to the head
+ * of the function.
+ * @end deftypefun
+@*/
+int jit_insn_move_blocks_to_start
+	(jit_function_t func, jit_label_t from_label, jit_label_t to_label)
+{
+	jit_block_t first_block;
+	jit_block_t init_block;
+	jit_block_t block;
+	jit_block_t next;
+	int move_current;
+
+	/* Find the first block that needs to be moved */
+	first_block = jit_block_from_label(func, from_label);
+	if(!first_block)
+	{
+		return 0;
+	}
+
+	/* If this is the first time that we have done this, we may need to
+	   split the function's entry block just after the arguments are set up */
+	init_block = func->builder->init_block;
+	if(func->builder->init_insn >= 0)
+	{
+		if(func->builder->init_insn <= init_block->last_insn)
+		{
+			block = _jit_block_create(func, 0);
+			if(!block)
+			{
+				return 0;
+			}
+			block->entered_via_top = 1;
+			block->first_insn = func->builder->init_insn;
+			block->last_insn = init_block->last_insn;
+			init_block->last_insn = func->builder->init_insn - 1;
+			detach_block(block);
+			attach_block_after(block, init_block);
+		}
+		func->builder->init_insn = -1;
+	}
+
+	/* If the first block is just after "init_block", then nothing to do */
+	if(init_block->next == first_block)
+	{
+		return 1;
+	}
+
+	/* Keep moving blocks until we come across "to_label" */
+	block = first_block;
+	move_current = 0;
+	while(block != 0 && block->label != to_label)
+	{
+		next = block->next;
+		move_current = (block == func->builder->current_block);
+		detach_block(block);
+		attach_block_after(block, init_block);
+		init_block = block;
+		block = next;
+	}
+	func->builder->init_block = init_block;
+
+	/* The first block will be entered via its top now */
+	first_block->entered_via_top = 1;
+
+	/* Fix up the current block reference if we just moved it */
+	if(move_current)
+	{
+		func->builder->current_block = func->builder->last_block;
+		return jit_insn_label(func, 0);
+	}
+
+	/* Done */
+	return 1;
 }
 
 /*@
