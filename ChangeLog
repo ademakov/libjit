@@ -1,4 +1,9 @@
 
+2004-08-16  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-cpuid-x86.c (cpuid_query): use %ebx in a way that doesn't
+	confuse PIC mode in some versions of gcc (bug #10022).
+
 2004-08-13  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/jit-insn.h, include/jit/jit-opcode.h,

@@ -58,6 +58,7 @@ static void cpuid_query(unsigned int index, jit_cpuid_x86_t *info)
 #if defined(__GNUC__)
 	__asm__ __volatile__ (
 		"\tmovl %0, %%eax\n"
+		"\tpushl %%ebx\n"
 		"\txorl %%ebx, %%ebx\n"
 		"\txorl %%ecx, %%ecx\n"
 		"\txorl %%edx, %%edx\n"
@@ -68,7 +69,8 @@ static void cpuid_query(unsigned int index, jit_cpuid_x86_t *info)
 		"\tmovl %%ebx, 4(%%esi)\n"
 		"\tmovl %%ecx, 8(%%esi)\n"
 		"\tmovl %%edx, 12(%%esi)\n"
-		: : "m"(index), "m"(info) : "eax", "ebx", "ecx", "edx", "esi"
+		"\tpopl %%ebx\n"
+		: : "m"(index), "m"(info) : "eax", "ecx", "edx", "esi"
 	);
 #endif
 }
