@@ -408,6 +408,17 @@ void _jit_function_compute_liveness(jit_function_t func);
 void *_jit_function_compile_on_demand(jit_function_t func);
 
 /*
+ * Information about a registered external symbol.
+ */
+typedef struct jit_regsym *jit_regsym_t;
+struct jit_regsym
+{
+	void   *value;
+	int		after;
+	char	name[1];
+};
+
+/*
  * Internal structure of a context.
  */
 struct _jit_context
@@ -427,6 +438,13 @@ struct _jit_context
 
 	/* The context's function code cache */
 	struct jit_cache   *cache;
+
+	/* ELF binaries that have been loaded into this context */
+	jit_readelf_t		elf_binaries;
+
+	/* Table of symbols that have been registered with this context */
+	jit_regsym_t	   *registered_symbols;
+	int					num_registered_symbols;
 };
 
 /*

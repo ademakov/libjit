@@ -44,6 +44,7 @@ libjit_a_SOURCES = \
 		jit-rules-x86.h \
 		jit-rules-x86.c \
 		jit-string.c \
+		jit-symbol.c \
 		jit-thread.c \
 		jit-type.c \
 		jit-value.c \

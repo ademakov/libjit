@@ -97,6 +97,10 @@ existing format was better than inventing a completely new one.
 	typedef Elf32_Off   Elf_Off;
 	typedef Elf32_Dyn   Elf_Dyn;
 	typedef Elf32_Sym   Elf_Sym;
+	typedef Elf32_Rel   Elf_Rel;
+	typedef Elf32_Rela  Elf_Rela;
+	#define ELF_R_SYM(val)	ELF32_R_SYM((val))
+	#define ELF_R_TYPE(val)	ELF32_R_TYPE((val))
 #else
 	typedef Elf64_Ehdr  Elf_Ehdr;
 	typedef Elf64_Shdr  Elf_Shdr;
@@ -107,6 +111,10 @@ existing format was better than inventing a completely new one.
 	typedef Elf64_Off   Elf_Off;
 	typedef Elf64_Dyn   Elf_Dyn;
 	typedef Elf64_Sym   Elf_Sym;
+	typedef Elf64_Rel   Elf_Rel;
+	typedef Elf64_Rela  Elf_Rela;
+	#define ELF_R_SYM(val)	ELF64_R_SYM((val))
+	#define ELF_R_TYPE(val)	ELF64_R_TYPE((val))
 #endif
 
 /*
@@ -144,6 +152,8 @@ static jit_reloc_func get_reloc(unsigned int machine);
  */
 struct jit_readelf
 {
+	jit_readelf_t	next;
+	int				resolved;
 	Elf_Ehdr		ehdr;
 	unsigned char  *phdrs;
 	unsigned char  *shdrs;
@@ -680,6 +690,24 @@ static void load_dynamic_section(jit_readelf_t readelf, int flags)
 			case DT_RELENT:
 			{
 				printf("size of one Rel reloc: %ld\n", (long)value);
+			}
+			break;
+
+			case DT_RELA:
+			{
+				printf("address of Rela relocs: 0x%lx\n", (long)value);
+			}
+			break;
+
+			case DT_RELASZ:
+			{
+				printf("total size of Rela relocs: %ld\n", (long)value);
+			}
+			break;
+
+			case DT_RELAENT:
+			{
+				printf("size of one Rela reloc: %ld\n", (long)value);
 			}
 			break;
 
@@ -1389,7 +1417,344 @@ const char *jit_readelf_get_needed(jit_readelf_t readelf, unsigned int index)
 @*/
 void jit_readelf_add_to_context(jit_readelf_t readelf, jit_context_t context)
 {
-	/* TODO */
+	if(!readelf || !context)
+	{
+		return;
+	}
+	jit_mutex_lock(&(context->cache_lock));
+	readelf->next = context->elf_binaries;
+	context->elf_binaries = readelf;
+	jit_mutex_unlock(&(context->cache_lock));
+}
+
+/*
+ * Import the internal symbol table from "jit-symbol.c".
+ */
+typedef struct
+{
+	const char *name;
+	void       *value;
+
+} jit_internalsym;
+extern jit_internalsym const _jit_internal_symbols[];
+extern int const _jit_num_internal_symbols;
+
+/*
+ * Resolve a symbol to an address.
+ */
+static void *resolve_symbol
+	(jit_context_t context, jit_readelf_t readelf,
+	 int print_failures, const char *name, jit_nuint symbol)
+{
+	Elf_Sym *sym;
+	void *value;
+	const char *symbol_name;
+	jit_readelf_t library;
+	int index, left, right, cmp;
+
+	/* Find the actual symbol details */
+	if(symbol >= readelf->symbol_table_size)
+	{
+		if(print_failures)
+		{
+			printf("%s: invalid symbol table index %lu\n",
+				   name, (unsigned long)symbol);
+		}
+		return 0;
+	}
+	sym = &(readelf->symbol_table[symbol]);
+
+	/* Does the symbol have a locally-defined value? */
+	if(sym->st_value)
+	{
+		value = jit_readelf_map_vaddr(readelf, (jit_nuint)(sym->st_value));
+		if(!value)
+		{
+			if(print_failures)
+			{
+				printf("%s: could not map virtual address 0x%lx\n",
+					   name, (long)(sym->st_value));
+			}
+		}
+		return value;
+	}
+
+	/* Get the symbol's name, so that we can look it up in other libraries */
+	symbol_name = get_dyn_string(readelf, sym->st_name);
+	if(!symbol_name)
+	{
+		if(print_failures)
+		{
+			printf("%s: symbol table index %lu does not have a valid name\n",
+				   name, (unsigned long)symbol);
+		}
+		return 0;
+	}
+
+	/* Look for "before" symbols that are registered with the context */
+	for(index = 0; index < context->num_registered_symbols; ++index)
+	{
+		if(!jit_strcmp(symbol_name, context->registered_symbols[index]->name) &&
+		   !(context->registered_symbols[index]->after))
+		{
+			return context->registered_symbols[index]->value;
+		}
+	}
+
+	/* Search all loaded ELF libraries for the name */
+	library = context->elf_binaries;
+	while(library != 0)
+	{
+		value = jit_readelf_get_symbol(library, symbol_name);
+		if(value)
+		{
+			return value;
+		}
+		library = library->next;
+	}
+
+	/* Look for libjit internal symbols (i.e. intrinsics) */
+	left = 0;
+	right = _jit_num_internal_symbols - 1;
+	while(left <= right)
+	{
+		index = (left + right) / 2;
+		cmp = jit_strcmp(symbol_name, _jit_internal_symbols[index].name);
+		if(cmp == 0)
+		{
+			return _jit_internal_symbols[index].value;
+		}
+		else if(cmp < 0)
+		{
+			right = index - 1;
+		}
+		else
+		{
+			left = index + 1;
+		}
+	}
+
+	/* Look for "after" symbols that are registered with the context */
+	for(index = 0; index < context->num_registered_symbols; ++index)
+	{
+		if(!jit_strcmp(symbol_name, context->registered_symbols[index]->name) &&
+		   context->registered_symbols[index]->after)
+		{
+			return context->registered_symbols[index]->value;
+		}
+	}
+
+	/* If we get here, then we could not resolve the symbol */
+	printf("%s: could not resolve `%s'\n", name, symbol_name);
+	return 0;
+}
+
+/*
+ * Perform a DT_REL style relocation on an ELF binary.
+ */
+static int perform_rel
+	(jit_context_t context, jit_readelf_t readelf, 
+	 int print_failures, const char *name, Elf_Rel *reloc)
+{
+	void *address;
+	void *value;
+
+	/* Get the address to apply the relocation at */
+	address = jit_readelf_map_vaddr(readelf, (jit_nuint)(reloc->r_offset));
+	if(!address)
+	{
+		if(print_failures)
+		{
+			printf("%s: cannot map virtual address 0x%lx\n",
+				   name, (long)(reloc->r_offset));
+		}
+		return 0;
+	}
+
+	/* Resolve the designated symbol to its actual value */
+	value = resolve_symbol
+		(context, readelf, print_failures, name,
+		 (jit_nuint)ELF_R_SYM(reloc->r_info));
+	if(!value)
+	{
+		return 0;
+	}
+
+	/* Perform the relocation */
+	if(!(*(readelf->reloc_func))
+		(readelf, address, (int)(ELF_R_TYPE(reloc->r_info)),
+		 (jit_nuint)value, 0, 0))
+	{
+		if(print_failures)
+		{
+			printf("%s: relocation type %d was not recognized\n",
+				   name, (int)(ELF_R_TYPE(reloc->r_info)));
+		}
+		return 0;
+	}
+	return 1;
+}
+
+/*
+ * Perform a DT_RELA style relocation on an ELF binary.
+ */
+static int perform_rela
+	(jit_context_t context, jit_readelf_t readelf,
+	 int print_failures, const char *name, Elf_Rela *reloc)
+{
+	void *address;
+	void *value;
+
+	/* Get the address to apply the relocation at */
+	address = jit_readelf_map_vaddr(readelf, (jit_nuint)(reloc->r_offset));
+	if(!address)
+	{
+		if(print_failures)
+		{
+			printf("%s: cannot map virtual address 0x%lx\n",
+				   name, (long)(reloc->r_offset));
+		}
+		return 0;
+	}
+
+	/* Resolve the designated symbol to its actual value */
+	value = resolve_symbol
+		(context, readelf, print_failures, name,
+		 (jit_nuint)ELF_R_SYM(reloc->r_info));
+	if(!value)
+	{
+		return 0;
+	}
+
+	/* Perform the relocation */
+	if(!(*(readelf->reloc_func))
+		(readelf, address, (int)(ELF_R_TYPE(reloc->r_info)),
+		 (jit_nuint)value, 1, (jit_nuint)(reloc->r_addend)))
+	{
+		if(print_failures)
+		{
+			printf("%s: relocation type %d was not recognized\n",
+				   name, (int)(ELF_R_TYPE(reloc->r_info)));
+		}
+		return 0;
+	}
+	return 1;
+}
+
+/*
+ * Perform relocations on an ELF binary.  Returns zero on failure.
+ */
+static int perform_relocations
+	(jit_context_t context, jit_readelf_t readelf, int print_failures)
+{
+	Elf_Addr address;
+	Elf_Addr table_size;
+	Elf_Addr entry_size;
+	unsigned char *table;
+	const char *name;
+	int ok = 1;
+
+	/* Get the library name, for printing diagnostic messages */
+	name = jit_readelf_get_name(readelf);
+	if(!name)
+	{
+		name = "unknown-elf-binary";
+	}
+
+	/* Bail out if we don't know how to perform relocations */
+	if(!(readelf->reloc_func))
+	{
+		if(print_failures)
+		{
+			printf("%s: do not know how to perform relocations\n", name);
+		}
+		return 0;
+	}
+
+	/* Apply the "Rel" relocations in the dynamic section */
+	if(dynamic_for_type(readelf, DT_REL, &address) &&
+	   dynamic_for_type(readelf, DT_RELSZ, &table_size) &&
+	   dynamic_for_type(readelf, DT_RELENT, &entry_size) && entry_size)
+	{
+		table = (unsigned char *)jit_readelf_map_vaddr
+			(readelf, (jit_nuint)address);
+		while(table && table_size >= entry_size)
+		{
+			if(!perform_rel(context, readelf, print_failures, name,
+					        (Elf_Rel *)table))
+			{
+				ok = 0;
+			}
+			table += (jit_nuint)entry_size;
+			table_size -= entry_size;
+		}
+	}
+
+	/* Apply the "Rela" relocations in the dynamic section */
+	if(dynamic_for_type(readelf, DT_RELA, &address) &&
+	   dynamic_for_type(readelf, DT_RELASZ, &table_size) &&
+	   dynamic_for_type(readelf, DT_RELAENT, &entry_size) && entry_size)
+	{
+		table = (unsigned char *)jit_readelf_map_vaddr
+			(readelf, (jit_nuint)address);
+		while(table && table_size >= entry_size)
+		{
+			if(!perform_rela(context, readelf, print_failures, name,
+					         (Elf_Rela *)table))
+			{
+				ok = 0;
+			}
+			table += (jit_nuint)entry_size;
+			table_size -= entry_size;
+		}
+	}
+
+	/* Apply the "PLT" relocations in the dynamic section, which
+	   may be either DT_REL or DT_RELA style relocations */
+	if(dynamic_for_type(readelf, DT_JMPREL, &address) &&
+	   dynamic_for_type(readelf, DT_PLTRELSZ, &table_size) &&
+	   dynamic_for_type(readelf, DT_PLTREL, &entry_size))
+	{
+		if(entry_size == DT_REL)
+		{
+			if(dynamic_for_type(readelf, DT_RELENT, &entry_size) && entry_size)
+			{
+				table = (unsigned char *)jit_readelf_map_vaddr
+					(readelf, (jit_nuint)address);
+				while(table && table_size >= entry_size)
+				{
+					if(!perform_rel(context, readelf, print_failures, name,
+							        (Elf_Rel *)table))
+					{
+						ok = 0;
+					}
+					table += (jit_nuint)entry_size;
+					table_size -= entry_size;
+				}
+			}
+		}
+		else if(entry_size == DT_RELA)
+		{
+			if(dynamic_for_type(readelf, DT_RELAENT, &entry_size) && entry_size)
+			{
+				table = (unsigned char *)jit_readelf_map_vaddr
+					(readelf, (jit_nuint)address);
+				while(table && table_size >= entry_size)
+				{
+					if(!perform_rela(context, readelf, print_failures, name,
+							         (Elf_Rela *)table))
+					{
+						ok = 0;
+					}
+					table += (jit_nuint)entry_size;
+					table_size -= entry_size;
+				}
+			}
+		}
+	}
+
+	/* Return to the caller */
+	return ok;
 }
 
 /*@
@@ -1407,8 +1772,82 @@ void jit_readelf_add_to_context(jit_readelf_t readelf, jit_context_t context)
 @*/
 int jit_readelf_resolve_all(jit_context_t context, int print_failures)
 {
-	/* TODO */
-	return 0;
+	jit_readelf_t readelf;
+	int ok = 1;
+	if(!context)
+	{
+		return 0;
+	}
+	jit_mutex_lock(&(context->cache_lock));
+	readelf = context->elf_binaries;
+	while(readelf != 0)
+	{
+		if(!(readelf->resolved))
+		{
+			readelf->resolved = 1;
+			if(!perform_relocations(context, readelf, print_failures))
+			{
+				ok = 0;
+			}
+		}
+		readelf = readelf->next;
+	}
+	jit_mutex_unlock(&(context->cache_lock));
+	return ok;
+}
+
+/*@
+ * @deftypefun int jit_readelf_register_symbol (jit_context_t context, {const char *} name, {void *} value, int after)
+ * Register @code{value} with @code{name} on the specified @code{context}.
+ * Whenever symbols are resolved with @code{jit_readelf_resolve_all},
+ * and the symbol @code{name} is encountered, @code{value} will be
+ * substituted.  Returns zero if out of memory or there is something
+ * wrong with the parameters.
+ *
+ * If @code{after} is non-zero, then @code{name} will be resolved after all
+ * other ELF libraries; otherwise it will be resolved before the ELF
+ * libraries.
+ *
+ * This function is used to register intrinsic symbols that are specific to
+ * the front end virtual machine.  References to intrinsics within
+ * @code{libjit} itself are resolved automatically.
+ * @end deftypefun
+@*/
+int jit_readelf_register_symbol
+	(jit_context_t context, const char *name, void *value, int after)
+{
+	jit_regsym_t sym;
+	jit_regsym_t *new_list;
+
+	/* Bail out if there is something wrong with the parameters */
+	if(!context || !name || !value)
+	{
+		return 0;
+	}
+
+	/* Allocate and populate the symbol information block */
+	sym = (jit_regsym_t)jit_malloc
+		(sizeof(struct jit_regsym) + jit_strlen(name));
+	if(!sym)
+	{
+		return 0;
+	}
+	sym->value = value;
+	sym->after = after;
+	jit_strcpy(sym->name, name);
+
+	/* Add the symbol details to the registered list */
+	new_list = (jit_regsym_t *)jit_realloc
+		(context->registered_symbols,
+		 sizeof(jit_regsym_t) * (context->num_registered_symbols + 1));
+	if(!new_list)
+	{
+		jit_free(sym);
+		return 0;
+	}
+	new_list[(context->num_registered_symbols)++] = sym;
+	context->registered_symbols = new_list;
+	return 1;
 }
 
 /************************************************************************

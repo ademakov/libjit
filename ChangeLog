@@ -10,6 +10,10 @@
 	* dpas/dpas-builtin.c, dpas/dpas-scanner.l: add the "Flush"
 	and "Terminate" builtins; fix a small bug in string scanning.
 
+	* include/jit/jit-elf.h, jit/Makefile.am, jit/jit-context.c,
+	jit/jit-elf-read.c, jit/jit-internal.h, jit/jit-symbol.c:
+	implement symbol relocations for the ELF binary reader.
+
 2004-05-06  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* dpas/Makefile.am, dpas/dpas-builtin.c, dpas/dpas-function.c,

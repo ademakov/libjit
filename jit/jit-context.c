@@ -100,6 +100,7 @@ jit_context_t jit_context_create(void)
 @*/
 void jit_context_destroy(jit_context_t context)
 {
+	int sym;
 	if(context)
 	{
 		while(context->functions != 0)
@@ -110,6 +111,11 @@ void jit_context_destroy(jit_context_t context)
 		{
 			_jit_cache_destroy(context->cache);
 		}
+		for(sym = 0; sym < context->num_registered_symbols; ++sym)
+		{
+			jit_free(context->registered_symbols[sym]);
+		}
+		jit_free(context->registered_symbols);
 		jit_mutex_destroy(&(context->cache_lock));
 		jit_mutex_destroy(&(context->builder_lock));
 		jit_free(context);

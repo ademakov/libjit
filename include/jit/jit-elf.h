@@ -71,6 +71,9 @@ void jit_readelf_add_to_context
 	(jit_readelf_t readelf, jit_context_t context) JIT_NOTHROW;
 int jit_readelf_resolve_all
 	(jit_context_t context, int print_failures) JIT_NOTHROW;
+int jit_readelf_register_symbol
+	(jit_context_t context, const char *name,
+	 void *value, int after) JIT_NOTHROW;
 
 jit_writeelf_t jit_writeelf_create(const char *library_name) JIT_NOTHROW;
 void jit_writeelf_destroy(jit_writeelf_t writeelf) JIT_NOTHROW;
