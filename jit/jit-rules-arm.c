@@ -551,7 +551,7 @@ int _jit_create_entry_insns(jit_function_t func)
 int _jit_create_call_setup_insns
 	(jit_function_t func, jit_type_t signature,
 	 jit_value_t *args, unsigned int num_args,
-	 int is_nested, int nesting_level, jit_value_t *struct_return)
+	 int is_nested, int nesting_level, jit_value_t *struct_return, int flags)
 {
 	jit_type_t type = jit_type_get_return(signature);
 	jit_value_t value;

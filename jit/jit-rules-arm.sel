@@ -563,6 +563,7 @@ JIT_OP_CALL:
 JIT_OP_CALL_TAIL:
 	[] -> {
 		jit_function_t func = (jit_function_t)(insn->dest);
+		arm_pop_frame_tail(inst, 0);
 		arm_jump(inst, func->closure_entry);
 	}
 

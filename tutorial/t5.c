@@ -1,6 +1,6 @@
 /*
 
-Tutorial 2 - gcd
+Tutorial 5 - gcd, with tail call optimization
 
 Builds and compiles the following function:
 
@@ -33,7 +33,6 @@ int main(int argc, char **argv)
 	jit_function_t function;
 	jit_value_t x, y;
 	jit_value_t temp1, temp2;
-	jit_value_t temp3, temp4;
 	jit_value_t temp_args[2];
 	jit_label_t label1 = jit_label_undefined;
 	jit_label_t label2 = jit_label_undefined;
@@ -75,9 +74,7 @@ int main(int argc, char **argv)
 	/* Implement "return gcd(x, y - x)" */
 	temp_args[0] = x;
 	temp_args[1] = jit_insn_sub(function, y, x);
-	temp3 = jit_insn_call
-		(function, "gcd", function, 0, temp_args, 2, 0);
-	jit_insn_return(function, temp3);
+	jit_insn_call(function, "gcd", function, 0, temp_args, 2, JIT_CALL_TAIL);
 
 	/* Set "label2" at this position */
 	jit_insn_label(function, &label2);
@@ -85,9 +82,7 @@ int main(int argc, char **argv)
 	/* Implement "return gcd(x - y, y)" */
 	temp_args[0] = jit_insn_sub(function, x, y);
 	temp_args[1] = y;
-	temp4 = jit_insn_call
-		(function, "gcd", function, 0, temp_args, 2, 0);
-	jit_insn_return(function, temp4);
+	jit_insn_call(function, "gcd", function, 0, temp_args, 2, JIT_CALL_TAIL);
 
 	/* Compile the function */
 	jit_function_compile(function);

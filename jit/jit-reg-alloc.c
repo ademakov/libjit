@@ -1457,6 +1457,23 @@ void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func)
 		return;
 	}
 
+	/* If the current function involves a tail call, then we don't do
+	   global register allocation and we also prevent the code generator
+	   from using any of the callee-saved registers.  This simplifies
+	   tail calls, which don't have to worry about restoring such registers */
+	if(func->builder->has_tail_call)
+	{
+		for(reg = 0; reg < JIT_NUM_REGS; ++reg)
+		{
+			if((_jit_reg_info[reg].flags &
+					(JIT_REG_FIXED | JIT_REG_CALL_USED)) == 0)
+			{
+				jit_reg_set_used(gen->permanent, reg);
+			}
+		}
+		return;
+	}
+
 	/* Scan all values within the function, looking for the most used.
 	   We will replace this with a better allocation strategy later */
 	block = func->builder->value_pool.blocks;

@@ -227,6 +227,13 @@ struct _jit_value
 void _jit_value_free(void *value);
 
 /*
+ * Add references to all of the parameter values in a function.
+ * This is used when the initialization block is split during a
+ * "jit_insn_move_blocks_to_start" instruction.
+ */
+void _jit_value_ref_params(jit_function_t func);
+
+/*
  * Internal structure of an instruction.
  */
 struct _jit_insn
@@ -304,6 +311,9 @@ struct _jit_builder
 
 	/* Flag that indicates if the function has an ordinary return */
 	int					ordinary_return : 1;
+
+	/* Flag that indicates that the current function contains a tail call */
+	int					has_tail_call : 1;
 
 	/* List of all instructions in this function */
 	jit_insn_t		   *insns;

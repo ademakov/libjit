@@ -655,6 +655,22 @@ void jit_value_ref(jit_function_t func, jit_value_t value)
 	}
 }
 
+void _jit_value_ref_params(jit_function_t func)
+{
+	unsigned int num_params;
+	unsigned int param;
+	if(func->builder->param_values)
+	{
+		num_params = jit_type_num_params(func->signature);
+		for(param = 0; param < num_params; ++param)
+		{
+			jit_value_ref(func, func->builder->param_values[param]);
+		}
+	}
+	jit_value_ref(func, func->builder->struct_return);
+	jit_value_ref(func, func->builder->parent_frame);
+}
+
 /*@
  * @deftypefun void jit_value_set_volatile (jit_value_t value)
  * Set a flag on a value to indicate that it is volatile.  The contents

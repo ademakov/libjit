@@ -355,7 +355,7 @@ int _jit_create_entry_insns(jit_function_t func)
 }
 
 /*@
- * @deftypefun int _jit_create_call_setup_insns (jit_function_t func, jit_type_t signature, {jit_value_t *} args, {unsigned int} num_args, int is_nested, int nested_level, jit_value_t *struct_return)
+ * @deftypefun int _jit_create_call_setup_insns (jit_function_t func, jit_type_t signature, {jit_value_t *} args, {unsigned int} num_args, int is_nested, int nested_level, jit_value_t *struct_return, int flags)
  * Create instructions within @code{func} necessary to set up for a
  * function call to a function with the specified @code{signature}.
  * Use @code{jit_insn_push} to push values onto the system stack,
@@ -376,7 +376,7 @@ int _jit_create_entry_insns(jit_function_t func)
 int _jit_create_call_setup_insns
 	(jit_function_t func, jit_type_t signature,
 	 jit_value_t *args, unsigned int num_args,
-	 int is_nested, int nested_level, jit_value_t *struct_return)
+	 int is_nested, int nested_level, jit_value_t *struct_return, int flags)
 {
 	jit_type_t type;
 	jit_type_t vtype;

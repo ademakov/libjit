@@ -213,6 +213,7 @@ but a real program would be expected to handle such errors.
 * Tutorial 2::              Tutorial 2 - gcd
 * Tutorial 3::              Tutorial 3 - compiling on-demand
 * Tutorial 4::              Tutorial 4 - mul_add, C++ version
+* Tutorial 5::              Tutorial 5 - gcd, with tail calls
 * Dynamic Pascal::          Dynamic Pascal - A full JIT example
 @end menu
 
@@ -641,7 +642,7 @@ heuristics.
 
 @c -----------------------------------------------------------------------
 
-@node Tutorial 4, Dynamic Pascal, Tutorial 3, Tutorials
+@node Tutorial 4, Tutorial 5, Tutorial 3, Tutorials
 @section Tutorial 4 - mul_add, C++ version
 @cindex mul_add C++ tutorial
 
@@ -756,7 +757,49 @@ library.
 
 @c -----------------------------------------------------------------------
 
-@node Dynamic Pascal, Initialization, Tutorial 4, Tutorials
+@node Tutorial 5, Dynamic Pascal, Tutorial 4, Tutorials
+@section Tutorial 5 - gcd, with tail calls
+@cindex gcd with tail calls
+
+Astute readers would have noticed that Tutorial 2 included two instances
+of "tail calls".  That is, calls to the same function that are immediately
+followed by a @code{return} instruction.
+
+Libjit can optimize tail calls if you provide the @code{JIT_CALL_TAIL}
+flag to @code{jit_insn_call}.  Previously, we used the following code
+to call @code{gcd} recursively:
+
+@example
+temp3 = jit_insn_call
+    (function, "gcd", function, 0, temp_args, 2, 0);
+jit_insn_return(function, temp3);
+@end example
+
+@noindent
+In Tutorial 5, this is modified to the following:
+
+@example
+jit_insn_call(function, "gcd", function, 0, temp_args, 2, JIT_CALL_TAIL);
+@end example
+
+There is no need for the @code{jit_insn_return}, because the call
+will never return to that point in the code.  Behind the scenes,
+@code{libjit} will convert the call into a jump back to the head
+of the function.
+
+Tail calls can only be used in certain circumstances.  The source
+and destination of the call must have the same function signatures.
+None of the parameters should point to local variables in the current
+stack frame.  And tail calls cannot be used from any source function
+that uses @code{try} or @code{alloca} statements.
+
+Because it can be difficult for @code{libjit} to determine when these
+conditions have been met, it relies upon the caller to supply the
+@code{JIT_CALL_TAIL} flag when it is appropriate to use a tail call.
+
+@c -----------------------------------------------------------------------
+
+@node Dynamic Pascal, Initialization, Tutorial 5, Tutorials
 @section Dynamic Pascal - A full JIT example
 @cindex Dynamic Pascal
 
