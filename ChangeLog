@@ -14,6 +14,8 @@
 	jit/jit-elf-read.c, jit/jit-internal.h, jit/jit-symbol.c:
 	implement symbol relocations for the ELF binary reader.
 
+	* dpas/dpas-parser.y: code generation for "for" loops.
+
 2004-05-06  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* dpas/Makefile.am, dpas/dpas-builtin.c, dpas/dpas-function.c,
