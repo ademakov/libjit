@@ -1,4 +1,9 @@
 
+2004-06-06  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
+
+	* jit/jit-alloc.c (jit_flush_exec): flush cache lines properly
+	if the start is not on a line boundary.
+
 2004-06-06  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-reg-alloc.c, jit/jit-reg-alloc.h, jit/jit-rules-arm.c,
