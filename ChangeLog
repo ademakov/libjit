@@ -24,6 +24,9 @@
 	branches, to try to minimize the probability that the pool will
 	be flushed in the middle of a loop body.
 
+	* jit/jit-dump.c: dump the hex address of external functions,
+	to aid with debugging native disassembly dumps.
+
 2004-06-08  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/Makefile.am, jit/jit-cpuid-x86.c, jit/jit-cpuid-x86.h:
