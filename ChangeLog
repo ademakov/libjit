@@ -5,6 +5,8 @@
 	fix function prolog and epilog handling for structure returns
 	under x86/cdecl.
 
+	* configure.in: set the initial working version to 0.0.1.
+
 2004-04-30  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/jit-function.h, include/jit/jit-insn.h,
