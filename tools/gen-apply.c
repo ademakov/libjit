@@ -76,6 +76,7 @@ int struct_reg_overlaps_word_reg = 0;
 int struct_return_in_reg[64];
 int align_long_regs = 0;
 int align_long_stack = 0;
+int can_split_long = 0;
 int max_apply_size = 0;
 int x86_fastcall = 0;
 int parent_frame_offset = 0;
@@ -848,6 +849,10 @@ void detect_struct_conventions(void)
 	if(struct_return_special_reg || num_word_regs > 0)
 	{
 		args[1] = (jit_nint)buffer;
+		if(struct_reg_overlaps_word_reg)
+		{
+			args[2] = (jit_nint)buffer;
+		}
 	}
 
 	/* Apply the structure return tests for all sizes from 1 to 64 */
@@ -916,6 +921,280 @@ void detect_struct_conventions(void)
 	call_struct_test(63);
 	call_struct_test(64);
 }
+
+/*
+ * Detect alignment of "long" values in registers and on the stack.
+ */
+#ifdef JIT_NATIVE_INT32
+void detect_reg_alignment_one_word(jit_long y, jit_long z)
+{
+	jit_nint *args, *stack_args;
+	jit_builtin_apply_args(jit_nint *, args);
+	stack_args = (jit_nint *)(args[0]);
+	if(!mem_cmp(stack_args, &y, sizeof(y)))
+	{
+		/* The value of y was pushed out onto the stack, so we
+		   cannot split long values between registers and the stack */
+		can_split_long = 0;
+	}
+}
+void detect_reg_alignment_two_words(jit_int x, jit_long y, jit_long z)
+{
+	jit_nint *args, *stack_args;
+	jit_builtin_apply_args(jit_nint *, args);
+	stack_args = (jit_nint *)(args[0]);
+	if(!mem_cmp(stack_args, &y, sizeof(y)))
+	{
+		/* The value of y was pushed out, so alignment has occurred */
+		can_split_long = 0;
+		align_long_regs = 1;
+	}
+	else if(!mem_cmp(stack_args, ((jit_nint *)&y) + 1, sizeof(jit_nint)))
+	{
+		/* The long value was split between registers and the stack */
+		can_split_long = 1;
+	}
+}
+void detect_reg_alignment_three_words(jit_int x, jit_long y, jit_long z)
+{
+	jit_nint *args, *stack_args;
+	jit_builtin_apply_args(jit_nint *, args);
+	stack_args = (jit_nint *)(args[0]);
+	if(!mem_cmp(stack_args, &y, sizeof(y)))
+	{
+		/* The value of y was pushed out, so alignment has occurred */
+		can_split_long = 0;
+		align_long_regs = 1;
+	}
+	else if(!mem_cmp(stack_args, ((jit_nint *)&y) + 1, sizeof(jit_nint)))
+	{
+		/* The long value was split between registers and the stack,
+		   so alignment has occurred, together with a split */
+		can_split_long = 1;
+		align_long_regs = 1;
+	}
+}
+void detect_reg_alignment_more_words(jit_int x, jit_long y, jit_long z)
+{
+	jit_nint *args, *word_regs;
+	jit_builtin_apply_args(jit_nint *, args);
+	word_regs = args + struct_return_special_reg + 1;
+	if(!mem_cmp(word_regs + 2, &y, sizeof(y)))
+	{
+		/* The value of "y" was aligned within the word registers */
+		align_long_regs = 1;
+	}
+}
+void detect_reg_split_even_words(jit_int x, jit_long y1, jit_long y2,
+								 jit_long y3, jit_long y4, jit_long y5,
+								 jit_long y6, jit_long y7, jit_long y8,
+								 jit_long y9, jit_long y10, jit_long y11,
+								 jit_long y12, jit_long y13, jit_long y14,
+								 jit_long y15, jit_long y16, jit_long y17,
+								 jit_long y18, jit_long y19, jit_long y20)
+{
+	jit_nint *args, *stack_args;
+	int posn;
+	jit_long value;
+	jit_builtin_apply_args(jit_nint *, args);
+	stack_args = (jit_nint *)(args[0]);
+	for(posn = 1; posn <= 20; ++posn)
+	{
+		switch(posn)
+		{
+			case 1:		value = y1; break;
+			case 2:		value = y2; break;
+			case 3:		value = y3; break;
+			case 4:		value = y4; break;
+			case 5:		value = y5; break;
+			case 6:		value = y6; break;
+			case 7:		value = y7; break;
+			case 8:		value = y8; break;
+			case 9:		value = y9; break;
+			case 10:	value = y10; break;
+			case 11:	value = y11; break;
+			case 12:	value = y12; break;
+			case 13:	value = y13; break;
+			case 14:	value = y14; break;
+			case 15:	value = y15; break;
+			case 16:	value = y16; break;
+			case 17:	value = y17; break;
+			case 18:	value = y18; break;
+			case 19:	value = y19; break;
+			default:	value = y20; break;
+		}
+		if(!mem_cmp(stack_args, ((jit_nint *)&value) + 1, sizeof(jit_nint)))
+		{
+			/* We've detected a register/stack split in this argument */
+			can_split_long = 1;
+			break;
+		}
+	}
+}
+void detect_reg_split_odd_words(jit_long y1, jit_long y2,
+								jit_long y3, jit_long y4, jit_long y5,
+								jit_long y6, jit_long y7, jit_long y8,
+								jit_long y9, jit_long y10, jit_long y11,
+								jit_long y12, jit_long y13, jit_long y14,
+								jit_long y15, jit_long y16, jit_long y17,
+								jit_long y18, jit_long y19, jit_long y20)
+{
+	jit_nint *args, *stack_args;
+	int posn;
+	jit_long value;
+	jit_builtin_apply_args(jit_nint *, args);
+	stack_args = (jit_nint *)(args[0]);
+	for(posn = 1; posn <= 20; ++posn)
+	{
+		switch(posn)
+		{
+			case 1:		value = y1; break;
+			case 2:		value = y2; break;
+			case 3:		value = y3; break;
+			case 4:		value = y4; break;
+			case 5:		value = y5; break;
+			case 6:		value = y6; break;
+			case 7:		value = y7; break;
+			case 8:		value = y8; break;
+			case 9:		value = y9; break;
+			case 10:	value = y10; break;
+			case 11:	value = y11; break;
+			case 12:	value = y12; break;
+			case 13:	value = y13; break;
+			case 14:	value = y14; break;
+			case 15:	value = y15; break;
+			case 16:	value = y16; break;
+			case 17:	value = y17; break;
+			case 18:	value = y18; break;
+			case 19:	value = y19; break;
+			default:	value = y20; break;
+		}
+		if(!mem_cmp(stack_args, ((jit_nint *)&value) + 1, sizeof(jit_nint)))
+		{
+			/* We've detected a register/stack split in this argument */
+			can_split_long = 1;
+			break;
+		}
+	}
+}
+void detect_stack_align_even_words
+					(jit_nint arg1, jit_nint arg2, jit_nint arg3,
+					 jit_nint arg4, jit_nint arg5, jit_nint arg6,
+					 jit_nint arg7, jit_nint arg8, jit_nint arg9,
+					 jit_nint arg10, jit_nint arg11, jit_nint arg12,
+					 jit_nint arg13, jit_nint arg14, jit_nint arg15,
+					 jit_nint arg16, jit_nint arg17, jit_nint arg18,
+					 jit_nint arg19, jit_nint arg20, jit_nint arg21,
+					 jit_nint arg22, jit_nint arg23, jit_nint arg24,
+					 jit_nint arg25, jit_nint arg26, jit_nint arg27,
+					 jit_nint arg28, jit_nint arg29, jit_nint arg30,
+					 jit_nint arg31, jit_nint arg32, jit_nint arg33,
+					 jit_long y, jit_long z)
+{
+	jit_nint *args, *stack_args;
+	int index;
+	jit_builtin_apply_args(jit_nint *, args);
+	stack_args = (jit_nint *)(args[0]);
+	index = 33 - num_word_regs;
+	if(!mem_cmp(stack_args + index + 1, &y, sizeof(y)))
+	{
+		align_long_stack = 1;
+	}
+}
+void detect_stack_align_odd_words
+					(jit_nint arg1, jit_nint arg2, jit_nint arg3,
+					 jit_nint arg4, jit_nint arg5, jit_nint arg6,
+					 jit_nint arg7, jit_nint arg8, jit_nint arg9,
+					 jit_nint arg10, jit_nint arg11, jit_nint arg12,
+					 jit_nint arg13, jit_nint arg14, jit_nint arg15,
+					 jit_nint arg16, jit_nint arg17, jit_nint arg18,
+					 jit_nint arg19, jit_nint arg20, jit_nint arg21,
+					 jit_nint arg22, jit_nint arg23, jit_nint arg24,
+					 jit_nint arg25, jit_nint arg26, jit_nint arg27,
+					 jit_nint arg28, jit_nint arg29, jit_nint arg30,
+					 jit_nint arg31, jit_nint arg32,
+					 jit_long y, jit_long z)
+{
+	jit_nint *args, *stack_args;
+	int index;
+	jit_builtin_apply_args(jit_nint *, args);
+	stack_args = (jit_nint *)(args[0]);
+	index = 32 - num_word_regs;
+	if(!mem_cmp(stack_args + index + 1, &y, sizeof(y)))
+	{
+		align_long_stack = 1;
+	}
+}
+void detect_long_alignment()
+{
+	jit_long value1, value2;
+	jit_long align_values[20];
+	int posn;
+	value1 = (((jit_long)0x01020304) << 32) | ((jit_long)0x05060708);
+	value2 = (((jit_long)0x090A0B0C) << 32) | ((jit_long)0x0D0E0F00);
+	if(num_word_regs == 1)
+	{
+		detect_reg_alignment_one_word(value1, value2);
+	}
+	else if(num_word_regs == 2)
+	{
+		detect_reg_alignment_two_words((jit_int)(-1), value1, value2);
+	}
+	else if(num_word_regs == 3)
+	{
+		detect_reg_alignment_three_words((jit_int)(-1), value1, value2);
+	}
+	else if(num_word_regs > 0)
+	{
+		detect_reg_alignment_more_words((jit_int)(-1), value1, value2);
+	}
+	else if(x86_fastcall)
+	{
+		/* We can split long values using FASTCALL under Win32 */
+		can_split_long = 1;
+	}
+	for(posn = 0; posn < 20; ++posn)
+	{
+		align_values[posn] = ((jit_long)(posn + 4567)) +
+						     (((jit_long)((posn + 1) * 127)) << 32);
+	}
+	if((num_word_regs % 2) == 0)
+	{
+		detect_reg_split_even_words
+			((jit_int)(-1), align_values[0], align_values[1],
+			 align_values[2], align_values[3], align_values[4],
+			 align_values[5], align_values[6], align_values[7],
+			 align_values[8], align_values[9], align_values[10],
+			 align_values[11], align_values[12], align_values[13],
+			 align_values[14], align_values[15], align_values[16],
+			 align_values[17], align_values[18], align_values[19]);
+		detect_stack_align_even_words
+			(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			 value1, value2);
+	}
+	else
+	{
+		detect_reg_split_odd_words
+			(align_values[0], align_values[1],
+			 align_values[2], align_values[3], align_values[4],
+			 align_values[5], align_values[6], align_values[7],
+			 align_values[8], align_values[9], align_values[10],
+			 align_values[11], align_values[12], align_values[13],
+			 align_values[14], align_values[15], align_values[16],
+			 align_values[17], align_values[18], align_values[19]);
+		detect_stack_align_odd_words
+			(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			 value1, value2);
+	}
+}
+#else	/* JIT_NATIVE_INT64 */
+void detect_long_alignment()
+{
+	/* Long values are always aligned on 64-bit architectures */
+}
+#endif	/* JIT_NATIVE_INT64 */
 
 /*
  * Determine the maximum size for the apply structure.
@@ -1325,30 +1604,94 @@ void dump_apply_macros(void)
 	}
 	printf("\t} while (0)\n\n");
 
+	/* Macro to align the word registers for a "long" value */
+	printf("#define jit_apply_builder_align_regs(builder,num_words,align) \\\n");
+	if((align_long_regs || !can_split_long) &&
+	   (num_word_regs > 0 || x86_fastcall))
+	{
+		printf("\tdo { \\\n");
+		printf("\t\tif((align) > sizeof(jit_nint) && (num_words) > 1) \\\n");
+		printf("\t\t{ \\\n");
+		if(align_long_regs)
+		{
+			printf("\t\t\tif(((builder)->word_used %% 2) == 1) \\\n");
+			printf("\t\t\t{ \\n");
+			printf("\t\t\t\t++((builder)->word_used); \\n");
+			printf("\t\t\t} \\n");
+		}
+		if(!can_split_long)
+		{
+			printf("\t\t\tif((%s - (builder)->word_used) < (num_words)) \\\n", word_reg_limit);
+			printf("\t\t\t{ \\n");
+			printf("\t\t\t\t(builder)->word_used = %s; \\n", word_reg_limit);
+			printf("\t\t\t} \\n");
+		}
+		printf("\t\t} \\\n");
+		printf("\t} while (0)\n\n");
+	}
+	else
+	{
+		printf("\tdo { ; } while (0)\n\n");
+	}
+
+	/* Macro to align the stack for a "long" value */
+	printf("#define jit_apply_builder_align_stack(builder,num_words,align) \\\n");
+	if(align_long_stack)
+	{
+		printf("\tdo { \\\n");
+		printf("\t\tif((align) > sizeof(jit_nint) && (num_words) > 1) \\\n");
+		printf("\t\t{ \\\n");
+		printf("\t\t\tif(((builder)->stack_used %% 2) == 1) \\\n");
+		printf("\t\t\t{ \\n");
+		printf("\t\t\t\t++((builder)->stack_used); \\n");
+		printf("\t\t\t} \\n");
+		printf("\t\t} \\\n");
+		printf("\t} while (0)\n\n");
+	}
+	else
+	{
+		printf("\tdo { ; } while (0)\n\n");
+	}
+
 	/* Macro to add a large (e.g. dword) argument to the apply parameters */
-	printf("#define jit_apply_builder_add_large(builder,type,value) \\\n");
+	printf("#define jit_apply_builder_add_large_inner(builder,ptr,size,align) \\\n");
 	printf("\tdo { \\\n");
-	printf("\t\ttype __temp = (type)(value); \\\n");
-	printf("\t\tunsigned int __num_words = (sizeof(__temp) + sizeof(jit_nint) - 1) / sizeof(jit_nint); \\\n");
+	printf("\t\tunsigned int __num_words = ((size) + sizeof(jit_nint) - 1) / sizeof(jit_nint); \\\n");
 	if(num_word_regs > 0 || x86_fastcall)
 	{
+		printf("\t\tjit_apply_builder_align_regs((builder), __num_words, (align)); \\\n");
 		printf("\t\tif((%s - (builder)->word_used) >= __num_words) \\\n", word_reg_limit);
 		printf("\t\t{ \\\n");
-		printf("\t\t\tjit_memcpy((builder)->apply_args->word_regs + (builder)->word_used, &__temp, sizeof(__temp)); \\\n");
+		printf("\t\t\tjit_memcpy((builder)->apply_args->word_regs + (builder)->word_used, (ptr), (size)); \\\n");
 		printf("\t\t\t(builder)->word_used += __num_words; \\\n");
+		printf("\t\t} \\\n");
+		printf("\t\telse if((builder)->word_used) < %s) \\\n", word_reg_limit);
+		printf("\t\t{ \\\n");
+		printf("\t\t\tunsigned int __split = (%s - (builder)->word_used); \\\n", word_reg_limit);
+		printf("\t\t\tjit_memcpy((builder)->apply_args->word_regs + (builder)->word_used, (ptr), __split * sizeof(jit_nint)); \\\n");
+		printf("\t\t\tjit_memcpy((builder)->apply_args->stack_args, ((jit_nint *)(ptr)) + __split, (size) - __split * sizeof(jit_nint)); \\\n");
+		printf("\t\t\t(builder)->word_used = %s; \\\n", word_reg_limit);
+		printf("\t\t\t(builder)->stack_used = __num_words - __split; \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
 		printf("\t\t{ \\\n");
-		printf("\t\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
+		printf("\t\t\tjit_apply_builder_align_stack((builder), __num_words, (align)); \\\n");
+		printf("\t\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, (ptr), (size)); \\\n");
 		printf("\t\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
 		printf("\t\t\t(builder)->word_used = %s; \\\n", word_reg_limit);
 		printf("\t\t} \\\n");
 	}
 	else
 	{
-		printf("\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
+		printf("\t\tjit_apply_builder_align_stack((builder), __num_words, (align)); \\\n");
+		printf("\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, (ptr), (size)); \\\n");
 		printf("\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
 	}
+	printf("\t} while (0)\n\n");
+	printf("#define jit_apply_builder_add_large(builder,type,value) \\\n");
+	printf("\tdo { \\\n");
+	printf("\t\ttype __temp = (type)(value); \\\n");
+	printf("\t\tjit_apply_builder_add_large_inner((builder), &__temp, sizeof(__temp), sizeof(jit_nint)); \\\n");
 	printf("\t} while (0)\n\n");
 
 	/* Macro to get a large (e.g. dword) argument from the apply parameters */
@@ -1358,13 +1701,23 @@ void dump_apply_macros(void)
 	printf("\t\tunsigned int __num_words = (sizeof(__temp) + sizeof(jit_nint) - 1) / sizeof(jit_nint); \\\n");
 	if(num_word_regs > 0 || x86_fastcall)
 	{
+		printf("\t\tjit_apply_builder_align_regs((builder), __num_words, sizeof(type)); \\\n");
 		printf("\t\tif((%s - (builder)->word_used) >= __num_words) \\\n", word_reg_limit);
 		printf("\t\t{ \\\n");
 		printf("\t\t\tjit_memcpy(&__temp, (builder)->apply_args->word_regs + (builder)->word_used, sizeof(__temp)); \\\n");
 		printf("\t\t\t(builder)->word_used += __num_words; \\\n");
 		printf("\t\t} \\\n");
+		printf("\t\telse if((builder)->word_used) < %s) \\\n", word_reg_limit);
+		printf("\t\t{ \\\n");
+		printf("\t\t\tunsigned int __split = (%s - (builder)->word_used); \\\n", word_reg_limit);
+		printf("\t\t\tjit_memcpy(&__temp, (builder)->apply_args->word_regs + (builder)->word_used, __split * sizeof(jit_nint)); \\\n");
+		printf("\t\t\tjit_memcpy(((jit_nint *)&__temp) + __split, (builder)->apply_args->stack_args, (__num_words - __split) * sizeof(jit_nint)); \\\n");
+		printf("\t\t\t(builder)->word_used = %s; \\\n", word_reg_limit);
+		printf("\t\t\t(builder)->stack_used = __num_words - __split; \\\n");
+		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
 		printf("\t\t{ \\\n");
+		printf("\t\t\tjit_apply_builder_align_stack((builder), __num_words, sizeof(type)); \\\n");
 		printf("\t\t\tjit_memcpy(&__temp, (builder)->apply_args->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
 		printf("\t\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
 		printf("\t\t\t(builder)->word_used = %s; \\\n", word_reg_limit);
@@ -1372,6 +1725,7 @@ void dump_apply_macros(void)
 	}
 	else
 	{
+		printf("\t\tjit_apply_builder_align_stack((builder), __num_words, sizeof(type)); \\\n");
 		printf("\t\tjit_memcpy(&__temp, (builder)->apply_args->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
 		printf("\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
 	}
@@ -1384,6 +1738,7 @@ void dump_apply_macros(void)
 	printf("\tdo { \\\n");
 	printf("\t\ttype __temp = (type)(value); \\\n");
 	printf("\t\tunsigned int __num_words = (sizeof(__temp) + sizeof(jit_nint) - 1) / sizeof(jit_nint); \\\n");
+	printf("\t\tjit_apply_builder_align_stack((builder), __num_words, sizeof(type)); \\\n");
 	printf("\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
 	printf("\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
 	printf("\t} while (0)\n\n");
@@ -1394,6 +1749,7 @@ void dump_apply_macros(void)
 	printf("\tdo { \\\n");
 	printf("\t\ttype __temp; \\\n");
 	printf("\t\tunsigned int __num_words = (sizeof(__temp) + sizeof(jit_nint) - 1) / sizeof(jit_nint); \\\n");
+	printf("\t\tjit_apply_builder_align_stack((builder), __num_words, sizeof(type)); \\\n");
 	printf("\t\tjit_memcpy(&__temp, (builder)->apply_args->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
 	printf("\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
 	printf("\t\t(value) = (finaltype)(__temp); \\\n");
@@ -1616,30 +1972,8 @@ void dump_apply_macros(void)
 	printf("#define jit_apply_builder_add_struct(builder,value,size,align) \\\n");
 	printf("\tdo { \\\n");
 	printf("\t\tunsigned int __size = (size); \\\n");
-	if(align_long_regs || align_long_stack)
-	{
-		printf("\t\tunsigned int __align = (align); \\\n");
-	}
-	printf("\t\tunsigned int __num_words = (__size + sizeof(jit_nint) - 1) / sizeof(jit_nint); \\\n");
-	if(num_word_regs > 0 || x86_fastcall)
-	{
-		printf("\t\tif((builder)->word_used < %s) \\\n", word_reg_limit);
-		printf("\t\t{ \\\n");
-		printf("\t\t\tjit_memcpy((builder)->apply_args->word_regs + (builder)->word_used, (value), __size); \\\n");
-		printf("\t\t\t(builder)->word_used += __num_words; \\\n");
-		printf("\t\t} \\\n");
-		printf("\t\telse \\\n");
-		printf("\t\t{ \\\n");
-		printf("\t\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, (value), __size); \\\n");
-		printf("\t\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
-		printf("\t\t\t(builder)->word_used = %s; \\\n", word_reg_limit);
-		printf("\t\t} \\\n");
-	}
-	else
-	{
-		printf("\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, (value), __size); \\\n");
-		printf("\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
-	}
+	printf("\t\tunsigned int __align; __align = (align); \\\n");
+	printf("\t\tjit_apply_builder_add_large_inner((builder), (value), __size, __align); \\\n");
 	printf("\t} while (0)\n\n");
 
 	printf("\n");
@@ -1899,18 +2233,6 @@ int main(int argc, char *argv[])
 					        17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0,
 					        25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0);
 
-	/* Detect the alignment of "long" values in registers and on the stack */
-#ifdef JIT_NATIVE_INT32
-	if(num_word_regs > 1)
-	{
-		/* TODO */
-	}
-	else
-	{
-		/* TODO */
-	}
-#endif
-
 	/* Determine if variable arguments are always passed on the stack */
 	detect_varargs_on_stack(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
 	                        14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
@@ -1932,6 +2254,9 @@ int main(int argc, char *argv[])
 	x86_pop_struct_return = 1;
 	/* TODO */
 #endif
+
+	/* Detect the alignment of "long" values */
+	detect_long_alignment();
 
 	/* Determine the maximum sizes */
 	detect_max_sizes();
@@ -1974,6 +2299,7 @@ int main(int argc, char *argv[])
 		   struct_reg_overlaps_word_reg);
 	printf("#define JIT_APPLY_ALIGN_LONG_REGS %d\n", align_long_regs);
 	printf("#define JIT_APPLY_ALIGN_LONG_STACK %d\n", align_long_stack);
+	printf("#define JIT_APPLY_CAN_SPLIT_LONG %d\n", can_split_long);
 	printf("#define JIT_APPLY_STRUCT_RETURN_IN_REG_INIT \\\n\t{");
 	max_struct_in_reg = 0;
 	for(size = 0; size < 64; size += 8)

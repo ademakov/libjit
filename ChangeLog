@@ -1,4 +1,8 @@
 
+2004-05-03  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* tools/gen-apply.c: improve the maintainability of the apply macros.
+
 2004-05-01  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-apply-x86.c, jit/jit-rules-x86.c, tools/gen-apply.c:
