@@ -7,6 +7,9 @@
 	* jit/jit-gen-arm.h: fix some bugs in the encoding of floating-point
 	load and store instructions.
 
+	* jit/jit-gen-arm.c (_arm_alu_reg_imm): forgot to update the
+	instruction pointer when loading the immediate value.
+
 2004-06-08  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/Makefile.am, jit/jit-cpuid-x86.c, jit/jit-cpuid-x86.h:

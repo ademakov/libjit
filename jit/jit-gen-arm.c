@@ -195,7 +195,7 @@ arm_inst_ptr _arm_alu_reg_imm
 	{
 		tempreg = ARM_WORK;
 	}
-	_arm_mov_reg_imm(inst, tempreg, imm, execute_prefix);
+	inst = _arm_mov_reg_imm(inst, tempreg, imm, execute_prefix);
 	arm_alu_reg_reg(inst, opc, dreg, sreg, tempreg);
 	if(saveWork)
 	{
