@@ -222,10 +222,10 @@ void jit_flush_exec(void *ptr, unsigned int size)
 #define CLSIZE 32
 	register unsigned char *p   = ROUND_BEG_PTR (ptr);
 	register unsigned char *end = ROUND_END_PTR (p + size);
-	while(ptr < end)
+	while(p < end)
 	{
-		asm volatile("fc %0" :: "r"(ptr));
-		ptr += CLSIZE;
+		asm volatile("fc %0" :: "r"(p));
+		p += CLSIZE;
 	}
 	asm volatile(";;sync.i;;srlz.i;;");
 #endif

@@ -33,6 +33,8 @@
 
 	* tools/gen-apply.c: gen-apply fix for ia64.
 
+	* jit/jit-alloc.c (jit_flush_exec): warning fix for ia64.
+
 2004-06-06  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c (jit_flush_exec): flush cache lines properly
