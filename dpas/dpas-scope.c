@@ -275,6 +275,11 @@ void dpas_scope_check_undefined(dpas_scope_t scope)
 	}
 }
 
+const char *dpas_scope_item_name(dpas_scope_item_t item)
+{
+	return item->name;
+}
+
 int dpas_scope_item_kind(dpas_scope_item_t item)
 {
 	return item->kind;
@@ -288,6 +293,11 @@ jit_type_t dpas_scope_item_type(dpas_scope_item_t item)
 void *dpas_scope_item_info(dpas_scope_item_t item)
 {
 	return item->info;
+}
+
+void dpas_scope_item_set_info(dpas_scope_item_t item, void *info)
+{
+	item->info = info;
 }
 
 const char *dpas_scope_item_filename(dpas_scope_item_t item)

@@ -504,7 +504,7 @@ int _jit_create_call_return_insns
 			return 0;
 		}
 	}
-	else
+	else if(return_type->kind != JIT_TYPE_VOID)
 	{
 		if(!jit_insn_return_reg(func, return_value, 0))
 		{
@@ -1027,11 +1027,21 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		/* Not reached */
 
 		case JIT_OP_CALL:
-		case JIT_OP_CALL_EXTERNAL:
 		{
 			/* Call a function, whose pointer is supplied explicitly */
 			jit_cache_opcode(&(gen->posn), insn->opcode);
 			jit_cache_native(&(gen->posn), (jit_nint)(insn->dest));
+		}
+		break;
+
+		case JIT_OP_CALL_EXTERNAL:
+		{
+			/* Call a native function, whose pointer is supplied explicitly */
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			jit_cache_native(&(gen->posn), (jit_nint)(insn->value2));
+			jit_cache_native(&(gen->posn), (jit_nint)(insn->dest));
+			jit_cache_native(&(gen->posn), (jit_nint)
+					(jit_type_num_params((jit_type_t)(insn->value2))));
 		}
 		break;
 

@@ -90,6 +90,11 @@ void dpas_scope_add_const(dpas_scope_t scope, const char *name,
 void dpas_scope_check_undefined(dpas_scope_t scope);
 
 /*
+ * Get the name associated with a scope item.
+ */
+const char *dpas_scope_item_name(dpas_scope_item_t item);
+
+/*
  * Get the kind associated with a scope item.
  */
 int dpas_scope_item_kind(dpas_scope_item_t item);
@@ -103,6 +108,11 @@ jit_type_t dpas_scope_item_type(dpas_scope_item_t item);
  * Get the information block associated with a scope item.
  */
 void *dpas_scope_item_info(dpas_scope_item_t item);
+
+/*
+ * Set the information block associated with a scope item.
+ */
+void dpas_scope_item_set_info(dpas_scope_item_t item, void *info);
 
 /*
  * Get the filename associated with a scope item.

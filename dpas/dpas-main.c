@@ -73,6 +73,14 @@ int main(int argc, char **argv)
 		{
 			version();
 		}
+		else if(!jit_strcmp(argv[1], "-d"))
+		{
+			dpas_dump_functions = 1;
+		}
+		else if(!jit_strcmp(argv[1], "-D"))
+		{
+			dpas_dump_functions = 2;
+		}
 		else
 		{
 			usage();

@@ -4,6 +4,7 @@ noinst_PROGRAMS = dpas
 dpas_SOURCES = \
 	dpas-internal.h \
 	dpas-main.c \
+	dpas-builtin.c \
 	dpas-function.c \
 	dpas-parser.y \
 	dpas-scanner.l \

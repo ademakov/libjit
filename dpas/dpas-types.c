@@ -1137,3 +1137,19 @@ int dpas_type_is_boolean(jit_type_t type)
 {
 	return (type == dpas_type_boolean || type == dpas_type_cboolean);
 }
+
+int dpas_type_is_record(jit_type_t type)
+{
+	type = jit_type_normalize(type);
+	return (jit_type_is_struct(type) || jit_type_is_union(type));
+}
+
+jit_type_t dpas_type_is_var(jit_type_t type)
+{
+	if(jit_type_is_tagged(type) &&
+	   jit_type_get_tagged_kind(type) == DPAS_TAG_VAR)
+	{
+		return jit_type_get_ref(jit_type_normalize(type));
+	}
+	return 0;
+}

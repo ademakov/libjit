@@ -517,7 +517,7 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 			case JIT_OP_PREPARE_FOR_LEAVE:
 			{
 				/* Call the finally clauses that are relevant to the
-				   "JIT_OP_BRANCH" instruction that follows */
+				   "JIT_OP_BR" instruction that follows */
 				_jit_regs_spill_all(gen);
 				insn = jit_insn_iter_next(&iter);
 				branch_block = jit_block_from_label

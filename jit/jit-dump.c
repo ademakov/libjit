@@ -589,9 +589,7 @@ static void dump_interp_code(FILE *stream, void **pc)
 				}
 				else if((info->flags & JIT_OPCODE_IS_CALL_EXTERNAL) != 0)
 				{
-					putc(' ', stream);
-					jit_dump_type(stream, (jit_type_t)(pc[0]));
-					fprintf(stream, ", 0x%lX, %ld",
+					fprintf(stream, " 0x%lX, %ld",
 							(long)(jit_nint)(pc[1]), (long)(jit_nint)(pc[2]));
 					pc += 3;
 				}

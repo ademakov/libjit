@@ -178,6 +178,16 @@ int dpas_type_is_numeric(jit_type_t type);
 int dpas_type_is_integer(jit_type_t type);
 int dpas_type_is_boolean(jit_type_t type);
 
+/*
+ * Determine if a type is a record.
+ */
+int dpas_type_is_record(jit_type_t type);
+
+/*
+ * Determine if a type is a "var" parameter, and return its element type.
+ */
+jit_type_t dpas_type_is_var(jit_type_t type);
+
 #ifdef	__cplusplus
 };
 #endif

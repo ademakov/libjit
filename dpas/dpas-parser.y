@@ -47,6 +47,11 @@ extern char yytext[];
 int dpas_error_reported = 0;
 
 /*
+ * Function dumping flag.
+ */
+int dpas_dump_functions = 0;
+
+/*
  * Report error messages from the parser.
  */
 static void yyerror(char *msg)
@@ -444,6 +449,149 @@ static void parameter_list_merge(dpas_params *list1, dpas_params *list2)
 }
 
 /*
+ * Add an item to an expression list.
+ */
+static void expression_list_add
+	(dpas_semvalue **list, int *len, dpas_semvalue value)
+{
+	dpas_semvalue *new_list = (dpas_semvalue *)
+		jit_realloc(*list, sizeof(dpas_semvalue) * (*len + 1));
+	if(!new_list)
+	{
+		dpas_out_of_memory();
+	}
+	new_list[*len] = value;
+	++(*len);
+	*list = new_list;
+}
+
+/*
+ * Free an expression list.
+ */
+static void expression_list_free(dpas_semvalue *list, int len)
+{
+	jit_free(list);
+}
+
+/*
+ * Invoke a procedure or function.
+ */
+static dpas_semvalue invoke_procedure
+	(jit_function_t func_value, const char *name, jit_type_t signature,
+	 jit_value_t indirect_value, dpas_semvalue *args, int num_args)
+{
+	jit_function_t func = dpas_current_function();
+	dpas_semvalue rvalue;
+	jit_type_t type;
+	jit_value_t return_value;
+	jit_value_t *value_args;
+	jit_type_t param_type;
+	jit_type_t var_type;
+	unsigned int param;
+	int error;
+
+	/* Validate the parameters (TODO: vararg function calls) */
+	if(num_args != (int)jit_type_num_params(signature))
+	{
+		dpas_error("incorrect number of parameters to procedure or function");
+		dpas_sem_set_error(rvalue);
+		return rvalue;
+	}
+	error = 0;
+	if(num_args > 0)
+	{
+		value_args = (jit_value_t *)jit_malloc(sizeof(jit_value_t) * num_args);
+		if(!value_args)
+		{
+			dpas_out_of_memory();
+		}
+		for(param = 0; param < (unsigned int)num_args; ++param)
+		{
+			param_type = jit_type_get_param(signature, param);
+			var_type = dpas_type_is_var(param_type);
+			if(var_type)
+			{
+				/* TODO: type checking */
+				if(dpas_sem_is_lvalue_ea(args[param]))
+				{
+					value_args[param] = dpas_sem_get_value(args[param]);
+				}
+				else if(dpas_sem_is_lvalue(args[param]))
+				{
+					value_args[param] = jit_insn_address_of
+						(func, dpas_sem_get_value(args[param]));
+					if(!(value_args[param]))
+					{
+						dpas_out_of_memory();
+					}
+				}
+				else
+				{
+					dpas_error("invalid value for parameter %d",
+							   (int)(param + 1));
+					error = 1;
+				}
+			}
+			else
+			{
+				/* TODO: type checking and EA l-values */
+				if(dpas_sem_is_rvalue(args[param]))
+				{
+					value_args[param] = dpas_sem_get_value(args[param]);
+				}
+				else
+				{
+					dpas_error("invalid value for parameter %d",
+							   (int)(param + 1));
+					error = 1;
+				}
+			}
+		}
+	}
+	else
+	{
+		value_args = 0;
+	}
+	if(error)
+	{
+		jit_free(value_args);
+		dpas_sem_set_error(rvalue);
+		return rvalue;
+	}
+
+	/* Call the specified procedure or function */
+	if(func_value)
+	{
+		return_value = jit_insn_call
+			(func, name, func_value, signature,
+			 value_args, (unsigned int)num_args, 0);
+	}
+	else
+	{
+		return_value = jit_insn_call_indirect
+			(func, indirect_value, signature,
+			 value_args, (unsigned int)num_args, 0);
+	}
+	if(!return_value)
+	{
+		dpas_out_of_memory();
+	}
+	jit_free(value_args);
+
+	/* Construct a semantic value object for the return value */
+	type = jit_type_get_return(signature);
+	if(type == jit_type_void)
+	{
+		dpas_sem_set_void(rvalue);
+	}
+	else
+	{
+		dpas_sem_set_rvalue(rvalue, type, return_value);
+	}
+	return rvalue;
+}
+
+/*
  * Handle a numeric binary operator.
  */
 #define	handle_binary(name,func,arg1,arg2)	\
@@ -523,6 +671,72 @@ static void parameter_list_merge(dpas_params *list1, dpas_params *list2)
 			} \
 		} while (0)
 
+/*
+ * Definition of the loop stack.
+ */
+typedef struct
+{
+	jit_label_t		expr_label;
+	jit_label_t		top_label;
+	jit_label_t		exit_label;
+
+} dpas_loop_info;
+static dpas_loop_info *loop_stack = 0;
+static int loop_stack_size = 0;
+static int loop_stack_max = 0;
+
+/*
+ * Push an entry onto the loop stack.
+ */
+static void push_loop
+	(jit_label_t expr_label, jit_label_t top_label, jit_label_t exit_label)
+{
+	dpas_loop_info *new_stack;
+	if(loop_stack_size >= loop_stack_max)
+	{
+		new_stack = (dpas_loop_info *)jit_realloc
+			(loop_stack, sizeof(dpas_loop_info) * (loop_stack_size + 1));
+		if(!new_stack)
+		{
+			dpas_out_of_memory();
+		}
+		loop_stack = new_stack;
+		++loop_stack_max;
+	}
+	loop_stack[loop_stack_size].expr_label = expr_label;
+	loop_stack[loop_stack_size].top_label = top_label;
+	loop_stack[loop_stack_size].exit_label = exit_label;
+	++loop_stack_size;
+}
+
+/*
+ * Definition of the "if" stack.
+ */
+static jit_label_t *if_stack = 0;
+static int if_stack_size = 0;
+static int if_stack_max = 0;
+
+/*
+ * Push an entry onto the loop stack.
+ */
+static void push_if(jit_label_t end_label)
+{
+	jit_label_t *new_stack;
+	if(if_stack_size >= if_stack_max)
+	{
+		new_stack = (jit_label_t *)jit_realloc
+			(if_stack, sizeof(jit_label_t) * (if_stack_size + 1));
+		if(!new_stack)
+		{
+			dpas_out_of_memory();
+		}
+		if_stack = new_stack;
+		++if_stack_max;
+	}
+	if_stack[if_stack_size] = end_label;
+	++if_stack_size;
+}
+
 %}
 
 /*
@@ -560,6 +774,11 @@ static void parameter_list_merge(dpas_params *list1, dpas_params *list2)
 		dpas_params	bounds;
 	}				param_type;
 	dpas_semvalue	semvalue;
+	struct
+	{
+		dpas_semvalue *exprs;
+		int			len;
+	}				expr_list;
 }
 
 /*
@@ -656,6 +875,9 @@ static void parameter_list_merge(dpas_params *list1, dpas_params *list2)
 
 %type <semvalue>			Variable Expression SimpleExpression
 %type <semvalue>			AdditionExpression Term Factor Power
+%type <semvalue>			BooleanExpression
+
+%type <expr_list>			ExpressionList ActualParameters
 
 %expect 3
 
@@ -717,9 +939,23 @@ ProgramBlock
 					dpas_out_of_memory();
 				}
 
-				/* Compile the function */
-				/* TODO */
-				jit_dump_function(stdout, func, "main");
+				/* Dump the before-compile state of the function */
+				if(dpas_dump_functions)
+				{
+					jit_dump_function(stdout, func, "main");
+				}
+
+				/* Compile the procedure/function */
+				if(!jit_function_compile(func))
+				{
+					dpas_out_of_memory();
+				}
+
+				/* Dump the after-compile state of the function */
+				if(dpas_dump_functions > 1)
+				{
+					jit_dump_function(stdout, func, "main");
+				}
 
 				/* Pop the "main" function */
 				dpas_pop_function();
@@ -963,17 +1199,23 @@ ProcedureOrFunctionDeclaration
 				if(item)
 				{
 					dpas_redeclared($1.name, item);
+					item = 0;
 				}
 				else
 				{
 					dpas_scope_add(dpas_scope_current(), $1.name, $1.type,
 								   DPAS_ITEM_PROCEDURE, 0, 0,
 								   dpas_filename, dpas_linenum);
+					item = dpas_scope_lookup(dpas_scope_current(), $1.name, 0);
 				}
 
 				/* Push into a new scope for the procedure/function body */
 				dpas_scope_push();
 				func = dpas_new_function($1.type);
+				if(item)
+				{
+					dpas_scope_item_set_info(item, func);
+				}
 
 				/* Declare the parameters into the scope.  If a name
 				   is NULL, then it indicates that a duplicate parameter
@@ -1006,12 +1248,6 @@ ProcedureOrFunctionDeclaration
 						dpas_error("`%s' is declared as both a parameter "
 								   "and a function name", $1.name);
 					}
-					else
-					{
-						dpas_scope_add(dpas_scope_current(), $1.name, type,
-									   DPAS_ITEM_FUNC_RETURN, 0, 0,
-									   dpas_filename, dpas_linenum);
-					}
 				}
 			} Body {
 				jit_function_t func = dpas_current_function();
@@ -1033,9 +1269,23 @@ ProcedureOrFunctionDeclaration
 				dpas_pop_function();
 				dpas_scope_pop();
 
-				/* TODO: compile the procedure/function */
+				/* Dump the before-compile state of the function */
+				if(dpas_dump_functions)
+				{
+					jit_dump_function(stdout, func, $1.name);
+				}
 
-				jit_dump_function(stdout, func, $1.name);
+				/* Compile the procedure/function */
+				if(!jit_function_compile(func))
+				{
+					dpas_out_of_memory();
+				}
+
+				/* Dump the after-compile state of the function */
+				if(dpas_dump_functions > 1)
+				{
+					jit_dump_function(stdout, func, $1.name);
+				}
 
 				/* Free values that we no longer require */
 				jit_free($1.name);
@@ -1237,41 +1487,414 @@ Statement
 
 InnerStatement
 	: Variable K_ASSIGN Expression			{
-				/* TODO: type checking and non-local variables */
-				if(dpas_sem_is_lvalue($1) && dpas_sem_is_rvalue($3))
+				jit_type_t ltype;
+				jit_type_t rtype;
+				jit_value_t dest;
+				jit_value_t value;
+
+				/* Convert variable references to the current function
+				   into function return semantic values */
+				if(dpas_sem_is_procedure($1) &&
+				   ((jit_function_t)dpas_scope_item_info
+				   			(dpas_sem_get_procedure($1))) ==
+						dpas_current_function())
 				{
-					if(!jit_insn_store(dpas_current_function(),
-									   dpas_sem_get_value($1),
-									   dpas_sem_get_value($3)))
+					dpas_sem_set_return
+						($1, jit_type_get_return(dpas_sem_get_type($1)));
+				}
+
+				/* Validate the l-value expression */
+				if(!dpas_sem_is_lvalue($1) && !dpas_sem_is_lvalue_ea($1) &&
+				   !dpas_sem_is_return($1))
+				{
+					if(!dpas_sem_is_error($1))
+					{
+						dpas_error("invalid l-value in assignment statement");
+					}
+					ltype = jit_type_void;
+				}
+				else
+				{
+					ltype = dpas_sem_get_type($1);
+				}
+
+				/* Validate the r-value expression */
+				if(!dpas_sem_is_rvalue($3))
+				{
+					if(!dpas_sem_is_error($3))
+					{
+						dpas_error("invalid r-value in assignment statement");
+					}
+					rtype = jit_type_void;
+				}
+				else
+				{
+					rtype = dpas_sem_get_type($3);
+				}
+
+				/* Type-check the source against the destination */
+				/* TODO */
+				value = dpas_sem_get_value($3);
+
+				/* Determine the kind of assignment we should perform */
+				if(dpas_sem_is_return($1) && rtype != jit_type_void)
+				{
+					/* We are returning a value from this function */
+					if(dpas_sem_is_lvalue_ea($3))
+					{
+						if(!jit_insn_return_ptr
+								(dpas_current_function(), value, ltype))
+						{
+							dpas_out_of_memory();
+						}
+					}
+					else
+					{
+						if(!jit_insn_return
+								(dpas_current_function(), value))
+						{
+							dpas_out_of_memory();
+						}
+					}
+				}
+				else if(dpas_sem_is_lvalue_ea($1) && rtype != jit_type_void)
+				{
+					/* The destination is specified as an effective address */
+					dest = dpas_sem_get_value($1);
+					if(dpas_type_is_record(ltype))
+					{
+						/* We need an effective address for the source */
+						if(!dpas_sem_is_lvalue_ea($3))
+						{
+							value = jit_insn_address_of
+								(dpas_current_function(), value);
+							if(!value)
+							{
+								dpas_out_of_memory();
+							}
+						}
+						if(!jit_insn_memcpy
+							(dpas_current_function(), dest, value,
+							 jit_value_create_nint_constant
+							 	(dpas_current_function(), jit_type_nint,
+								 (jit_nint)jit_type_get_size(rtype))))
+						{
+							dpas_out_of_memory();
+						}
+					}
+					else
+					{
+						/* Don't use an effective address for the source */
+						if(dpas_sem_is_lvalue_ea($3))
+						{
+							value = jit_insn_load_relative
+								(dpas_current_function(), value, 0, rtype);
+							if(!value)
+							{
+								dpas_out_of_memory();
+							}
+						}
+						if(!jit_insn_store_relative
+							(dpas_current_function(), dest, 0, value))
+						{
+							dpas_out_of_memory();
+						}
+					}
+				}
+				else if(dpas_sem_is_lvalue($1) && rtype != jit_type_void)
+				{
+					/* The destination is specified as a local value */
+					dest = dpas_sem_get_value($1);
+					if(dpas_type_is_record(ltype))
+					{
+						/* We need effective addresses for both */
+						if(!dpas_sem_is_lvalue_ea($1))
+						{
+							dest = jit_insn_address_of
+								(dpas_current_function(), dest);
+							if(!dest)
+							{
+								dpas_out_of_memory();
+							}
+						}
+						if(!dpas_sem_is_lvalue_ea($3))
+						{
+							value = jit_insn_address_of
+								(dpas_current_function(), value);
+							if(!value)
+							{
+								dpas_out_of_memory();
+							}
+						}
+						if(!jit_insn_memcpy
+							(dpas_current_function(), dest, value,
+							 jit_value_create_nint_constant
+							 	(dpas_current_function(), jit_type_nint,
+								 (jit_nint)jit_type_get_size(rtype))))
+						{
+							dpas_out_of_memory();
+						}
+					}
+					else
+					{
+						/* Don't use an effective address for the source */
+						if(dpas_sem_is_lvalue_ea($3))
+						{
+							value = jit_insn_load_relative
+								(dpas_current_function(), value, 0, rtype);
+							if(!value)
+							{
+								dpas_out_of_memory();
+							}
+						}
+						if(!jit_insn_store
+							(dpas_current_function(), dest, value))
+						{
+							dpas_out_of_memory();
+						}
+					}
+				}
+			}
+	| Variable ActualParameters		{
+				/* Call a procedure or an ignored-result function */
+				if(dpas_sem_is_builtin($1))
+				{
+					/* Expand a call to a builtin procedure */
+					dpas_expand_builtin
+						(dpas_sem_get_builtin($1), $2.exprs, $2.len);
+				}
+				else if(dpas_sem_is_procedure($1))
+				{
+					/* Invoke a user-defined procedure */
+					dpas_scope_item_t item = dpas_sem_get_procedure($1);
+					invoke_procedure
+						((jit_function_t)dpas_scope_item_info(item),
+						 dpas_scope_item_name(item),
+						 dpas_scope_item_type(item), 0, $2.exprs, $2.len);
+				}
+				else if(dpas_sem_is_rvalue($1) &&
+						jit_type_is_signature(dpas_sem_get_type($1)))
+				{
+					/* Invoke a procedure via an indirect pointer */
+					invoke_procedure
+						(0, 0, dpas_sem_get_type($1), dpas_sem_get_value($1),
+						 $2.exprs, $2.len);
+				}
+				else
+				{
+					if(!dpas_sem_is_error($1))
+					{
+						dpas_error("invalid function or procedure name");
+					}
+				}
+				expression_list_free($2.exprs, $2.len);
+			}
+	| K_GOTO Label
+	| CompoundStatement
+	| IfStatement
+	| WhileStatement
+	| RepeatStatement
+	| K_FOR Identifier K_ASSIGN Expression Direction Expression K_DO Statement
+	| CaseStatement
+	| K_WITH VariableList K_DO Statement
+	| K_THROW Expression
+	| K_THROW
+	| TryStatement
+	| K_EXIT		{
+				/* Exit from the current loop level */
+				if(loop_stack_size > 0)
+				{
+					if(!jit_insn_branch
+						(dpas_current_function(),
+						 &(loop_stack[loop_stack_size - 1].exit_label)))
 					{
 						dpas_out_of_memory();
 					}
 				}
 				else
 				{
-					dpas_error("invalid assignment");
+					dpas_error("`exit' used outside loop");
 				}
 			}
-	| Identifier							{}
-	| Identifier '(' ExpressionList ')'		{}
-	| K_GOTO Label
-	| CompoundStatement
-	| K_WHILE Expression K_DO Statement
-	| K_REPEAT StatementSequence OptSemi K_UNTIL Expression
-	| K_FOR Identifier K_ASSIGN Expression Direction Expression K_DO Statement
-	| K_IF Expression K_THEN Statement
-	| K_IF Expression K_THEN Statement K_ELSE Statement
-	| CaseStatement
-	| K_WITH VariableList K_DO Statement
-	| K_THROW Expression
-	| K_THROW
-	| TryStatement
-	| K_EXIT
+	;
+
+ActualParameters
+	: /* empty */				{ $$.exprs = 0; $$.len = 0; }
+	| '(' ExpressionList ')'	{ $$ = $2; }
 	;
 
 CompoundStatement
 	: K_BEGIN StatementSequence OptSemi K_END
 	| K_BEGIN error K_END
+	;
+
+IfStatement
+	: K_IF BooleanExpression K_THEN 	{
+				jit_label_t label = jit_label_undefined;
+
+				/* Check the condition and jump if false */
+				if(!jit_insn_branch_if_not
+						(dpas_current_function(),
+						 dpas_sem_get_value($2), &label))
+				{
+					dpas_out_of_memory();
+				}
+
+				/* Push into an "if" context, to remember the label */
+				push_if(label);
+
+			} IfTail			{
+
+				/* Set the final label at the end of the "if" */
+				if(if_stack[if_stack_size - 1] != jit_label_undefined)
+				{
+					if(!jit_insn_label
+							(dpas_current_function(),
+							 &(if_stack[if_stack_size - 1])))
+					{
+						dpas_out_of_memory();
+					}
+				}
+				--if_stack_size;
+			}
+	;
+
+IfTail
+	: Statement
+	| Statement K_ELSE 		{
+				jit_label_t label = jit_label_undefined;
+
+				/* Jump to the end of the "if" statement */
+				if(jit_block_ends_in_dead
+						(jit_block_previous(dpas_current_function(), 0)))
+				{
+					if(!jit_insn_branch(dpas_current_function(), &label))
+					{
+						dpas_out_of_memory();
+					}
+				}
+
+				/* Set the position of the "else" clause */
+				if(!jit_insn_label
+						(dpas_current_function(),
+						 &(if_stack[if_stack_size - 1])))
+				{
+					dpas_out_of_memory();
+				}
+
+				/* Replace the end point of the "if" */
+				if_stack[if_stack_size - 1] = label;
+
+			} Statement
+	;
+
+WhileStatement
+	: K_WHILE 					{
+				jit_label_t label = jit_label_undefined;
+
+				/* Jump to the beginning of the expression block.
+				   Right now, the expression block is at the head
+				   of the loop body.  Once we've process the entire
+				   body, we will move the expression block to the end */
+				if(!jit_insn_branch(dpas_current_function(), &label))
+				{
+					dpas_out_of_memory();
+				}
+
+				/* Mark the start of the expression block */
+				if(!jit_insn_label(dpas_current_function(), &label))
+				{
+					dpas_out_of_memory();
+				}
+
+				/* Push the label onto the loop stack */
+				push_loop(label, jit_label_undefined, jit_label_undefined);
+
+			} BooleanExpression K_DO 	{
+				/* Test the expression and jump to the top of the body */
+				if(!dpas_sem_is_error($3))
+				{
+					if(!jit_insn_branch_if
+							(dpas_current_function(),
+							 dpas_sem_get_value($3),
+							 &(loop_stack[loop_stack_size - 1].top_label)))
+					{
+						dpas_out_of_memory();
+					}
+				}
+
+				/* Mark the end of the expression block and the start
+				   of the while loop's body.  This is also the end
+				   of the code we'll need to move to the end */
+				if(!jit_insn_label
+						(dpas_current_function(),
+						 &(loop_stack[loop_stack_size - 1].top_label)))
+				{
+					dpas_out_of_memory();
+				}
+			} Statement			{
+
+				/* Move the expression blocks down to this point */
+				jit_insn_move_blocks
+					(dpas_current_function(),
+					 loop_stack[loop_stack_size - 1].expr_label,
+					 loop_stack[loop_stack_size - 1].top_label);
+
+				/* Define the "exit" label to this point in the code */
+				if(!jit_insn_label
+						(dpas_current_function(),
+						 &(loop_stack[loop_stack_size - 1].exit_label)))
+				{
+					dpas_out_of_memory();
+				}
+
+				/* Pop the top-most entry from the loop stack */
+				--loop_stack_size;
+			}
+	;
+
+RepeatStatement
+	: K_REPEAT 			{
+
+				/* Define a label at the top of the loop body */
+				jit_label_t label = jit_label_undefined;
+				if(!jit_insn_label(dpas_current_function(), &label))
+				{
+					dpas_out_of_memory();
+				}
+
+				/* Push into a new loop context */
+				push_loop(jit_label_undefined, label, jit_label_undefined);
+
+			} StatementSequence OptSemi K_UNTIL BooleanExpression {
+
+				/* Branch back to the top of the loop */
+				if(!jit_insn_branch_if_not
+						(dpas_current_function(),
+						 dpas_sem_get_value($6),
+						 &(loop_stack[loop_stack_size - 1].top_label)))
+				{
+					dpas_out_of_memory();
+				}
+
+				/* Set the label for the "exit" point of the loop */
+				if(!jit_insn_label
+						(dpas_current_function(),
+						 &(loop_stack[loop_stack_size - 1].exit_label)))
+				{
+					dpas_out_of_memory();
+				}
+
+				/* Pop out of the current loop context */
+				--loop_stack_size;
+			}
+	;
+
+BooleanExpression
+	: Expression		{
+				/* TODO: type checking */
+				$$ = $1;
+			}
 	;
 
 Direction
@@ -1346,8 +1969,15 @@ Expression
 	;
 
 ExpressionList
-	: Expression						{ /* TODO */ }
-	| ExpressionList ',' Expression		{ /* TODO */ }
+	: Expression						{
+				$$.exprs = 0;
+				$$.len = 0;
+				expression_list_add(&($$.exprs), &($$.len), $1);
+			}
+	| ExpressionList ',' Expression		{
+				$$ = $1;
+				expression_list_add(&($$.exprs), &($$.len), $3);
+			}
 	;
 
 SimpleExpression
@@ -1465,7 +2095,7 @@ AdditionExpression
 Term
 	: Power							{ $$ = $1; }
 	| Term '*' Power				{
-				handle_binary("*", jit_insn_div, $1, $3);
+				handle_binary("*", jit_insn_mul, $1, $3);
 			}
 	| Term '/' Power				{
 				/* Standard Pascal always returns a floating-point
@@ -1562,7 +2192,13 @@ Power
 	;
 
 Factor
-	: Variable						{ $$ = $1; }
+	: Variable						{
+				if(!dpas_sem_is_rvalue($1) && !dpas_sem_is_error($1))
+				{
+					dpas_error("invalid r-value used in expression");
+				}
+				$$ = $1;
+			}
 	| BasicConstant					{
 				jit_value_t value = jit_value_create_constant
 					(dpas_current_function(), &($1));
@@ -1662,7 +2298,46 @@ Factor
 				}
 			}
 	| '(' Expression ')'			{ $$ = $2; }
-	| Variable '(' ExpressionList ')'		{ /* TODO */ }
+	| Variable '(' ExpressionList ')'		{
+				/* Call a function, with no ignored result */
+				if(dpas_sem_is_builtin($1))
+				{
+					/* Expand a call to a builtin procedure */
+					$$ = dpas_expand_builtin
+						(dpas_sem_get_builtin($1), $3.exprs, $3.len);
+				}
+				else if(dpas_sem_is_procedure($1))
+				{
+					/* Invoke a user-defined function */
+					dpas_scope_item_t item = dpas_sem_get_procedure($1);
+					$$ = invoke_procedure
+						((jit_function_t)dpas_scope_item_info(item),
+						 dpas_scope_item_name(item),
+						 dpas_scope_item_type(item), 0, $3.exprs, $3.len);
+				}
+				else if(dpas_sem_is_rvalue($1) &&
+						jit_type_is_signature(dpas_sem_get_type($1)))
+				{
+					/* Invoke a function via an indirect pointer */
+					$$ = invoke_procedure
+						(0, 0, dpas_sem_get_type($1), dpas_sem_get_value($1),
+						 $3.exprs, $3.len);
+				}
+				else
+				{
+					if(!dpas_sem_is_error($1))
+					{
+						dpas_error("invalid function name");
+					}
+					dpas_sem_set_error($$);
+				}
+				expression_list_free($3.exprs, $3.len);
+				if(dpas_sem_is_void($$))
+				{
+					dpas_error("cannot use a procedure in this context");
+					dpas_sem_set_error($$);
+				}
+			}
 	| K_VA_ARG '(' TypeIdentifier ')'		{ /* TODO */ }
 	| K_SIZEOF '(' Variable ')'				{ /* TODO */ }
 	| '(' K_IF Expression K_THEN Expression K_ELSE Expression ')'	{
@@ -1673,11 +2348,21 @@ Factor
 Variable
 	: Identifier						{
 				dpas_scope_item_t item;
+				int builtin;
 				item = dpas_scope_lookup(dpas_scope_current(), $1, 1);
 				if(!item)
 				{
-					dpas_error("`%s' is not declared in the current scope", $1);
-					dpas_sem_set_error($$);
+					builtin = dpas_is_builtin($1);
+					if(!builtin)
+					{
+						dpas_error
+							("`%s' is not declared in the current scope", $1);
+						dpas_sem_set_error($$);
+					}
+					else
+					{
+						dpas_sem_set_builtin($$, builtin);
+					}
 				}
 				else
 				{

@@ -86,3 +86,20 @@ int dpas_function_is_nested(void)
 {
 	return (function_stack_size > 1);
 }
+
+dpas_semvalue dpas_lvalue_to_rvalue(dpas_semvalue value)
+{
+	if(dpas_sem_is_lvalue_ea(value))
+	{
+		jit_type_t type = dpas_sem_get_type(value);
+		jit_value_t rvalue = dpas_sem_get_value(value);
+		rvalue = jit_insn_load_relative
+			(dpas_current_function(), rvalue, 0, type);
+		if(!rvalue)
+		{
+			dpas_out_of_memory();
+		}
+		dpas_sem_set_rvalue(value, type, rvalue);
+	}
+	return value;
+}

@@ -371,3 +371,14 @@ int jit_block_is_reachable(jit_block_t block)
 {
 	return (block->entered_via_top || block->entered_via_branch);
 }
+
+/*@
+ * @deftypefun int jit_block_ends_in_dead (jit_block_t block)
+ * Determine if a block ends in a "dead" marker.  That is, control
+ * will not fall out through the end of the block.
+ * @end deftypefun
+@*/
+int jit_block_ends_in_dead(jit_block_t block)
+{
+	return block->ends_in_dead;
+}

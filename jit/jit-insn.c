@@ -1096,9 +1096,8 @@ int jit_insn_label(jit_function_t func, jit_label_t *label)
 		if(last)
 		{
 			/* We will be entered via the top if the last block
-			   did not end in an unconditional branch and it
 			   is not explicitly marked as "dead" */
-			if(last->opcode != JIT_OP_BR && !(current->ends_in_dead))
+			if(!(current->ends_in_dead))
 			{
 				block->entered_via_top = 1;
 			}
@@ -3455,6 +3454,7 @@ int jit_insn_branch(jit_function_t func, jit_label_t *label)
 	insn->opcode = (short)JIT_OP_BR;
 	insn->flags = JIT_INSN_DEST_IS_LABEL;
 	insn->dest = (jit_value_t)(*label);
+	func->builder->current_block->ends_in_dead = 1;
 	block = _jit_block_create(func, 0);
 	if(!block)
 	{
@@ -5221,6 +5221,10 @@ jit_value_t jit_insn_call_native
 	insn->flags = JIT_INSN_DEST_IS_NATIVE | JIT_INSN_VALUE1_IS_NAME;
 	insn->dest = (jit_value_t)native_func;
 	insn->value1 = (jit_value_t)name;
+#ifdef JIT_BACKEND_INTERP
+	insn->flags |= JIT_INSN_VALUE2_IS_SIGNATURE;
+	insn->value2 = (jit_value_t)jit_type_copy(signature);
+#endif
 
 	/* If the function does not return, then end the current block.
 	   The next block does not have "entered_via_top" set so that
@@ -5824,16 +5828,43 @@ int jit_insn_return(jit_function_t func, jit_value_t value)
 			case JIT_TYPE_UNION:
 			{
 				jit_value_t return_ptr = jit_value_get_struct_pointer(func);
+				jit_value_t value_addr;
 				if(return_ptr)
 				{
-					/* Return the structure via the supplied pointer */
-					/* TODO */
+					/* Copy the structure's contents to the supplied pointer */
+					value_addr = jit_insn_address_of(func, value);
+					if(!value_addr)
+					{
+						return 0;
+					}
+					if(!jit_insn_memcpy
+						   (func, return_ptr, value_addr,
+						    jit_value_create_nint_constant
+								(func, jit_type_nint,
+								 (jit_nint)(jit_type_get_size(type)))))
+					{
+						return 0;
+					}
+
+					/* Output a regular return for the function */
+					if(!create_noarg_note(func, JIT_OP_RETURN))
+					{
+						return 0;
+					}
 				}
 				else
 				{
 					/* Return the structure via registers */
-					if(!create_unary_note
-							(func, JIT_OP_RETURN_SMALL_STRUCT, value))
+					value_addr = jit_insn_address_of(func, value);
+					if(!value_addr)
+					{
+						return 0;
+					}
+					if(!create_note
+						(func, JIT_OP_RETURN_SMALL_STRUCT, value_addr,
+				     	 jit_value_create_nint_constant
+							(func, jit_type_nint,
+						 	 (jit_nint)(jit_type_get_size(type)))))
 					{
 						break;
 					}
@@ -5847,7 +5878,107 @@ int jit_insn_return(jit_function_t func, jit_value_t value)
 	func->builder->current_block->ends_in_dead = 1;
 
 	/* Start a new block just after the "return" instruction */
-	return jit_insn_label(func, 0);
+	if(!_jit_block_create(func, 0))
+	{
+		return 0;
+	}
+	return 1;
+}
+
+/*@
+ * @deftypefun int jit_insn_return_ptr (jit_function_t func, jit_value_t value, jit_type_t type)
+ * Output an instruction to return @code{*value} as the function's result.
+ * This is normally used for returning @code{struct} and @code{union}
+ * values where you have the effective address of the structure, rather
+ * than the structure's contents, in @code{value}.
+ * @end deftypefun
+@*/
+int jit_insn_return_ptr
+	(jit_function_t func, jit_value_t value, jit_type_t type)
+{
+	jit_value_t return_ptr;
+
+	/* Ensure that we have a builder for this function */
+	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+
+	/* This function has an ordinary return path */
+	func->builder->ordinary_return = 1;
+
+	/* Convert the value into a pointer */
+	value = jit_insn_convert(func, value, jit_type_void_ptr, 0);
+	if(!value)
+	{
+		return 0;
+	}
+
+	/* Determine how to return the value, based on the pointed-to type */
+	switch(jit_type_normalize(type)->kind)
+	{
+		case JIT_TYPE_STRUCT:
+		case JIT_TYPE_UNION:
+		{
+			/* Handle "finally" clauses if necessary */
+			if(!handle_finally(func, JIT_OP_PREPARE_FOR_RETURN))
+			{
+				return 0;
+			}
+
+			/* Determine the kind of structure return to use */
+			return_ptr = jit_value_get_struct_pointer(func);
+			if(return_ptr)
+			{
+				/* Copy the structure's contents to the supplied pointer */
+				if(!jit_insn_memcpy
+					   (func, return_ptr, value,
+					    jit_value_create_nint_constant
+							(func, jit_type_nint,
+							 (jit_nint)(jit_type_get_size(type)))))
+				{
+					return 0;
+				}
+
+				/* Output a regular return for the function */
+				if(!create_noarg_note(func, JIT_OP_RETURN))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				/* Return the structure via registers */
+				if(!create_note
+					(func, JIT_OP_RETURN_SMALL_STRUCT, value,
+				     jit_value_create_nint_constant
+						(func, jit_type_nint,
+						 (jit_nint)(jit_type_get_size(type)))))
+				{
+					break;
+				}
+			}
+		}
+		break;
+
+		default:
+		{
+			/* Everything else uses the normal return logic */
+			return jit_insn_return
+				(func, jit_insn_load_relative(func, value, 0, type));
+		}
+		/* Not reached */
+	}
+
+	/* Mark the current block as "ends in dead" */
+	func->builder->current_block->ends_in_dead = 1;
+
+	/* Start a new block just after the "return" instruction */
+	if(!_jit_block_create(func, 0))
+	{
+		return 0;
+	}
+	return 1;
 }
 
 /*@
@@ -5884,9 +6015,9 @@ int jit_insn_default_return(jit_function_t func)
 	last = _jit_block_get_last(current);
 	if(last)
 	{
-		if(last->opcode == JIT_OP_BR)
+		if(current->ends_in_dead)
 		{
-			/* This block ends in an unconditional branch */
+			/* This block ends in an unconditional branch, return, etc */
 			return 2;
 		}
 	}
@@ -6371,6 +6502,72 @@ int jit_insn_memset
 	value = jit_insn_convert(func, value, jit_type_int, 0);
 	size = jit_insn_convert(func, size, jit_type_nint, 0);
 	return apply_ternary(func, JIT_OP_MEMSET, dest, value, size);
+}
+
+/*@
+ * @deftypefun int jit_insn_move_blocks (jit_function_t func, jit_label_t from_label, jit_label_t to_label)
+ * Move all of the blocks between @code{from_label} (inclusive) and
+ * @code{to_label} (exclusive) to the end of the current function.
+ * This is typically used to move the expression in a @code{while}
+ * loop to the end of the body, where it can be executed more
+ * efficiently.
+ * @end deftypefun
+@*/
+int jit_insn_move_blocks
+	(jit_function_t func, jit_label_t from_label, jit_label_t to_label)
+{
+	jit_block_t first_block;
+	jit_block_t block;
+	jit_block_t next;
+
+	/* Find the first block that needs to be moved */
+	first_block = jit_block_from_label(func, from_label);
+	if(!first_block)
+	{
+		return 0;
+	}
+
+	/* Keep moving blocks until we come across "to_label" */
+	block = first_block;
+	while(block != 0 && block->label != to_label)
+	{
+		next = block->next;
+		if(block->next != 0)
+		{
+			block->next->prev = block->prev;
+		}
+		else
+		{
+			func->builder->last_block = block->prev;
+		}
+		if(block->prev != 0)
+		{
+			block->prev->next = block->next;
+		}
+		else
+		{
+			func->builder->first_block = block->next;
+		}
+		block->next = 0;
+		block->prev = func->builder->last_block;
+		if(func->builder->last_block)
+		{
+			func->builder->last_block->next = block;
+		}
+		else
+		{
+			func->builder->first_block = block;
+		}
+		func->builder->last_block = block;
+		block = next;
+	}
+	func->builder->current_block = func->builder->last_block;
+
+	/* The first block will be entered via its top now */
+	first_block->entered_via_top = 1;
+
+	/* Create a new block after the last one we moved, to start fresh */
+	return jit_insn_label(func, 0);
 }
 
 /*@

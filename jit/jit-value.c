@@ -600,7 +600,7 @@ int jit_value_is_constant(jit_value_t value)
 @*/
 void jit_value_ref(jit_function_t func, jit_value_t value)
 {
-	if(!_jit_function_ensure_builder(func))
+	if(!value || !_jit_function_ensure_builder(func))
 	{
 		return;
 	}

@@ -479,7 +479,7 @@ int _jit_create_call_return_insns
 			return 0;
 		}
 	}
-	else
+	else if(return_type->kind != JIT_TYPE_VOID)
 	{
 		if(!jit_insn_return_reg(func, return_value, ARM_R0))
 		{

@@ -452,7 +452,7 @@ void jit_type_free(jit_type_t type)
 		return;
 	}
 	jit_type_free(type->sub_type);
-	for(index = 0; index < type->num_components; ++type)
+	for(index = 0; index < type->num_components; ++index)
 	{
 		jit_type_free(type->components[index].type);
 		if(type->components[index].name)

@@ -39,6 +39,11 @@ extern char *dpas_filename;
 extern long dpas_linenum;
 
 /*
+ * Flag that indicates that functions should be dumped as they are compiled.
+ */
+extern int dpas_dump_functions;
+
+/*
  * Information about a parameter list (also used for record fields).
  */
 typedef struct
@@ -113,6 +118,18 @@ void dpas_pop_function(void);
  * Determine if the current function is nested.
  */
 int dpas_function_is_nested(void);
+
+/*
+ * Determine if a name corresponds to a builtin function,
+ * and get its builtin identifier.  Returns zero if not a builtin.
+ */
+int dpas_is_builtin(const char *name);
+
+/*
+ * Expand a builtin function reference.
+ */
+dpas_semvalue dpas_expand_builtin
+	(int identifier, dpas_semvalue *args, int num_args);
 
 #ifdef	__cplusplus
 };

@@ -637,6 +637,7 @@ jit_value jit_function::get_struct_pointer()
  * @deftypemethodx jit_function jit_value insn_import (jit_value value)
  * @deftypemethodx jit_function void insn_return ({const jit_value&} value)
  * @deftypemethodx jit_function void insn_return ()
+ * @deftypemethodx jit_function void insn_return_ptr ({const jit_value&} value, jit_type_t type)
  * @deftypemethodx jit_function void insn_default_return ()
  * @deftypemethodx jit_function void insn_throw ({const jit_value&} value)
  * @deftypemethodx jit_function jit_value insn_get_call_stack ()
@@ -1125,6 +1126,14 @@ void jit_function::insn_return(const jit_value& value)
 void jit_function::insn_return()
 {
 	if(!jit_insn_return(func, 0))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_return_ptr(const jit_value& value, jit_type_t type)
+{
+	if(!jit_insn_return_ptr(func, value.raw(), type))
 	{
 		out_of_memory();
 	}

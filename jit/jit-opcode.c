@@ -410,7 +410,7 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	{"return_float32",				F_(EMPTY, FLOAT32, EMPTY)},
 	{"return_float64",				F_(EMPTY, FLOAT64, EMPTY)},
 	{"return_nfloat",				F_(EMPTY, NFLOAT, EMPTY)},
-	{"return_small_struct",			F_(EMPTY, PTR, EMPTY) | NINT_ARG},
+	{"return_small_struct",			F_(EMPTY, PTR, PTR)},
 	{"setup_for_nested",			F_(EMPTY, INT, EMPTY)},
 	{"setup_for_sibling",			F_(EMPTY, INT, INT) | NINT_ARG},
 	{"import",						F_(PTR, ANY, INT)},
@@ -511,9 +511,9 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	/*
 	 * Block operations.
 	 */
-	{"memcpy",						F_(PTR, PTR, INT)},
-	{"memmove",						F_(PTR, PTR, INT)},
-	{"memset",						F_(PTR, INT, INT)},
+	{"memcpy",						F_(PTR, PTR, PTR)},
+	{"memmove",						F_(PTR, PTR, PTR)},
+	{"memset",						F_(PTR, INT, PTR)},
 };
 
 #if defined(JIT_BACKEND_INTERP)

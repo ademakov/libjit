@@ -3455,8 +3455,8 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 		{
 			/* Return from the current function, with a small structure */
 		#if JIT_APPLY_MAX_STRUCT_IN_REG != 0
-			jit_memcpy(return_area->struct_value, stacktop,
-					   (unsigned int)VM_NINT_ARG);
+			jit_memcpy(return_area->struct_value, VM_STK_PTR1,
+					   (unsigned int)VM_STK_NINT0);
 		#endif
 			return;
 		}

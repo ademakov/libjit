@@ -46,6 +46,8 @@ typedef struct
 #define	DPAS_SEM_ERROR			(1 << 4)
 #define	DPAS_SEM_RETURN			(1 << 5)
 #define	DPAS_SEM_LVALUE_EA		(1 << 6)
+#define	DPAS_SEM_VOID			(1 << 7)
+#define	DPAS_SEM_BUILTIN		(1 << 8)
 
 /*
  * Set a semantic value to an l-value.
@@ -131,6 +133,26 @@ typedef struct
 		} while (0)
 
 /*
+ * Set a semantic value to indicate "void" for a procedure return.
+ */
+#define	dpas_sem_set_void(sem)	\
+		do { \
+			(sem).kind__ = DPAS_SEM_VOID; \
+			(sem).type__ = jit_type_void; \
+			(sem).value__ = 0; \
+		} while (0)
+
+/*
+ * Set a semantic value to indicate a builtin function.
+ */
+#define	dpas_sem_set_builtin(sem,value)	\
+		do { \
+			(sem).kind__ = DPAS_SEM_BUILTIN; \
+			(sem).type__ = jit_type_void; \
+			(sem).value__ = (jit_value_t)(jit_nint)(value); \
+		} while (0)
+
+/*
  * Determine if a semantic value has a specific kind.
  */
 #define	dpas_sem_is_lvalue(sem)		(((sem).kind__ & DPAS_SEM_LVALUE) != 0)
@@ -140,6 +162,8 @@ typedef struct
 #define	dpas_sem_is_procedure(sem)	(((sem).kind__ & DPAS_SEM_PROCEDURE) != 0)
 #define	dpas_sem_is_error(sem)		(((sem).kind__ & DPAS_SEM_ERROR) != 0)
 #define	dpas_sem_is_return(sem)		(((sem).kind__ & DPAS_SEM_RETURN) != 0)
+#define	dpas_sem_is_void(sem)		(((sem).kind__ & DPAS_SEM_VOID) != 0)
+#define	dpas_sem_is_builtin(sem)	(((sem).kind__ & DPAS_SEM_BUILTIN) != 0)
 
 /*
  * Extract the type information from a semantic value.
@@ -150,6 +174,21 @@ typedef struct
  * Extract the value information from a semantic value.
  */
 #define	dpas_sem_get_value(sem)		((sem).value__)
+
+/*
+ * Extract the procedure information from a semantic value.
+ */
+#define	dpas_sem_get_procedure(sem)	((dpas_scope_item_t)((sem).value__))
+
+/*
+ * Extract the builtin function information from a semantic value.
+ */
+#define	dpas_sem_get_builtin(sem)	((int)(jit_nint)((sem).value__))
+
+/*
+ * Convert an l-value effective address into a plain r-value.
+ */
+dpas_semvalue dpas_lvalue_to_rvalue(dpas_semvalue value);
 
 #ifdef	__cplusplus
 };

@@ -305,6 +305,7 @@ public:
 	jit_value insn_import(jit_value value);
 	void insn_return(const jit_value& value);
 	void insn_return();
+	void insn_return_ptr(const jit_value& value, jit_type_t type);
 	void insn_default_return();
 	void insn_throw(const jit_value& value);
 	jit_value insn_get_call_stack();

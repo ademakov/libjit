@@ -1,4 +1,17 @@
 
+2004-05-06  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* dpas/Makefile.am, dpas/dpas-builtin.c, dpas/dpas-function.c,
+	dpas/dpas-internal.h, dpas/dpas-main.c, dpas/dpas-parser.y,
+	dpas/dpas-scope.c, dpas/dpas-scope.h, dpas/dpas-semantics.h,
+	dpas/dpas-types.c, dpas/dpas-types.h, include/jit/jit-block.h,
+	include/jit/jit-insn.h, include/jit/jit-plus.h, jit/jit-block.c,
+	jit/jit-dump.c, jit/jit-function.c, jit/jit-insn.c, jit/jit-interp.cpp,
+	jit/jit-opcode.c, jit/jit-rules-arm.c, jit/jit-rules-interp.c,
+	jit/jit-rules-x86.c, jit/jit-type.c, jit/jit-value.c,
+	jitplus/jit-plus-function.cpp: get basic compilation working
+	in Dynamic Pascal.
+
 2004-05-03  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* tools/gen-apply.c: improve the maintainability of the apply macros.

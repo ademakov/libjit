@@ -248,6 +248,8 @@ jit_value_t jit_insn_import
 int jit_insn_push(jit_function_t func, jit_value_t value) JIT_NOTHROW;
 int jit_insn_pop_stack(jit_function_t func, jit_nint num_items) JIT_NOTHROW;
 int jit_insn_return(jit_function_t func, jit_value_t value) JIT_NOTHROW;
+int jit_insn_return_ptr
+	(jit_function_t func, jit_value_t value, jit_type_t type) JIT_NOTHROW;
 int jit_insn_default_return(jit_function_t func) JIT_NOTHROW;
 int jit_insn_throw(jit_function_t func, jit_value_t value) JIT_NOTHROW;
 jit_value_t jit_insn_get_call_stack(jit_function_t func) JIT_NOTHROW;
@@ -275,6 +277,9 @@ int jit_insn_memmove
 int jit_insn_memset
 	(jit_function_t func, jit_value_t dest,
 	 jit_value_t value, jit_value_t size) JIT_NOTHROW;
+
+int jit_insn_move_blocks
+	(jit_function_t func, jit_label_t from_label, jit_label_t to_label);
 
 void jit_insn_iter_init(jit_insn_iter_t *iter, jit_block_t block) JIT_NOTHROW;
 void jit_insn_iter_init_last
