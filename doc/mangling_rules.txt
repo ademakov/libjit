@@ -1,0 +1,328 @@
+
+GCC 2.95.3 name mangling grammar (intuited from gcc sources):
+------------------------------------------------------------
+
+<global-function>   ::= <name> '__F' <func-params>
+
+<member-function>   ::= <name> '__' <class-name> <func-params>
+
+<ctor-function>		::= '__' <class-name> <func-params>
+
+<dtor-function>		::= '_' <joiner> '_' <class-name> <func-params>
+
+<joiner>			::= '.' | '$'			  # system-dependent joiner
+
+<class-name>		::= <qualified-name>
+
+<qualified-name>	::= <component>
+					::= 'Q' <digit> <component>+
+					::= 'Q' '_' <digit>+ '_' <component>+
+
+<component>			::= <digit>+ <identifier> # length-prefixed name
+
+<overload-item>     ::= 'R' <type>            # reference
+                    ::= 'P' <type>            # array or pointer type
+					::= 'O' <type> '_' <type> # offset type
+					::= 'M' <type> <modifiers> <function-type>   # methods
+					::= <function-type>
+					::= <builtin-type>
+					::= <qualified-name>
+
+<type>              ::= <modifiers> <overload-item>
+
+<function-type>     ::= 'F' <func-params> '_' <return-type>
+
+<func-params>       ::= 'e'                   # () parameters
+                    ::= 'v'                   # (void) parameters
+					::= <parameter>+
+					::= <parameter>+ 'e'	  # ends in "..."
+
+<return-type>       ::= <type>
+
+<modifiers>         ::= [C] [U] [V] [u]  # const, unsigned, volatile, restrict
+
+<builtin-type>      ::= 'i'					  # int
+					::= 'l'					  # long
+					::= 's'					  # short
+					::= 'Sc'				  # signed char
+					::= 'c'					  # char
+					::= 'w'                   # wchar/java-char
+					::= 'x'                   # long long
+					::= 'b'                   # bool
+					::= 'r'                   # long double
+					::= 'd'                   # double
+					::= 'f'                   # float
+					::= 'J' <type>            # complex <type>
+					::= 'v'                   # void
+					::= 'I' <bit-size>        # integer of <bit-size> bits
+
+<bit-size>          ::= <hex> <hex>           # sizes < 256
+                    ::= _ <hex>+ _            # sizes >= 256
+
+<parameter>         ::= <type>
+                    ::= <repeat-count> <backref>
+
+<repeat-count>      ::= 'T'                   # single repeat
+                    ::= 'N' <digit>           # repeats of 2..9
+					::= 'N' <number> '_'      # repeats of 10 or more
+					::= 'n' <digit>           # alt-style, repeats of 1..9
+					::= 'n' <number> '_'      # alt-style, repeats of 10+
+
+<backref>           ::= <digit>               # backrefs 0..9
+                    ::= <number> '_'          # backrefs of 10 or more
+
+GCC 3.2 name mangling grammar (extracted from gcc sources):
+----------------------------------------------------------
+
+<substitution>      ::= St
+         # ::std
+
+                    ::= Sa
+         # ::std::allocator
+
+                    ::= Sb
+         # ::std::basic_string
+
+                    ::= Ss
+         # ::std::basic_string<char,
+                               ::std::char_traits<char>,
+                               ::std::allocator<char> >
+
+                    ::= Si
+         # ::std::basic_istream<char, ::std::char_traits<char> >
+
+                    ::= So
+         # ::std::basic_ostream<char, ::std::char_traits<char> >
+
+                    ::= Sd
+         # ::std::basic_iostream<char, ::std::char_traits<char> >
+
+                    ::= S <seq-id> _		# base 36 sequence id
+                    ::= S_
+
+<mangled-name>      ::= _Z <encoding>
+
+<encoding>          ::= <function name> <bare-function-type>
+                    ::= <data name>
+
+<name>              ::= <unscoped-name>
+                    ::= <unscoped-template-name> <template-args>
+                    ::= <nested-name>
+                    ::= <local-name>
+
+   If IGNORE_LOCAL_SCOPE option to <name> is non-zero, this production of
+   <name> is called from <local-name>, which mangles the enclosing scope
+   elsewhere and then uses this function to mangle just the part
+   underneath the function scope.  So don't use the <local-name>
+   production, to avoid an infinite recursion.
+
+<unscoped-name>     ::= <unqualified-name>
+                    ::= St <unqualified-name>   # ::std::
+
+<unscoped-template-name> ::= <unscoped-name>
+                         ::= <substitution>
+
+<nested-name> ::= N [<CV-qualifiers>] <prefix> <unqualified-name> E
+              ::= N [<CV-qualifiers>] <template-prefix> <template-args> E
+
+<CV-qualifiers>     ::= [r] [V] [K]
+
+<prefix>            ::= <prefix> <unqualified-name>>
+                    ::= <template-prefix> <template-args>
+                    ::= # empty
+                    ::= <substitution>
+
+<template-prefix>   ::= <prefix> <template component>
+                    ::= <substitution>
+
+<unqualified-name>  ::= <operator-name>
+                    ::= <special-name>
+                    ::= <source-name>
+
+<source-name>       ::= </length/ number> <identifier>
+
+<number>            ::= [n] </decimal integer/>
+
+<identifier>        ::= </unqualified source code identifier>
+
+<special-name>      ::= C1   # complete object constructor
+                    ::= C2   # base object constructor
+                    ::= C3   # complete object allocating constructor
+                    ::= D0 # deleting (in-charge) destructor
+                    ::= D1 # complete object (in-charge) destructor
+                    ::= D2 # base object (not-in-charge) destructor
+                    ::= CT <type> <offset number> _ <base type>
+                    ::= Th <offset number> _ <base encoding>
+                    ::= Tv <offset number> _ <vcall offset number> _
+                                                            <base encoding>
+
+<discriminator>     := _ <number>
+
+<local-name>        := Z <function encoding> E <entity name> [<discriminator>]
+                    := Z <function encoding> E s [<discriminator>]
+
+<type>              ::= <builtin-type>
+                    ::= <function-type>
+                    ::= <class-enum-type>
+                    ::= <array-type>
+                    ::= <pointer-to-member-type>
+                    ::= <template-param>
+                    ::= <substitution>
+                    ::= <CV-qualifier>
+                    ::= P <type>    # pointer-to
+                    ::= R <type>    # reference-to
+                    ::= C <type>    # complex pair (C 2000)
+                    ::= G <type>    # imaginary (C 2000)     [not supported]
+                    ::= U <source-name> <type> # vendor extended type qualifier
+
+<builtin-type>      ::= v   # void
+                    ::= b   # bool
+                    ::= w   # wchar_t
+                    ::= c   # char
+                    ::= a   # signed char
+                    ::= h   # unsigned char
+                    ::= s   # short
+                    ::= t   # unsigned short
+                    ::= i   # int
+                    ::= j   # unsigned int
+                    ::= l   # long
+                    ::= m   # unsigned long
+                    ::= x   # long long, __int64
+                    ::= y   # unsigned long long, __int64
+                    ::= n   # __int128
+                    ::= o   # unsigned __int128
+                    ::= f   # float
+                    ::= d   # double
+                    ::= e   # long double, __float80
+                    ::= g   # __float128          [not supported]
+                    ::= u <source-name>  # vendor extended type */
+
+<function-type>     ::= F [Y] <bare-function-type> E
+
+<bare-function-type> ::= </signature/ type>+
+
+<class-enum-type>   ::= <name>
+
+<template-args>     ::= I <template-arg>+ E
+
+<expression>        ::= <unary operator-name> <expression>
+                    ::= <binary operator-name> <expression> <expression>
+                    ::= <expr-primary>
+
+<expr-primary>      ::= <template-param>
+                    ::= L <type> <value number> E  # literal
+                    ::= L <mangled-name> E         # external name
+
+<template-arg>      ::= <type>                        # type
+                    ::= L <type> </value/ number> E   # literal
+                    ::= LZ <name> E                   # external name
+                    ::= X <expression> E              # expression
+   
+     Literal subcase of non-terminal <template-arg>.
+
+     "Literal arguments, e.g. "A<42L>", are encoded with their type
+     and value. Negative integer values are preceded with "n"; for
+     example, "A<-42L>" becomes "1AILln42EE". The bool value false is
+     encoded as 0, true as 1. If floating-point arguments are accepted
+     as an extension, their values should be encoded using a
+     fixed-length lowercase hexadecimal string corresponding to the
+     internal representation (IEEE on IA-64), high-order bytes first,
+     without leading zeroes. For example: "Lfbff000000E" is -1.0f."
+
+<template-template-arg> ::= <name>
+                        ::= <substitution>
+
+<array-type>        ::= A [</dimension/ number>] _ </element/ type>
+                    ::= A <expression> _ </element/ type>
+
+     "Array types encode the dimension (number of elements) and the
+     element type. For variable length arrays, the dimension (but not
+     the '_' separator) is omitted."
+
+<pointer-to-member-type> ::= M </class/ type> </member/ type>
+
+<template-param>    ::= T </parameter/ number> _
+
+<template-template-param> ::= <template-param>
+                          ::= <substitution>
+
+MSVC 6.0 name mangling rules (determined by trial and error):
+------------------------------------------------------------
+
+<global-function>	::= '?' <name> '@@Y' <callconv> <return-type> <parameters>
+
+<member-function>	::= '?' <name> '@' <class-name> '@@' <access>
+							[<const>] <callconv> <return-type> <parameters>
+
+<ctor-function>		::= '??0' <class-name> '@@' <access> <const> <callconv>
+							'@' <parameters>
+
+<dtor-function>		::= '??1' <class-name> '@@' <access> <const> <callconv>
+							'@' <parameters>
+
+<access>			::= 'Q'				# public instance
+					::= 'I'				# protected instance
+					::= 'A'				# private instance
+					::= 'S'				# public static
+					::= 'K'				# protected static
+					::= 'C'				# private static
+					::= 'U'				# public virtual
+					::= 'M'				# protected virtual
+					::= 'E'				# private virtual
+
+<callconv>			::= 'A'				# cdecl
+					::= 'E'				# thiscall
+					::= 'G'				# stdcall
+					::= 'I'				# fastcall
+
+<const>				::= 'A'				# non-const method (instance only)
+					::= 'B'				# const method (instance only)
+
+<return-type>		::= 'X'				# void
+					::= <type>
+
+<parameters>		::= 'XZ'			# () or (void)
+					::= <type>+ '@Z'	# 1 or more parameters
+					::= <type>+ 'ZZ'	# 1 or more, followed by ...
+
+<func-ptr>			::= <callconv> <return-type> <parameters>
+
+<type>				::= <builtin-type>
+					::= 'PA' <type>		# pointer to <type>
+					::= 'PB' <type>		# const pointer to <type>
+					::= 'PC' <type>		# volatile pointer to <type>
+					::= 'PD' <type>		# const volatile pointer to <type>
+					::= 'P6' <func-ptr>	# function pointer type
+					::= 'AA' <type>		# reference to <type>
+					::= 'AB' <type>		# const reference to <type>
+					::= 'AC' <type>		# volatile reference to <type>
+					::= 'AD' <type>		# const volatile reference to <type>
+					::= 'T' <name> '@@'	# union name
+					::= 'U' <name> '@@'	# struct name
+					::= 'V' <name> '@@'	# class name
+					::= 'W' <digit> <name> '@@' # enum of a given byte size
+					::= <digit>			# backref to identifier 'n' in name
+
+<builtin-type>		::= 'D'				# char
+					::= 'C'				# signed char
+					::= 'E'				# unsigned char
+					::= 'F'				# short
+					::= 'G'				# unsigned short
+					::= 'H'				# int
+					::= 'I'				# unsigned int
+					::= 'J'				# long
+					::= 'K'				# unsigned long
+					::= '_J'			# __int64
+					::= '_K'			# unsigned __int64
+					::= 'M'				# float
+					::= 'N'				# double
+					::= 'O'				# long double
+
+<class-name>		::= <name>
+					::= <identifier> '@' <name>
+					::= <digit> <name>
+								# namespaces listed in reverse order
+								# i.e. "X::Y::Z" becomes "Z@Y@X".
+
+<name>				::= <identifier>
+					::= <digit>			# backref to identifier 'n' in name

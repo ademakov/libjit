@@ -692,11 +692,15 @@ jit_type_t jit_type_create_pointer(jit_type_t type, int incref)
  * name to display for the type.
  *
  * @vindex JIT_TYPETAG_STRUCT_NAME
+ * @vindex JIT_TYPETAG_UNION_NAME
+ * @vindex JIT_TYPETAG_ENUM_NAME
  * @item JIT_TYPETAG_STRUCT_NAME
+ * @itemx JIT_TYPETAG_UNION_NAME
+ * @itemx JIT_TYPETAG_ENUM_NAME
  * The @code{data} pointer is a @code{char *} string indicating a friendly
- * name to display for a @code{struct} or @code{union} type.  This is
- * for languages like C that have separate naming scopes for typedef's and
- * structures.
+ * name to display for a @code{struct}, @code{union}, or @code{enum} type.
+ * This is for languages like C that have separate naming scopes for
+ * typedef's and structures.
  *
  * @vindex JIT_TYPETAG_CONST
  * @item JIT_TYPETAG_CONST

@@ -15,6 +15,7 @@ libjit_TEXINFOS = \
 	$(srcdir)/libjitext-init.texi \
 	$(srcdir)/libjitext-insn.texi \
 	$(srcdir)/libjitext-intrinsic.texi \
+	$(srcdir)/libjitext-mangle.texi \
 	$(srcdir)/libjitext-memory.texi \
 	$(srcdir)/libjitext-meta.texi \
 	$(srcdir)/libjitext-reg-alloc.texi \
@@ -58,6 +59,9 @@ $(srcdir)/libjitext-insn.texi: $(top_srcdir)/jit/jit-insn.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
 $(srcdir)/libjitext-intrinsic.texi: $(top_srcdir)/jit/jit-intrinsic.c
+	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
+
+$(srcdir)/libjitext-mangle.texi: $(top_srcdir)/jit/jit-mangle.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
 $(srcdir)/libjitext-memory.texi: $(top_srcdir)/jit/jit-memory.c

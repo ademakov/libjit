@@ -1003,6 +1003,7 @@ that it itself uses internally, but which may also be useful to front ends.
 @include libjitext-apply.texi
 @include libjitext-walk.texi
 @include libjitext-dynlib.texi
+@include libjitext-mangle.texi
 
 @c -----------------------------------------------------------------------
 

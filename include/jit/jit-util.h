@@ -89,6 +89,25 @@ void *jit_dynlib_get_symbol
 const char *jit_dynlib_get_suffix(void) JIT_NOTHROW;
 void jit_dynlib_set_debug(int flag) JIT_NOTHROW;
 
+/*
+ * C++ name mangling definitions.
+ */
+#define	JIT_MANGLE_PUBLIC			0x0001
+#define	JIT_MANGLE_PROTECTED		0x0002
+#define	JIT_MANGLE_PRIVATE			0x0003
+#define	JIT_MANGLE_STATIC			0x0008
+#define	JIT_MANGLE_VIRTUAL			0x0010
+#define	JIT_MANGLE_CONST			0x0020
+#define	JIT_MANGLE_EXPLICIT_THIS	0x0040
+#define	JIT_MANGLE_IS_CTOR			0x0080
+#define	JIT_MANGLE_IS_DTOR			0x0100
+#define	JIT_MANGLE_BASE				0x0200
+char *jit_mangle_global_function
+	(const char *name, jit_type_t signature, int form) JIT_NOTHROW;
+char *jit_mangle_member_function
+	(const char *class_name, const char *name,
+	 jit_type_t signature, int form, int flags) JIT_NOTHROW;
+
 #ifdef	__cplusplus
 };
 #endif

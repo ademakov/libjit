@@ -17,6 +17,11 @@
 	name mangler, to help with extracting C++ symbols from dynamic
 	shared libraries.
 
+	* doc/Makefile.am, doc/libjit.texi, doc/mangling_rules.txt,
+	include/jit/jit-type.h, include/jit/jit-util.h, jit/jit-mangle.c,
+	jit/jit-type.c: continue the implementation of the C++ name
+	mangling routines.
+
 2004-05-01  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-apply-x86.c, jit/jit-rules-x86.c, tools/gen-apply.c:
