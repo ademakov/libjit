@@ -1271,6 +1271,90 @@ static unsigned char *throw_builtin
 	return inst;
 }
 
+/*
+ * Copy a block of memory that has a specific size.  Other than
+ * the parameter pointers, all registers must be unused at this point.
+ */
+static unsigned char *memory_copy
+	(jit_gencode_t gen, unsigned char *inst, int dreg, jit_nint doffset,
+	 int sreg, jit_nint soffset, jit_nuint size)
+{
+	int temp_reg = get_temp_reg(dreg, sreg, -1);
+	if(size <= 4 * sizeof(void *))
+	{
+		/* Use direct copies to copy the memory */
+		int offset = 0;
+		while(size >= sizeof(void *))
+		{
+			x86_mov_reg_membase(inst, temp_reg, sreg,
+								soffset + offset, sizeof(void *));
+			x86_mov_membase_reg(inst, dreg, doffset + offset,
+							    temp_reg, sizeof(void *));
+			size -= sizeof(void *);
+			offset += sizeof(void *);
+		}
+	#ifdef JIT_NATIVE_INT64
+		if(size >= 4)
+		{
+			x86_mov_reg_membase(inst, temp_reg, sreg, soffset + offset, 4);
+			x86_mov_membase_reg(inst, dreg, doffset + offset, temp_reg, 4);
+			size -= 4;
+			offset += 4;
+		}
+	#endif
+		if(size >= 2)
+		{
+			x86_mov_reg_membase(inst, temp_reg, sreg, soffset + offset, 2);
+			x86_mov_membase_reg(inst, dreg, doffset + offset, temp_reg, 2);
+			size -= 2;
+			offset += 2;
+		}
+		if(size >= 1)
+		{
+			/* We assume that temp_reg is EAX, ECX, or EDX, which it
+			   should be after calling "get_temp_reg" */
+			x86_mov_reg_membase(inst, temp_reg, sreg, soffset + offset, 1);
+			x86_mov_membase_reg(inst, dreg, doffset + offset, temp_reg, 1);
+		}
+	}
+	else
+	{
+		/* Call out to "jit_memcpy" to effect the copy */
+		x86_push_imm(inst, size);
+		if(soffset == 0)
+		{
+			x86_push_reg(inst, sreg);
+		}
+		else
+		{
+			x86_lea_membase(inst, temp_reg, sreg, soffset);
+			x86_push_reg(inst, temp_reg);
+		}
+		if(dreg != X86_ESP)
+		{
+			if(doffset == 0)
+			{
+				x86_push_reg(inst, dreg);
+			}
+			else
+			{
+				x86_lea_membase(inst, temp_reg, dreg, doffset);
+				x86_push_reg(inst, temp_reg);
+			}
+		}
+		else
+		{
+			/* Copying a structure value onto the stack */
+			x86_lea_membase(inst, temp_reg, X86_ESP,
+							doffset + 2 * sizeof(void *));
+			x86_push_reg(inst, temp_reg);
+		}
+		x86_call_code(inst, jit_memcpy);
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, 3 * sizeof(void *));
+	}
+	return inst;
+}
+
 #define	TODO()		\
 	do { \
 		fprintf(stderr, "TODO at %s, %d\n", __FILE__, (int)__LINE__); \

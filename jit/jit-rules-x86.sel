@@ -1935,10 +1935,21 @@ JIT_OP_COPY_FLOAT64: unary, stack
 JIT_OP_COPY_NFLOAT: unary, stack
 	[freg] -> {}
 
-JIT_OP_COPY_STRUCT: manual
+JIT_OP_COPY_STRUCT: manual, spill_before
 	[] -> {
-		/* TODO */
-		TODO();
+		unsigned char *inst;
+		_jit_gen_fix_value(insn->dest);
+		_jit_gen_fix_value(insn->value1);
+		inst = gen->posn.ptr;
+		if(!jit_cache_check_for_n(&(gen->posn), 128))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		inst = memory_copy(gen, inst, X86_EBP, insn->dest->frame_offset,
+						   X86_EBP, insn->value1->frame_offset,
+						   jit_type_get_size(jit_value_get_type(insn->dest)));
+		gen->posn.ptr = inst;
 	}
 
 JIT_OP_COPY_STORE_BYTE: manual
@@ -2141,10 +2152,25 @@ JIT_OP_PUSH_NFLOAT: unary_note, stack
 		gen->stack_changed = 1;
 	}
 
-JIT_OP_PUSH_STRUCT: unary_note
+JIT_OP_PUSH_STRUCT: unary_branch, more_space
 	[reg] -> {
-		/* TODO */
-		TODO();
+		jit_nuint size;
+		size = (jit_nuint)jit_value_get_nint_constant(insn->value2);
+		if((size % sizeof(void *)) == 0 && size <= 4 * sizeof(void *))
+		{
+			/* Handle small structures that are a multiple of the word size */
+			while(size > 0)
+			{
+				size -= sizeof(void *);
+				x86_push_membase(inst, $1, size);
+			}
+		}
+		else
+		{
+			/* Handle arbitrary-sized structures */
+			x86_alu_reg_imm(inst, X86_SUB, X86_ESP, ROUND_STACK(size));
+			inst = memory_copy(gen, inst, X86_ESP, 0, $1, 0, size);
+		}
 		gen->stack_changed = 1;
 	}
 
@@ -2287,10 +2313,12 @@ JIT_OP_LOAD_RELATIVE_NFLOAT: manual
 		gen->posn.ptr = inst;
 	}
 
-JIT_OP_LOAD_RELATIVE_STRUCT: manual
-	[] -> {
-		/* TODO */
-		TODO();
+JIT_OP_LOAD_RELATIVE_STRUCT: unary_branch, more_space
+	[reg] -> {
+		_jit_gen_fix_value(insn->dest);
+		inst = memory_copy(gen, inst, X86_EBP, insn->dest->frame_offset,
+						   $1, jit_value_get_nint_constant(insn->value2),
+						   jit_type_get_size(jit_value_get_type(insn->dest)));
 	}
 
 JIT_OP_STORE_RELATIVE_BYTE: manual
