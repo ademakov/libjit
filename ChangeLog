@@ -4,6 +4,9 @@
 	* doc/libjit.texi: clarify the text that describes LLVM, at the
 	request of Chris Lattner, LLVM's author.
 
+	* jit/jit-insn.c (jit_insn_convert): use intrinsic functions
+	for conversions when the back end doesn't support the opcode.
+
 2004-05-29  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-insn.c, jit/jit-reg-alloc.c, jit/jit-reg-alloc.h,

@@ -3961,6 +3961,95 @@ typedef struct jit_convert_info
 #define	CVT(opcode,name) opcode, (jit_type_t)&_jit_type_##name##_def
 #define	CVT_NONE		 0, 0
 
+/*
+ * Intrinsic equivalents for the conversion opcodes.
+ */
+typedef struct jit_convert_intrinsic
+{
+	const char *name;
+	void	   *func;
+	jit_intrinsic_descr_t descr;
+
+} jit_convert_intrinsic_t;
+#define	CVT_INTRINSIC_NULL	\
+	{0, 0, {0, 0, 0, 0}}
+#define	CVT_INTRINSIC(name,intype,outtype)	\
+	{#name, (void *)name, \
+	 {(jit_type_t)&_jit_type_##outtype##_def, 0, \
+	  (jit_type_t)&_jit_type_##intype##_def, 0}}
+#define	CVT_INTRINSIC_CHECK(name,intype,outtype)	\
+	{#name, (void *)name, \
+	 {(jit_type_t)&_jit_type_int_def, \
+	  (jit_type_t)&_jit_type_##outtype##_def, \
+	  (jit_type_t)&_jit_type_##intype##_def, 0}}
+static jit_convert_intrinsic_t const convert_intrinsics[] = {
+	CVT_INTRINSIC(jit_int_to_sbyte, int, int),
+	CVT_INTRINSIC(jit_int_to_ubyte, int, int),
+	CVT_INTRINSIC(jit_int_to_short, int, int),
+	CVT_INTRINSIC(jit_int_to_ushort, int, int),
+#ifdef JIT_NATIVE_INT32
+	CVT_INTRINSIC(jit_int_to_int, int, int),
+	CVT_INTRINSIC(jit_uint_to_uint, uint, uint),
+#else
+	CVT_INTRINSIC(jit_long_to_int, long, int),
+	CVT_INTRINSIC(jit_long_to_uint, long, uint),
+#endif
+	CVT_INTRINSIC_CHECK(jit_int_to_sbyte_ovf, int, int),
+	CVT_INTRINSIC_CHECK(jit_int_to_ubyte_ovf, int, int),
+	CVT_INTRINSIC_CHECK(jit_int_to_short_ovf, int, int),
+	CVT_INTRINSIC_CHECK(jit_int_to_ushort_ovf, int, int),
+#ifdef JIT_NATIVE_INT32
+	CVT_INTRINSIC_CHECK(jit_int_to_int_ovf, int, int),
+	CVT_INTRINSIC_CHECK(jit_uint_to_uint_ovf, uint, uint),
+#else
+	CVT_INTRINSIC_CHECK(jit_long_to_int_ovf, long, int),
+	CVT_INTRINSIC_CHECK(jit_long_to_uint_ovf, long, uint),
+#endif
+	CVT_INTRINSIC(jit_long_to_uint, long, uint),
+	CVT_INTRINSIC(jit_int_to_long, int, long),
+	CVT_INTRINSIC(jit_uint_to_long, uint, long),
+	CVT_INTRINSIC_CHECK(jit_long_to_uint_ovf, long, uint),
+	CVT_INTRINSIC_CHECK(jit_long_to_int_ovf, long, int),
+	CVT_INTRINSIC_CHECK(jit_ulong_to_long_ovf, ulong, long),
+	CVT_INTRINSIC_CHECK(jit_long_to_ulong_ovf, long, ulong),
+	CVT_INTRINSIC(jit_nfloat_to_int, nfloat, int),
+	CVT_INTRINSIC(jit_nfloat_to_uint, nfloat, uint),
+	CVT_INTRINSIC(jit_nfloat_to_long, nfloat, long),
+	CVT_INTRINSIC(jit_nfloat_to_ulong, nfloat, ulong),
+	CVT_INTRINSIC_CHECK(jit_nfloat_to_int_ovf, nfloat, int),
+	CVT_INTRINSIC_CHECK(jit_nfloat_to_uint_ovf, nfloat, uint),
+	CVT_INTRINSIC_CHECK(jit_nfloat_to_long_ovf, nfloat, long),
+	CVT_INTRINSIC_CHECK(jit_nfloat_to_ulong_ovf, nfloat, ulong),
+	CVT_INTRINSIC(jit_int_to_nfloat, int, nfloat),
+	CVT_INTRINSIC(jit_uint_to_nfloat, uint, nfloat),
+	CVT_INTRINSIC(jit_long_to_nfloat, long, nfloat),
+	CVT_INTRINSIC(jit_ulong_to_nfloat, ulong, nfloat),
+	CVT_INTRINSIC(jit_nfloat_to_float32, nfloat, float32),
+	CVT_INTRINSIC(jit_nfloat_to_float64, nfloat, float64),
+	CVT_INTRINSIC(jit_float32_to_nfloat, float32, nfloat),
+	CVT_INTRINSIC(jit_float64_to_nfloat, float64, nfloat)
+};
+
+/*
+ * Apply a unary conversion operator.
+ */
+static jit_value_t apply_unary_conversion
+		(jit_function_t func, int oper, jit_value_t value1,
+		 jit_type_t result_type)
+{
+	/* Bail out early if the conversion opcode is supported by the back end */
+	if(_jit_opcode_is_supported(oper))
+	{
+		return apply_unary(func, oper, value1, result_type);
+	}
+
+	/* Call the appropriate intrinsic method */
+	return jit_insn_call_intrinsic
+		(func, convert_intrinsics[oper - 1].name,
+		 convert_intrinsics[oper - 1].func,
+		 &(convert_intrinsics[oper - 1].descr), value1, 0);
+}
+
 /*@
  * @deftypefun jit_value_t jit_insn_convert (jit_function_t func, jit_value_t value, jit_type_t type, int overflow_check)
  * Convert the contents of a value into a new type, with optional
@@ -4224,20 +4313,32 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 				{CVT(JIT_OP_COPY_INT, int),
 				 	CVT_NONE,
 					CVT_NONE},
+			#ifndef JIT_NATIVE_INT32
 				{CVT(JIT_OP_TRUNC_INT, int),
+			#else
+				{CVT_NONE,
+			#endif
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_INT, int),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_LOW_WORD, int),
+			#ifndef JIT_NATIVE_INT32
 					CVT(JIT_OP_TRUNC_INT, int),
+			#else
+					CVT_NONE,
+			#endif
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
 				 	CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_LOW_WORD, int),
+			#ifndef JIT_NATIVE_INT32
 					CVT(JIT_OP_TRUNC_INT, int),
+			#else
+					CVT_NONE,
+			#endif
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
 				 	CVT(JIT_OP_CHECK_INT, int),
@@ -4269,7 +4370,11 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		{
 			/* Convert the value into an unsigned int */
 			static jit_convert_info_t const to_uint[] = {
+			#ifndef JIT_NATIVE_INT32
 				{CVT(JIT_OP_TRUNC_UINT, uint),
+			#else
+				{CVT_NONE,
+			#endif
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_UINT, uint),
@@ -4586,16 +4691,19 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		{
 			opcode_map += 1;
 		}
-		value = apply_unary
-			(func, opcode_map->cvt1, value, opcode_map->type1);
+		if(opcode_map->cvt1)
+		{
+			value = apply_unary_conversion
+				(func, opcode_map->cvt1, value, opcode_map->type1);
+		}
 		if(opcode_map->cvt2)
 		{
-			value = apply_unary
+			value = apply_unary_conversion
 				(func, opcode_map->cvt2, value, opcode_map->type2);
 		}
 		if(opcode_map->cvt3)
 		{
-			value = apply_unary
+			value = apply_unary_conversion
 				(func, opcode_map->cvt3, value, opcode_map->type3);
 		}
 	}
