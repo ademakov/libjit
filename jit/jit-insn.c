@@ -2120,7 +2120,52 @@ jit_value_t jit_insn_neg
 		jit_intrinsic(jit_float64_neg, descr_d_d),
 		jit_intrinsic(jit_nfloat_neg, descr_D_D)
 	};
-	return apply_unary_arith(func, &neg_descr, value1, 0, 0, 0);
+	int oper;
+	jit_type_t result_type;
+	if(!value1)
+	{
+		return 0;
+	}
+	result_type = common_binary(value1->type, value1->type, 0, 0);
+	if(result_type == jit_type_int)
+	{
+		oper = neg_descr.ioper;
+	}
+	else if(result_type == jit_type_uint)
+	{
+		result_type = jit_type_int;
+		oper = neg_descr.ioper;
+	}
+	else if(result_type == jit_type_long)
+	{
+		oper = neg_descr.loper;
+	}
+	else if(result_type == jit_type_ulong)
+	{
+		result_type = jit_type_long;
+		oper = neg_descr.loper;
+	}
+	else if(result_type == jit_type_float32)
+	{
+		oper = neg_descr.foper;
+	}
+	else if(result_type == jit_type_float64)
+	{
+		oper = neg_descr.doper;
+	}
+	else
+	{
+		oper = neg_descr.nfoper;
+	}
+	value1 = jit_insn_convert(func, value1, result_type, 0);
+	if(_jit_opcode_is_supported(oper))
+	{
+		return apply_unary(func, oper, value1, result_type);
+	}
+	else
+	{
+		return apply_intrinsic(func, &neg_descr, value1, 0, result_type);
+	}
 }
 
 /*@
