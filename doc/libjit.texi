@@ -100,7 +100,7 @@ a large set of compiler development and optimization components;
 much larger than @code{libjit} itself provides.  According to its author,
 Chris Lattner, a subset of its capabilities can be used to build JIT's.
 
-This should free developers to think about the design of their front
+Libjit should free developers to think about the design of their front
 ends, and not get bogged down in the details of code execution.
 Meanwhile, experts in the design and implementation of JIT's can concentrate
 on solving code execution problems, instead of front end support issues.
