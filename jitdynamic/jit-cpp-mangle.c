@@ -19,7 +19,7 @@
  */
 
 #include <jit/jit-dynamic.h>
-#include "jit-internal.h"
+#include <jit/jit.h>
 #include <config.h>
 #include <stdio.h>
 
@@ -298,7 +298,7 @@ static jit_type_t fix_system_types(jit_type_t type)
 	{
 		return 0;
 	}
-	switch(type->kind)
+	switch(jit_type_get_kind(type))
 	{
 		case JIT_TYPE_SBYTE:
 			return get_system_type(type, sizeof(jit_sbyte), 1);
@@ -329,17 +329,14 @@ static jit_type_t fix_system_types(jit_type_t type)
  */
 static int is_unsigned(jit_type_t type)
 {
-	type = jit_type_remove_tags(type);
-	if(type)
+	int kind = jit_type_get_kind(jit_type_remove_tags(type));
+	if(kind == JIT_TYPE_UBYTE ||
+	   kind == JIT_TYPE_USHORT ||
+	   kind == JIT_TYPE_UINT ||
+	   kind == JIT_TYPE_NUINT ||
+	   kind == JIT_TYPE_ULONG)
 	{
-		if(type->kind == JIT_TYPE_UBYTE ||
-		   type->kind == JIT_TYPE_USHORT ||
-		   type->kind == JIT_TYPE_UINT ||
-		   type->kind == JIT_TYPE_NUINT ||
-		   type->kind == JIT_TYPE_ULONG)
-		{
-			return 1;
-		}
+		return 1;
 	}
 	return 0;
 }
@@ -520,11 +517,12 @@ static void mangle_type_gcc2(jit_mangler_t mangler, jit_type_t type)
 	}
 
 	/* Handle the inner-most part of the type */
-	if(type->kind >= JIT_TYPE_SBYTE && type->kind <= JIT_TYPE_ULONG)
+	kind = jit_type_get_kind(type);
+	if(kind >= JIT_TYPE_SBYTE && kind <= JIT_TYPE_ULONG)
 	{
 		type = fix_system_types(type);
 	}
-	switch(type->kind)
+	switch(kind)
 	{
 		case JIT_TYPE_VOID:			add_ch(mangler, 'v'); break;
 
@@ -825,11 +823,12 @@ static void mangle_type_gcc3(jit_mangler_t mangler, jit_type_t type)
 	}
 
 	/* Handle the inner-most part of the type */
-	if(type->kind >= JIT_TYPE_SBYTE && type->kind <= JIT_TYPE_ULONG)
+	kind = jit_type_get_kind(type);
+	if(kind >= JIT_TYPE_SBYTE && kind <= JIT_TYPE_ULONG)
 	{
 		type = fix_system_types(type);
 	}
-	switch(type->kind)
+	switch(kind)
 	{
 		case JIT_TYPE_VOID:			add_ch(mangler, 'v'); break;
 
@@ -1096,11 +1095,12 @@ static void mangle_type_msvc6(jit_mangler_t mangler, jit_type_t type)
 	}
 
 	/* Handle the inner-most part of the type */
-	if(type->kind >= JIT_TYPE_SBYTE && type->kind <= JIT_TYPE_ULONG)
+	kind = jit_type_get_kind(type);
+	if(kind >= JIT_TYPE_SBYTE && kind <= JIT_TYPE_ULONG)
 	{
 		type = fix_system_types(type);
 	}
-	switch(type->kind)
+	switch(kind)
 	{
 		case JIT_TYPE_VOID:			add_ch(mangler, 'X'); break;
 

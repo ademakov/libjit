@@ -891,6 +891,114 @@ void jit_type_set_offset(jit_type_t type, unsigned int field_index,
 }
 
 /*@
+ * @deftypefun int jit_type_get_kind (jit_type_t type)
+ * Get a value that indicates the kind of @code{type}.  This allows
+ * callers to quickly classify a type to determine how it should be
+ * handled further.
+ *
+ * @table @code
+ * @vindex JIT_TYPE_INVALID
+ * @item JIT_TYPE_INVALID
+ * The value of the @code{type} parameter is NULL.
+ *
+ * @vindex JIT_TYPE_VOID
+ * @item JIT_TYPE_VOID
+ * The type is @code{jit_type_void}.
+ *
+ * @vindex JIT_TYPE_SBYTE
+ * @item JIT_TYPE_SBYTE
+ * The type is @code{jit_type_sbyte}.
+ *
+ * @vindex JIT_TYPE_UBYTE
+ * @item JIT_TYPE_UBYTE
+ * The type is @code{jit_type_ubyte}.
+ *
+ * @vindex JIT_TYPE_SHORT
+ * @item JIT_TYPE_SHORT
+ * The type is @code{jit_type_short}.
+ *
+ * @vindex JIT_TYPE_USHORT
+ * @item JIT_TYPE_USHORT
+ * The type is @code{jit_type_ushort}.
+ *
+ * @vindex JIT_TYPE_INT
+ * @item JIT_TYPE_INT
+ * The type is @code{jit_type_int}.
+ *
+ * @vindex JIT_TYPE_UINT
+ * @item JIT_TYPE_UINT
+ * The type is @code{jit_type_uint}.
+ *
+ * @vindex JIT_TYPE_NINT
+ * @item JIT_TYPE_NINT
+ * The type is @code{jit_type_nint}.
+ *
+ * @vindex JIT_TYPE_NUINT
+ * @item JIT_TYPE_NUINT
+ * The type is @code{jit_type_nuint}.
+ *
+ * @vindex JIT_TYPE_LONG
+ * @item JIT_TYPE_LONG
+ * The type is @code{jit_type_long}.
+ *
+ * @vindex JIT_TYPE_ULONG
+ * @item JIT_TYPE_ULONG
+ * The type is @code{jit_type_ulong}.
+ *
+ * @vindex JIT_TYPE_FLOAT32
+ * @item JIT_TYPE_FLOAT32
+ * The type is @code{jit_type_float32}.
+ *
+ * @vindex JIT_TYPE_FLOAT64
+ * @item JIT_TYPE_FLOAT64
+ * The type is @code{jit_type_float64}.
+ *
+ * @vindex JIT_TYPE_NFLOAT
+ * @item JIT_TYPE_NFLOAT
+ * The type is @code{jit_type_nfloat}.
+ *
+ * @vindex JIT_TYPE_STRUCT
+ * @item JIT_TYPE_STRUCT
+ * The type is the result of calling @code{jit_type_create_struct}.
+ *
+ * @vindex JIT_TYPE_UNION
+ * @item JIT_TYPE_UNION
+ * The type is the result of calling @code{jit_type_create_union}.
+ *
+ * @vindex JIT_TYPE_SIGNATURE
+ * @item JIT_TYPE_SIGNATURE
+ * The type is the result of calling @code{jit_type_create_signature}.
+ *
+ * @vindex JIT_TYPE_PTR
+ * @item JIT_TYPE_PTR
+ * The type is the result of calling @code{jit_type_create_pointer}.
+ * @end table
+ *
+ * @vindex JIT_TYPE_FIRST_TAGGED
+ * If this function returns @code{JIT_TYPE_FIRST_TAGGED} or higher,
+ * then the type is tagged and its tag kind is the return value minus
+ * @code{JIT_TYPE_FIRST_TAGGED}.  That is, the following two expressions
+ * will be identical if @code{type} is tagged:
+ *
+ * @example
+ * jit_type_get_tagged_kind(type)
+ * jit_type_get_kind(type) - JIT_TYPE_FIRST_TAGGED
+ * @end example
+ * @end deftypefun
+@*/
+int jit_type_get_kind(jit_type_t type)
+{
+	if(!type)
+	{
+		return JIT_TYPE_INVALID;
+	}
+	else
+	{
+		return type->kind;
+	}
+}
+
+/*@
  * @deftypefun jit_nuint jit_type_get_size (jit_type_t type)
  * Get the size of a type in bytes.
  * @end deftypefun

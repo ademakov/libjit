@@ -19,6 +19,11 @@
 	"jitdynamic" library, which will handle all of the cross-language
 	naming and dynamic invocation logic.
 
+	* include/jit/jit-type.h, jit/jit-internal.h, jit/jit-type.c,
+	jitdynamic/jit-cpp-mangle.c: move the "JIT_TYPE_xxx" constants
+	into the public headers and add "jit_type_get_kind" so that
+	front end code can classify types quickly.
+
 2004-05-07  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* dpas/dpas-function.c, dpas/dpas-internal.h, dpas/dpas-main.c,

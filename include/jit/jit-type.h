@@ -67,6 +67,31 @@ extern jit_type_t const jit_type_sys_double;
 extern jit_type_t const jit_type_sys_long_double;
 
 /*
+ * Type kinds that may be returned by "jit_type_get_kind".
+ */
+#define	JIT_TYPE_INVALID			-1
+#define	JIT_TYPE_VOID				0
+#define	JIT_TYPE_SBYTE				1
+#define	JIT_TYPE_UBYTE				2
+#define	JIT_TYPE_SHORT				3
+#define	JIT_TYPE_USHORT				4
+#define	JIT_TYPE_INT				5
+#define	JIT_TYPE_UINT				6
+#define	JIT_TYPE_NINT				7
+#define	JIT_TYPE_NUINT				8
+#define	JIT_TYPE_LONG				9
+#define	JIT_TYPE_ULONG				10
+#define	JIT_TYPE_FLOAT32			11
+#define	JIT_TYPE_FLOAT64			12
+#define	JIT_TYPE_NFLOAT				13
+#define	JIT_TYPE_MAX_PRIMITIVE		JIT_TYPE_NFLOAT
+#define	JIT_TYPE_STRUCT				14
+#define	JIT_TYPE_UNION				15
+#define	JIT_TYPE_SIGNATURE			16
+#define	JIT_TYPE_PTR				17
+#define	JIT_TYPE_FIRST_TAGGED		32
+
+/*
  * Special tag types.
  */
 #define	JIT_TYPETAG_NAME			10000
@@ -128,6 +153,7 @@ void jit_type_set_size_and_alignment
 	(jit_type_t type, jit_nint size, jit_nint alignment) JIT_NOTHROW;
 void jit_type_set_offset
 	(jit_type_t type, unsigned int field_index, jit_nuint offset) JIT_NOTHROW;
+int jit_type_get_kind(jit_type_t type) JIT_NOTHROW;
 jit_nuint jit_type_get_size(jit_type_t type) JIT_NOTHROW;
 jit_nuint jit_type_get_alignment(jit_type_t type) JIT_NOTHROW;
 unsigned int jit_type_num_fields(jit_type_t type) JIT_NOTHROW;
