@@ -1084,6 +1084,14 @@ void _jit_gen_load_value
 	jit_cache_end_output();
 }
 
+void _jit_gen_load_global(jit_gencode_t gen, jit_value_t value)
+{
+	jit_cache_setup_output(32);
+	arm_load_membase(inst, _jit_reg_info[value->global_reg].cpu_reg,
+					 ARM_FP, value->frame_offset);
+	jit_cache_end_output();
+}
+
 void _jit_gen_fix_value(jit_value_t value)
 {
 	if(!(value->has_frame_offset) && !(value->is_constant))

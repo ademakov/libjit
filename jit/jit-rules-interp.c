@@ -826,6 +826,18 @@ void _jit_gen_load_value
 }
 
 /*@
+ * @deftypefun void _jit_gen_load_global (jit_gencode_t gen, jit_value_t value)
+ * Load the contents of @code{value} into its corresponding global register.
+ * This is used at the head of a function to pull parameters out of stack
+ * slots into their global register copies.
+ * @end deftypefun
+@*/
+void _jit_gen_load_global(jit_gencode_t gen, jit_value_t value)
+{
+	/* Global registers are not used in the interpreted back end */
+}
+
+/*@
  * @deftypefun void _jit_gen_fix_value (jit_value_t value)
  * Fix the position of a value within the local variable frame.
  * If it doesn't already have a position, then assign one for it.

@@ -8,6 +8,10 @@
 	tutorial/t2.c, tutorial/t5.c: implement tail calls from a
 	function to itself.
 
+	* jit/jit-function.c, jit/jit-reg-alloc.c, jit/jit-rules-arm.c,
+	jit/jit-rules-interp.c, jit/jit-rules-x86.c, jit/jit-rules.h:
+	implement global register allocation for parameters in stack slots.
+
 2004-06-10  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-apply-arm.c, jit/jit-gen-arm.c, jit/jit-gen-arm.h,

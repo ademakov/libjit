@@ -473,9 +473,16 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 				insn->value1->frame_offset =
 					jit_value_get_nint_constant(insn->value2);
 				insn->value1->in_register = 0;
-				insn->value1->in_frame = 1;
 				insn->value1->has_frame_offset = 1;
-				insn->value1->has_global_register = 0;	/* Disable globals */
+				if(insn->value1->has_global_register)
+				{
+					insn->value1->in_global_register = 1;
+					_jit_gen_load_global(gen, insn->value1);
+				}
+				else
+				{
+					insn->value1->in_frame = 1;
+				}
 			}
 			break;
 
