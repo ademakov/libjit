@@ -207,6 +207,12 @@ int jit_context_set_meta
  * pre-compiled contexts cannot be executed directly.  Instead, they
  * can be written out to disk in ELF format to be reloaded at
  * some future time.
+ *
+ * @vindex JIT_OPTION_DONT_FOLD
+ * @item JIT_OPTION_DONT_FOLD
+ * A numeric option that disables constant folding when it is set to a
+ * non-zero value.  This is useful for debugging, as it forces @code{libjit} to
+ * always execute constant expressions at run time, instead of at compile time.
  * @end table
  *
  * Metadata type values of 10000 or greater are reserved for internal use.

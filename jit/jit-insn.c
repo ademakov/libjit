@@ -5426,7 +5426,8 @@ jit_value_t jit_insn_call_intrinsic
 	}
 
 	/* If the arguments are constant, then invoke the intrinsic now */
-	if(jit_value_is_constant(arg1) && (!arg2 || jit_value_is_constant(arg2)))
+	if(jit_value_is_constant(arg1) && (!arg2 || jit_value_is_constant(arg2)) &&
+	   !jit_context_get_meta_numeric(func->context, JIT_OPTION_DONT_FOLD))
 	{
 		const1 = jit_value_get_constant(arg1);
 		const2 = jit_value_get_constant(arg2);

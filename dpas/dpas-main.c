@@ -31,6 +31,7 @@ static char **include_dirs = 0;
 static int num_include_dirs = 0;
 static char **using_seen = 0;
 static int num_using_seen = 0;
+static int dont_fold = 0;
 
 /*
  * Forward declarations.
@@ -80,6 +81,10 @@ int main(int argc, char **argv)
 		else if(!jit_strcmp(argv[1], "-D"))
 		{
 			dpas_dump_functions = 2;
+		}
+		else if(!jit_strcmp(argv[1], "--dont-fold"))
+		{
+			dont_fold = 1;
 		}
 		else
 		{
@@ -277,4 +282,9 @@ static void initialize(void)
 {
 	jit_init();
 	dpas_init_types();
+	if(dont_fold)
+	{
+		jit_context_set_meta_numeric
+			(dpas_current_context(), JIT_OPTION_DONT_FOLD, 1);
+	}
 }
