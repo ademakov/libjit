@@ -19,6 +19,7 @@
  */
 
 #include "jit-internal.h"
+#include "jit-rules.h"
 
 /*@
 
