@@ -114,7 +114,7 @@ static int CompressInt(unsigned char *buf, long data)
 			buf[1] = (unsigned char)(data << 1);
 			return 2;
 		}
-		else if(data < (unsigned long)(1L << 28))
+		else if(data < (long)(1L << 28))
 		{
 			buf[0] = (unsigned char)((data >> 23) | 0xC0);
 			buf[1] = (unsigned char)(data >> 15);

@@ -948,7 +948,8 @@ void detect_reg_alignment_two_words(jit_int x, jit_long y, jit_long z)
 		can_split_long = 0;
 		align_long_regs = 1;
 	}
-	else if(!mem_cmp(stack_args, ((jit_nint *)&y) + 1, sizeof(jit_nint)))
+	else if(!mem_cmp(stack_args, ((jit_nint *)(void *)&y) + 1,
+			sizeof(jit_nint)))
 	{
 		/* The long value was split between registers and the stack */
 		can_split_long = 1;
@@ -965,7 +966,8 @@ void detect_reg_alignment_three_words(jit_int x, jit_long y, jit_long z)
 		can_split_long = 0;
 		align_long_regs = 1;
 	}
-	else if(!mem_cmp(stack_args, ((jit_nint *)&y) + 1, sizeof(jit_nint)))
+	else if(!mem_cmp(stack_args, ((jit_nint *)(void *)&y) + 1,
+			sizeof(jit_nint)))
 	{
 		/* The long value was split between registers and the stack,
 		   so alignment has occurred, together with a split */
@@ -1022,7 +1024,8 @@ void detect_reg_split_even_words(jit_int x, jit_long y1, jit_long y2,
 			case 19:	value = y19; break;
 			default:	value = y20; break;
 		}
-		if(!mem_cmp(stack_args, ((jit_nint *)&value) + 1, sizeof(jit_nint)))
+		if(!mem_cmp(stack_args, ((jit_nint *)(void *)&value) + 1,
+					sizeof(jit_nint)))
 		{
 			/* We've detected a register/stack split in this argument */
 			can_split_long = 1;
@@ -1068,7 +1071,8 @@ void detect_reg_split_odd_words(jit_long y1, jit_long y2,
 			case 19:	value = y19; break;
 			default:	value = y20; break;
 		}
-		if(!mem_cmp(stack_args, ((jit_nint *)&value) + 1, sizeof(jit_nint)))
+		if(!mem_cmp(stack_args, ((jit_nint *)(void *)&value) + 1,
+					sizeof(jit_nint)))
 		{
 			/* We've detected a register/stack split in this argument */
 			can_split_long = 1;

@@ -428,9 +428,10 @@ failed_mmap:
 			{
 				segment_address = ((unsigned char *)base_address) +
 								  (jit_nuint)(phdr->p_vaddr);
-				if(lseek(fd, (off_t)(phdr->p_offset), 0) != phdr->p_offset ||
+				if(lseek(fd, (off_t)(phdr->p_offset), 0) !=
+						(off_t)(phdr->p_offset) ||
 	               read(fd, segment_address, (size_t)(phdr->p_filesz))
-				   		!= (size_t)(phdr->p_filesz))
+				   		!= (int)(size_t)(phdr->p_filesz))
 				{
 					jit_free_exec(base_address, memory_size);
 					return 0;
@@ -462,12 +463,12 @@ static void *map_section(int fd, Elf_Off offset, Elf_Xword file_size,
 	{
 		return 0;
 	}
-	if(lseek(fd, offset, 0) != offset)
+	if(lseek(fd, (off_t)offset, 0) != (off_t)offset)
 	{
 		jit_free_exec(address, memory_size);
 		return 0;
 	}
-	if(read(fd, address, (size_t)file_size) != file_size)
+	if(read(fd, address, (size_t)file_size) != (int)(size_t)file_size)
 	{
 		jit_free_exec(address, memory_size);
 		return 0;
@@ -943,8 +944,8 @@ int jit_readelf_open(jit_readelf_t *_readelf, const char *filename, int flags)
 	/* Seek to the program and section header tables and read them */
 	if(phdr_size > 0)
 	{
-		if(lseek(fd, ehdr.e_phoff, 0) != ehdr.e_phoff ||
-		   read(fd, readelf->phdrs, phdr_size) != phdr_size)
+		if(lseek(fd, (off_t)(ehdr.e_phoff), 0) != (off_t)(ehdr.e_phoff) ||
+		   read(fd, readelf->phdrs, phdr_size) != (int)phdr_size)
 		{
 			jit_free(readelf->shdrs);
 			jit_free(readelf->phdrs);
@@ -955,8 +956,8 @@ int jit_readelf_open(jit_readelf_t *_readelf, const char *filename, int flags)
 	}
 	if(shdr_size > 0)
 	{
-		if(lseek(fd, ehdr.e_shoff, 0) != ehdr.e_shoff ||
-		   read(fd, readelf->shdrs, shdr_size) != shdr_size)
+		if(lseek(fd, (off_t)(ehdr.e_shoff), 0) != (off_t)(ehdr.e_shoff) ||
+		   read(fd, readelf->shdrs, shdr_size) != (int)shdr_size)
 		{
 			jit_free(readelf->shdrs);
 			jit_free(readelf->phdrs);
