@@ -76,6 +76,7 @@ static int gensel_first_stack_reg = 8;	/* st0 under x86 */
 #define	GENSEL_OPT_UNARY_BRANCH			0x0020
 #define	GENSEL_OPT_BINARY_BRANCH		0x0040
 #define	GENSEL_OPT_ONLY					0x0080
+#define	GENSEL_OPT_MANUAL				0x0100
 
 /*
  * Pattern values.
@@ -194,21 +195,12 @@ static void gensel_declare_regs(gensel_clause_t clauses, int options)
 }
 
 /*
- * Output a single clause for a rule.
+ * Output the code within a clause.
  */
-static void gensel_output_clause(gensel_clause_t clause)
+static void gensel_output_clause_code(gensel_clause_t clause)
 {
 	char *code;
 	int index;
-
-	/* Cache the instruction pointer into "inst" */
-	printf("\t\tinst = (%s)(gen->posn.ptr);\n", gensel_inst_type);
-	printf("\t\tif(!jit_cache_check_for_n(&(gen->posn), %d))\n",
-		   gensel_reserve_space);
-	printf("\t\t{\n");
-	printf("\t\t\tjit_cache_mark_full(&(gen->posn));\n");
-	printf("\t\t\treturn;\n");
-	printf("\t\t}\n");
 
 	/* Output the line number information from the original file */
 	printf("#line %ld \"%s\"\n", clause->linenum, clause->filename);
@@ -268,6 +260,24 @@ static void gensel_output_clause(gensel_clause_t clause)
 		}
 	}
 	printf("\n");
+}
+
+/*
+ * Output a single clause for a rule.
+ */
+static void gensel_output_clause(gensel_clause_t clause)
+{
+	/* Cache the instruction pointer into "inst" */
+	printf("\t\tinst = (%s)(gen->posn.ptr);\n", gensel_inst_type);
+	printf("\t\tif(!jit_cache_check_for_n(&(gen->posn), %d))\n",
+		   gensel_reserve_space);
+	printf("\t\t{\n");
+	printf("\t\t\tjit_cache_mark_full(&(gen->posn));\n");
+	printf("\t\t\treturn;\n");
+	printf("\t\t}\n");
+
+	/* Output the clause code */
+	gensel_output_clause_code(clause);
 
 	/* Copy "inst" back into the generation context */
 	printf("\t\tgen->posn.ptr = (unsigned char *)inst;\n");
@@ -294,6 +304,13 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 	gensel_clause_t clause;
 	int first, index;
 	int check_index;
+
+	/* If the clause is manual, then output it as-is */
+	if((options & GENSEL_OPT_MANUAL) != 0)
+	{
+		gensel_output_clause_code(clauses);
+		return;
+	}
 
 	/* Determine the location of this instruction's arguments */
 	if((options & GENSEL_OPT_TERNARY) != 0)
@@ -656,6 +673,7 @@ static void gensel_output_supported(void)
 %token K_TERNARY			"`ternary'"
 %token K_STACK				"`stack'"
 %token K_ONLY				"`only'"
+%token K_MANUAL				"`manual'"
 %token K_INST_TYPE			"`%inst_type'"
 
 /*
@@ -685,7 +703,10 @@ Rules
 Rule
 	: IDENTIFIER ':' Options Clauses {
 				printf("case %s:\n{\n", $1);
-				printf("\t%s inst;\n", gensel_inst_type);
+				if(($3 & GENSEL_OPT_MANUAL) == 0)
+				{
+					printf("\t%s inst;\n", gensel_inst_type);
+				}
 				gensel_declare_regs($4.head, $3);
 				if(($3 & GENSEL_OPT_SPILL_BEFORE) != 0)
 				{
@@ -733,6 +754,7 @@ Option
 	| K_TERNARY					{ $$ = GENSEL_OPT_TERNARY; }
 	| K_STACK					{ $$ = GENSEL_OPT_STACK; }
 	| K_ONLY					{ $$ = GENSEL_OPT_ONLY; }
+	| K_MANUAL					{ $$ = GENSEL_OPT_MANUAL; }
 	;
 
 Clauses

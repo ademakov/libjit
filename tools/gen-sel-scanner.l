@@ -100,6 +100,7 @@ WHITE					[ \t\v\r\f]
 "binary_branch"			{ RETURNTOK(K_BINARY_BRANCH); }
 "unary_note"			{ RETURNTOK(K_UNARY_BRANCH); }
 "binary_note"			{ RETURNTOK(K_BINARY_BRANCH); }
+"manual"				{ RETURNTOK(K_MANUAL); }
 "stack"					{ RETURNTOK(K_STACK); }
 "only"					{ RETURNTOK(K_ONLY); }
 "%inst_type"			{ RETURNTOK(K_INST_TYPE); }

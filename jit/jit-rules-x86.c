@@ -1326,6 +1326,80 @@ static unsigned char *jump_to_epilog
 	return inst;
 }
 
+/*
+ * Get a register pair for temporary operations on "long" values.
+ */
+static void get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
+						 int not_this3, int *reg, int *reg2)
+{
+	int index;
+	for(index = 0; index < 8; ++index)
+	{
+		if((_jit_reg_info[index].flags & JIT_REG_WORD) == 0 ||
+		   jit_reg_is_used(gen->permanent, index))
+		{
+			continue;
+		}
+		if(index != not_this1 && index != not_this2 &&
+		   index != not_this3)
+		{
+			break;
+		}
+	}
+	*reg = index;
+	_jit_regs_want_reg(gen, index, 0);
+	for(; index < 8; ++index)
+	{
+		if((_jit_reg_info[index].flags & JIT_REG_WORD) == 0 ||
+		   jit_reg_is_used(gen->permanent, index))
+		{
+			continue;
+		}
+		if(index != not_this1 && index != not_this2 &&
+		   index != not_this3 && index != *reg)
+		{
+			break;
+		}
+	}
+	if(index >= 8)
+	{
+		*reg2 = -1;
+	}
+	else
+	{
+		*reg2 = index;
+		_jit_regs_want_reg(gen, index, 0);
+	}
+}
+
+/*
+ * Store a byte value to a membase address.
+ */
+static unsigned char *mov_membase_reg_byte
+			(unsigned char *inst, int basereg, int offset, int srcreg)
+{
+	if(srcreg == X86_EAX || srcreg == X86_EBX ||
+	   srcreg == X86_ECX || srcreg == X86_EDX)
+	{
+		x86_mov_membase_reg(inst, basereg, offset, srcreg, 1);
+	}
+	else if(basereg != X86_EAX)
+	{
+		x86_push_reg(inst, X86_EAX);
+		x86_mov_reg_reg(inst, X86_EAX, srcreg, 4);
+		x86_mov_membase_reg(inst, basereg, offset, X86_EAX, 1);
+		x86_pop_reg(inst, X86_EAX);
+	}
+	else
+	{
+		x86_push_reg(inst, X86_EDX);
+		x86_mov_reg_reg(inst, X86_EDX, srcreg, 4);
+		x86_mov_membase_reg(inst, basereg, offset, X86_EDX, 1);
+		x86_pop_reg(inst, X86_EDX);
+	}
+	return inst;
+}
+
 void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 				   jit_block_t block, jit_insn_t insn)
 {
