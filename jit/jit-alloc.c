@@ -158,8 +158,8 @@ void jit_flush_exec(void *ptr, unsigned int size)
 
 #define ROUND_BEG_PTR(p) \
 	((void *)((((jit_nuint)(p)) / CLSIZE) * CLSIZE))
-#define ROUND_END_PTR(p) \
-	((void *)(((((jit_nuint)(p)) + CLSIZE - 1)/CLSIZE)*CLSIZE))
+#define ROUND_END_PTR(p,s) \
+	((void *)(((((jit_nuint)(p)) + (s) + CLSIZE - 1)/CLSIZE)*CLSIZE))
 
 #if defined(__GNUC__)
 #if defined(PPC)
@@ -171,7 +171,7 @@ void jit_flush_exec(void *ptr, unsigned int size)
 
 	/* Flush the data out of the data cache */
 	p   = ROUND_BEG_PTR (ptr);
-	end = ROUND_END_PTR (p + size);
+	end = ROUND_END_PTR (p, size);
 	while (p < end)
 	{
 		__asm__ __volatile__ ("dcbst 0,%0" :: "r"(p));
@@ -194,7 +194,7 @@ void jit_flush_exec(void *ptr, unsigned int size)
 
 	/* Flush the CPU cache on sparc platforms */
 	register unsigned char *p   = ROUND_BEG_PTR (ptr);
-	register unsigned char *end = ROUND_END_PTR (p + size);
+	register unsigned char *end = ROUND_END_PTR (p, size);
 	__asm__ __volatile__ ("stbar");
 	while (p < end)
 	{
@@ -221,7 +221,7 @@ void jit_flush_exec(void *ptr, unsigned int size)
 #elif (defined(__ia64) || defined(__ia64__)) && defined(linux)
 #define CLSIZE 32
 	register unsigned char *p   = ROUND_BEG_PTR (ptr);
-	register unsigned char *end = ROUND_END_PTR (p + size);
+	register unsigned char *end = ROUND_END_PTR (p, size);
 	while(p < end)
 	{
 		asm volatile("fc %0" :: "r"(p));

@@ -1,4 +1,9 @@
 
+2004-06-08  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
+
+	* jit/jit-alloc.c: fix ROUND_END_PTR so that it adds the size
+	after casting to jit_nuint.
+
 2004-06-07  Thong Nguyen  <tim@veridicus.com>
 
 	* configure.in, jit/jit-insn.c: add "_setjmp" to the list of
