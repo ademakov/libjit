@@ -1708,12 +1708,15 @@ JIT_OP_RETURN_REG: manual
 JIT_OP_PUSH_INT: unary_note
 	[imm] -> {
 		x86_push_imm(inst, $1);
+		gen->stack_changed = 1;
 	}
 	[local] -> {
 		x86_push_membase(inst, X86_EBP, $1);
+		gen->stack_changed = 1;
 	}
 	[reg] -> {
 		x86_push_reg(inst, $1);
+		gen->stack_changed = 1;
 	}
 
 JIT_OP_PUSH_LONG: spill_before
@@ -1732,20 +1735,24 @@ JIT_OP_PUSH_LONG: spill_before
 			x86_push_membase(inst, X86_EBP, offset + 4);
 			x86_push_membase(inst, X86_EBP, offset);
 		}
+		gen->stack_changed = 1;
 	}
 
 JIT_OP_PUSH_FLOAT32: unary_note, stack
 	[imm] -> {
 		jit_int *ptr = (jit_int *)($1);
 		x86_push_imm(inst, ptr[0]);
+		gen->stack_changed = 1;
 	}
 	[local] -> {
 		x86_push_membase(inst, X86_EBP, $1);
+		gen->stack_changed = 1;
 	}
 	[reg] -> {
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float32));
 		x86_fst_membase(inst, X86_ESP, 0, 0, 1);
 		_jit_regs_free_reg(gen, reg, 1);
+		gen->stack_changed = 1;
 	}
 
 JIT_OP_PUSH_FLOAT64: unary_note, stack
@@ -1753,15 +1760,18 @@ JIT_OP_PUSH_FLOAT64: unary_note, stack
 		jit_int *ptr = (jit_int *)($1);
 		x86_push_imm(inst, ptr[1]);
 		x86_push_imm(inst, ptr[0]);
+		gen->stack_changed = 1;
 	}
 	[local] -> {
 		x86_push_membase(inst, X86_EBP, $1 + 4);
 		x86_push_membase(inst, X86_EBP, $1);
+		gen->stack_changed = 1;
 	}
 	[reg] -> {
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float64));
 		x86_fst_membase(inst, X86_ESP, 0, 1, 1);
 		_jit_regs_free_reg(gen, reg, 1);
+		gen->stack_changed = 1;
 	}
 
 JIT_OP_PUSH_NFLOAT: unary_note, stack
@@ -1773,6 +1783,7 @@ JIT_OP_PUSH_NFLOAT: unary_note, stack
 		}
 		x86_push_imm(inst, ptr[1]);
 		x86_push_imm(inst, ptr[0]);
+		gen->stack_changed = 1;
 	}
 	[local] -> {
 		if(sizeof(jit_nfloat) != sizeof(jit_float64))
@@ -1781,6 +1792,7 @@ JIT_OP_PUSH_NFLOAT: unary_note, stack
 		}
 		x86_push_membase(inst, X86_EBP, $1 + 4);
 		x86_push_membase(inst, X86_EBP, $1);
+		gen->stack_changed = 1;
 	}
 	[freg] -> {
 		if(sizeof(jit_nfloat) != sizeof(jit_float64))
@@ -1794,17 +1806,20 @@ JIT_OP_PUSH_NFLOAT: unary_note, stack
 			x86_fst_membase(inst, X86_ESP, 0, 1, 1);
 		}
 		_jit_regs_free_reg(gen, reg, 1);
+		gen->stack_changed = 1;
 	}
 
 JIT_OP_PUSH_STRUCT: unary_note
 	[reg] -> {
 		/* TODO */
 		TODO();
+		gen->stack_changed = 1;
 	}
 
 JIT_OP_POP_STACK:
 	[] -> {
 		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, insn->value1->address);
+		gen->stack_changed = 1;
 	}
 
 JIT_OP_FLUSH_SMALL_STRUCT:
@@ -2451,4 +2466,5 @@ JIT_OP_ALLOCA: unary
 		x86_alu_reg_imm(inst, X86_AND, $1, ~15);
 		x86_alu_reg_reg(inst, X86_SUB, X86_ESP, $1);
 		x86_mov_reg_reg(inst, $1, X86_ESP, 4);
+		gen->stack_changed = 1;
 	}

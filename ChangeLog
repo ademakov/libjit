@@ -12,6 +12,11 @@
 	jit/jit-rules-interp.c, jit/jit-rules-x86.c, jit/jit-rules.h:
 	implement global register allocation for parameters in stack slots.
 
+	* jit/jit-rules-x86.c, jit/jit-rules-x86.sel, jit/jit-rules.h:
+	optimize the x86 function epilog when we are certain that the
+	stack height doesn't change between entry and exit (i.e. the
+	function is a leaf and there are no alloca's).
+
 2004-06-10  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-apply-arm.c, jit/jit-gen-arm.c, jit/jit-gen-arm.h,

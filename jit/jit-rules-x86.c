@@ -819,20 +819,37 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	}
 
 	/* Restore the callee save registers that we used */
-	offset = -(func->builder->frame_size);
-	for(reg = 0; reg <= 7; ++reg)
+	if(gen->stack_changed)
 	{
-		if(jit_reg_is_used(gen->touched, reg) &&
-		   (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0)
+		offset = -(func->builder->frame_size);
+		for(reg = 0; reg <= 7; ++reg)
 		{
-			offset -= sizeof(void *);
-			x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
-								X86_EBP, offset, sizeof(void *));
+			if(jit_reg_is_used(gen->touched, reg) &&
+			   (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0)
+			{
+				offset -= sizeof(void *);
+				x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
+									X86_EBP, offset, sizeof(void *));
+			}
+		}
+	}
+	else
+	{
+		for(reg = 7; reg >= 0; --reg)
+		{
+			if(jit_reg_is_used(gen->touched, reg) &&
+			   (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0)
+			{
+				x86_pop_reg(inst, _jit_reg_info[reg].cpu_reg);
+			}
 		}
 	}
 
 	/* Pop the stack frame and restore the saved copy of ebp */
-	x86_mov_reg_reg(inst, X86_ESP, X86_EBP, sizeof(void *));
+	if(gen->stack_changed || func->builder->frame_size > 0)
+	{
+		x86_mov_reg_reg(inst, X86_ESP, X86_EBP, sizeof(void *));
+	}
 	x86_pop_reg(inst, X86_EBP);
 
 	/* Return from the current function */
