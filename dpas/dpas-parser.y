@@ -534,10 +534,11 @@ static dpas_semvalue invoke_procedure
 			}
 			else
 			{
-				/* TODO: type checking and EA l-values */
+				/* TODO: type checking */
 				if(dpas_sem_is_rvalue(args[param]))
 				{
-					value_args[param] = dpas_sem_get_value(args[param]);
+					value_args[param] = dpas_sem_get_value
+						(dpas_lvalue_to_rvalue(args[param]));
 				}
 				else
 				{
@@ -612,8 +613,8 @@ static dpas_semvalue invoke_procedure
 				jit_value_t value; \
 				value = func \
 					(dpas_current_function(), \
-					 dpas_sem_get_value(arg1), \
-					 dpas_sem_get_value(arg2)); \
+					 dpas_sem_get_value(dpas_lvalue_to_rvalue(arg1)), \
+					 dpas_sem_get_value(dpas_lvalue_to_rvalue(arg2))); \
 				dpas_sem_set_rvalue \
 					(yyval.semvalue, jit_value_get_type(value), value); \
 			} \
@@ -640,8 +641,8 @@ static dpas_semvalue invoke_procedure
 				jit_value_t value; \
 				value = func \
 					(dpas_current_function(), \
-					 dpas_sem_get_value(arg1), \
-					 dpas_sem_get_value(arg2)); \
+					 dpas_sem_get_value(dpas_lvalue_to_rvalue(arg1)), \
+					 dpas_sem_get_value(dpas_lvalue_to_rvalue(arg2))); \
 				dpas_sem_set_rvalue \
 					(yyval.semvalue, jit_value_get_type(value), value); \
 			} \
@@ -660,8 +661,8 @@ static dpas_semvalue invoke_procedure
 				jit_value_t value; \
 				value = func \
 					(dpas_current_function(), \
-					 dpas_sem_get_value(arg1), \
-					 dpas_sem_get_value(arg2)); \
+					 dpas_sem_get_value(dpas_lvalue_to_rvalue(arg1)), \
+					 dpas_sem_get_value(dpas_lvalue_to_rvalue(arg2))); \
 				dpas_sem_set_rvalue \
 					(yyval.semvalue, jit_value_get_type(value), value); \
 			} \
@@ -2103,7 +2104,7 @@ ForStatement
 BooleanExpression
 	: Expression		{
 				/* TODO: type checking */
-				$$ = $1;
+				$$ = dpas_lvalue_to_rvalue($1);
 			}
 	;
 
@@ -2227,7 +2228,8 @@ SimpleExpression
 				{
 					jit_value_t value;
 					value = jit_insn_neg
-						(dpas_current_function(), dpas_sem_get_value($2));
+						(dpas_current_function(),
+						 dpas_sem_get_value(dpas_lvalue_to_rvalue($2)));
 					dpas_sem_set_rvalue($$, jit_value_get_type(value), value);
 				}
 			}
@@ -2251,6 +2253,8 @@ AdditionExpression
 					jit_label_t label1 = jit_label_undefined;
 					jit_label_t label2 = jit_label_undefined;
 					jit_value_t value, const_value;
+					$1 = dpas_lvalue_to_rvalue($1);
+					$3 = dpas_lvalue_to_rvalue($3);
 					if(!jit_insn_branch_if
 							(dpas_current_function(),
 							 dpas_sem_get_value($1), &label1))
@@ -2334,6 +2338,8 @@ Term
 					jit_label_t label1 = jit_label_undefined;
 					jit_label_t label2 = jit_label_undefined;
 					jit_value_t value, const_value;
+					$1 = dpas_lvalue_to_rvalue($1);
+					$3 = dpas_lvalue_to_rvalue($3);
 					if(!jit_insn_branch_if_not
 							(dpas_current_function(),
 							 dpas_sem_get_value($1), &label1))
@@ -2426,6 +2432,7 @@ Factor
 			}
 	| K_NOT Factor					{
 				jit_value_t value;
+				$2 = dpas_lvalue_to_rvalue($2);
 				if(dpas_sem_is_rvalue($2) &&
 				   dpas_type_is_boolean(dpas_sem_get_type($2)))
 				{
