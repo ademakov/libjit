@@ -4,5 +4,10 @@ Makefile.in
 .libs
 gen-apply
 gen-apply.exe
+gen-sel
+gen-sel.exe
 *.lo
 *.la
+gen-sel-parser.c
+gen-sel-parser.h
+gen-sel-scanner.c
