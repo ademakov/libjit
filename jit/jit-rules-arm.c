@@ -209,14 +209,26 @@ int _jit_create_entry_insns(jit_function_t func)
 				size = ROUND_STACK(jit_type_get_size(type));
 				if(next_reg < ARM_NUM_PARAM_REGS)
 				{
-					if(!force_out_of_regs(func, value, next_reg, size))
+					if((ARM_NUM_PARAM_REGS - next_reg) >= size)
 					{
-						return 0;
+						if(!force_out_of_regs(func, value, next_reg, size))
+						{
+							return 0;
+						}
+						while(size > 0 && next_reg < ARM_NUM_PARAM_REGS)
+						{
+							++next_reg;
+							size -= sizeof(void *);
+						}
 					}
-					while(size > 0 && next_reg < ARM_NUM_PARAM_REGS)
+					else
 					{
-						++next_reg;
-						size -= sizeof(void *);
+						/* Cannot overlap registers and the stack */
+						next_reg = ARM_NUM_PARAM_REGS;
+						if(!jit_insn_incoming_frame_posn(func, value, offset))
+						{
+							return 0;
+						}
 					}
 					offset += size;
 				}
@@ -247,7 +259,6 @@ int _jit_create_call_setup_insns
 	unsigned int index;
 	unsigned int num_stack_args;
 	unsigned int word_regs;
-	jit_value_t partial;
 
 	/* Determine which values are going to end up in registers */
 	word_regs = 0;
@@ -260,7 +271,6 @@ int _jit_create_call_setup_insns
 		++word_regs;
 	}
 	index = 0;
-	partial = 0;
 	while(index < num_args && word_regs < ARM_NUM_PARAM_REGS)
 	{
 		size = jit_type_get_size(jit_value_get_type(args[index]));
@@ -273,20 +283,7 @@ int _jit_create_call_setup_insns
 		}
 		else
 		{
-			/* Partly in registers and partly on the stack.
-			   We first copy it into a buffer that we can address */
-			partial = jit_value_create
-				(func, jit_value_get_type(args[index]));
-			if(!partial)
-			{
-				return 0;
-			}
-			jit_value_set_addressable(partial);
-			if(!jit_insn_store(func, partial, args[index]))
-			{
-				return 0;
-			}
-			++index;
+			/* The rest of the arguments go onto the stack */
 			break;
 		}
 	}
@@ -300,53 +297,6 @@ int _jit_create_call_setup_insns
 		if(!jit_insn_push(func, args[num_args]))
 		{
 			return 0;
-		}
-	}
-
-	/* Handle a value that is partly on the stack and partly in registers */
-	if(partial)
-	{
-		--num_args;
-		index = (ARM_NUM_PARAM_REGS - word_regs) * sizeof(void *);
-		size = ROUND_STACK(jit_type_get_size(jit_value_get_type(partial)));
-		while(size > index)
-		{
-			size -= sizeof(void *);
-			value = jit_value_create(func, jit_type_void_ptr);
-			if(!value)
-			{
-				return 0;
-			}
-			value = jit_insn_load_relative
-				(func, value, (jit_nint)size, jit_type_void_ptr);
-			if(!value)
-			{
-				return 0;
-			}
-			if(!jit_insn_push(func, value))
-			{
-				return 0;
-			}
-		}
-		while(size > 0)
-		{
-			size -= sizeof(void *);
-			value = jit_value_create(func, jit_type_void_ptr);
-			if(!value)
-			{
-				return 0;
-			}
-			value = jit_insn_load_relative
-				(func, value, (jit_nint)size, jit_type_void_ptr);
-			if(!value)
-			{
-				return 0;
-			}
-			--word_regs;
-			if(!jit_insn_outgoing_reg(func, value, (int)word_regs))
-			{
-				return 0;
-			}
 		}
 	}
 

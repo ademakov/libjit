@@ -27,6 +27,9 @@
 	* jit/jit-reg-alloc.c, jit/jit-rules-arm.c, jit/jit-rules-arm.sel,
 	jit/jit-rules-x86.sel: minor register assignment bugs.
 
+	* jit/jit-rules-arm.c: ARM parameters cannot be split between
+	registers and the stack.
+
 2004-06-08  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c: fix ROUND_END_PTR so that it adds the size
