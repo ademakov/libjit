@@ -1459,7 +1459,7 @@ int jit_insn_store(jit_function_t func, jit_value_t dest, jit_value_t value)
 	jit_value_ref(func, dest);
 	jit_value_ref(func, value);
 	insn->opcode = (short)_jit_store_opcode
-		(JIT_OP_COPY_INT, JIT_OP_COPY_STORE_BYTE, value->type);
+		(JIT_OP_COPY_INT, JIT_OP_COPY_STORE_BYTE, dest->type);
 	insn->dest = dest;
 	insn->value1 = value;
 	return 1;

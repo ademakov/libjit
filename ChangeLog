@@ -1,4 +1,9 @@
 
+2004-11-05  Evin Robertson  <evin@users.sourceforge.net>
+
+	* jit/jit-insn.c (jit_insn_store): use the destination type
+	to determine the store opcode, not the source value type.
+
 2004-11-02  Evin Robertson  <evin@users.sourceforge.net>
 
 	* jit/jit-function.c (jit_function_compile): clear block addresses
