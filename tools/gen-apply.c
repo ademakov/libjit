@@ -645,6 +645,9 @@ void detect_float_return(void)
 	int float_size;
 	int double_size;
 	int nfloat_size;
+	float temp_float;
+	double temp_double;
+	jit_nfloat temp_nfloat;
 
 	/* Allocate space for the outgoing arguments */
 	jit_builtin_apply_args(jit_nint *, args);
@@ -657,14 +660,17 @@ void detect_float_return(void)
 	while(offset < 64)
 	{
 		mem_copy(&float_value, return_value + offset, sizeof(float));
-		if(float_value != (float)123.0)
+		temp_float = (float)123.0;
+		if(mem_cmp(&float_value, &temp_float, sizeof(float)))
 		{
 			mem_copy(&double_value, return_value + offset, sizeof(double));
-			if(double_value != (double)123.0)
+			temp_double = (double)123.0;
+			if(mem_cmp(&double_value, &temp_double, sizeof(double)))
 			{
 				mem_copy(&nfloat_value, return_value + offset,
 						 sizeof(jit_nfloat));
-				if(nfloat_value == (jit_nfloat)123.0)
+				temp_nfloat = (jit_nfloat)123.0;
+				if(!mem_cmp(&nfloat_value, &temp_nfloat, sizeof(jit_nfloat)))
 				{
 					break;
 				}
@@ -683,14 +689,16 @@ void detect_float_return(void)
 
 	/* Determine the size of the "float" return value */
 	mem_copy(&float_value, return_value + offset, sizeof(float));
-	if(float_value == (float)123.0)
+	temp_float = (float)123.0;
+	if(!mem_cmp(&float_value, &temp_float, sizeof(float)))
 	{
 		float_size = 1;
 	}
 	else
 	{
 		mem_copy(&double_value, return_value + offset, sizeof(double));
-		if(double_value == (double)123.0)
+		temp_double = (double)123.0;
+		if(!mem_cmp(&double_value, &temp_double, sizeof(double)))
 		{
 			float_size = 2;
 		}
@@ -705,7 +713,8 @@ void detect_float_return(void)
 
 	/* Determine the size of the "double" return value */
 	mem_copy(&double_value, return_value + offset, sizeof(double));
-	if(double_value == (double)456.7)
+	temp_double = (double)456.7;
+	if(!mem_cmp(&double_value, &temp_double, sizeof(double)))
 	{
 		double_size = 2;
 	}
@@ -719,7 +728,8 @@ void detect_float_return(void)
 
 	/* Determine the size of the "nfloat" return value */
 	mem_copy(&double_value, return_value + offset, sizeof(double));
-	if(double_value == (double)8901.2)
+	temp_double = (double)8901.2;
+	if(!mem_cmp(&double_value, &temp_double, sizeof(double)))
 	{
 		nfloat_size = 2;
 	}
@@ -1234,6 +1244,12 @@ void detect_max_sizes(void)
 void find_frame_offset_inner(void *looking_for, void **frame)
 {
 	int offset;
+	if(looking_for == (void *)frame)
+	{
+		/* Can happen on Alpha platforms */
+		broken_frame_builtins = 1;
+		return;
+	}
 	for(offset = 0; offset >= -8; --offset)
 	{
 		if(frame[offset] == looking_for)
@@ -1258,6 +1274,10 @@ void find_frame_offset_outer(void *looking_for)
 void find_return_offset(void *looking_for, void **frame)
 {
 	int offset;
+	if(broken_frame_builtins)
+	{
+		return;
+	}
 	for(offset = 1; offset <= 8; ++offset)
 	{
 		if(frame[offset] == looking_for)

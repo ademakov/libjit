@@ -1,4 +1,8 @@
 
+2004-06-07  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* tools/gen-apply.c: gen-apply fixes for Alpha platforms.
+
 2004-06-06  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c (jit_flush_exec): flush cache lines properly
