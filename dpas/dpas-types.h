@@ -157,6 +157,16 @@ jit_type_t dpas_create_conformant_array(jit_type_t elem_type, int num_bounds,
 							 			int is_packed);
 
 /*
+ * Get an array's element type.
+ */
+jit_type_t dpas_type_get_elem(jit_type_t type);
+
+/*
+ * Get an array's rank.
+ */
+int dpas_type_get_rank(jit_type_t type);
+
+/*
  * Set the name of an enumerated or record type.  Ignored for other types,
  * or types that already have a name.
  */
@@ -190,6 +200,12 @@ int dpas_type_is_boolean(jit_type_t type);
  * Determine if a type is a record.
  */
 int dpas_type_is_record(jit_type_t type);
+
+/*
+ * Determine if a type is an array.
+ */
+int dpas_type_is_array(jit_type_t type);
+int dpas_type_is_conformant_array(jit_type_t type);
 
 /*
  * Determine if a type is a "var" parameter, and return its element type.

@@ -2710,9 +2710,95 @@ Variable
 				jit_free($1);
 			}
 	| Variable '[' ExpressionList ']'	{
-				/* TODO */
-				dpas_error("array expression not yet implemented");
-				dpas_sem_set_error($$);
+				jit_value_t array = 0;
+				jit_type_t array_type = 0;
+				jit_type_t elem_type = 0;
+				jit_value_t *low_bounds = 0;
+				int rank = $3.len;
+				if(dpas_sem_is_lvalue($1) || dpas_sem_is_lvalue_ea($1))
+				{
+					elem_type = dpas_sem_get_type($1);
+					if(dpas_sem_is_lvalue_ea($1))
+					{
+						if(dpas_type_is_array(elem_type))
+						{
+							array_type = elem_type;
+							array = dpas_sem_get_value($1);
+							rank = dpas_type_get_rank(elem_type);
+							elem_type = dpas_type_get_elem(elem_type);
+						}
+						else if(dpas_type_is_conformant_array(elem_type))
+						{
+							array_type = elem_type;
+							array = dpas_sem_get_value
+								(dpas_lvalue_to_rvalue($1));
+							rank = dpas_type_get_rank(elem_type);
+							elem_type = dpas_type_get_elem(elem_type);
+						}
+						else if(jit_type_is_pointer(elem_type))
+						{
+							array = dpas_sem_get_value
+								(dpas_lvalue_to_rvalue($1));
+							rank = 1;
+							elem_type = jit_type_get_ref(elem_type);
+						}
+						else
+						{
+							dpas_error("value is not an array");
+						}
+					}
+					else
+					{
+						if(dpas_type_is_array(elem_type))
+						{
+							array_type = elem_type;
+							array = jit_insn_address_of
+								(dpas_current_function(),
+								 dpas_sem_get_value($1));
+							if(!array)
+							{
+								dpas_out_of_memory();
+							}
+							rank = dpas_type_get_rank(elem_type);
+							elem_type = dpas_type_get_elem(elem_type);
+						}
+						else if(dpas_type_is_conformant_array(elem_type))
+						{
+							array_type = elem_type;
+							array = dpas_sem_get_value($1);
+							rank = dpas_type_get_rank(elem_type);
+							elem_type = dpas_type_get_elem(elem_type);
+						}
+						else if(jit_type_is_pointer(elem_type))
+						{
+							array = dpas_sem_get_value($1);
+							rank = 1;
+							elem_type = jit_type_get_ref(elem_type);
+						}
+						else
+						{
+							dpas_error("value is not an array");
+						}
+					}
+				}
+				if(rank != $3.len)
+				{
+					dpas_error("incorrect number of indices for array");
+					dpas_sem_set_error($$);
+				}
+				else if(array)
+				{
+					/* TODO */
+					dpas_error("array expressions are not fully implemented");
+					dpas_sem_set_error($$);
+				}
+				else
+				{
+					dpas_error("invalid l-value supplied to array expression");
+					dpas_sem_set_error($$);
+				}
+				jit_free(low_bounds);
+				expression_list_free($3.exprs, $3.len);
 			}
 	| Variable '.' Identifier			{
 				/* Fetch the effective address of a record field */

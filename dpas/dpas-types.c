@@ -870,6 +870,39 @@ jit_type_t dpas_create_conformant_array(jit_type_t elem_type, int num_bounds,
 	return type;
 }
 
+jit_type_t dpas_type_get_elem(jit_type_t type)
+{
+	if(jit_type_get_tagged_kind(type) == DPAS_TAG_ARRAY)
+	{
+		return jit_type_get_field(jit_type_normalize(type), 0);
+	}
+	else if(jit_type_get_tagged_kind(type) == DPAS_TAG_CONFORMANT_ARRAY)
+	{
+		return jit_type_get_ref(jit_type_normalize(type));
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+int dpas_type_get_rank(jit_type_t type)
+{
+	if(jit_type_get_tagged_kind(type) == DPAS_TAG_ARRAY)
+	{
+		return ((dpas_array *)jit_type_get_tagged_data(type))->num_bounds;
+	}
+	else if(jit_type_get_tagged_kind(type) == DPAS_TAG_CONFORMANT_ARRAY)
+	{
+		return ((dpas_conformant_array *)
+					jit_type_get_tagged_data(type))->num_bounds;
+	}
+	else
+	{
+		return 1;
+	}
+}
+
 void dpas_type_set_name(jit_type_t type, const char *name)
 {
 	char *copy;
@@ -1181,6 +1214,16 @@ int dpas_type_is_record(jit_type_t type)
 {
 	type = jit_type_normalize(type);
 	return (jit_type_is_struct(type) || jit_type_is_union(type));
+}
+
+int dpas_type_is_array(jit_type_t type)
+{
+	return (jit_type_get_tagged_kind(type) == DPAS_TAG_ARRAY);
+}
+
+int dpas_type_is_conformant_array(jit_type_t type)
+{
+	return (jit_type_get_tagged_kind(type) == DPAS_TAG_CONFORMANT_ARRAY);
 }
 
 jit_type_t dpas_type_is_var(jit_type_t type)
