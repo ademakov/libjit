@@ -29,6 +29,9 @@
 
 	* jit/jit-insn.c, tests/coerce.pas: more coercion test cases and fixes.
 
+	* dpas/dpas-builtin.c, jit/jit-dump.c, jit/jit-value.c: add builtins
+	for mathematical operations.
+
 2004-05-11  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/jit-insn.h, jit/jit-insn.c, jit/jit-interp.cpp,

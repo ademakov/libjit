@@ -551,8 +551,8 @@ static void dump_interp_code(FILE *stream, void **pc, void **end)
 			{
 				jit_ulong value;
 				jit_memcpy(&value, pc, sizeof(jit_ulong));
-				pc += (sizeof(jit_ulong) + sizeof(void *) - 1) &
-					  ~(sizeof(void *) - 1);
+				pc += (sizeof(jit_ulong) + sizeof(void *) - 1) /
+					  sizeof(void *);
 				fprintf(stream, " 0x%lX%08lX",
 						(long)((value >> 32) & jit_max_uint),
 						(long)(value & jit_max_uint));
@@ -563,8 +563,8 @@ static void dump_interp_code(FILE *stream, void **pc, void **end)
 			{
 				jit_float32 value;
 				jit_memcpy(&value, pc, sizeof(jit_float32));
-				pc += (sizeof(jit_float32) + sizeof(void *) - 1) &
-					  ~(sizeof(void *) - 1);
+				pc += (sizeof(jit_float32) + sizeof(void *) - 1) /
+					  sizeof(void *);
 				fprintf(stream, " %g", (double)value);
 			}
 			break;
@@ -573,8 +573,8 @@ static void dump_interp_code(FILE *stream, void **pc, void **end)
 			{
 				jit_float64 value;
 				jit_memcpy(&value, pc, sizeof(jit_float64));
-				pc += (sizeof(jit_float64) + sizeof(void *) - 1) &
-					  ~(sizeof(void *) - 1);
+				pc += (sizeof(jit_float64) + sizeof(void *) - 1) /
+					  sizeof(void *);
 				fprintf(stream, " %g", (double)value);
 			}
 			break;
@@ -583,8 +583,8 @@ static void dump_interp_code(FILE *stream, void **pc, void **end)
 			{
 				jit_nfloat value;
 				jit_memcpy(&value, pc, sizeof(jit_nfloat));
-				pc += (sizeof(jit_nfloat) + sizeof(void *) - 1) &
-					  ~(sizeof(void *) - 1);
+				pc += (sizeof(jit_nfloat) + sizeof(void *) - 1) /
+					  sizeof(void *);
 				fprintf(stream, " %g", (double)value);
 			}
 			break;

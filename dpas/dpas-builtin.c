@@ -409,6 +409,102 @@ static dpas_semvalue dpas_same_shape(dpas_semvalue *args, int num_args)
 }
 
 /*
+ * Mathematical functions.
+ */
+#define	dpas_math_unary(name,func)	\
+static dpas_semvalue dpas_##name(dpas_semvalue *args, int num_args)	\
+{ \
+	dpas_semvalue result; \
+	jit_value_t value; \
+	if(!dpas_sem_is_rvalue(args[0])) \
+	{ \
+		dpas_error("invalid operand to unary `" #name "'"); \
+		dpas_sem_set_error(result); \
+	} \
+	else \
+	{ \
+		value = func(dpas_current_function(), \
+					 dpas_sem_get_value(dpas_lvalue_to_rvalue(args[0]))); \
+		if(!value) \
+		{ \
+			dpas_out_of_memory(); \
+		} \
+		dpas_sem_set_rvalue(result, jit_value_get_type(value), value); \
+	} \
+	return result; \
+}
+#define	dpas_math_binary(name,func)	\
+static dpas_semvalue dpas_##name(dpas_semvalue *args, int num_args)	\
+{ \
+	dpas_semvalue result; \
+	jit_value_t value; \
+	if(!dpas_sem_is_rvalue(args[0]) || !dpas_sem_is_rvalue(args[0])) \
+	{ \
+		dpas_error("invalid operands to binary `" #name "'"); \
+		dpas_sem_set_error(result); \
+	} \
+	else \
+	{ \
+		value = func(dpas_current_function(), \
+					 dpas_sem_get_value(dpas_lvalue_to_rvalue(args[0])), \
+					 dpas_sem_get_value(dpas_lvalue_to_rvalue(args[1]))); \
+		if(!value) \
+		{ \
+			dpas_out_of_memory(); \
+		} \
+		dpas_sem_set_rvalue(result, jit_value_get_type(value), value); \
+	} \
+	return result; \
+}
+#define	dpas_math_test(name,func)	\
+static dpas_semvalue dpas_##name(dpas_semvalue *args, int num_args)	\
+{ \
+	dpas_semvalue result; \
+	jit_value_t value; \
+	if(!dpas_sem_is_rvalue(args[0])) \
+	{ \
+		dpas_error("invalid operand to unary `" #name "'"); \
+		dpas_sem_set_error(result); \
+	} \
+	else \
+	{ \
+		value = func(dpas_current_function(), \
+					 dpas_sem_get_value(dpas_lvalue_to_rvalue(args[0]))); \
+		if(!value) \
+		{ \
+			dpas_out_of_memory(); \
+		} \
+		dpas_sem_set_rvalue(result, dpas_type_boolean, value); \
+	} \
+	return result; \
+}
+dpas_math_unary(acos, jit_insn_acos)
+dpas_math_unary(asin, jit_insn_asin)
+dpas_math_unary(atan, jit_insn_atan)
+dpas_math_binary(atan2, jit_insn_atan2)
+dpas_math_unary(ceil, jit_insn_ceil)
+dpas_math_unary(cos, jit_insn_cos)
+dpas_math_unary(cosh, jit_insn_cosh)
+dpas_math_unary(exp, jit_insn_exp)
+dpas_math_unary(floor, jit_insn_floor)
+dpas_math_unary(log, jit_insn_log)
+dpas_math_unary(log10, jit_insn_log10)
+dpas_math_unary(rint, jit_insn_rint)
+dpas_math_unary(round, jit_insn_round)
+dpas_math_unary(sin, jit_insn_sin)
+dpas_math_unary(sinh, jit_insn_sinh)
+dpas_math_unary(sqrt, jit_insn_sqrt)
+dpas_math_unary(tan, jit_insn_tan)
+dpas_math_unary(tanh, jit_insn_tanh)
+dpas_math_unary(abs, jit_insn_abs)
+dpas_math_binary(min, jit_insn_min)
+dpas_math_binary(max, jit_insn_max)
+dpas_math_unary(sign, jit_insn_sign)
+dpas_math_test(isnan, jit_insn_is_nan)
+dpas_math_unary(isinf, jit_insn_is_inf)
+dpas_math_test(finite, jit_insn_is_finite)
+
+/*
  * Builtins that we currently recognize.
  */
 #define	DPAS_BUILTIN_WRITE			1
@@ -419,6 +515,31 @@ static dpas_semvalue dpas_same_shape(dpas_semvalue *args, int num_args)
 #define	DPAS_BUILTIN_DISPOSE		6
 #define	DPAS_BUILTIN_SAMETYPE		7
 #define	DPAS_BUILTIN_SAMESHAPE		8
+#define	DPAS_BUILTIN_ACOS			9
+#define	DPAS_BUILTIN_ASIN			10
+#define	DPAS_BUILTIN_ATAN			11
+#define	DPAS_BUILTIN_ATAN2			12
+#define	DPAS_BUILTIN_CEIL			13
+#define	DPAS_BUILTIN_COS			14
+#define	DPAS_BUILTIN_COSH			15
+#define	DPAS_BUILTIN_EXP			16
+#define	DPAS_BUILTIN_FLOOR			17
+#define	DPAS_BUILTIN_LOG			18
+#define	DPAS_BUILTIN_LOG10			19
+#define	DPAS_BUILTIN_RINT			20
+#define	DPAS_BUILTIN_ROUND			21
+#define	DPAS_BUILTIN_SIN			22
+#define	DPAS_BUILTIN_SINH			23
+#define	DPAS_BUILTIN_SQRT			24
+#define	DPAS_BUILTIN_TAN			25
+#define	DPAS_BUILTIN_TANH			26
+#define	DPAS_BUILTIN_ABS			27
+#define	DPAS_BUILTIN_MIN			28
+#define	DPAS_BUILTIN_MAX			29
+#define	DPAS_BUILTIN_SIGN			30
+#define	DPAS_BUILTIN_ISNAN			31
+#define	DPAS_BUILTIN_ISINF			32
+#define	DPAS_BUILTIN_FINITE			33
 
 /*
  * Table that defines the builtins.
@@ -432,14 +553,39 @@ typedef struct
 
 } dpas_builtin;
 static dpas_builtin const builtins[] = {
-	{"Write",		DPAS_BUILTIN_WRITE,		dpas_write,		-1},
-	{"WriteLn",		DPAS_BUILTIN_WRITELN,	dpas_writeln,	-1},
-	{"Flush",		DPAS_BUILTIN_FLUSH,		dpas_flush,		 0},
-	{"Terminate",	DPAS_BUILTIN_TERMINATE,	dpas_terminate,	 1},
-	{"New",			DPAS_BUILTIN_NEW,		dpas_new,	 	 1},
-	{"Dispose",		DPAS_BUILTIN_DISPOSE,	dpas_dispose, 	 1},
-	{"SameType",	DPAS_BUILTIN_SAMETYPE,	dpas_same_type,  2},
-	{"SameShape",	DPAS_BUILTIN_SAMESHAPE,	dpas_same_shape, 2},
+	{"Write",		DPAS_BUILTIN_WRITE,		dpas_write,		 -1},
+	{"WriteLn",		DPAS_BUILTIN_WRITELN,	dpas_writeln,	 -1},
+	{"Flush",		DPAS_BUILTIN_FLUSH,		dpas_flush,		  0},
+	{"Terminate",	DPAS_BUILTIN_TERMINATE,	dpas_terminate,	  1},
+	{"New",			DPAS_BUILTIN_NEW,		dpas_new,	 	  1},
+	{"Dispose",		DPAS_BUILTIN_DISPOSE,	dpas_dispose, 	  1},
+	{"SameType",	DPAS_BUILTIN_SAMETYPE,	dpas_same_type,   2},
+	{"SameShape",	DPAS_BUILTIN_SAMESHAPE,	dpas_same_shape,  2},
+	{"Acos",		DPAS_BUILTIN_ACOS,		dpas_acos,        1},
+	{"Asin",		DPAS_BUILTIN_ASIN,		dpas_asin,        1},
+	{"Atan",		DPAS_BUILTIN_ATAN,		dpas_atan,        1},
+	{"Atan2",		DPAS_BUILTIN_ATAN2,		dpas_atan2,       2},
+	{"Ceil",		DPAS_BUILTIN_CEIL,		dpas_ceil,        1},
+	{"Cos",			DPAS_BUILTIN_COS,		dpas_cos,         1},
+	{"Cosh",		DPAS_BUILTIN_COSH,		dpas_cosh,        1},
+	{"Exp",			DPAS_BUILTIN_EXP,		dpas_exp,         1},
+	{"Floor",		DPAS_BUILTIN_FLOOR,		dpas_floor,       1},
+	{"Log",			DPAS_BUILTIN_LOG,		dpas_log,         1},
+	{"Log10",		DPAS_BUILTIN_LOG10,		dpas_log10,       1},
+	{"Rint",		DPAS_BUILTIN_RINT,		dpas_rint,        1},
+	{"Round",		DPAS_BUILTIN_ROUND,		dpas_round,       1},
+	{"Sin",			DPAS_BUILTIN_SIN,		dpas_sin,         1},
+	{"Sinh",		DPAS_BUILTIN_SINH,		dpas_sinh,        1},
+	{"Sqrt",		DPAS_BUILTIN_SQRT,		dpas_sqrt,        1},
+	{"Tan",			DPAS_BUILTIN_TAN,		dpas_tan,         1},
+	{"Tanh",		DPAS_BUILTIN_TANH,		dpas_tanh,        1},
+	{"Abs",			DPAS_BUILTIN_ABS,		dpas_abs,         1},
+	{"Min",			DPAS_BUILTIN_MIN,		dpas_min,         2},
+	{"Max",			DPAS_BUILTIN_MAX,		dpas_max,         2},
+	{"Sign",		DPAS_BUILTIN_SIGN,		dpas_sign,        1},
+	{"IsNaN",		DPAS_BUILTIN_ISNAN,		dpas_isnan,       1},
+	{"IsInf",		DPAS_BUILTIN_ISINF,		dpas_isinf,       1},
+	{"Finite",		DPAS_BUILTIN_FINITE,	dpas_finite,      1},
 };
 #define	num_builtins	(sizeof(builtins) / sizeof(dpas_builtin))
 

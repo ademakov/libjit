@@ -922,7 +922,7 @@ jit_nfloat jit_value_get_nfloat_constant(jit_value_t value)
 	{
 		return (jit_nfloat)0.0;
 	}
-	if(jit_type_normalize(value->type)->kind == JIT_TYPE_FLOAT64)
+	if(jit_type_normalize(value->type)->kind == JIT_TYPE_NFLOAT)
 	{
 		return *((jit_nfloat *)(value->address));
 	}
