@@ -1,4 +1,10 @@
 
+2004-05-22  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-block.c (_jit_block_peephole_branch): don't allow
+	conditional branches to cross an exception context boundary,
+	because doing so will violate "finally" semantics.
+
 2004-05-21  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-gen-arm.c, jit/jit-gen-arm.h: modify the ARM codegen

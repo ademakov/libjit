@@ -481,6 +481,11 @@ void _jit_block_peephole_branch(jit_block_t block)
 		{
 			break;
 		}
+		if(new_block->block_eh != block->block_eh && insn->opcode != JIT_OP_BR)
+		{
+			/* Conditional branches must never cross an exception context */
+			break;
+		}
 		if(new_block->first_insn < new_block->last_insn)
 		{
 			/* There is more than one instruction in this block,
