@@ -44,18 +44,19 @@ straight vanilla ANSI C.
 #if defined(JIT_BACKEND_INTERP)
 
 /*
- * Macros that help with the definition of the interpreter switch loop.
+ * Determine what kind of interpreter dispatch to use.
  */
-#define	VMSWITCH(pc)	\
-		for(;;)	\
-		{ \
-			switch((int)*((jit_nint *)(pc)))
-#define	VMSWITCHEND		\
-		}
-#define	VMCASE(opcode)	\
-		case opcode
-#define	VMBREAK			\
-		break
+#ifdef HAVE_COMPUTED_GOTO
+	#if defined(PIC) && defined(HAVE_PIC_COMPUTED_GOTO)
+		#define	JIT_INTERP_TOKEN_PIC	1
+	#elif defined(PIC)
+		#define	JIT_INTERP_SWITCH		1
+	#else
+		#define	JIT_INTERP_TOKEN		1
+	#endif
+#else /* !HAVE_COMPUTED_GOTO */
+	#define	JIT_INTERP_SWITCH			1
+#endif /* !HAVE_COMPUTED_GOTO */
 
 /*
  * Modify the program counter and stack pointer.
@@ -242,6 +243,9 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 	void *exception_object = 0;
 	void *handler;
 	jit_jmp_buf *jbuf;
+
+	/* Define the label table for computed goto dispatch */
+	#include "jit-interp-labels.h"
 
 	/* Set up the stack frame for this function */
 	frame = (jit_item *)alloca(func->frame_size);
@@ -4468,7 +4472,6 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 		VMCASE(JIT_OP_PUSH_FLOAT64):
 		VMCASE(JIT_OP_PUSH_NFLOAT):
 		VMCASE(JIT_OP_FLUSH_SMALL_STRUCT):
-		VMCASE(JIT_OP_END_MARKER):
 		VMCASE(JIT_OP_ENTER_CATCH):
 		VMCASE(JIT_OP_ENTER_FINALLY):
 		VMCASE(JIT_OP_ENTER_FILTER):

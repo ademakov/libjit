@@ -3,5 +3,6 @@ Makefile.in
 .deps
 .libs
 jit-apply-rules.h
+jit-interp-labels.h
 *.lo
 *.la

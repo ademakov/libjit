@@ -362,6 +362,29 @@ else
 	LIB_STDCPP=""
 fi
 
+dnl Check for computed goto support in the compiler.
+AC_MSG_CHECKING(for computed goto support)
+AC_TRY_COMPILE([], [
+	static void *labels[] = {&&label0, &&label1, &&label2};
+	unsigned char *pc = 0;
+	goto *labels[*pc];
+	label0: ;
+	label1: ;
+	label2: ;
+], AC_DEFINE(HAVE_COMPUTED_GOTO, 1, [Define if you have support for computed gotos]) compgoto=yes, compgoto=no)
+AC_MSG_RESULT($compgoto)
+AC_MSG_CHECKING(for pic computed goto support)
+AC_TRY_COMPILE([], [
+	static int labelOffsets[] =
+		{&&label0 - &&label0, &&label1 - &&label0, &&label2 - &&label0};
+	unsigned char *pc = 0;
+	goto *(&&label0 + labelOffsets[*pc]);
+	label0: ;
+	label1: ;
+	label2: ;
+], AC_DEFINE(HAVE_PIC_COMPUTED_GOTO, 1, [Define if you have PIC support for computed gotos]) piccompgoto=yes, piccompgoto=no)
+AC_MSG_RESULT($piccompgoto)
+
 dnl Checks for library functions.
 if test "x$suppress_libm" = "xno" ; then
 	AC_CHECK_LIB(m, sin)
