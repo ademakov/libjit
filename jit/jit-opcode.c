@@ -454,6 +454,7 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	{"incoming_reg",				JIT_OPCODE_IS_REG},
 	{"incoming_frame_posn",			F_(EMPTY, ANY, INT)},
 	{"outgoing_reg",				JIT_OPCODE_IS_REG},
+	{"outgoing_frame_posn",			F_(EMPTY, ANY, INT)},
 	{"return_reg",					JIT_OPCODE_IS_REG},
 	{"push_int",					F_(EMPTY, INT, EMPTY)},
 	{"push_long",					F_(EMPTY, LONG, EMPTY)},

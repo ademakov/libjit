@@ -5969,6 +5969,24 @@ int jit_insn_outgoing_reg(jit_function_t func, jit_value_t value, int reg)
 }
 
 /*@
+ * @deftypefun int jit_insn_outgoing_frame_posn (jit_function_t func, jit_value_t value, jit_nint frame_offset)
+ * Output an instruction that notes that the contents of @code{value}
+ * should be stored in the stack frame at @code{frame_offset} at this point
+ * in the code.
+ *
+ * You normally wouldn't call this yourself - it is used internally
+ * by the CPU back ends to set up an outgoing frame for tail calls.
+ * @end deftypefun
+@*/
+int jit_insn_outgoing_frame_posn
+		(jit_function_t func, jit_value_t value, jit_nint frame_offset)
+{
+	return create_note(func, JIT_OP_OUTGOING_FRAME_POSN, value,
+					   jit_value_create_nint_constant
+					   		(func, jit_type_int, frame_offset));
+}
+
+/*@
  * @deftypefun int jit_insn_return_reg (jit_function_t func, jit_value_t value, int reg)
  * Output an instruction that notes that the contents of @code{value}
  * can be found in the register @code{reg} at this point in the code.

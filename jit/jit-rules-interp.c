@@ -381,63 +381,128 @@ int _jit_create_call_setup_insns
 	jit_type_t type;
 	jit_type_t vtype;
 	jit_value_t value;
+	unsigned int arg_num;
+	jit_nint offset;
+	jit_nuint size;
 
-	/* Push all of the arguments in reverse order */
-	while(num_args > 0)
+	/* Regular or tail call? */
+	if((flags & JIT_CALL_TAIL) == 0)
 	{
-		--num_args;
-		type = jit_type_normalize(jit_type_get_param(signature, num_args));
-		if(type->kind == JIT_TYPE_STRUCT || type->kind == JIT_TYPE_UNION)
+		/* Push all of the arguments in reverse order */
+		while(num_args > 0)
 		{
-			/* If the value is a pointer, then we are pushing a structure
-			   argument by pointer rather than by local variable */
-			vtype = jit_type_normalize(jit_value_get_type(args[num_args]));
-			if(vtype->kind <= JIT_TYPE_MAX_PRIMITIVE)
+			--num_args;
+			type = jit_type_normalize(jit_type_get_param(signature, num_args));
+			if(type->kind == JIT_TYPE_STRUCT || type->kind == JIT_TYPE_UNION)
 			{
-				if(!jit_insn_push_ptr(func, args[num_args], type))
+				/* If the value is a pointer, then we are pushing a structure
+				   argument by pointer rather than by local variable */
+				vtype = jit_type_normalize(jit_value_get_type(args[num_args]));
+				if(vtype->kind <= JIT_TYPE_MAX_PRIMITIVE)
 				{
-					return 0;
+					if(!jit_insn_push_ptr(func, args[num_args], type))
+					{
+						return 0;
+					}
+					continue;
 				}
 			}
+			if(!jit_insn_push(func, args[num_args]))
+			{
+				return 0;
+			}
 		}
-		if(!jit_insn_push(func, args[num_args]))
-		{
-			return 0;
-		}
-	}
 
-	/* Do we need to add a structure return pointer argument? */
-	type = jit_type_get_return(signature);
-	if(jit_type_return_via_pointer(type))
-	{
-		value = jit_value_create(func, type);
-		if(!value)
+		/* Do we need to add a structure return pointer argument? */
+		type = jit_type_get_return(signature);
+		if(jit_type_return_via_pointer(type))
 		{
-			return 0;
+			value = jit_value_create(func, type);
+			if(!value)
+			{
+				return 0;
+			}
+			*struct_return = value;
+			value = jit_insn_address_of(func, value);
+			if(!value)
+			{
+				return 0;
+			}
+			if(!jit_insn_push(func, value))
+			{
+				return 0;
+			}
 		}
-		*struct_return = value;
-		value = jit_insn_address_of(func, value);
-		if(!value)
+		else
 		{
-			return 0;
+			*struct_return = 0;
 		}
-		if(!jit_insn_push(func, value))
+
+		/* Do we need to add nested function scope information? */
+		if(is_nested)
 		{
-			return 0;
+			if(!jit_insn_setup_for_nested(func, nested_level, -1))
+			{
+				return 0;
+			}
 		}
 	}
 	else
 	{
-		*struct_return = 0;
-	}
-
-	/* Do we need to add nested function scope information? */
-	if(is_nested)
-	{
-		if(!jit_insn_setup_for_nested(func, nested_level, -1))
+		/* Copy the arguments into our own parameter slots */
+		offset = -1;
+		if(func->nested_parent)
 		{
-			return 0;
+			offset -= 2;
 		}
+		type = jit_type_get_return(signature);
+		if(jit_type_return_via_pointer(type))
+		{
+			--offset;
+		}
+		for(arg_num = 0; arg_num < num_args; ++arg_num)
+		{
+			type = jit_type_get_param(signature, arg_num);
+			value = jit_value_create(func, type);
+			if(!value)
+			{
+				return 0;
+			}
+			if(!jit_insn_outgoing_frame_posn(func, value, offset))
+			{
+				return 0;
+			}
+			type = jit_type_normalize(type);
+			size = jit_type_get_size(type);
+			offset -= (jit_nint)(JIT_NUM_ITEMS_IN_STRUCT(size));
+			if(type->kind == JIT_TYPE_STRUCT || type->kind == JIT_TYPE_UNION)
+			{
+				/* If the value is a pointer, then we are pushing a structure
+				   argument by pointer rather than by local variable */
+				vtype = jit_type_normalize(jit_value_get_type(args[arg_num]));
+				if(vtype->kind <= JIT_TYPE_MAX_PRIMITIVE)
+				{
+					value = jit_insn_address_of(func, value);
+					if(!value)
+					{
+						return 0;
+					}
+					if(!jit_insn_memcpy
+							(func, value, args[arg_num],
+							 jit_value_create_nint_constant
+								(func, jit_type_nint, (jit_nint)size)))
+					{
+						return 0;
+					}
+					continue;
+				}
+			}
+			if(!jit_insn_store(func, value, args[arg_num]))
+			{
+				return 0;
+			}
+		}
+		*struct_return = 0;
 	}
 
 	/* The call is ready to proceed */

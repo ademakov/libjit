@@ -495,6 +495,19 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 			}
 			break;
 
+			case JIT_OP_OUTGOING_FRAME_POSN:
+			{
+				/* Set the frame position for an outgoing value */
+				insn->value1->frame_offset =
+					jit_value_get_nint_constant(insn->value2);
+				insn->value1->in_register = 0;
+				insn->value1->in_global_register = 0;
+				insn->value1->in_frame = 0;
+				insn->value1->has_frame_offset = 1;
+				insn->value1->has_global_register = 0;
+			}
+			break;
+
 			case JIT_OP_RETURN_REG:
 			{
 				/* Assign a register to a return value */

@@ -639,6 +639,7 @@ jit_value jit_function::get_struct_pointer()
  * @deftypemethodx jit_function void insn_incoming_reg ({const jit_value&} value, int reg)
  * @deftypemethodx jit_function void insn_incoming_frame_posn ({const jit_value&}  value, jit_nint posn)
  * @deftypemethodx jit_function void insn_outgoing_reg ({const jit_value&} value, int reg)
+ * @deftypemethodx jit_function void insn_outgoing_frame_posn ({const jit_value&}  value, jit_nint posn)
  * @deftypemethodx jit_function void insn_return_reg ({const jit_value&} value, int reg)
  * @deftypemethodx jit_function void insn_setup_for_nested (int nested_level, int reg)
  * @deftypemethodx jit_function void insn_flush_struct ({const jit_value&} value)
@@ -1169,6 +1170,15 @@ void jit_function::insn_incoming_frame_posn
 void jit_function::insn_outgoing_reg(const jit_value& value, int reg)
 {
 	if(!jit_insn_outgoing_reg(func, value.raw(), reg))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_outgoing_frame_posn
+	(const jit_value& value, jit_nint posn)
+{
+	if(!jit_insn_outgoing_frame_posn(func, value.raw(), posn))
 	{
 		out_of_memory();
 	}

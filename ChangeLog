@@ -4,6 +4,12 @@
 	* jit/jit-insn.c, jit/jit-rules-x86.c, jit/jit-rules-x86.sel:
 	implement or stub missing x86 instruction selection rules.
 
+	* include/jit/jit-insn.h, include/jit/jit-opcode.h,
+	include/jit/jit-plus.h, jit/jit-function.c, jit/jit-insn.c,
+	jit/jit-interp.c, jit/jit-opcode.c, jit/jit-rules-interp.c,
+	jitplus/jit-plus-function.cpp: add the "outgoing_frame_posn"
+	instruction, to support tail calls.
+
 2004-06-11  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* doc/libjit.texi, jit/jit-insn.c, jit/jit-internal.h,

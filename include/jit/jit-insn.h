@@ -241,6 +241,8 @@ int jit_insn_incoming_frame_posn
 	(jit_function_t func, jit_value_t value, jit_nint frame_offset) JIT_NOTHROW;
 int jit_insn_outgoing_reg
 	(jit_function_t func, jit_value_t value, int reg) JIT_NOTHROW;
+int jit_insn_outgoing_frame_posn
+	(jit_function_t func, jit_value_t value, jit_nint frame_offset) JIT_NOTHROW;
 int jit_insn_return_reg
 	(jit_function_t func, jit_value_t value, int reg) JIT_NOTHROW;
 int jit_insn_setup_for_nested

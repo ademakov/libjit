@@ -308,6 +308,7 @@ public:
 	void insn_incoming_reg(const jit_value& value, int reg);
 	void insn_incoming_frame_posn(const jit_value& value, jit_nint posn);
 	void insn_outgoing_reg(const jit_value& value, int reg);
+	void insn_outgoing_frame_posn(const jit_value& value, jit_nint posn);
 	void insn_return_reg(const jit_value& value, int reg);
 	void insn_setup_for_nested(int nested_level, int reg);
 	void insn_flush_struct(const jit_value& value);
