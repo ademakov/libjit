@@ -1,0 +1,8 @@
+
+This directory contains an implementation of "Dynamic Pascal", or "dpas"
+as we like to call it.  It is provided as an example of using "libjit"
+in a real environment.  We also use it to write test programs that
+exercise the JIT's capabilities.
+
+More information on Dynamic Pascal can be found in libjit's Texinfo
+documentation, "libjit/doc/libjit.texi".

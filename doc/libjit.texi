@@ -1,0 +1,1247 @@
+\input texinfo	@c -*-texinfo-*-
+@c %** start of header
+@setfilename libjit.info
+@settitle Just-In-Time Compiler Library
+@setchapternewpage off
+@c %** end of header
+
+@dircategory Libraries
+@direntry
+* Libjit: (libjit).                Just-In-Time Compiler Library
+@end direntry
+
+@ifinfo
+The libjit library assists with the process of building
+Just-In-Time compilers for languages, virtual machines,
+and emulators.
+
+Copyright @copyright{} 2004 Southern Storm Software, Pty Ltd
+@end ifinfo
+
+@titlepage
+@sp 10
+@center @titlefont{Just-In-Time Compiler Library}
+
+@vskip 0pt plus 1fill
+@center{Copyright @copyright{} 2004 Southern Storm Software, Pty Ltd}
+@end titlepage
+
+@syncodeindex fn cp
+@syncodeindex vr cp
+@syncodeindex tp cp
+
+@c -----------------------------------------------------------------------
+
+@node Top, Introduction, , (dir)
+@menu
+* Introduction::            Introduction and rationale for libjit
+* Features::                Features of libjit
+* Tutorials::               Tutorials in using libjit
+* Initialization::          Initializing the JIT
+* Functions::               Building and compiling functions with the JIT
+* Types::                   Manipulating system types
+* Values::                  Working with temporary values in the JIT
+* Instructions::            Working with instructions in the JIT
+* Basic Blocks::            Working with basic blocks in the JIT
+* Intrinsics::              Intrinsic functions available to libjit users
+* Exceptions::              Handling exceptions
+* ELF Binaries::            Manipulating ELF binaries
+* Utility Routines::        Miscellaneous utility routines
+* C++ Interface::           Using libjit from C++
+* Porting::                 Porting libjit to new architectures
+* Why GPL?::                Why we use GPL and not LGPL for libjit
+* Index::                   Index of concepts and facilities
+@end menu
+
+@c -----------------------------------------------------------------------
+
+@node Introduction, Features, Top, Top
+@chapter Introduction and rationale for libjit
+@cindex Introduction
+
+Just-In-Time compilers are becoming increasingly popular for executing
+dynamic languages like Perl and Python and for semi-dynamic languages
+like Java and C#.  Studies have shown that JIT techniques can get close to,
+and sometimes exceed, the performance of statically-compiled native code.
+
+However, there is a problem with current JIT approaches.  In almost every
+case, the JIT is specific to the object model, runtime support library,
+garbage collector, or bytecode peculiarities of a particular system.
+This inevitably leads to duplication of effort, where all of the good
+JIT work that has gone into one virtual machine cannot be reused in another.
+
+JIT's are not only useful for implementing languages.  They can also be used
+in other programming fields.  Graphical applications can achieve greater
+performance if they can compile a special-purpose rendering routine
+on the fly, customized to the rendering task at hand, rather than using
+static routines.  Needless to say, such applications have no need for
+object models, garbage collectors, or huge runtime class libraries.
+
+Most of the work on a JIT is concerned with arithmetic, numeric type
+conversion, memory loads/stores, looping, performing data flow analysis,
+assigning registers, and generating the executable machine code.
+Only a very small proportion of the work is concerned with language specifics.
+
+The goal of the @code{libjit} project is to provide an extensive set of
+routines that takes care of the bulk of the JIT process, without tying the
+programmer down with language specifics.  Where we provide support for
+common object models, we do so strictly in add-on libraries,
+not as part of the core code.
+
+Unlike other systems such as the JVM, .NET, Parrot, and LLVM, @code{libjit}
+is not a virtual machine in its own right.  It is the foundation upon which a
+number of different virtual machines, dynamic scripting languages,
+or customized rendering routines can be built.
+
+This should free developers to think about the design of their front
+ends, and not get bogged down in the details of code execution.
+Meanwhile, experts in the design and implementation of JIT's can concentrate
+on solving code execution problems, instead of front end support issues.
+
+This document describes how to use the library in application programs.
+We start with a list of features and some simple tutorials.  Finally,
+we provide a complete reference guide for all of the API functions in
+@code{libjit}, broken down by function category.
+
+@section Obtaining libjit
+
+The latest version of @code{libjit} can be obtained from Southern
+Storm Software, Pty Ltd's Web site:
+
+@quotation
+@uref{http://www.southern-storm.com.au/libjit.html}
+@end quotation
+
+@section Further reading
+
+While it isn't strictly necessary to know about compiler internals
+to use @code{libjit}, you can make more effective use of the library
+if you do.  We recommend the "Dragon Book" as an excellent resource
+on compiler internals, particularly the sections on code generation
+and optimization:
+
+@quotation
+Alfred V. Aho, Ravi Sethi, and Jeffrey D. Ullman, "Compilers:
+Principles, Techniques, and Tools", Addison-Wesley, 1986.
+@end quotation
+
+IBM, Intel, and others have done a lot of research into JIT implementation
+techniques over the years.  If you are interested in working on the
+internals of @code{libjit}, then you may want to make yourself familiar
+with the relevant literature (this is by no means a complete list):
+
+@quotation
+IBM's Jikes RVM (Research Virtual Machine), @*
+@uref{http://www-124.ibm.com/developerworks/oss/jikesrvm/}.
+
+Intel's ORP (Open Runtime Platform), @*
+@uref{http://orp.sourceforge.net/}.
+@end quotation
+
+@c -----------------------------------------------------------------------
+
+@node Features, Tutorials, Introduction, Top
+@chapter Features of libjit
+@cindex Features
+
+@itemize
+@item
+The primary interface is in C, for maximal reusability.  Class
+interfaces are available for programmers who prefer C++.
+
+@item
+Designed for portability to all major 32-bit and 64-bit platforms.
+
+@item
+Simple three-address API for library users, but opaque enough that other
+representations can be used inside the library in future without
+affecting existing users.
+
+@item
+Up-front or on-demand compilation of any function.
+
+@item
+In-built support to re-compile functions with greater optimization,
+automatically redirecting previous callers to the new version.
+
+@item
+Fallback interpreter for running code on platforms that don't
+have a native code generator yet.  This reduces the need for
+programmers to write their own interpreters for such platforms.
+
+@item
+Arithmetic, bitwise, conversion, and comparison operators for 8-bit,
+16-bit, 32-bit, or 64-bit integer types; and 32-bit, 64-bit, or longer
+floating point types.  Includes overflow detecting arithmetic for
+integer types.
+
+@item
+Large set of mathematical and trigonometric operations
+(sqrt, sin, cos, min, abs, etc) for inlining floating-point library functions.
+
+@item
+Simplified type layout and exception handling mechanisms, upon which a
+variety of different object models can be built.
+
+@item
+Support for nested functions, able to access their parent's local variables
+(for implementing Pascal-style languages).
+@end itemize
+
+@c -----------------------------------------------------------------------
+
+@node Tutorials, Tutorial 1, Features, Top
+@chapter Tutorials in using libjit
+@cindex Tutorials
+
+In this chapter, we describe how to use @code{libjit} with a number of
+short tutorial exercises.  Full source for these tutorials can be found
+in the @code{tutorial} directory of the @code{libjit} source tree.
+
+For simplicity, we will ignore errors such as out of memory conditions,
+but a real program would be expected to handle such errors.
+
+@menu
+* Tutorial 1::              Tutorial 1 - mul_add
+* Tutorial 2::              Tutorial 2 - gcd
+* Tutorial 3::              Tutorial 3 - compiling on-demand
+* Tutorial 4::              Tutorial 4 - mul_add, C++ version
+* Dynamic Pascal::          Dynamic Pascal - A full JIT example
+@end menu
+
+@c -----------------------------------------------------------------------
+
+@node Tutorial 1, Tutorial 2, Tutorials, Tutorials
+@section Tutorial 1 - mul_add
+@cindex mul_add tutorial
+
+In the first tutorial, we will build and compile the following function
+(the source code can be found in @code{tutorial/t1.c}):
+
+@example
+int mul_add(int x, int y, int z)
+@{
+    return x * y + z;
+@}
+@end example
+
+@noindent
+To use the JIT, we first include the @code{<jit/jit.h>} file:
+
+@example
+#include <jit/jit.h>
+@end example
+
+All of the header files are placed into the @code{jit} sub-directory,
+to separate them out from regular system headers.  When @code{libjit}
+is installed, you will typically find these headers in
+@code{/usr/local/include/jit} or @code{/usr/include/jit}, depending upon
+how your system is configured.
+
+You should also link with the @code{-ljit} option and use a C++ linker,
+not a C linker (because @code{libjit} contains a small amount of C++ code).
+If you are using Autotools, then you can force the use of a C++ linker
+by adding @code{AC_PROG_CXX} to @code{configure.in} and adding the
+following line to your @code{Makefile.am}:
+
+@example
+CCLD = $(CXX)
+@end example
+
+@noindent
+Every program that uses @code{libjit} needs to call @code{jit_context_create}:
+
+@example
+jit_context_t context;
+...
+context = jit_context_create();
+@end example
+
+Almost everything that is done with @code{libjit} is done relative
+to a context.  In particular, a context holds all of the functions
+that you have built and compiled.
+
+You can have multiple contexts at any one time, but normally you will
+only need one.  Multiple contexts may be useful if you wish to
+run multiple virtual machines side by side in the same process,
+without them interfering with each other.
+
+Whenever we are constructing a function, we need to lock down the
+context to prevent multiple threads from using the builder at a time:
+
+@example
+jit_context_build_start(context);
+@end example
+
+The next step is to construct the function object that will represent
+our @code{mul_add} function:
+
+@example
+jit_function_t function;
+...
+function = jit_function_create(context, signature);
+@end example
+
+The @code{signature} is a @code{jit_type_t} object that describes the
+function's parameters and return value.  This tells @code{libjit} how
+to generate the proper calling conventions for the function:
+
+@example
+jit_type_t params[3];
+jit_type_t signature;
+...
+params[0] = jit_type_int;
+params[1] = jit_type_int;
+params[2] = jit_type_int;
+signature = jit_type_create_signature
+    (jit_abi_cdecl, jit_type_int, params, 3, 1);
+@end example
+
+This declares a function that takes three parameters of type
+@code{int} and returns a result of type @code{int}.  We've requested
+that the function use the @code{cdecl} application binary interface (ABI),
+which indicates normal C calling conventions.  @xref{Types}, for
+more information on signature types.
+
+Now that we have a function object, we need to construct the instructions
+in its body.  First, we obtain references to each of the function's
+parameter values:
+
+@example
+jit_value_t x, y, z;
+...
+x = jit_value_get_param(function, 0);
+y = jit_value_get_param(function, 1);
+z = jit_value_get_param(function, 2);
+@end example
+
+Values are one of the two cornerstones of the @code{libjit} process.
+Values represent parameters, local variables, and intermediate
+temporary results.  Once we have the parameters, we compute
+the result of @code{x * y + z} as follows:
+
+@example
+jit_value_t temp1, temp2;
+...
+temp1 = jit_insn_mul(function, x, y);
+temp2 = jit_insn_add(function, temp1, z);
+@end example
+
+This demonstrates the other cornerstone of the @code{libjit} process:
+instructions.  Each of these instructions takes two values as arguments
+and returns a new temporary value with the result.
+
+Students of compiler design will notice that the above statements look
+very suspiciously like the "three address statements" that are described
+in compiler textbooks.  And that is indeed what they are internally within
+@code{libjit}.
+
+If you don't know what three address statements are, then don't worry.
+The library hides most of the details from you.  All you need to do is
+break your code up into simple operation steps (addition, multiplication,
+negation, copy, etc).  Then perform the steps one at a time, using
+the temporary values in subsequent steps.  @xref{Instructions}, for
+a complete list of all instructions that are supported by @code{libjit}.
+
+Now that we have computed the desired result, we return it to the caller
+using @code{jit_insn_return}:
+
+@example
+jit_insn_return(function, temp2);
+@end example
+
+We have completed the process of building the function body.  Now we
+compile it into its executable form:
+
+@example
+jit_function_compile(function);
+jit_context_build_end(context);
+@end example
+
+As a side-effect, this will discard all of the memory associated with
+the values and instructions that we constructed while building the
+function.  They are no longer required, because we now have the
+executable form that we require.
+
+We also unlock the context, because it is now safe for other threads
+to access the function building process.
+
+Up until this point, we haven't executed the @code{mul_add} function.
+All we have done is build and compile it, ready for execution.  To execute it,
+we call @code{jit_function_apply}:
+
+@example
+jit_int arg1, arg2, arg3;
+void *args[3];
+jit_int result;
+...
+arg1 = 3;
+arg2 = 5;
+arg3 = 2;
+args[0] = &arg1;
+args[1] = &arg2;
+args[2] = &arg3;
+jit_function_apply(function, args, &result);
+printf("mul_add(3, 5, 2) = %d\n", (int)result);
+@end example
+
+We pass an array of pointers to @code{jit_function_apply}, each one
+pointing to the corresponding argument value.  This gives us a very
+general purpose mechanism for calling any function that may be
+built and compiled using @code{libjit}.  If all went well, the
+program should print the following:
+
+@example
+mul_add(3, 5, 2) = 17
+@end example
+
+You will notice that we used @code{jit_int} as the type of the arguments,
+not @code{int}.  The @code{jit_int} type is guaranteed to be 32 bits
+in size on all platforms, whereas @code{int} varies in size from platform
+to platform.  Since we wanted our function to work the same everywhere,
+we used a type with a predictable size.
+
+If you really wanted the system @code{int} type, you would use
+@code{jit_type_sys_int} instead of @code{jit_type_int} when you
+created the function's signature.  The @code{jit_type_sys_int} type
+is guaranteed to match the local system's @code{int} precision.
+
+@noindent
+Finally, we clean up the context and all of the memory that was used:
+
+@example
+jit_context_destroy(context);
+@end example
+
+@c -----------------------------------------------------------------------
+
+@node Tutorial 2, Tutorial 3, Tutorial 1, Tutorials
+@section Tutorial 2 - gcd
+@cindex gcd tutorial
+
+In this second tutorial, we implement the subtracting Euclidean
+Greatest Common Divisor (GCD) algorithm over positive integers.
+This tutorial demonstrates how to handle conditional branching
+and function calls.  In C, the code for the @code{gcd} function
+is as follows:
+
+@example
+unsigned int gcd(unsigned int x, unsigned int y)
+@{
+    if(x == y)
+    @{
+        return x;
+    @}
+    else if(x < y)
+    @{
+        return gcd(x, y - x);
+    @}
+    else
+    @{
+        return gcd(x - y, y);
+    @}
+@}
+@end example
+
+The source code for this tutorial can be found in @code{tutorial/t2.c}.
+Many of the details are similar to the previous tutorial.  We omit
+those details here and concentrate on how to build the function body.
+@xref{Tutorial 1}, for more information.
+
+@noindent
+We start by checking the condition @code{x == y}:
+
+@example
+jit_value_t x, y, temp1;
+...
+x = jit_value_get_param(function, 0);
+y = jit_value_get_param(function, 1);
+temp1 = jit_insn_eq(function, x, y);
+@end example
+
+This is very similar to our previous tutorial, except that we are using
+the @code{eq} operator this time.  If the condition is not true, we
+want to skip the @code{return} statement.  We achieve this with the
+@code{jit_insn_branch_if_not} instruction:
+
+@example
+jit_label_t label1 = jit_label_undefined;
+...
+jit_insn_branch_if_not(function, temp1, &label1);
+@end example
+
+The label must be initialized to @code{jit_label_undefined}.  It will be
+updated by @code{jit_insn_branch_if_not} to refer to a future position in
+the code that we haven't seen yet.
+
+If the condition is true, then execution falls through to the next
+instruction where we return @code{x} to the caller:
+
+@example
+jit_insn_return(function, x);
+@end example
+
+If the condition was not true, then we branched to @code{label1} above.
+We fix the location of the label using @code{jit_insn_label}:
+
+@example
+jit_insn_label(function, &label1);
+@end example
+
+@noindent
+We use similar code to check the condition @code{x < y}, and branch
+to @code{label2} if it is not true:
+
+@example
+jit_value_t temp2;
+jit_label_t label2 = jit_label_undefined;
+...
+temp2 = jit_insn_lt(function, x, y);
+jit_insn_branch_if_not(function, temp2, &label2);
+@end example
+
+At this point, we need to call the @code{gcd} function with the
+arguments @code{x} and @code{y - x}.  The code for this is
+fairly straight-forward.  The @code{jit_insn_call} instruction calls
+the function listed in its third argument.  In this case, we are calling
+ourselves recursively:
+
+@example
+jit_value_t temp_args[2];
+jit_value_t temp3;
+...
+temp_args[0] = x;
+temp_args[1] = jit_insn_sub(function, y, x);
+temp3 = jit_insn_call
+    (function, "gcd", function, 0, temp_args, 2, 0);
+jit_insn_return(function, temp3);
+@end example
+
+The string @code{"gcd"} in the second argument is for diagnostic purposes
+only.  It can be helpful when debugging, but the @code{libjit} library
+otherwise makes no use of it.  You can set it to NULL if you wish.
+
+In general, @code{libjit} does not maintain mappings from names to
+@code{jit_function_t} objects.  It is assumed that the front end will
+take care of that, using whatever naming scheme is appropriate to
+its needs.
+
+@noindent
+The final part of the @code{gcd} function is similar to the previous one:
+
+@example
+jit_value_t temp4;
+...
+jit_insn_label(function, &label2);
+temp_args[0] = jit_insn_sub(function, x, y);
+temp_args[1] = y;
+temp4 = jit_insn_call
+    (function, "gcd", function, 0, temp_args, 2, 0);
+jit_insn_return(function, temp4);
+@end example
+
+@noindent
+We can now compile the function and execute it in the usual manner.
+
+@c -----------------------------------------------------------------------
+
+@node Tutorial 3, Tutorial 4, Tutorial 2, Tutorials
+@section Tutorial 3 - compiling on-demand
+@cindex On-demand compilation tutorial
+
+In the previous tutorials, we compiled everything that we needed
+at startup time, and then entered the execution phase.  The real power
+of a JIT becomes apparent when you use it to compile functions
+only as they are called.  You can thus avoid compiling functions
+that are never called in a given program run, saving memory and
+startup time.
+
+We demonstrate how to do on-demand compilation by rewriting Tutorial 1.
+The source code for the modified version is in @code{tutorial/t3.c}.
+
+When the @code{mul_add} function is created, we don't create its function
+body or call @code{jit_function_compile}.  We instead provide a
+C function called @code{compile_mul_add} that performs on-demand
+compilation:
+
+@example
+jit_function_t function;
+...
+function = jit_function_create(context, signature);
+jit_function_set_on_demand_compiler(function, compile_mul_add);
+@end example
+
+We can now call this function with @code{jit_function_apply}, and the
+system will automatically call @code{compile_mul_add} for us if the
+function hasn't been built yet.  The contents of @code{compile_mul_add}
+are fairly obvious:
+
+@example
+int compile_mul_add(jit_function_t function)
+@{
+    jit_value_t x, y, z;
+    jit_value_t temp1, temp2;
+
+    x = jit_value_get_param(function, 0);
+    y = jit_value_get_param(function, 1);
+    z = jit_value_get_param(function, 2);
+
+    temp1 = jit_insn_mul(function, x, y);
+    temp2 = jit_insn_add(function, temp1, z);
+
+    jit_insn_return(function, temp2);
+    return 1;
+@}
+@end example
+
+When the on-demand compiler returns, @code{libjit} will call
+@code{jit_function_compile} and then jump to the newly compiled code.
+Upon the second and subsequent calls to the function, @code{libjit}
+will bypass the on-demand compiler and call the compiled code directly.
+
+Sometimes you may wish to force a commonly used function to
+be recompiled, so that you can apply additional optimization.
+To do this, you must set the "recompilable" flag just after the
+function is first created:
+
+@example
+jit_function_t function;
+...
+function = jit_function_create(context, signature);
+jit_function_set_recompilable(function);
+jit_function_set_on_demand_compiler(function, compile_mul_add);
+@end example
+
+Then, you force the function to be recompiled with a call to
+@code{jit_function_recompile}:
+
+@example
+jit_function_recompile(function);
+@end example
+
+After this, any existing references to the function will be redirected
+to the new version.  However, if some thread is currently executing the
+previous version, then it will keep doing so until the previous version
+exits.  Only after that will subsequent calls go to the new version.
+
+In this tutorial, we use the same on-demand compiler when we
+recompile @code{mul_add}.  In a real program, you would probably call
+@code{jit_function_set_on_demand_compiler} to set a new on-demand
+compiler that performs greater levels of optimization.
+
+If you no longer intend to recompile the function, you should call
+@code{jit_function_clear_recompilable} so that @code{libjit} can
+manage the function more efficiently from then on.
+
+The exact conditions under which a function should be recompiled
+are not specified by @code{libjit}.  It may be because the function
+has been called several times and has reached some threshold.
+Or it may be because some other function that it calls has become a
+candidate for inlining.  It is up to the front end to decide when
+recompilation is warranted, usually based on language-specific
+heuristics.
+
+@c -----------------------------------------------------------------------
+
+@node Tutorial 4, Dynamic Pascal, Tutorial 3, Tutorials
+@section Tutorial 4 - mul_add, C++ version
+@cindex mul_add C++ tutorial
+
+While @code{libjit} can be easily accessed from C++ programs using
+the C API's, you may instead wish to use an API that better reflects
+the C++ programming paradigm.  We demonstrate how to do this by rewriting
+Tutorial 3 using the @code{libjitplus} library.
+
+@noindent
+To use the @code{libjitplus} library, we first include
+the @code{<jit/jit-plus.h>} file:
+
+@example
+#include <jit/jit-plus.h>
+@end example
+
+This file incorporates all of the definitions from @code{<jit/jit.h>},
+so you have full access to the underlying C API if you need it.
+
+This time, instead of building the @code{mul_add} function with
+@code{jit_function_create} and friends, we define a class to represent it:
+
+@example
+class mul_add_function : public jit_function
+@{
+public:
+    mul_add_function(jit_context& context) : jit_function(context)
+    @{
+        create();
+        set_recompilable();
+    @}
+
+protected:
+    virtual jit_type_t create_signature();
+    virtual void build();
+@};
+@end example
+
+Where we used @code{jit_function_t} and @code{jit_context_t} before,
+we now use the C++ @code{jit_function} and @code{jit_context} classes.
+
+In our constructor, we attach ourselves to the context and then call
+the @code{create()} method.  This is in turn will call our overridden
+virtual method @code{create_signature()} to obtain the signature:
+
+@example
+jit_type_t mul_add_function::create_signature()
+@{
+    // Return type, followed by three parameters,
+    // terminated with "end_params".
+    return signature_helper
+        (jit_type_int, jit_type_int, jit_type_int,
+         jit_type_int, end_params);
+@}
+@end example
+
+The @code{signature_helper()} method is provided for your convenience,
+to help with building function signatures.  You can create your own
+signature manually using @code{jit_type_create_signature} if you wish.
+
+The final thing we do in the constructor is call @code{set_recompilable()}
+to mark the @code{mul_add} function as recompilable, just as we did in
+Tutorial 3.
+
+The C++ library will create the function as compilable on-demand for
+us, so we don't have to do that explicitly.  But we do have to override
+the virtual @code{build()} method to build the function's body on-demand:
+
+@example
+void mul_add_function::build()
+@{
+    jit_value x = get_param(0);
+    jit_value y = get_param(1);
+    jit_value z = get_param(2);
+
+    insn_return(x * y + z);
+@}
+@end example
+
+This is similar to the first version that we wrote in Tutorial 1.
+Instructions are created with @code{insn_*} methods that correspond
+to their @code{jit_insn_*} counterparts in the C library.
+
+One of the nice things about the C++ API compared to the C API is that we
+can use overloaded operators to manipulate @code{jit_value} objects.
+This can simplify the function build process considerably when we
+have lots of expressions to compile.  We could have used @code{insn_mul}
+and @code{insn_add} instead in this example and the result would have
+been the same.
+
+Now that we have our @code{mul_add_function} class, we can create
+an instance of the function and apply it as follows:
+
+@example
+jit_context context;
+mul_add_function mul_add(context);
+
+jit_int arg1 = 3;
+jit_int arg2 = 5;
+jit_int arg3 = 2;
+jit_int args[3];
+args[0] = &arg1;
+args[1] = &arg2;
+args[2] = &arg3;
+
+mul_add.apply(args, &result);
+@end example
+
+@noindent
+@xref{C++ Interface}, for more information on the @code{libjitplus}
+library.
+
+@c -----------------------------------------------------------------------
+
+@node Dynamic Pascal, Initialization, Tutorial 4, Tutorials
+@section Dynamic Pascal - A full JIT example
+@cindex Dynamic Pascal
+
+This @code{libjit/dpas} directory contains an implementation of
+"Dynamic Pascal", or "dpas" as we like to call it.  It is provided
+as an example of using @code{libjit} in a real working environment.
+We also use it to write test programs that exercise the JIT's capabilities.
+
+Other Pascal implementations compile the source to executable form,
+which is then run separately.  Dynamic Pascal loads the source code
+at runtime, dynamically JIT'ing the program as it goes.  It thus has
+a lot in common with scripting languages like Perl and Python.
+
+If you are writing a bytecode-based virtual machine, you would use
+a similar approach to Dynamic Pascal.  The key difference is that
+you would build the JIT data structures after loading the bytecode
+rather than after parsing the source code.
+
+To run a Dynamic Pascal program, use @code{dpas name.pas}.  You may also
+need to pass the @code{-I} option to specify the location of the system
+library if you have used an @code{import} clause in your program.  e.g.
+@code{dpas -I$HOME/libjit/dpas/library name.pas}.
+
+@noindent
+This Pascal grammar is based on the EBNF description at the following URL:
+
+@uref{http://www.cs.qub.ac.uk/~S.Fitzpatrick/Teaching/Pascal/EBNF.html}
+
+@noindent
+There are a few differences to "Standard Pascal":
+
+@enumerate
+@item
+Identifiers are case-insensitive, but case-preserving.
+
+@item
+Program headings are normally @code{program Name (Input, Output);}.  This can
+be abbreviated to @code{program Name;} as the program modifiers are ignored.
+
+@item
+Some GNU Pascal operators like @code{xor}, @code{shl}, @code{@@}, etc
+have been added.
+
+@item
+The integer type names (@code{Integer}, @code{Cardinal}, @code{LongInt}, etc)
+follow those used in GNU Pascal also.  The @code{Integer} type is always
+32-bits in size, while @code{LongInt} is always 64-bits in size.
+
+@item
+The types @code{SysInt}, @code{SysCard}, @code{SysLong}, @code{SysLongCard},
+@code{SysLongestInt}, and @code{SysLongestCard} are guaranteed to be the
+same size as the underlying C system's @code{int}, @code{unsigned int},
+@code{long}, @code{unsigned long}, @code{long long}, and
+@code{unsigned long long} types.
+
+@item
+The type @code{Address} is logically equivalent to C's @code{void *}.
+Any pointer or array can be implicitly cast to @code{Address}.  An explicit
+cast is required to cast back to a typed pointer (you cannot cast back
+to an array).
+
+@item
+The @code{String} type is declared as @code{^Char}.  Single-dimensional
+arrays of @code{Char} can be implicitly cast to any @code{String}
+destination.  Strings are not bounds-checked, so be careful.  Arrays
+are bounds-checked.
+
+@item
+Pointers can be used as arrays.  e.g. @code{p[n]} will access the n'th
+item of an unbounded array located at @code{p}.  Use with care.
+
+@item
+We don't support @code{file of} types.  Data can be written to stdout
+using @code{Write} and @code{WriteLn}, but that is the extent of
+the I/O facilities.
+
+@item
+The declaration @code{import Name1, Name2, ...;} can be used at the head of a
+program to declare additional files to include.  e.g. @code{import stdio} will
+import the contents of @code{stdio.pas}.  We don't support units.
+
+@item
+The idiom @code{; ..} can be used at the end of a formal parameter list to
+declare that the procedure or function takes a variable number of arguments.
+The builtin function @code{va_arg(Type)} is used to extract the arguments.
+
+@item
+The directive @code{import("Library")} can be used to declare that a function
+or procedure was imported from an external C library.  For example, the
+following imports the C @code{puts} and @code{printf} functions:
+
+@example
+function puts (str : String) : SysInt; import ("libc")
+function printf (format : String; ..) : SysInt; import ("libc")
+@end example
+
+Functions that are imported in this manner have case-sensitive names.
+i.e. using @code{Printf} above will fail.
+
+@item
+The @code{throw} keyword can be used to throw an exception.  The argument
+must be a pointer.  The @code{try}, @code{catch}, and @code{finally}
+keywords are used to manage such exceptions further up the stack.  e.g.
+
+@example
+try
+    ...
+catch Name : Type
+    ...
+finally
+    ...
+end
+@end example
+
+The @code{catch} block will be invoked with the exception pointer that was
+supplied to @code{throw}, after casting it to @code{Type} (which must
+be a pointer type).  Specifying @code{throw} on its own without an argument
+will rethrow the current exception pointer, and can only be used inside a
+@code{catch} block.
+
+Dynamic Pascal does not actually check the type of the thrown pointer.
+If you have multiple kinds of exceptions, then you must store some kind
+of type indicator in the block that is thrown and then inspect @code{^Name}
+to see what the indicator says.
+
+@item
+The @code{exit} keyword can be used to break out of a loop.
+
+@item
+Function calls can be used as procedure calls.  The return value is ignored.
+
+@item
+Hexadecimal constants can be expressed as @code{XXH}.  The first digit
+must be between 0 and 9, but the remaining digits can be any hex digit.
+
+@item
+Ternary conditionals can be expressed as @code{(if e1 then e2 else e3)}.
+The brackets are required.  This is equivalent to C's @code{e1 ? e2 : e3}.
+
+@item
+Assigning to a function result will immediately return.  i.e. it is
+similar to @code{return value;} in C.  It isn't necessary to arrange for
+execution to flow through to the end of the function as in regular Pascal.
+
+@item
+The term @code{sizeof(Type)} can be used to get the size of a type.
+
+@item
+Procedure and function headings can appear in a record type to declare a
+field with a @code{pointer to procedure/function} type.
+@end enumerate
+
+@c -----------------------------------------------------------------------
+
+@node Initialization, Functions, Dynamic Pascal, Top
+@chapter Initializing the JIT
+@cindex Initialization
+@cindex Contexts
+
+@include libjitext-init.texi
+@include libjitext-context.texi
+
+@c -----------------------------------------------------------------------
+
+@node Functions, Types, Initialization, Top
+@chapter Building and compiling functions with the JIT
+@cindex Building functions
+@cindex Compiling functions
+
+@include libjitext-function.texi
+
+@c -----------------------------------------------------------------------
+
+@node Types, Values, Functions, Top
+@chapter Manipulating system types
+@cindex Manipulating system types
+
+@include libjitext-type.texi
+
+@c -----------------------------------------------------------------------
+
+@node Values, Instructions, Types, Top
+@chapter Working with temporary values in the JIT
+@cindex Working with values
+
+@include libjitext-value.texi
+
+@c -----------------------------------------------------------------------
+
+@node Instructions, Basic Blocks, Values, Top
+@chapter Working with instructions in the JIT
+@cindex Working with instructions
+
+@include libjitext-insn.texi
+
+@c -----------------------------------------------------------------------
+
+@node Basic Blocks, Intrinsics, Instructions, Top
+@chapter Working with basic blocks in the JIT
+@cindex Working with basic blocks
+
+@include libjitext-block.texi
+
+@c -----------------------------------------------------------------------
+
+@node Intrinsics, Exceptions, Basic Blocks, Top
+@chapter Intrinsic functions available to libjit users
+@cindex Intrinsics
+
+@include libjitext-intrinsic.texi
+
+@c -----------------------------------------------------------------------
+
+@node Exceptions, ELF Binaries, Intrinsics, Top
+@chapter Handling exceptions
+@cindex Handling exceptions
+
+@include libjitext-except.texi
+
+@c -----------------------------------------------------------------------
+
+@node ELF Binaries, Utility Routines, Exceptions, Top
+@chapter Manipulating ELF binaries
+@cindex ELF binaries
+
+@include libjitext-elf-read.texi
+
+@c -----------------------------------------------------------------------
+
+@node Utility Routines, C++ Interface, ELF Binaries, Top
+@chapter Miscellaneous utility routines
+@cindex Utility routines
+@cindex jit-util.h
+
+The @code{libjit} library provides a number of utility routines
+that it itself uses internally, but which may also be useful to front ends.
+
+@include libjitext-alloc.texi
+@include libjitext-memory.texi
+@include libjitext-string.texi
+@include libjitext-meta.texi
+@include libjitext-apply.texi
+@include libjitext-walk.texi
+@include libjitext-dynlib.texi
+
+@c -----------------------------------------------------------------------
+
+@node C++ Interface, C++ Contexts, Utility Routines, Top
+@chapter Using libjit from C++
+@cindex Using libjit from C++
+
+This chapter describes the classes and methods that are available
+in the @code{libjitplus} library.  To use this library, you must
+include the header @code{<jit/jit-plus.h>} and link with the
+@code{-ljitplus} and @code{-ljit} options.
+
+@menu
+* C++ Contexts::            Contexts in C++
+* C++ Values::              Values in C++
+* C++ Functions::           Functions in C++
+@end menu
+
+@c -----------------------------------------------------------------------
+
+@node C++ Contexts, C++ Values, C++ Interface, C++ Interface
+@chapter Contexts in C++
+@cindex C++ contexts
+
+@include libjitext-plus-context.texi
+
+@c -----------------------------------------------------------------------
+
+@node C++ Values, C++ Functions, C++ Contexts, C++ Interface
+@chapter Values in C++
+@cindex C++ values
+
+@include libjitext-plus-value.texi
+
+@c -----------------------------------------------------------------------
+
+@node C++ Functions, Porting, C++ Values, C++ Interface
+@chapter Functions in C++
+@cindex C++ functions
+
+@include libjitext-plus-function.texi
+
+@c -----------------------------------------------------------------------
+
+@node Porting, Porting Apply, C++ Functions, Top
+@chapter Porting libjit to new architectures
+@cindex Porting libjit
+
+This chapter describes what needs to be done to port @code{libjit}
+to a new CPU architecture.  It is assumed that the reader is familiar
+with compiler implementation techniques and the particulars of their
+target CPU's instruction set.
+
+We will use @code{ARCH} to represent the name of the architecture
+in the sections that follow.  It is usually the name of the CPU in
+lower case (e.g. @code{x86}, @code{arm}, @code{ppc}, etc).  By
+convention, all back end functions should be prefixed with @code{_jit},
+because they are not part of the public API.
+
+@menu
+* Porting Apply::           Porting the function apply facility
+* Instruction Generation::  Creating the instruction generation macros
+* Architecture Rules::      Writing the architecture definition rules
+* Register Allocation::     Allocating registers in the back end
+@end menu
+
+@c -----------------------------------------------------------------------
+
+@node Porting Apply, Instruction Generation, Porting, Porting
+@section Porting the function apply facility
+@cindex Porting apply
+
+The first step in porting @code{libjit} to a new architecture is to port
+the @code{jit_apply} facility.  This provides support for calling
+arbitrary C functions from your application or from JIT'ed code.
+If you are familiar with @code{libffi} or @code{ffcall}, then
+@code{jit_apply} provides a similar facility.
+
+Even if you don't intend to write a native code generator, you will
+probably still need to port @code{jit_apply} to each new architecture.
+
+The @code{libjit} library makes use of gcc's @code{__builtin_apply}
+facility to do most of the hard work of function application.
+This gcc facility takes three arguments: a pointer to the function
+to invoke, a structure containing register arguments, and a size
+value that indicates the number of bytes to push onto the stack
+for the call.
+
+Unfortunately, the register argument structure is very system dependent.
+There is no standard format for it, but it usually looks something
+like this:
+
+@table @code
+@item stack_args
+Pointer to an array of argument values to push onto the stack.
+
+@item struct_ptr
+Pointer to the buffer to receive a @code{struct} return value.
+The @code{struct_ptr} field is only present if the architecture
+passes @code{struct} pointers in a special register.
+
+@item word_reg[0..N]
+Values for the word registers.  Platforms that pass values in
+registers will populate these fields.  Not present if the architecture
+does not use word registers for function calls.
+
+@item float_reg[0..N]
+Values for the floating-point registers.  Not present if the architecture
+does not use floating-point registers for function calls.
+@end table
+
+It is possible to automatically detect the particulars of this structure
+by making test function calls and inspecting where the arguments end up
+in the structure.  The @code{gen-apply} program in @code{libjit/tools}
+takes care of this.  It outputs the @code{jit-apply-rules.h} file,
+which tells @code{jit_apply} how to operate.
+
+The @code{gen-apply} program will normally "just work", but it is possible
+that some architectures will be stranger than usual.  You will need to modify
+@code{gen-apply} to detect this additional strangeness, and perhaps
+also modify @code{libjit/jit/jit-apply.c}.
+
+If you aren't using gcc to compile @code{libjit}, then things may
+not be quite this easy.  You may have to write some inline assembly
+code to emulate @code{__builtin_apply}.  See the file
+@code{jit-apply-x86.h} for an example of how to do this.
+Be sure to add an @code{#include} line to @code{jit-apply-func.h}
+once you do this.
+
+The other half of @code{jit_apply} is closure and redirector support.
+Closures are used to wrap up interpreted functions so that they can be
+called as regular C functions.  Redirectors are used to help compile a
+JIT'ed function on-demand, and then redirect control to it.
+
+Unfortunately, you will have to write some assembly code to support
+closures and redirectors.  The builtin gcc facilities are not complete
+enough to handle the task.  See @code{jit-apply-x86.c} and
+@code{jit-apply-arm.c} for some examples from existing architectures.
+You may be able to get some ideas from the @code{libffi} and
+@code{ffcall} libraries as to what you need to do on your architecture.
+
+@c -----------------------------------------------------------------------
+
+@node Instruction Generation, Architecture Rules, Porting Apply, Porting
+@section Creating the instruction generation macros
+@cindex Instruction generation macros
+
+You will need a large number of macros and support functions to
+generate the raw instructions for your chosen CPU.  These macros are
+fairly generic and are not necessarily specific to @code{libjit}.
+There may already be a suitable set of macros for your CPU in
+some other Free Software project.
+
+Typically, the macros are placed into a file called @code{jit-gen-ARCH.h}
+in the @code{libjit/jit} directory.  If some of the macros are complicated,
+you can place helper functions into the file @code{jit-gen-ARCH.c}.
+Remember to add both @code{jit-gen-ARCH.h} and @code{jit-gen-ARCH.c}
+to @code{Makefile.am} in @code{libjit/jit}.
+
+Existing examples that you can look at for ideas are @code{jit-gen-x86.h}
+and @code{jit-gen-arm.h}.  The macros in these existing files assume that
+instructions can be output to a buffer in a linear fashion, and that each
+instruction is relatively independent of the next.
+
+This independence principle may not be true of all CPU's.  For example,
+the @code{ia64} packs up to three instructions into a single "bundle"
+for parallel execution.  We recommend that the macros should appear to
+use linear output, but call helper functions to pack bundles after the fact.
+This will make it easier to write the architecture definition rules.
+A similar approach could be used for performing instruction scheduling
+on platforms that require it.
+
+@c -----------------------------------------------------------------------
+
+@node Architecture Rules, Register Allocation, Instruction Generation, Porting
+@section Writing the architecture definition rules
+@cindex Architecture definition rules
+
+@include libjitext-rules-interp.texi
+
+@c -----------------------------------------------------------------------
+
+@node Register Allocation, Why GPL?, Architecture Rules, Porting
+@section Allocating registers in the back end
+@cindex Register allocation
+
+@include libjitext-reg-alloc.texi
+
+@c -----------------------------------------------------------------------
+
+@node Why GPL?, Index, Register Allocation, Top
+@chapter Why we use GPL and not LGPL for libjit
+@cindex Why GPL?
+
+A common question about @code{libjit} is likely to be why we use the
+GNU General Public License instead of the GNU Lesser General Public
+License.
+
+At its core, the issue is "Who are we helping gain extra value?".  We wish
+to help the authors of other Free Software projects, as well as those who
+are working on Open Source projects with licenses that are compatible with
+the GPL.  But we do not wish to help proprietary software companies
+without adequate compensation to the community.
+
+Consider the following scenario: a proprietary software company devises
+a new programming language and a new virtual machine to go with it.
+However, their implementation isn't very compelling to customers
+because its bytecode interpreter is too slow.
+
+If @code{libjit} was distributed under the terms of the LGPL, the
+company could link against the library and get a compelling implementation.
+This would increase the sale value of their software considerably.
+However, they wouldn't be compelled to give anything back to the
+Free Software community in exchange for this extra value.
+
+Under the GPL, the company must either GPL their own code, write their
+own JIT from scratch, or negotiate a separate license with the authors
+of @code{libjit}.  In the first instance, they give back to the community
+the value they have used.  In the second instance, they neither give value
+to nor take value from the community.  In the third instance, the authors
+are compensated for their work, which allows those authors to continue
+contributing Free Software to the community.
+
+For more information on why we have taken this stance, please read the
+document "Why you shouldn't use the Library GPL for your next library" on
+the Free Software Foundation's Web site:
+
+@quotation
+@uref{http://www.gnu.org/licenses/why-not-lgpl.html}.
+@end quotation
+
+@c -----------------------------------------------------------------------
+
+@page
+
+@node Index, , Why GPL?, Top
+@unnumbered Index of concepts and facilities
+
+@printindex cp
+
+@contents
+@bye

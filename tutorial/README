@@ -1,0 +1,11 @@
+
+This directory contains the source code for the tutorial programs.
+The tutorials themselves can be found in "libjit/doc/libjit.texi".
+
+The source code for these tutorials is hereby placed into the public domain.
+You can do whatever you wish with the source, including cutting and pasting
+bits and pieces into your own program.
+
+However, libjit itself remains under the terms of the GNU General Public
+License, so you must still obey the terms of the GPL when you link your
+program against libjit.

@@ -1,0 +1,65 @@
+
+libjit
+------
+
+This library in this distribution implements Just-In-Time compilation
+functionality.  Unlike other JIT's, this one is designed to be independent
+of any particular virtual machine bytecode format or language.  The hope
+is that Free Software projects can get a leg-up on proprietry VM vendors
+by using this library rather than spending large amounts of time writing
+their own JIT from scratch.
+
+This JIT is also designed to be portable to multiple archictures.
+If you run libjit on a machine for which a native code generator is
+not yet available, then libjit will fall back to interpreting the code.
+This way, you don't need to write your own interpreter for your
+bytecode format if you don't want to.
+
+The library is distributed under the terms of the GNU General Public
+License.  See the COPYING file for details.
+
+The documentation for libjit is in Texinfo format.  A general overview
+is in "doc/libjit.texi" with the remainder of the function documentation
+in the source files themselves.
+
+Building libjit
+---------------
+
+You will need GNU make, Bison, and Flex to build libjit, and it is
+also highly recommended that you use gcc.  To configure, build,
+and install, you would do the following:
+
+        ./configure
+        make
+        make install
+
+Compiler notes
+--------------
+
+It is highly recommended that you build libjit with gcc and not
+some other C compiler, even if you plan to use some other C
+compiler to access the library.  We make use of a number of gcc
+builtins to assist with stack walking, dynamic function calls,
+and closures.
+
+It is also recommended that you don't use the "-fomit-frame-pointer"
+option when compiling programs that use libjit.  Otherwise stack walking
+may not work correctly, leading to problems when throwing exceptions.
+The configure script for libjit will detect the presence of this
+option in CFLAGS and remove it when building libjit itself.
+
+Contacting the authors
+----------------------
+
+The primary author is Rhys Weatherley at Southern Storm Software, Pty Ltd.
+He can be reached via e-mail at "rweather@southern-storm.com.au".
+
+The latest version of libjit will always be available from the Southern
+Storm Web site:
+
+        http://www.southern-storm.com.au/libjit/
+
+Discussions about libjit can be carried out on the DotGNU Portable.NET
+mailing list, "pnet-developers@dotgnu.org".  Visit "www.dotgnu.org"
+for details on how to subscribe to this list.  A separate mailing list
+will be created if there is demand for it.

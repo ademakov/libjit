@@ -1,0 +1,106 @@
+
+2004-05-01  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-apply-x86.c, jit/jit-rules-x86.c, tools/gen-apply.c:
+	fix function prolog and epilog handling for structure returns
+	under x86/cdecl.
+
+2004-04-30  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* include/jit/jit-function.h, include/jit/jit-insn.h,
+	include/jit/jit-opcode.h, include/jit/jit-plus.h, jit/jit-except.cpp,
+	jit/jit-function.c, jit/jit-insn.c, jit/jit-internal.h,
+	jit/jit-interp.cpp, jit/jit-interp.h, jit/jit-opcode.c,
+	jit/jit-rules-arm.c, jit/jit-rules-interp.c, jit/jit-rules-x86.c,
+	jit/jit-rules.h, jitplus/jit-plus-function.cpp: put some
+	infrastructure in place to support "try"-related instructions.
+
+	* dpas/dpas-parser.y, dpas/dpas-scope.h, dpas/dpas-semantics.h:
+	introduce effective address based l-values into dpas.
+
+2004-04-27  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-dump.c, jit/jit-reg-alloc.c: fix a register stack bug
+	in "_jit_regs_set_value"; add some more debug code.
+
+	* include/jit/jit-opcode.h, jit/jit-insn.c, jit/jit-internal.h,
+	jit/jit-interp.cpp, jit/jit-opcode.c: wrap function calls
+	with code to set up and remove exception frame information.
+
+	* jit/jit-function.c, jit/jit-insn.c, jit/jit-internal.h:
+	intuit "nothrow" and "noreturn" flags for compiled functions.
+
+	* include/jit/jit-insn.h, include/jit/jit-plus.h, jit/jit-insn.c,
+	jitplus/jit-plus-function.cpp: add "jit_insn_throw",
+	"jit_insn_rethrow", and "jit_insn_get_call_stack" to assist
+	with throwing exceptions.
+
+	* include/jit/jit-insn.h, jit/jit-block.c, jit/jit-insn.c,
+	jit/jit-internal.h: add some instructions for managing "try" blocks.
+
+	* include/jit/jit-opcode.h, jit/jit-block.c, jit/jit-insn.c,
+	jit/jit-internal.h, jit/jit-opcode.c: more work on "try" blocks.
+
+2004-04-26  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-reg-alloc.c, jit/jit-reg-alloc.h: add functions to
+	assist with register allocation on stack-based architectures.
+
+	* jit/jit-rules-interp.c: implement "_jit_gen_load_value" for
+	the interpreter backend.
+
+	* jit/jit-interp.cpp, jit/jit-interp.h: fix some opcode names that
+	should be prefixed with "JIT_OP".
+
+	* jit/jit-function.c, jit/jit-internal.h, jit/jit-reg-alloc.c,
+	jit/jit-reg-alloc.h, jit/jit-rules-arm.c, jit/jit-rules-interp.c,
+	jit/jit-rules-interp.h, jit/jit-rules-x86.c, jit/jit-rules.h:
+	interpreter back end code generation for binary, unary, and
+	branch opcodes.
+
+	* doc/libjit.texi, jit/jit-rules-interp.c: fix the Texinfo section
+	markers in the "Porting" chapter.
+
+	* jit/jit-rules-interp.c: code generation for interpreter return's.
+
+	* include/jit/jit-except.h, include/jit/jit-function.h,
+	include/jit/jit-plus.h, jit/jit-except.cpp, jit/jit-function.c,
+	jit/jit-interp.cpp, jit/jit-interp.h, jit/jit-rules-interp.c,
+	jitplus/jit-plus-function.cpp: implement "jit_function_apply"
+	and "jit_function_apply_vararg" for the interpreter back end.
+
+	* jitplus/jit-plus-function.cpp: initialization errors in
+	the C++ binding.
+
+	* jit/jit-function.c, jit/jit-insn.c, jit/jit-interp.cpp,
+	jit/jit-rules-interp.c: work on code generation for function calls.
+
+	* doc/libjit.texi, include/jit/jit-insn.h, include/jit/jit-plus.h,
+	jit/jit-insn.c, jitplus/jit-plus-function.cpp, tutorial/t2.c:
+	add a "flags" parmeter to "jit_insn_call" and friends, so that
+	"nothrow", "noreturn", and "tail" options can be supplied.
+
+	* jit/jit-dump.c, jit/jit-interp.cpp, jit/jit-interp.h,
+	jit/jit-opcode.c, jit/jit-rules-interp.c: dump the translated
+	native code from "jit_dump_function" are compilation.
+
+	* jit/jit-interp.cpp, jit/jit-rules-interp.c: argument variable
+	offsets should in item units, not byte units.
+
+	* jit/jit-insn.c, jit/jit-reg-alloc.c, jit/jit-reg-alloc.h,
+	jit/jit-rules-interp.c: improve register allocation in stacks.
+
+2004-04-25  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-apply-func.h, jit/jit-apply-x86.c, jit/jit-apply-x86.h,
+	jit/jit-cache.c: use CPU-specifc padding for aligning code
+	areas with NOP's, for greater runtime efficiency.
+
+	* include/jit/jit-elf.h, jit/Makefile.am, jit/jit-elf-write.c:
+	add the skeleton of the ELF writing routines.
+
+	* jit/jit-interp.cpp: modify VM_BR_TARGET so that it is PIC-friendly.
+
+2004-04-24  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* */*: Initial public release.  Most of the skeleton code is in place.

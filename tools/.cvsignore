@@ -1,0 +1,5 @@
+Makefile
+Makefile.in
+.deps
+gen-apply
+gen-apply.exe
