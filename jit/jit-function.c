@@ -1195,7 +1195,7 @@ int jit_function_apply_vararg
 	if(setjmp(jbuf.buf))
 	{
 		_jit_unwind_pop_setjmp();
-		return 1;
+		return 0;
 	}
 
 	/* Create a backtrace entry that blocks exceptions from

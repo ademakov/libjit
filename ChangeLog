@@ -5,6 +5,9 @@
 	and fixup lists if we need to restart on a new cache page (minor
 	alterations by Rhys).
 
+	* jit/jit-function.c (jit_function_apply_vararg): return 0 when a
+	sub-function throws an exception, not 1.
+
 2004-10-31  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-rules-x86.sel: handle the special case of constant
