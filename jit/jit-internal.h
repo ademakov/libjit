@@ -195,22 +195,27 @@ struct _jit_value
 {
 	jit_block_t			block;
 	jit_type_t			type;
-	short				is_temporary : 1;
-	short				is_local : 1;
-	short				is_volatile : 1;
-	short				is_addressable : 1;
-	short				is_constant : 1;
-	short				is_nint_constant : 1;
-	short				has_address : 1;
-	short				free_address : 1;
-	short				in_register : 1;
-	short				in_frame : 1;
-	short				live : 1;
-	short				next_use : 1;
-	short				has_frame_offset : 1;
+	int					is_temporary : 1;
+	int					is_local : 1;
+	int					is_volatile : 1;
+	int					is_addressable : 1;
+	int					is_constant : 1;
+	int					is_nint_constant : 1;
+	int					has_address : 1;
+	int					free_address : 1;
+	int					in_register : 1;
+	int					in_frame : 1;
+	int					in_global_register : 1;
+	int					live : 1;
+	int					next_use : 1;
+	int					has_frame_offset : 1;
+	int					global_candidate : 1;
+	int					has_global_register : 1;
 	short				reg;
+	short				global_reg;
 	jit_nint			address;
 	jit_nint			frame_offset;
+	jit_nuint			usage_count;
 };
 #define	JIT_INVALID_FRAME_OFFSET	((jit_nint)0x7FFFFFFF)
 

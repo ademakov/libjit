@@ -63,7 +63,8 @@ extern	"C" {
 			        JIT_REG_CALL_USED | JIT_REG_IN_STACK}, \
 	{"r15", 15, -1, JIT_REG_WORD | JIT_REG_LONG | JIT_REG_FLOAT | \
 			        JIT_REG_CALL_USED | JIT_REG_END_STACK | JIT_REG_IN_STACK},
-#define	JIT_NUM_REGS	16
+#define	JIT_NUM_REGS		16
+#define	JIT_NUM_GLOBAL_REGS	0
 
 /*
  * Define to 1 if we should always load values into registers

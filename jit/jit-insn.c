@@ -4991,7 +4991,7 @@ jit_value_t jit_insn_call
 	jit_insn_t insn;
 
 	/* Bail out if there is something wrong with the parameters */
-	if(!func || !jit_func)
+	if(!_jit_function_ensure_builder(func) || !jit_func)
 	{
 		return 0;
 	}
@@ -5143,7 +5143,7 @@ jit_value_t jit_insn_call_indirect
 	jit_insn_t insn;
 
 	/* Bail out if there is something wrong with the parameters */
-	if(!func || !value || !signature)
+	if(!_jit_function_ensure_builder(func) || !value || !signature)
 	{
 		return 0;
 	}
@@ -5257,7 +5257,7 @@ jit_value_t jit_insn_call_indirect_vtable
 	jit_insn_t insn;
 
 	/* Bail out if there is something wrong with the parameters */
-	if(!func || !value || !signature)
+	if(!_jit_function_ensure_builder(func) || !value || !signature)
 	{
 		return 0;
 	}
@@ -5366,7 +5366,7 @@ jit_value_t jit_insn_call_native
 	jit_insn_t insn;
 
 	/* Bail out if there is something wrong with the parameters */
-	if(!func || !native_func || !signature)
+	if(!_jit_function_ensure_builder(func) || !native_func || !signature)
 	{
 		return 0;
 	}

@@ -904,6 +904,16 @@ void _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 	/* Make sure that we have sufficient space */
 	jit_cache_setup_output(16);
 
+	/* If the value is associated with a global register, then copy to that */
+	if(value->has_global_register)
+	{
+		reg = _jit_reg_info[reg].cpu_reg;
+		other_reg = _jit_reg_info[value->global_reg].cpu_reg;
+		x86_mov_reg_reg(inst, other_reg, reg, sizeof(void *));
+		jit_cache_end_output();
+		return;
+	}
+
 	/* Fix the value in place within the local variable frame */
 	_jit_gen_fix_value(value);
 
@@ -1066,6 +1076,13 @@ void _jit_gen_load_value
 			}
 			break;
 		}
+	}
+	else if(value->has_global_register)
+	{
+		/* Load the value out of a global register */
+		x86_mov_reg_reg(inst, _jit_reg_info[reg].cpu_reg,
+						_jit_reg_info[value->global_reg].cpu_reg,
+						sizeof(void *));
 	}
 	else
 	{
@@ -1480,6 +1497,20 @@ void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block)
 void _jit_gen_end_block(jit_gencode_t gen, jit_block_t block)
 {
 	/* Nothing to do here for x86 */
+}
+
+int _jit_gen_is_global_candidate(jit_type_t type)
+{
+	switch(jit_type_remove_tags(type)->kind)
+	{
+		case JIT_TYPE_INT:
+		case JIT_TYPE_UINT:
+		case JIT_TYPE_NINT:
+		case JIT_TYPE_NUINT:
+		case JIT_TYPE_PTR:
+		case JIT_TYPE_SIGNATURE:	return 1;
+	}
+	return 0;
 }
 
 #endif /* JIT_BACKEND_X86 */

@@ -827,4 +827,18 @@ void _jit_gen_end_block(jit_gencode_t gen, jit_block_t block)
 	/* Nothing to do here for ARM */
 }
 
+int _jit_gen_is_global_candidate(jit_type_t type)
+{
+	switch(jit_type_remove_tags(type)->kind)
+	{
+		case JIT_TYPE_INT:
+		case JIT_TYPE_UINT:
+		case JIT_TYPE_NINT:
+		case JIT_TYPE_NUINT:
+		case JIT_TYPE_PTR:
+		case JIT_TYPE_SIGNATURE:	return 1;
+	}
+	return 0;
+}
+
 #endif /* JIT_BACKEND_ARM */

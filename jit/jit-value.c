@@ -604,6 +604,7 @@ void jit_value_ref(jit_function_t func, jit_value_t value)
 	{
 		return;
 	}
+	++(value->usage_count);
 	if(value->is_temporary)
 	{
 		if(value->block->func != func)
@@ -626,6 +627,10 @@ void jit_value_ref(jit_function_t func, jit_value_t value)
 			value->is_temporary = 0;
 			value->is_local = 1;
 			value->live = 1;
+			if(_jit_gen_is_global_candidate(value->type))
+			{
+				value->global_candidate = 1;
+			}
 		}
 	}
 	else if(value->is_local && value->block->func != func)

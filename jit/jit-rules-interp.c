@@ -128,6 +128,10 @@ This register is a candidate for global register allocation.
 The rule file may also have definitions of the following macros:
 
 @table @code
+@item JIT_NUM_GLOBAL_REGS
+The number of registers that are used for global register allocation.
+Set to zero if global register allocation should not be used.
+
 @item JIT_ALWAYS_REG_REG
 Define this to 1 if arithmetic operations must always be performed
 on registers.  Define this to 0 if register/memory and memory/register
@@ -1667,6 +1671,18 @@ void _jit_gen_end_block(jit_gencode_t gen, jit_block_t block)
 {
 	/* Reset the working area size to zero for the next block */
 	gen->working_area = 0;
+}
+
+/*@
+ * @deftypefun int _jit_gen_is_global_candidate (jit_type_t type)
+ * Determine if @code{type} is a candidate for allocation within
+ * global registers.
+ * @end deftypefun
+@*/
+int _jit_gen_is_global_candidate(jit_type_t type)
+{
+	/* Global register allocation is not used by the interpreter */
+	return 0;
 }
 
 #endif /* JIT_BACKEND_INTERP */

@@ -475,6 +475,7 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 				insn->value1->in_register = 0;
 				insn->value1->in_frame = 1;
 				insn->value1->has_frame_offset = 1;
+				insn->value1->has_global_register = 0;	/* Disable globals */
 			}
 			break;
 
@@ -580,6 +581,9 @@ int jit_function_compile(jit_function_t func)
 
 	/* Compute liveness and "next use" information for this function */
 	_jit_function_compute_liveness(func);
+
+	/* Allocate global registers to variables within the function */
+	_jit_regs_alloc_global(&gen, func);
 
 	/* We may need to perform output twice, if the first attempt fails
 	   due to a lack of space in the current method cache page */

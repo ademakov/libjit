@@ -1,4 +1,13 @@
 
+2004-06-02  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-function.c, jit/jit-insn.c, jit/jit-internal.h,
+	jit/jit-reg-alloc.c, jit/jit-reg-alloc.h, jit/jit-rules-arm.c,
+	jit/jit-rules-arm.h, jit/jit-rules-interp.c, jit/jit-rules-interp.h,
+	jit/jit-rules-x86.c, jit/jit-rules-x86.h, jit/jit-rules.h,
+	jit/jit-value.c, tools/gen-sel-parser.y: implement a simple global
+	register allocation policy, based on usage counts.
+
 2004-06-01  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-cache.c, jit/jit-elf-read.c, tools/gen-apply.c:

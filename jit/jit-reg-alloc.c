@@ -252,7 +252,16 @@ static void spill_all_between(jit_gencode_t gen, int first, int last)
 				posn >= 0; --posn)
 			{
 				value = gen->contents[real_reg].values[posn];
-				if(!(value->in_frame))
+				if(value->has_global_register)
+				{
+					if(!(value->in_global_register))
+					{
+						_jit_gen_spill_reg(gen, real_reg, other_reg, value);
+						value->in_global_register = 1;
+						value_used = 1;
+					}
+				}
+				else if(!(value->in_frame))
 				{
 					if((_jit_reg_info[reg].flags & JIT_REG_IN_STACK) == 0)
 					{
@@ -503,7 +512,16 @@ static void free_reg_and_spill
 		for(posn = gen->contents[reg].num_values - 1; posn >= 0; --posn)
 		{
 			value = gen->contents[reg].values[posn];
-			if(!(value->in_frame))
+			if(value->has_global_register)
+			{
+				if(!(value->in_global_register))
+				{
+					_jit_gen_spill_reg(gen, reg, other_reg, value);
+					value->in_global_register = 1;
+					value_used = 1;
+				}
+			}
+			else if(!(value->in_frame))
 			{
 				if((_jit_reg_info[reg].flags & JIT_REG_IN_STACK) == 0)
 				{
@@ -696,7 +714,10 @@ void _jit_regs_set_value
 
 	/* Adjust the value to reflect that it is in "reg", and maybe the frame */
 	value->in_register = 1;
-	value->in_frame = still_in_frame;
+	if(value->has_global_register)
+		value->in_global_register = still_in_frame;
+	else
+		value->in_frame = still_in_frame;
 	value->reg = (short)reg;
 }
 
@@ -817,7 +838,10 @@ static void load_value(jit_gencode_t gen, int reg, int other_reg,
 	else
 	{
 		/* Mark the register as containing the value we have loaded */
-		_jit_regs_set_value(gen, reg, value, value->in_frame);
+		if(value->has_global_register)
+			_jit_regs_set_value(gen, reg, value, value->in_global_register);
+		else
+			_jit_regs_set_value(gen, reg, value, value->in_frame);
 	}
 }
 
@@ -963,7 +987,7 @@ int _jit_regs_load_value
 		if(destroy)
 		{
 			if(gen->contents[reg].num_values == 1 &&
-			   (value->in_frame || !used_again))
+			   (value->in_frame || value->in_global_register || !used_again))
 			{
 				/* We are the only value in this register, and the
 				   value is duplicated in the frame, or will never
@@ -1026,6 +1050,7 @@ int _jit_regs_dest_value(jit_gencode_t gen, jit_value_t value)
 		if(gen->contents[reg].num_values == 1)
 		{
 			value->in_frame = 0;
+			value->in_global_register = 0;
 			return reg;
 		}
 		free_reg_and_spill(gen, reg, 0, 1);
@@ -1100,7 +1125,7 @@ int _jit_regs_load_to_top(jit_gencode_t gen, jit_value_t value, int used_again, 
 		if((_jit_reg_info[gen->contents[reg].remap].flags
 				& JIT_REG_START_STACK) != 0)
 		{
-			if(value->in_frame || !used_again)
+			if(value->in_frame || value->in_global_register || !used_again)
 			{
 				/* Disassociate the value from the register and return */
 				value->in_register = 0;
@@ -1163,8 +1188,8 @@ int _jit_regs_load_to_top_two
 				& JIT_REG_START_STACK) != 0 &&
 		   gen->contents[reg].remap == (gen->contents[reg2].remap + 1))
 		{
-			if((value->in_frame || !used_again1) &&
-			   (value2->in_frame || !used_again2))
+			if((value->in_frame || value->in_global_register || !used_again1) &&
+			   (value2->in_frame || value2->in_global_register || !used_again2))
 			{
 				/* Disassociate the values from the registers and return */
 				free_stack_reg(gen, reg2);
@@ -1235,9 +1260,10 @@ void _jit_regs_load_to_top_three
 		   gen->contents[reg].remap == (gen->contents[reg2].remap + 1) &&
 		   gen->contents[reg2].remap == (gen->contents[reg3].remap + 1))
 		{
-			if((value->in_frame || !used_again1) &&
-			   (value2->in_frame || !used_again2) &&
-			   (value3->in_frame || !used_again3))
+			if((value->in_frame || value->in_global_register || !used_again1) &&
+			   (value2->in_frame || value2->in_global_register ||
+			   			!used_again2) &&
+			   (value3->in_frame || value3->in_global_register || !used_again3))
 			{
 				/* Disassociate the values from the registers and return */
 				free_stack_reg(gen, reg);
@@ -1315,6 +1341,7 @@ int _jit_regs_new_top(jit_gencode_t gen, jit_value_t value, int type_reg)
 	/* Record the "value" is now in this register */
 	value->in_register = 1;
 	value->in_frame = 0;
+	value->in_global_register = 0;
 	value->reg = reg;
 	gen->contents[reg].values[0] = value;
 	gen->contents[reg].num_values = 1;
@@ -1344,4 +1371,92 @@ void _jit_regs_force_out(jit_gencode_t gen, jit_value_t value, int is_dest)
 			_jit_regs_want_reg(gen, value->reg, 0);
 		}
 	}
+}
+
+/*
+ * Minimum number of times a candidate must be used before it
+ * is considered worthy of putting in a global register.
+ */
+#define	JIT_MIN_USED		3
+
+/*@
+ * @deftypefun void _jit_regs_alloc_global (jit_gencode_t gen, jit_function_t func)
+ * Perform global register allocation on the values in @code{func}.
+ * This is called during function compilation just after variable
+ * liveness has been computed.
+ * @end deftypefun
+@*/
+void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func)
+{
+#if JIT_NUM_GLOBAL_REGS != 0
+	jit_value_t candidates[JIT_NUM_GLOBAL_REGS];
+	int num_candidates = 0;
+	int index, reg, posn, num;
+	jit_pool_block_t block;
+	jit_value_t value, temp;
+
+	/* If the function has a "try" block, then don't do global allocation
+	   as the "longjmp" for exception throws will wipe out global registers */
+	if(func->has_try)
+	{
+		return;
+	}
+
+	/* Scan all values within the function, looking for the most used.
+	   We will replace this with a better allocation strategy later */
+	block = func->builder->value_pool.blocks;
+	num = (int)(func->builder->value_pool.elems_per_block);
+	while(block != 0)
+	{
+		if(!(block->next))
+		{
+			num = (int)(func->builder->value_pool.elems_in_last);
+		}
+		for(posn = 0; posn < num; ++posn)
+		{
+			value = (jit_value_t)(block->data + posn *
+								  sizeof(struct _jit_value));
+			if(value->global_candidate && value->usage_count >= JIT_MIN_USED &&
+			   !(value->is_addressable) && !(value->is_volatile))
+			{
+				/* Insert this candidate into the list, ordered on count */
+				index = 0;
+				while(index < num_candidates &&
+				      value->usage_count <= candidates[index]->usage_count)
+				{
+					++index;
+				}
+				while(index < num_candidates)
+				{
+					temp = candidates[index];
+					candidates[index] = value;
+					value = temp;
+					++index;
+				}
+				if(index < JIT_NUM_GLOBAL_REGS)
+				{
+					candidates[num_candidates++] = value;
+				}
+			}
+		}
+		block = block->next;
+	}
+
+	/* Allocate registers to the candidates.  We allocate from the top-most
+	   register in the allocation order, because some architectures like
+	   PPC require global registers to be saved top-down for efficiency */
+	reg = JIT_NUM_REGS - 1;
+	for(index = 0; index < num_candidates; ++index)
+	{
+		while(reg >= 0 && (_jit_reg_info[reg].flags & JIT_REG_GLOBAL) == 0)
+		{
+			--reg;
+		}
+		candidates[index]->has_global_register = 1;
+		candidates[index]->global_reg = (short)reg;
+		jit_reg_set_used(gen->touched, reg);
+		jit_reg_set_used(gen->permanent, reg);
+	}
+
+#endif
 }

@@ -734,7 +734,10 @@ Rule
 					printf("\telse\n");
 					printf("\t{\n");
 					printf("\t\t_jit_gen_spill_reg(gen, reg, -1, insn->dest);\n");
-					printf("\t\tinsn->dest->in_frame = 1;\n");
+					printf("\t\tif(insn->dest->has_global_register)\n");
+					printf("\t\t\tinsn->dest->in_global_register = 1;\n");
+					printf("\t\telse\n");
+					printf("\t\t\tinsn->dest->in_frame = 1;\n");
 					printf("\t\t_jit_regs_free_reg(gen, reg, 1);\n");
 					printf("\t}\n");
 				}
