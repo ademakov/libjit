@@ -77,6 +77,8 @@ static int gensel_first_stack_reg = 8;	/* st0 under x86 */
 #define	GENSEL_OPT_BINARY_BRANCH		0x0040
 #define	GENSEL_OPT_ONLY					0x0080
 #define	GENSEL_OPT_MANUAL				0x0100
+#define	GENSEL_OPT_UNARY_NOTE			0x0200
+#define	GENSEL_OPT_BINARY_NOTE			0x0400
 
 /*
  * Pattern values.
@@ -334,7 +336,9 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 		flag2 = "VALUE2";
 		flag3 = "??";
 		if((options & (GENSEL_OPT_BINARY_BRANCH |
-					   GENSEL_OPT_UNARY_BRANCH)) != 0)
+					   GENSEL_OPT_UNARY_BRANCH |
+					   GENSEL_OPT_BINARY_NOTE |
+					   GENSEL_OPT_UNARY_NOTE)) != 0)
 		{
 			destroy1 = 0;
 		}
@@ -350,7 +354,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 	   value into a register before we start checking cases */
 	check_index = 0;
 	if((options & (GENSEL_OPT_BINARY | GENSEL_OPT_UNARY |
-				   GENSEL_OPT_BINARY_BRANCH | GENSEL_OPT_UNARY_BRANCH)) != 0 &&
+				   GENSEL_OPT_BINARY_BRANCH | GENSEL_OPT_UNARY_BRANCH |
+				   GENSEL_OPT_BINARY_NOTE | GENSEL_OPT_UNARY_NOTE)) != 0 &&
 	   (options & GENSEL_OPT_STACK) == 0)
 	{
 		clause = clauses;
@@ -405,7 +410,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 
 					case GENSEL_PATT_IMM:
 					{
-						printf("%s->is_nint_constant", arg);
+						printf("%s->is_constant", arg);
 					}
 					break;
 
@@ -469,7 +474,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 		{
 			printf("\telse\n\t{\n");
 		}
-		if((options & GENSEL_OPT_STACK) == 0)
+		if((options & GENSEL_OPT_STACK) == 0 || clause->next)
 		{
 			for(index = check_index; clause->pattern[index]; ++index)
 			{
@@ -565,7 +570,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 					   gensel_first_stack_reg);
 			}
 			else if((options & (GENSEL_OPT_UNARY |
-								GENSEL_OPT_UNARY_BRANCH)) != 0)
+								GENSEL_OPT_UNARY_BRANCH |
+								GENSEL_OPT_UNARY_NOTE)) != 0)
 			{
 				printf("\t\treg = _jit_regs_load_to_top\n");
 				printf("\t\t\t(gen, insn->value1,\n");
@@ -670,6 +676,8 @@ static void gensel_output_supported(void)
 %token K_UNARY				"`unary'"
 %token K_UNARY_BRANCH		"`unary_branch'"
 %token K_BINARY_BRANCH		"`binary_branch'"
+%token K_UNARY_NOTE			"`unary_note'"
+%token K_BINARY_NOTE		"`binary_note'"
 %token K_TERNARY			"`ternary'"
 %token K_STACK				"`stack'"
 %token K_ONLY				"`only'"
@@ -751,6 +759,8 @@ Option
 	| K_UNARY					{ $$ = GENSEL_OPT_UNARY; }
 	| K_UNARY_BRANCH			{ $$ = GENSEL_OPT_UNARY_BRANCH; }
 	| K_BINARY_BRANCH			{ $$ = GENSEL_OPT_BINARY_BRANCH; }
+	| K_UNARY_NOTE				{ $$ = GENSEL_OPT_UNARY_NOTE; }
+	| K_BINARY_NOTE				{ $$ = GENSEL_OPT_BINARY_NOTE; }
 	| K_TERNARY					{ $$ = GENSEL_OPT_TERNARY; }
 	| K_STACK					{ $$ = GENSEL_OPT_STACK; }
 	| K_ONLY					{ $$ = GENSEL_OPT_ONLY; }

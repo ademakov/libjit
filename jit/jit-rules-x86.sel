@@ -721,13 +721,13 @@ JIT_OP_COPY_LONG: spill_before
 		TODO();
 	}
 
-JIT_OP_COPY_FLOAT32: unary
+JIT_OP_COPY_FLOAT32: unary, stack
 	[freg] -> {}
 
-JIT_OP_COPY_FLOAT64: unary
+JIT_OP_COPY_FLOAT64: unary, stack
 	[freg] -> {}
 
-JIT_OP_COPY_NFLOAT: unary
+JIT_OP_COPY_NFLOAT: unary, stack
 	[freg] -> {}
 
 JIT_OP_COPY_STRUCT: manual
@@ -847,6 +847,7 @@ JIT_OP_PUSH_INT: unary_note
 
 JIT_OP_PUSH_LONG: spill_before
 	[] -> {
+		/* TODO: use 'manual' to avoid register spills */
 		if(jit_value_is_constant(insn->value1))
 		{
 			x86_push_imm(inst, ((jit_int *)(insn->value1->address))[1]);
@@ -862,9 +863,10 @@ JIT_OP_PUSH_LONG: spill_before
 		}
 	}
 
-JIT_OP_PUSH_FLOAT32: unary_note
+JIT_OP_PUSH_FLOAT32: unary_note, stack
 	[imm] -> {
-		x86_push_imm(inst, *((jit_int *)(insn->value1->address)));
+		jit_int *ptr = (jit_int *)($1);
+		x86_push_imm(inst, ptr[0]);
 	}
 	[local] -> {
 		x86_push_membase(inst, X86_EBP, $1);
@@ -872,12 +874,14 @@ JIT_OP_PUSH_FLOAT32: unary_note
 	[reg] -> {
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float32));
 		x86_fst_membase(inst, X86_ESP, 0, 0, 1);
+		_jit_regs_free_reg(gen, $1, 1);
 	}
 
-JIT_OP_PUSH_FLOAT64: unary_note
+JIT_OP_PUSH_FLOAT64: unary_note, stack
 	[imm] -> {
-		x86_push_imm(inst, ((jit_int *)(insn->value1->address))[1]);
-		x86_push_imm(inst, ((jit_int *)(insn->value1->address))[0]);
+		jit_int *ptr = (jit_int *)($1);
+		x86_push_imm(inst, ptr[1]);
+		x86_push_imm(inst, ptr[0]);
 	}
 	[local] -> {
 		x86_push_membase(inst, X86_EBP, $1 + 4);
@@ -886,16 +890,18 @@ JIT_OP_PUSH_FLOAT64: unary_note
 	[reg] -> {
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float64));
 		x86_fst_membase(inst, X86_ESP, 0, 1, 1);
+		_jit_regs_free_reg(gen, $1, 1);
 	}
 
-JIT_OP_PUSH_NFLOAT: unary_note
+JIT_OP_PUSH_NFLOAT: unary_note, stack
 	[imm] -> {
+		jit_int *ptr = (jit_int *)($1);
 		if(sizeof(jit_nfloat) != sizeof(jit_float64))
 		{
-			x86_push_imm(inst, ((jit_int *)(insn->value1->address))[2]);
+			x86_push_imm(inst, ptr[2]);
 		}
-		x86_push_imm(inst, ((jit_int *)(insn->value1->address))[1]);
-		x86_push_imm(inst, ((jit_int *)(insn->value1->address))[0]);
+		x86_push_imm(inst, ptr[1]);
+		x86_push_imm(inst, ptr[0]);
 	}
 	[local] -> {
 		if(sizeof(jit_nfloat) != sizeof(jit_float64))
@@ -905,7 +911,7 @@ JIT_OP_PUSH_NFLOAT: unary_note
 		x86_push_membase(inst, X86_EBP, $1 + 4);
 		x86_push_membase(inst, X86_EBP, $1);
 	}
-	[reg] -> {
+	[freg] -> {
 		if(sizeof(jit_nfloat) != sizeof(jit_float64))
 		{
 			x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_nfloat));
@@ -916,6 +922,7 @@ JIT_OP_PUSH_NFLOAT: unary_note
 			x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float64));
 			x86_fst_membase(inst, X86_ESP, 0, 1, 1);
 		}
+		_jit_regs_free_reg(gen, $1, 1);
 	}
 
 JIT_OP_PUSH_STRUCT: unary_note

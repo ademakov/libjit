@@ -98,8 +98,8 @@ WHITE					[ \t\v\r\f]
 "ternary"				{ RETURNTOK(K_TERNARY); }
 "unary_branch"			{ RETURNTOK(K_UNARY_BRANCH); }
 "binary_branch"			{ RETURNTOK(K_BINARY_BRANCH); }
-"unary_note"			{ RETURNTOK(K_UNARY_BRANCH); }
-"binary_note"			{ RETURNTOK(K_BINARY_BRANCH); }
+"unary_note"			{ RETURNTOK(K_UNARY_NOTE); }
+"binary_note"			{ RETURNTOK(K_BINARY_NOTE); }
 "manual"				{ RETURNTOK(K_MANUAL); }
 "stack"					{ RETURNTOK(K_STACK); }
 "only"					{ RETURNTOK(K_ONLY); }
