@@ -1190,7 +1190,7 @@ int jit_function_apply_vararg
 
 	/* Restore the backtrace and "setjmp" contexts and exit */
 	_jit_unwind_pop_setjmp();
-	return 0;
+	return 1;
 }
 
 #endif /* !JIT_BACKEND_INTERP */

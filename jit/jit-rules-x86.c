@@ -1302,7 +1302,12 @@ static unsigned char *jump_to_epilog
 {
 	/* If the epilog is the next thing that we will output,
 	   then fall through to the epilog directly */
-	if(!(block->next))
+	block = block->next;
+	while(block != 0 && block->first_insn > block->last_insn)
+	{
+		block = block->next;
+	}
+	if(!block)
 	{
 		return inst;
 	}

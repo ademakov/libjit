@@ -498,7 +498,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 					case GENSEL_PATT_IMMS16:
 					case GENSEL_PATT_IMMU16:
 					{
-						printf("\t\timm_value = %s->is_nint_constant;\n", arg);
+						printf("\t\timm_value = %s->address;\n", arg);
 					}
 					break;
 	
