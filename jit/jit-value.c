@@ -930,6 +930,66 @@ jit_nfloat jit_value_get_nfloat_constant(jit_value_t value)
 }
 
 /*@
+ * @deftypefun int jit_value_is_true (jit_value_t value)
+ * Determine if @code{value} is constant and non-zero.
+ * @end deftypefun
+@*/
+int jit_value_is_true(jit_value_t value)
+{
+	if(!value || !(value->is_constant))
+	{
+		return 0;
+	}
+	else if(value->is_nint_constant)
+	{
+		return (value->address != 0);
+	}
+	else
+	{
+		switch(jit_type_normalize(value->type)->kind)
+		{
+			case JIT_TYPE_LONG:
+			case JIT_TYPE_ULONG:
+			{
+				if(jit_value_get_long_constant(value) != 0)
+				{
+					return 1;
+				}
+			}
+			break;
+
+			case JIT_TYPE_FLOAT32:
+			{
+				if(jit_value_get_float32_constant(value) != (jit_float32)0.0)
+				{
+					return 1;
+				}
+			}
+			break;
+
+			case JIT_TYPE_FLOAT64:
+			{
+				if(jit_value_get_float64_constant(value) != (jit_float64)0.0)
+				{
+					return 1;
+				}
+			}
+			break;
+
+			case JIT_TYPE_NFLOAT:
+			{
+				if(jit_value_get_nfloat_constant(value) != (jit_nfloat)0.0)
+				{
+					return 1;
+				}
+			}
+			break;
+		}
+		return 0;
+	}
+}
+
+/*@
  * @deftypefun int jit_constant_convert ({jit_constant_t *} result, {const jit_constant_t *} value, jit_type_t type, int overflow_check)
  * Convert a the constant @code{value} into a new @code{type}, and
  * return its value in @code{result}.  Returns zero if the conversion

@@ -3547,6 +3547,20 @@ int jit_insn_branch_if
 		*label = (func->builder->next_label)++;
 	}
 
+	/* If the condition is constant, then convert it into either
+	   an unconditional branch or a fall-through, as appropriate */
+	if(jit_value_is_constant(value))
+	{
+		if(jit_value_is_true(value))
+		{
+			return jit_insn_branch(func, label);
+		}
+		else
+		{
+			return 1;
+		}
+	}
+
 	/* Determine if we can replace a previous comparison instruction */
 	block = func->builder->current_block;
 	insn = _jit_block_get_last(block);
@@ -3732,6 +3746,20 @@ int jit_insn_branch_if_not
 	if(*label == jit_label_undefined)
 	{
 		*label = (func->builder->next_label)++;
+	}
+
+	/* If the condition is constant, then convert it into either
+	   an unconditional branch or a fall-through, as appropriate */
+	if(jit_value_is_constant(value))
+	{
+		if(!jit_value_is_true(value))
+		{
+			return jit_insn_branch(func, label);
+		}
+		else
+		{
+			return 1;
+		}
 	}
 
 	/* Determine if we can replace a previous comparison instruction */

@@ -90,6 +90,7 @@ jit_long jit_value_get_long_constant(jit_value_t value) JIT_NOTHROW;
 jit_float32 jit_value_get_float32_constant(jit_value_t value) JIT_NOTHROW;
 jit_float64 jit_value_get_float64_constant(jit_value_t value) JIT_NOTHROW;
 jit_nfloat jit_value_get_nfloat_constant(jit_value_t value) JIT_NOTHROW;
+int jit_value_is_true(jit_value_t value) JIT_NOTHROW;
 int jit_constant_convert
 	(jit_constant_t *result, const jit_constant_t *value,
 	 jit_type_t type, int overflow_check) JIT_NOTHROW;
