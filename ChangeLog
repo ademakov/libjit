@@ -7,6 +7,8 @@
 
 	* configure.in, NEWS: update version for the "0.0.2" release.
 
+	* configure.in: updating working version to "0.0.3".
+
 2004-05-12  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jitdynamic/Makefile.am, jitplus/Makefile.am: use both .libs and
