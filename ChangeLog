@@ -1,4 +1,10 @@
 
+2004-10-31  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-rules-x86.sel: handle the special case of constant
+	destination pointers in "store_relative" instructions, because
+	otherwise the register allocator gets confused.
+
 2004-10-29  Peter Lund <firefly@diku.dk>
 
 	* doc/libjit.3: fix manpage formatting issues. (patch attached

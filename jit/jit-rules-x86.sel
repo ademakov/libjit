@@ -2324,118 +2324,220 @@ JIT_OP_LOAD_RELATIVE_STRUCT: unary_branch, more_space
 JIT_OP_STORE_RELATIVE_BYTE: manual
 	[] -> {
 		unsigned char *inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->dest, 0,
-			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-			 				 JIT_INSN_DEST_LIVE)));
-		if(!(insn->value1->is_constant))
+		int reg, reg2;
+		if(insn->dest->is_constant)
 		{
-			int reg2 = _jit_regs_load_value
-				(gen, insn->value1, 0,
-				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-				 				 JIT_INSN_VALUE1_LIVE)));
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
+			reg = insn->dest->address + insn->value2->address;
+			if(insn->value1->is_constant)
 			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
+				inst = gen->posn.ptr;
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				x86_mov_mem_imm(inst, reg, insn->value1->address, 1);
 			}
-			reg  = _jit_reg_info[reg].cpu_reg;
-			reg2 = _jit_reg_info[reg2].cpu_reg;
-			inst = mov_membase_reg_byte
-				(inst, reg, insn->value2->address, reg2);
+			else
+			{
+				reg2 = _jit_regs_load_value
+					(gen, insn->value1, 0,
+					 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+					 				 JIT_INSN_VALUE1_LIVE)));
+				inst = gen->posn.ptr;
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				reg2 = _jit_reg_info[reg2].cpu_reg;
+				x86_mov_mem_reg(inst, reg, reg2, 1);
+			}
 			gen->posn.ptr = inst;
 		}
 		else
 		{
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
+			reg = _jit_regs_load_value
+				(gen, insn->dest, 0,
+				 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
+				 				 JIT_INSN_DEST_LIVE)));
+			if(!(insn->value1->is_constant))
 			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
+				reg2 = _jit_regs_load_value
+					(gen, insn->value1, 0,
+					 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+					 				 JIT_INSN_VALUE1_LIVE)));
+				inst = gen->posn.ptr;
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				reg  = _jit_reg_info[reg].cpu_reg;
+				reg2 = _jit_reg_info[reg2].cpu_reg;
+				inst = mov_membase_reg_byte
+					(inst, reg, insn->value2->address, reg2);
+				gen->posn.ptr = inst;
 			}
-			reg = _jit_reg_info[reg].cpu_reg;
-			x86_mov_membase_imm(inst, reg, insn->value2->address,
-								insn->value1->address, 1);
-			gen->posn.ptr = inst;
+			else
+			{
+				inst = gen->posn.ptr;
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				reg = _jit_reg_info[reg].cpu_reg;
+				x86_mov_membase_imm(inst, reg, insn->value2->address,
+									insn->value1->address, 1);
+				gen->posn.ptr = inst;
+			}
 		}
 	}
 
 JIT_OP_STORE_RELATIVE_SHORT: manual
 	[] -> {
 		unsigned char *inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->dest, 0,
-			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-			 				 JIT_INSN_DEST_LIVE)));
-		if(!(insn->value1->is_constant))
+		int reg, reg2;
+		if(insn->dest->is_constant)
 		{
-			int reg2 = _jit_regs_load_value
-				(gen, insn->value1, 0,
-				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-				 				 JIT_INSN_VALUE1_LIVE)));
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
+			reg = insn->dest->address + insn->value2->address;
+			if(insn->value1->is_constant)
 			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
+				inst = gen->posn.ptr;
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				x86_mov_mem_imm(inst, reg, insn->value1->address, 2);
 			}
-			reg  = _jit_reg_info[reg].cpu_reg;
-			reg2 = _jit_reg_info[reg2].cpu_reg;
-			x86_mov_membase_reg(inst, reg, insn->value2->address, reg2, 2);
+			else
+			{
+				reg2 = _jit_regs_load_value
+					(gen, insn->value1, 0,
+					 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+					 				 JIT_INSN_VALUE1_LIVE)));
+				inst = gen->posn.ptr;
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				reg2 = _jit_reg_info[reg2].cpu_reg;
+				x86_mov_mem_reg(inst, reg, reg2, 2);
+			}
 			gen->posn.ptr = inst;
 		}
 		else
 		{
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
+			reg = _jit_regs_load_value
+				(gen, insn->dest, 0,
+				 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
+				 				 JIT_INSN_DEST_LIVE)));
+			if(!(insn->value1->is_constant))
 			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
+				reg2 = _jit_regs_load_value
+					(gen, insn->value1, 0,
+					 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+					 				 JIT_INSN_VALUE1_LIVE)));
+				inst = gen->posn.ptr;
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				reg  = _jit_reg_info[reg].cpu_reg;
+				reg2 = _jit_reg_info[reg2].cpu_reg;
+				x86_mov_membase_reg(inst, reg, insn->value2->address, reg2, 2);
+				gen->posn.ptr = inst;
 			}
-			reg = _jit_reg_info[reg].cpu_reg;
-			x86_mov_membase_imm(inst, reg, insn->value2->address,
-								insn->value1->address, 2);
-			gen->posn.ptr = inst;
+			else
+			{
+				inst = gen->posn.ptr;
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				reg = _jit_reg_info[reg].cpu_reg;
+				x86_mov_membase_imm(inst, reg, insn->value2->address,
+									insn->value1->address, 2);
+				gen->posn.ptr = inst;
+			}
 		}
 	}
 
 JIT_OP_STORE_RELATIVE_INT: manual
 	[] -> {
 		unsigned char *inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->dest, 0,
-			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-			 				 JIT_INSN_DEST_LIVE)));
-		if(!(insn->value1->is_constant))
+		int reg, reg2;
+		if(insn->dest->is_constant)
 		{
-			int reg2 = _jit_regs_load_value
-				(gen, insn->value1, 0,
-				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-				 				 JIT_INSN_VALUE1_LIVE)));
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
+			reg = insn->dest->address + insn->value2->address;
+			if(insn->value1->is_constant)
 			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
+				inst = gen->posn.ptr;
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				x86_mov_mem_imm(inst, reg, insn->value1->address, 4);
 			}
-			reg  = _jit_reg_info[reg].cpu_reg;
-			reg2 = _jit_reg_info[reg2].cpu_reg;
-			x86_mov_membase_reg(inst, reg, insn->value2->address, reg2, 4);
+			else
+			{
+				reg2 = _jit_regs_load_value
+					(gen, insn->value1, 0,
+					 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+					 				 JIT_INSN_VALUE1_LIVE)));
+				inst = gen->posn.ptr;
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				reg2 = _jit_reg_info[reg2].cpu_reg;
+				x86_mov_mem_reg(inst, reg, reg2, 4);
+			}
 			gen->posn.ptr = inst;
 		}
 		else
 		{
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
+			reg = _jit_regs_load_value
+				(gen, insn->dest, 0,
+				 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
+				 				 JIT_INSN_DEST_LIVE)));
+			if(!(insn->value1->is_constant))
 			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
+				reg2 = _jit_regs_load_value
+					(gen, insn->value1, 0,
+					 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+					 				 JIT_INSN_VALUE1_LIVE)));
+				inst = gen->posn.ptr;
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				reg  = _jit_reg_info[reg].cpu_reg;
+				reg2 = _jit_reg_info[reg2].cpu_reg;
+				x86_mov_membase_reg(inst, reg, insn->value2->address, reg2, 4);
+				gen->posn.ptr = inst;
 			}
-			reg = _jit_reg_info[reg].cpu_reg;
-			x86_mov_membase_imm(inst, reg, insn->value2->address,
-								insn->value1->address, 4);
-			gen->posn.ptr = inst;
+			else
+			{
+				inst = gen->posn.ptr;
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				reg = _jit_reg_info[reg].cpu_reg;
+				x86_mov_membase_imm(inst, reg, insn->value2->address,
+									insn->value1->address, 4);
+				gen->posn.ptr = inst;
+			}
 		}
 	}
 
