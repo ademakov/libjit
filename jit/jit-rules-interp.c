@@ -1147,12 +1147,10 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		case JIT_OP_CALL_INDIRECT:
 		{
 			/* Call a function, whose pointer is supplied on the stack */
-			reg = _jit_regs_load_to_top(gen, insn->value1, 0, 0);
 			jit_cache_opcode(&(gen->posn), insn->opcode);
 			jit_cache_native(&(gen->posn), (jit_nint)(insn->value2));
 			jit_cache_native(&(gen->posn), (jit_nint)
 					(jit_type_num_params((jit_type_t)(insn->value2))));
-			_jit_regs_free_reg(gen, reg, 1);
 			adjust_working(gen, -1);
 		}
 		break;
@@ -1160,9 +1158,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		case JIT_OP_CALL_VTABLE_PTR:
 		{
 			/* Call a function, whose vtable pointer is supplied on the stack */
-			reg = _jit_regs_load_to_top(gen, insn->value1, 0, 0);
 			jit_cache_opcode(&(gen->posn), insn->opcode);
-			_jit_regs_free_reg(gen, reg, 1);
 			adjust_working(gen, -1);
 		}
 		break;

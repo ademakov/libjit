@@ -1,4 +1,9 @@
 
+2004-09-06  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-rules-interp.c: the pointer value for indirect and vtable
+	calls was being pushed onto the stack twice.
+
 2004-09-05  Norbert Bollow  <nb@SoftwareEconomics.biz>
 
 	* samples/hellovm.c: add a sample program that demonstrates a
