@@ -397,4 +397,5 @@ jitdynamic/Makefile
 jitplus/Makefile
 dpas/Makefile
 tutorial/Makefile
+tests/Makefile
 doc/Makefile])
