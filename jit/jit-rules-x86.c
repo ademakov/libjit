@@ -25,6 +25,7 @@
 #if defined(JIT_BACKEND_X86)
 
 #include "jit-gen-x86.h"
+#include "jit-reg-alloc.h"
 
 /*
  * Pseudo register numbers for the x86 registers.  These are not the
@@ -667,51 +668,9 @@ int _jit_opcode_is_supported(int opcode)
 {
 	switch(opcode)
 	{
-		/* TODO: float and long opcodes */
-
-		/*
-		 * Conversion opcodes.
-		 */
-		case JIT_OP_TRUNC_SBYTE:
-		case JIT_OP_TRUNC_UBYTE:
-		case JIT_OP_TRUNC_SHORT:
-		case JIT_OP_TRUNC_USHORT:
-
-		/*
-		 * Arithmetic opcodes.
-		 */
-		case JIT_OP_IADD:
-		case JIT_OP_ISUB:
-		case JIT_OP_IMUL:
-		case JIT_OP_INEG:
-
-		/*
-		 * Bitwise opcodes.
-		 */
-		case JIT_OP_IAND:
-		case JIT_OP_IOR:
-		case JIT_OP_IXOR:
-		case JIT_OP_INOT:
-		case JIT_OP_ISHL:
-		case JIT_OP_ISHR:
-		case JIT_OP_ISHR_UN:
-
-		/*
-		 * Branch opcodes.
-		 */
-		case JIT_OP_BR:
-		case JIT_OP_BR_IFALSE:
-		case JIT_OP_BR_ITRUE:
-		case JIT_OP_BR_IEQ:
-		case JIT_OP_BR_INE:
-		case JIT_OP_BR_ILT:
-		case JIT_OP_BR_ILT_UN:
-		case JIT_OP_BR_ILE:
-		case JIT_OP_BR_ILE_UN:
-		case JIT_OP_BR_IGT:
-		case JIT_OP_BR_IGT_UN:
-		case JIT_OP_BR_IGE:
-		case JIT_OP_BR_IGE_UN:			return 1;
+		#define JIT_INCLUDE_SUPPORTED
+		#include "jit-rules-x86.slc"
+		#undef JIT_INCLUDE_SUPPORTED
 	}
 	return 0;
 }
@@ -836,6 +795,7 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 
 	/* If we are returning a structure via a pointer, then copy
 	   the pointer value into EAX when we return */
+	inst = gen->posn.ptr;
 	if(struct_return_offset != 0)
 	{
 		x86_mov_reg_membase(inst, X86_EAX, X86_EBP, struct_return_offset, 4);
@@ -853,7 +813,6 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	}
 
 	/* Pop the local stack frame, and get back to the callee save regs */
-	inst = gen->posn.ptr;
 	if(num_regs == 0)
 	{
 		x86_mov_reg_reg(inst, X86_ESP, X86_EBP, sizeof(void *));
@@ -1175,71 +1134,6 @@ void _jit_gen_fix_value(jit_value_t value)
 }
 
 /*
- * Set up for a unary 32-bit integer operator.
- */
-static int setup_for_int_unary(jit_gencode_t gen, jit_insn_t insn)
-{
-	return _jit_regs_load_value
-		(gen, insn->value1, 1,
-		 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-		 				 JIT_INSN_VALUE1_LIVE)));
-}
-
-/*
- * Store the destination for a 32-bit integer operator.
- */
-static void store_for_int(jit_gencode_t gen, jit_insn_t insn, int reg)
-{
-	if((insn->flags & JIT_INSN_DEST_NEXT_USE) != 0)
-	{
-		/* Record that the destination is in "reg" */
-		_jit_regs_set_value(gen, reg, insn->dest, 0);
-	}
-	else
-	{
-		/* No next use, so store to the destination */
-		_jit_gen_spill_reg(gen, reg, -1, insn->dest);
-		insn->dest->in_frame = 1;
-		_jit_regs_free_reg(gen, reg, 1);
-	}
-}
-
-/*
- * Set up for a binary 32-bit integer operator.
- */
-static int setup_for_int_binary(jit_gencode_t gen, jit_insn_t insn, int *reg2)
-{
-	int reg;
-	reg = _jit_regs_load_value
-		(gen, insn->value1, 1,
-		 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-		 				 JIT_INSN_VALUE1_LIVE)));
-	*reg2 = _jit_regs_load_value
-		(gen, insn->value2, 0,
-		 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-		 				 JIT_INSN_VALUE1_LIVE)));
-	return reg;
-}
-
-/*
- * Set up for a binary 32-bit integer operator, where reg2 may be destroyed.
- */
-static int setup_for_int_binary_destroy
-	(jit_gencode_t gen, jit_insn_t insn, int *reg2)
-{
-	int reg;
-	reg = _jit_regs_load_value
-		(gen, insn->value1, 1,
-		 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-		 				 JIT_INSN_VALUE1_LIVE)));
-	*reg2 = _jit_regs_load_value
-		(gen, insn->value2, 1,
-		 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-		 				 JIT_INSN_VALUE1_LIVE)));
-	return reg;
-}
-
-/*
  * Widen a byte register.
  */
 static unsigned char *widen_byte(unsigned char *inst, int reg, int isSigned)
@@ -1266,22 +1160,50 @@ static unsigned char *shift_reg(unsigned char *inst, int opc, int reg, int reg2)
 	if(reg2 == X86_ECX)
 	{
 		/* The shift value is already in ECX */
-		x86_shift_reg(inst, opc, reg1);
+		x86_shift_reg(inst, opc, reg);
 	}
-	else if(reg1 == X86_ECX)
+	else if(reg == X86_ECX)
 	{
 		/* The value to be shifted is in ECX, so swap the order */
-		x86_xchg_reg_reg(inst, reg1, reg2, 4);
+		x86_xchg_reg_reg(inst, reg, reg2, 4);
 		x86_shift_reg(inst, opc, reg2);
-		x86_mov_reg_reg(inst, reg1, reg2, 4);
+		x86_mov_reg_reg(inst, reg, reg2, 4);
 	}
 	else
 	{
 		/* Save ECX, perform the shift, and then restore ECX */
 		x86_push_reg(inst, X86_ECX);
 		x86_mov_reg_reg(inst, X86_ECX, reg2, 4);
-		x86_shift_reg(inst, opc, reg1);
+		x86_shift_reg(inst, opc, reg);
 		x86_pop_reg(inst, X86_ECX);
+	}
+	return inst;
+}
+
+/*
+ * Set a register value based on a condition code.
+ */
+static unsigned char *setcc_reg
+	(unsigned char *inst, int reg, int cond, int is_signed)
+{
+	if(reg == X86_EAX || reg == X86_EBX || reg == X86_ECX || reg == X86_EDX)
+	{
+		/* Use a SETcc instruction if we have a basic register */
+		x86_set_reg(inst, cond, reg, is_signed);
+		x86_widen_reg(inst, reg, reg, 0, 0);
+	}
+	else
+	{
+		/* The register is not useable as an 8-bit destination */
+		unsigned char *patch1, *patch2;
+		patch1 = inst;
+		x86_branch8(inst, cond, 0, is_signed);
+		x86_clear_reg(inst, reg);
+		patch2 = inst;
+		x86_jump8(inst, 0);
+		x86_patch(patch1, inst);
+		x86_mov_reg_imm(inst, reg, 1);
+		x86_patch(patch2, inst);
 	}
 	return inst;
 }
@@ -1289,233 +1211,11 @@ static unsigned char *shift_reg(unsigned char *inst, int opc, int reg, int reg2)
 void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 				   jit_block_t block, jit_insn_t insn)
 {
-	int reg, reg2;
 	switch(insn->opcode)
 	{
-		/* TODO: lots of optimizations to do here */
-
-		case JIT_OP_TRUNC_SBYTE:
-		{
-			/* Truncate a value to a signed 8-byte integer */
-			reg = setup_for_int_unary(gen, insn);
-			{
-				jit_cache_setup_output(16);
-				inst = widen_byte(inst, _jit_reg_info[reg].cpu_reg, 1);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_TRUNC_UBYTE:
-		{
-			/* Truncate a value to an unsigned 8-byte integer */
-			reg = setup_for_int_unary(gen, insn);
-			{
-				jit_cache_setup_output(16);
-				inst = widen_byte(inst, _jit_reg_info[reg].cpu_reg, 0);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_TRUNC_SHORT:
-		{
-			/* Truncate a value to a signed 16-byte integer */
-			reg = setup_for_int_unary(gen, insn);
-			{
-				jit_cache_setup_output(16);
-				x86_widen_reg(inst, _jit_reg_info[reg].cpu_reg,
-							  _jit_reg_info[reg].cpu_reg, 1, 1);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_TRUNC_USHORT:
-		{
-			/* Truncate a value to an unsigned 16-byte integer */
-			reg = setup_for_int_unary(gen, insn);
-			{
-				jit_cache_setup_output(16);
-				x86_widen_reg(inst, _jit_reg_info[reg].cpu_reg,
-							  _jit_reg_info[reg].cpu_reg, 0, 1);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_IADD:
-		{
-			/* Add two signed 32-bit integers */
-			reg = setup_for_int_binary(gen, insn, &reg2);
-			{
-				jit_cache_setup_output(16);
-				x86_alu_reg_reg(inst, X86_ADD, _jit_reg_info[reg].cpu_reg,
-							    _jit_reg_info[reg2].cpu_reg);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_ISUB:
-		{
-			/* Subtract two signed 32-bit integers */
-			reg = setup_for_int_binary(gen, insn, &reg2);
-			{
-				jit_cache_setup_output(16);
-				x86_alu_reg_reg(inst, X86_SUB, _jit_reg_info[reg].cpu_reg,
-							    _jit_reg_info[reg2].cpu_reg);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_IMUL:
-		{
-			/* Multiply two signed 32-bit integers.  We spill first
-			   so that the reload will hopefully end up in EAX and ECX,
-			   and EDX will be free for us to destroy */
-			_jit_regs_spill_all(gen);
-			reg = setup_for_int_binary(gen, insn, &reg2);
-			{
-				jit_cache_setup_output(16);
-				x86_mul_reg(inst, _jit_reg_info[reg2].cpu_reg, 1);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_INEG:
-		{
-			/* Negate a signed 32-bit integer */
-			reg = setup_for_int_unary(gen, insn);
-			{
-				jit_cache_setup_output(16);
-				x86_neg_reg(inst, _jit_reg_info[reg].cpu_reg);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_IAND:
-		{
-			/* Bitwise AND two 32-bit integer values */
-			reg = setup_for_int_binary(gen, insn, &reg2);
-			{
-				jit_cache_setup_output(16);
-				x86_alu_reg_reg(inst, X86_AND, _jit_reg_info[reg].cpu_reg,
-							    _jit_reg_info[reg2].cpu_reg);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_IOR:
-		{
-			/* Bitwise OR two 32-bit integer values */
-			reg = setup_for_int_binary(gen, insn, &reg2);
-			{
-				jit_cache_setup_output(16);
-				x86_alu_reg_reg(inst, X86_OR, _jit_reg_info[reg].cpu_reg,
-							    _jit_reg_info[reg2].cpu_reg);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_IXOR:
-		{
-			/* Bitwise XOR two 32-bit integer values */
-			reg = setup_for_int_binary(gen, insn, &reg2);
-			{
-				jit_cache_setup_output(16);
-				x86_alu_reg_reg(inst, X86_XOR, _jit_reg_info[reg].cpu_reg,
-							    _jit_reg_info[reg2].cpu_reg);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_INOT:
-		{
-			/* Bitwise NOT a 32-bit integer value */
-			reg = setup_for_int_unary(gen, insn);
-			{
-				jit_cache_setup_output(16);
-				x86_not_reg(inst, _jit_reg_info[reg].cpu_reg);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_ISHL:
-		{
-			/* Shift a 32-bit integer value left */
-			reg = setup_for_int_binary_destroy(gen, insn, &reg2);
-			{
-				jit_cache_setup_output(16);
-				inst = shift_reg(inst, X86_SHL, _jit_reg_info[reg].cpu_reg,
-						         _jit_reg_info[reg2].cpu_reg);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_ISHR:
-		{
-			/* Shift a 32-bit integer value right, with sign-extend */
-			reg = setup_for_int_binary_destroy(gen, insn, &reg2);
-			{
-				jit_cache_setup_output(16);
-				inst = shift_reg(inst, X86_SAR, _jit_reg_info[reg].cpu_reg,
-						         _jit_reg_info[reg2].cpu_reg);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_ISHR_UN:
-		{
-			/* Shift a 32-bit integer value right, with zero-extend */
-			reg = setup_for_int_binary_destroy(gen, insn, &reg2);
-			{
-				jit_cache_setup_output(16);
-				inst = shift_reg(inst, X86_SHR, _jit_reg_info[reg].cpu_reg,
-						         _jit_reg_info[reg2].cpu_reg);
-				jit_cache_end_output();
-			}
-			store_for_int(gen, insn, reg);
-		}
-		break;
-
-		case JIT_OP_BR:
-		case JIT_OP_BR_IFALSE:
-		case JIT_OP_BR_ITRUE:
-		case JIT_OP_BR_IEQ:
-		case JIT_OP_BR_INE:
-		case JIT_OP_BR_ILT:
-		case JIT_OP_BR_ILT_UN:
-		case JIT_OP_BR_ILE:
-		case JIT_OP_BR_ILE_UN:
-		case JIT_OP_BR_IGT:
-		case JIT_OP_BR_IGT_UN:
-		case JIT_OP_BR_IGE:
-		case JIT_OP_BR_IGE_UN:
-			/* TODO */
+		#define JIT_INCLUDE_RULES
+		#include "jit-rules-x86.slc"
+		#undef JIT_INCLUDE_RULES
 	}
 }
 

@@ -61,4 +61,10 @@ jit-interp-labels.h: $(top_srcdir)/include/jit/jit-opcode.h \
 		$(top_srcdir)/include/jit/jit-opcode.h \
 		$(top_srcdir)/jit/jit-interp.h >jit-interp-labels.h
 
-CLEANFILES = jit-interp-labels.h
+jit-rules-x86.lo: jit-rules-x86.slc
+
+jit-rules-x86.slc: jit-rules-x86.sel $(top_builddir)/tools/gen-sel$(EXEEXT)
+	$(top_builddir)/tools/gen-sel$(EXEEXT) $(srcdir)/jit-rules-x86.sel \
+			>jit-rules-x86.slc
+
+CLEANFILES = jit-interp-labels.h jit-rules-x86.slc

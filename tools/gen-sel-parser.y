@@ -222,11 +222,11 @@ static void gensel_output_clause(gensel_clause_t clause)
 				case GENSEL_PATT_FREG:
 				{
 					if(index == 0)
-						printf("reg");
+						printf("_jit_reg_info[reg].cpu_reg");
 					else if(index == 1)
-						printf("reg2");
+						printf("_jit_reg_info[reg2].cpu_reg");
 					else
-						printf("reg3");
+						printf("_jit_reg_info[reg3].cpu_reg");
 				}
 				break;
 
