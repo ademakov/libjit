@@ -1689,18 +1689,21 @@ JIT_OP_RETURN_LONG: unary_branch
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_FLOAT32: unary_branch, stack, only
+JIT_OP_RETURN_FLOAT32: unary_note, stack, only
 	[freg] -> {
+		_jit_regs_free_reg(gen, reg, 1);
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_FLOAT64: unary_branch, stack, only
+JIT_OP_RETURN_FLOAT64: unary_note, stack, only
 	[freg] -> {
+		_jit_regs_free_reg(gen, reg, 1);
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_NFLOAT: unary_branch, stack, only
+JIT_OP_RETURN_NFLOAT: unary_note, stack, only
 	[freg] -> {
+		_jit_regs_free_reg(gen, reg, 1);
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
