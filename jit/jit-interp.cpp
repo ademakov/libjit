@@ -4010,7 +4010,7 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 		VMCASE(JIT_OP_LDARG_NFLOAT):
 		{
 			/* Load a native float argument onto the stack */
-			VM_STK_NFLOATP = *VM_ARG(jit_float64);
+			VM_STK_NFLOATP = *VM_ARG(jit_nfloat);
 			VM_MODIFY_PC_AND_STACK(2, -1);
 		}
 		VMBREAK;
@@ -4170,7 +4170,7 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 		VMCASE(JIT_OP_LDLOC_NFLOAT):
 		{
 			/* Load a native float local onto the stack */
-			VM_STK_NFLOATP = *VM_LOC(jit_float64);
+			VM_STK_NFLOATP = *VM_LOC(jit_nfloat);
 			VM_MODIFY_PC_AND_STACK(2, -1);
 		}
 		VMBREAK;

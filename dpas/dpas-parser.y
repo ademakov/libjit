@@ -2548,6 +2548,21 @@ Factor
 						(0, 0, dpas_sem_get_type($1), dpas_sem_get_value($1),
 						 $3.exprs, $3.len);
 				}
+				else if(dpas_sem_is_type($1) && $3.len == 1 &&
+						dpas_sem_is_rvalue($3.exprs[0]))
+				{
+					/* Cast a value to a new type */
+					jit_value_t conv;
+					conv = jit_insn_convert
+						(dpas_current_function(),
+						 dpas_sem_get_value(dpas_lvalue_to_rvalue($3.exprs[0])),
+						 dpas_sem_get_type($1), 0);
+					if(!conv)
+					{
+						dpas_out_of_memory();
+					}
+					dpas_sem_set_rvalue($$, dpas_sem_get_type($1), conv);
+				}
 				else
 				{
 					if(!dpas_sem_is_error($1))

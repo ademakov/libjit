@@ -32,6 +32,9 @@
 	* dpas/dpas-builtin.c, jit/jit-dump.c, jit/jit-value.c: add builtins
 	for mathematical operations.
 
+	* dpas/dpas-parser.y, jit/jit-interp.cpp, tests/Makefile.am,
+	tests/math.pas: test cases and bug fixes for mathematical operations.
+
 2004-05-11  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/jit-insn.h, jit/jit-insn.c, jit/jit-interp.cpp,
