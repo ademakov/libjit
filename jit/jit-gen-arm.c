@@ -19,11 +19,17 @@
  */
 
 #include "jit-internal.h"
-#include "jit-gen-arm.h"
 
 #if defined(__arm) || defined(__arm__)
 
-arm_inst_ptr _arm_mov_reg_imm(arm_inst_ptr inst, int reg, int value)
+#define	arm_execute		execute_prefix
+#define	arm_execute_cc	(execute_prefix | (1 << 20))
+#define	arm_execute_imm	(execute_prefix | (1 << 25))
+
+#include "jit-gen-arm.h"
+
+arm_inst_ptr _arm_mov_reg_imm
+	(arm_inst_ptr inst, int reg, int value, int execute_prefix)
 {
 	/* Handle bytes in various positions */
 	if((value & 0x000000FF) == value)
@@ -122,9 +128,9 @@ arm_inst_ptr _arm_mov_reg_imm(arm_inst_ptr inst, int reg, int value)
 	return inst;
 }
 
-arm_inst_ptr _arm_alu_reg_imm(arm_inst_ptr inst, int opc,
-					          int dreg, int sreg, int imm,
-					          int saveWork)
+arm_inst_ptr _arm_alu_reg_imm
+	(arm_inst_ptr inst, int opc, int dreg,
+	 int sreg, int imm, int saveWork, int execute_prefix)
 {
 	int tempreg;
 	if(saveWork)
@@ -147,7 +153,7 @@ arm_inst_ptr _arm_alu_reg_imm(arm_inst_ptr inst, int opc,
 	{
 		tempreg = ARM_WORK;
 	}
-	_arm_mov_reg_imm(inst, tempreg, imm);
+	_arm_mov_reg_imm(inst, tempreg, imm, execute_prefix);
 	arm_alu_reg_reg(inst, opc, dreg, sreg, tempreg);
 	if(saveWork)
 	{

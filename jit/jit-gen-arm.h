@@ -147,11 +147,22 @@ typedef unsigned int *arm_inst_ptr;
 #define	arm_always_imm		(arm_build_prefix(ARM_CC_AL, (1 << 25)))
 
 /*
+ * Wrappers for "arm_always*" that allow higher-level routines
+ * to change code generation to be based on a condition.  This is
+ * used to perform branch elimination.
+ */
+#ifndef arm_execute
+#define	arm_execute			arm_always
+#define	arm_execute_cc		arm_always_cc
+#define	arm_execute_imm		arm_always_imm
+#endif
+
+/*
  * Arithmetic or logical operation which doesn't set condition codes.
  */
 #define	arm_alu_reg_reg(inst,opc,dreg,sreg1,sreg2)	\
 			do { \
-				*(inst)++ = arm_always | \
+				*(inst)++ = arm_execute | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg1)) << 16) | \
@@ -159,7 +170,7 @@ typedef unsigned int *arm_inst_ptr;
 			} while (0)
 #define	arm_alu_reg_imm8(inst,opc,dreg,sreg,imm)	\
 			do { \
-				*(inst)++ = arm_always_imm | \
+				*(inst)++ = arm_execute_imm | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg)) << 16) | \
@@ -175,27 +186,30 @@ typedef unsigned int *arm_inst_ptr;
 			} while (0)
 #define	arm_alu_reg_imm8_rotate(inst,opc,dreg,sreg,imm,rotate)	\
 			do { \
-				*(inst)++ = arm_always_imm | \
+				*(inst)++ = arm_execute_imm | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg)) << 16) | \
 							(((unsigned int)(rotate)) << 8) | \
 							 ((unsigned int)((imm) & 0xFF)); \
 			} while (0)
-extern arm_inst_ptr _arm_alu_reg_imm(arm_inst_ptr inst, int opc, int dreg,
-							         int sreg, int imm, int saveWork);
+extern arm_inst_ptr _arm_alu_reg_imm
+		(arm_inst_ptr inst, int opc, int dreg,
+		 int sreg, int imm, int saveWork, int execute_prefix);
 #define	arm_alu_reg_imm(inst,opc,dreg,sreg,imm)	\
 			do { \
 				int __alu_imm = (int)(imm); \
 				if(__alu_imm >= 0 && __alu_imm < 256) \
 				{ \
 					arm_alu_reg_imm8 \
-						((inst), (opc), (dreg), (sreg), __alu_imm); \
+						((inst), (opc), (dreg), (sreg), __alu_imm, \
+						 arm_execute); \
 				} \
 				else \
 				{ \
 					(inst) = _arm_alu_reg_imm \
-						((inst), (opc), (dreg), (sreg), __alu_imm, 0); \
+						((inst), (opc), (dreg), (sreg), __alu_imm, 0, \
+						 arm_execute); \
 				} \
 			} while (0)
 #define	arm_alu_reg_imm_save_work(inst,opc,dreg,sreg,imm)	\
@@ -209,12 +223,13 @@ extern arm_inst_ptr _arm_alu_reg_imm(arm_inst_ptr inst, int opc, int dreg,
 				else \
 				{ \
 					(inst) = _arm_alu_reg_imm \
-						((inst), (opc), (dreg), (sreg), __alu_imm_save, 1); \
+						((inst), (opc), (dreg), (sreg), __alu_imm_save, 1, \
+						 arm_execute); \
 				} \
 			} while (0)
 #define arm_alu_reg(inst,opc,dreg,sreg)	\
 			do { \
-				*(inst)++ = arm_always | \
+				*(inst)++ = arm_execute | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							 ((unsigned int)(sreg)); \
@@ -232,7 +247,7 @@ extern arm_inst_ptr _arm_alu_reg_imm(arm_inst_ptr inst, int opc, int dreg,
  */
 #define	arm_alu_cc_reg_reg(inst,opc,dreg,sreg1,sreg2)	\
 			do { \
-				*(inst)++ = arm_always_cc | \
+				*(inst)++ = arm_execute_cc | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg1)) << 16) | \
@@ -240,7 +255,7 @@ extern arm_inst_ptr _arm_alu_reg_imm(arm_inst_ptr inst, int opc, int dreg,
 			} while (0)
 #define	arm_alu_cc_reg_imm8(inst,opc,dreg,sreg,imm)	\
 			do { \
-				*(inst)++ = arm_always_imm | arm_always_cc | \
+				*(inst)++ = arm_execute_imm | arm_execute_cc | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg)) << 16) | \
@@ -248,7 +263,7 @@ extern arm_inst_ptr _arm_alu_reg_imm(arm_inst_ptr inst, int opc, int dreg,
 			} while (0)
 #define arm_alu_cc_reg(inst,opc,dreg,sreg)	\
 			do { \
-				*(inst)++ = arm_always_cc | \
+				*(inst)++ = arm_execute_cc | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							 ((unsigned int)(sreg)); \
@@ -301,7 +316,8 @@ extern arm_inst_ptr _arm_alu_reg_imm(arm_inst_ptr inst, int opc, int dreg,
 				arm_alu_reg_imm8_rotate((inst), ARM_MOV, (reg), \
 										0, (imm), (rotate)); \
 			} while (0)
-extern arm_inst_ptr _arm_mov_reg_imm(arm_inst_ptr inst, int reg, int value);
+extern arm_inst_ptr _arm_mov_reg_imm
+	(arm_inst_ptr inst, int reg, int value, int execute_prefix);
 #define	arm_mov_reg_imm(inst,reg,imm)	\
 			do { \
 				int __imm = (int)(imm); \
@@ -311,7 +327,8 @@ extern arm_inst_ptr _arm_mov_reg_imm(arm_inst_ptr inst, int reg, int value);
 				} \
 				else if((reg) == ARM_PC) \
 				{ \
-					(inst) = _arm_mov_reg_imm((inst), ARM_WORK, __imm); \
+					(inst) = _arm_mov_reg_imm \
+						((inst), ARM_WORK, __imm, arm_execute); \
 					arm_mov_reg_reg((inst), ARM_PC, ARM_WORK); \
 				} \
 				else if(__imm > -256 && __imm < 0) \
@@ -321,7 +338,8 @@ extern arm_inst_ptr _arm_mov_reg_imm(arm_inst_ptr inst, int reg, int value);
 				} \
 				else \
 				{ \
-					(inst) = _arm_mov_reg_imm((inst), (reg), __imm); \
+					(inst) = _arm_mov_reg_imm \
+						((inst), (reg), __imm, arm_execute); \
 				} \
 			} while (0)
 
@@ -343,7 +361,7 @@ extern arm_inst_ptr _arm_mov_reg_imm(arm_inst_ptr inst, int reg, int value);
  */
 #define	arm_shift_reg_reg(inst,opc,dreg,sreg1,sreg2) \
 			do { \
-				*(inst)++ = arm_always | \
+				*(inst)++ = arm_execute | \
 							(((unsigned int)ARM_MOV) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg2)) << 8) | \
@@ -353,7 +371,7 @@ extern arm_inst_ptr _arm_mov_reg_imm(arm_inst_ptr inst, int reg, int value);
 			} while (0)
 #define	arm_shift_reg_imm8(inst,opc,dreg,sreg,imm) \
 			do { \
-				*(inst)++ = arm_always | \
+				*(inst)++ = arm_execute | \
 							(((unsigned int)ARM_MOV) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(opc)) << 5) | \
