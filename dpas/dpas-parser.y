@@ -1523,16 +1523,28 @@ InnerStatement
 				}
 				expression_list_free($2.exprs, $2.len);
 			}
-	| K_GOTO Label
+	| K_GOTO Label		{
+				/* TODO */
+				dpas_error("`goto' statements not yet implemented");
+			}
 	| CompoundStatement
 	| IfStatement
 	| WhileStatement
 	| RepeatStatement
 	| ForStatement
 	| CaseStatement
-	| K_WITH VariableList K_DO Statement
-	| K_THROW Expression
-	| K_THROW
+	| K_WITH VariableList K_DO Statement	{
+				/* TODO */
+				dpas_error("`with' statements not yet implemented");
+			}
+	| K_THROW Expression		{
+				/* TODO */
+				dpas_error("`throw' statements not yet implemented");
+			}
+	| K_THROW					{
+				/* TODO */
+				dpas_error("`throw' statements not yet implemented");
+			}
 	| TryStatement
 	| K_EXIT		{
 				/* Exit from the current loop level */
@@ -2101,7 +2113,10 @@ Direction
 	;
 
 CaseStatement
-	: K_CASE Expression K_OF CaseLimbList
+	: K_CASE Expression K_OF CaseLimbList		{
+				/* TODO */
+				dpas_error("`case' statements not yet implemented");
+			}
 	;
 
 CaseLimbList
@@ -2124,7 +2139,10 @@ VariableList
 	;
 
 TryStatement
-	: K_TRY StatementSequence OptSemi CatchClause FinallyClause K_END
+	: K_TRY StatementSequence OptSemi CatchClause FinallyClause K_END	{
+				/* TODO */
+				dpas_error("`try' statements not yet implemented");
+			}
 	;
 
 CatchClause
@@ -2402,8 +2420,16 @@ Factor
 					(dpas_current_function(), &($1));
 				dpas_sem_set_rvalue($$, $1.type, value);
 			}
-	| '[' ExpressionList ']'		{ /* TODO */ }
-	| '[' ']'						{ /* TODO */ }
+	| '[' ExpressionList ']'		{
+				/* TODO */
+				dpas_error("set expressions not yet implemented");
+				dpas_sem_set_error($$);
+			}
+	| '[' ']'						{
+				/* TODO */
+				dpas_error("set expressions not yet implemented");
+				dpas_sem_set_error($$);
+			}
 	| K_NOT Factor					{
 				jit_value_t value;
 				if(dpas_sem_is_rvalue($2) &&
@@ -2536,10 +2562,36 @@ Factor
 					dpas_sem_set_error($$);
 				}
 			}
-	| K_VA_ARG '(' TypeIdentifier ')'		{ /* TODO */ }
-	| K_SIZEOF '(' Variable ')'				{ /* TODO */ }
+	| K_VA_ARG '(' TypeIdentifier ')'		{
+				/* TODO */
+				dpas_error("`va_arg' not yet implemented");
+				dpas_sem_set_error($$);
+			}
+	| K_SIZEOF '(' Variable ')'				{
+				jit_nuint size;
+				jit_value_t value;
+				if(dpas_sem_is_rvalue($3) || dpas_sem_is_type($3))
+				{
+					size = jit_type_get_size(dpas_sem_get_type($3));
+					value = jit_value_create_nint_constant
+						(dpas_current_function(), dpas_type_size_t,
+						 (jit_nint)size);
+					if(!value)
+					{
+						dpas_out_of_memory();
+					}
+					dpas_sem_set_rvalue($$, dpas_type_size_t, value);
+				}
+				else
+				{
+					dpas_error("invalid operand to `sizeof'");
+					dpas_sem_set_error($$);
+				}
+			}
 	| '(' K_IF Expression K_THEN Expression K_ELSE Expression ')'	{
 				/* TODO */
+				dpas_error("ternary `if' not yet implemented");
+				dpas_sem_set_error($$);
 			}
 	;
 
@@ -2643,6 +2695,8 @@ Variable
 			}
 	| Variable '[' ExpressionList ']'	{
 				/* TODO */
+				dpas_error("array expression not yet implemented");
+				dpas_sem_set_error($$);
 			}
 	| Variable '.' Identifier			{
 				/* Fetch the effective address of a record field */

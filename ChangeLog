@@ -15,6 +15,10 @@
 	* jit/jit-reg-alloc.c (_jit_regs_load_to_top_two): handle the
 	case where the second value is on the stack but not the first.
 
+	* dpas/dpas-parser.y, dpas/dpas-types.c, dpas/dpas-types.h:
+	report errors for unimplemented expressions and statements,
+	so that users are not "surprised" when things silently fail.
+
 2004-05-10  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-reg-alloc.c, jit/jit-reg-alloc.h, jit/jit-rules-interp.c:

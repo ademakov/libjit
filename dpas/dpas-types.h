@@ -49,6 +49,8 @@ extern jit_type_t dpas_type_char;
 extern jit_type_t dpas_type_string;
 extern jit_type_t dpas_type_address;
 extern jit_type_t dpas_type_nil;
+extern jit_type_t dpas_type_size_t;
+extern jit_type_t dpas_type_ptrdiff_t;
 
 /*
  * Information block for a subrange.

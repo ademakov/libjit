@@ -30,6 +30,8 @@ jit_type_t dpas_type_char;
 jit_type_t dpas_type_string;
 jit_type_t dpas_type_address;
 jit_type_t dpas_type_nil;
+jit_type_t dpas_type_size_t;
+jit_type_t dpas_type_ptrdiff_t;
 
 /*
  * Register a predefined type within the global scope.
@@ -127,6 +129,8 @@ void dpas_init_types(void)
 	dpas_type_address = jit_type_void_ptr;
 	dpas_type_nil = jit_type_create_tagged
 		(jit_type_void_ptr, DPAS_TAG_NIL, 0, 0, 1);
+	dpas_type_size_t = get_uint_type(sizeof(size_t));
+	dpas_type_ptrdiff_t = get_uint_type(sizeof(ptrdiff_t));
 
 	/*
 	 * Register all of the builtin types.
@@ -178,8 +182,8 @@ void dpas_init_types(void)
 	register_type("LongReal", jit_type_nfloat);
 	register_type("Extended", jit_type_nfloat);
 
-	register_type("PtrDiffType", get_int_type(sizeof(ptrdiff_t)));
-	register_type("SizeType", get_uint_type(sizeof(size_t)));
+	register_type("PtrDiffType", dpas_type_ptrdiff_t);
+	register_type("SizeType", dpas_type_size_t);
 
 	register_type("SysInt", jit_type_sys_int);
 	register_type("SysCard", jit_type_sys_uint);
