@@ -15,6 +15,8 @@ libjitinclude_HEADERS = jit.h \
 						jit-insn.h \
 						jit-intrinsic.h \
 						jit-meta.h \
+						jit-objmodel.h \
+						jit-objmodel-private.h \
 						jit-opcode.h \
 						jit-plus.h \
 						jit-type.h \

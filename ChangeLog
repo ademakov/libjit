@@ -1,4 +1,11 @@
 
+2004-05-14  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* include/jit/Makefile.am, include/jit/jit-objmodel-private.h,
+	include/jit/jit-objmodel.h, include/jit/jit.h, jit/Makefile.am,
+	jit/jit-objmodel.c: put some infrastructure in place to support
+	pluggable object models.
+
 2004-05-13  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* dpas/dpas-parser.y, dpas/dpas-types.c, dpas/dpas-types.h:
