@@ -1540,17 +1540,21 @@ jit_type_t jit_type_remove_tags(jit_type_t type)
 
 /*@
  * @deftypefun jit_type_t jit_type_promote_int (jit_type_t type)
- * If @code{type} is @code{jit_type_sbyte}, @code{jit_type_ubyte},
- * @code{jit_type_short}, or @code{jit_type_ushort}, then return
- * @code{jit_type_int}.  Otherwise return @code{type} as-is.
+ * If @code{type} is @code{jit_type_sbyte} or @code{jit_type_short},
+ * then return @code{jit_type_int}.  If @code{type} is
+ * @code{jit_type_ubyte} or @code{jit_type_ushort}, then return
+ * @code{jit_type_uint}.  Otherwise return @code{type} as-is.
  * @end deftypefun
 @*/
 jit_type_t jit_type_promote_int(jit_type_t type)
 {
-	if(type == jit_type_sbyte || type == jit_type_ubyte ||
-	   type == jit_type_short || type == jit_type_ushort)
+	if(type == jit_type_sbyte || type == jit_type_short)
 	{
 		return jit_type_int;
+	}
+	else if(type == jit_type_ubyte || type == jit_type_ushort)
+	{
+		return jit_type_uint;
 	}
 	else
 	{
