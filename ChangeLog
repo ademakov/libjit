@@ -1,4 +1,9 @@
 
+2004-06-22  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-insn.c: properly set the "may_throw" flag for opcodes
+	that throw exceptions and which are also supported by the back end.
+
 2004-06-21  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-rules-x86.c, jit/jit-rules-x86.sel: move the code

@@ -598,6 +598,7 @@ static jit_value_t apply_unary_arith
 {
 	int oper;
 	jit_type_t result_type;
+	const jit_intrinsic_descr_t *desc;
 	if(!value1)
 	{
 		return 0;
@@ -607,30 +608,41 @@ static jit_value_t apply_unary_arith
 	if(result_type == jit_type_int)
 	{
 		oper = descr->ioper;
+		desc = descr->idesc;
 	}
 	else if(result_type == jit_type_uint)
 	{
 		oper = descr->iuoper;
+		desc = descr->iudesc;
 	}
 	else if(result_type == jit_type_long)
 	{
 		oper = descr->loper;
+		desc = descr->ldesc;
 	}
 	else if(result_type == jit_type_ulong)
 	{
 		oper = descr->luoper;
+		desc = descr->ludesc;
 	}
 	else if(result_type == jit_type_float32)
 	{
 		oper = descr->foper;
+		desc = descr->fdesc;
 	}
 	else if(result_type == jit_type_float64)
 	{
 		oper = descr->doper;
+		desc = descr->ddesc;
 	}
 	else
 	{
 		oper = descr->nfoper;
+		desc = descr->nfdesc;
+	}
+	if(desc && desc->ptr_result_type)
+	{
+		func->builder->may_throw = 1;
 	}
 	value1 = jit_insn_convert(func, value1, result_type, overflow_check);
 	if(_jit_opcode_is_supported(oper))
@@ -654,6 +666,7 @@ static jit_value_t apply_arith
 {
 	int oper;
 	jit_type_t result_type;
+	const jit_intrinsic_descr_t *desc;
 	if(!value1 || !value2)
 	{
 		return 0;
@@ -663,30 +676,41 @@ static jit_value_t apply_arith
 	if(result_type == jit_type_int)
 	{
 		oper = descr->ioper;
+		desc = descr->idesc;
 	}
 	else if(result_type == jit_type_uint)
 	{
 		oper = descr->iuoper;
+		desc = descr->iudesc;
 	}
 	else if(result_type == jit_type_long)
 	{
 		oper = descr->loper;
+		desc = descr->ldesc;
 	}
 	else if(result_type == jit_type_ulong)
 	{
 		oper = descr->luoper;
+		desc = descr->ludesc;
 	}
 	else if(result_type == jit_type_float32)
 	{
 		oper = descr->foper;
+		desc = descr->fdesc;
 	}
 	else if(result_type == jit_type_float64)
 	{
 		oper = descr->doper;
+		desc = descr->ddesc;
 	}
 	else
 	{
 		oper = descr->nfoper;
+		desc = descr->nfdesc;
+	}
+	if(desc && desc->ptr_result_type)
+	{
+		func->builder->may_throw = 1;
 	}
 	value1 = jit_insn_convert(func, value1, result_type, overflow_check);
 	value2 = jit_insn_convert(func, value2, result_type, overflow_check);
@@ -4066,6 +4090,12 @@ static jit_value_t apply_unary_conversion
 		(jit_function_t func, int oper, jit_value_t value1,
 		 jit_type_t result_type)
 {
+	/* Set the "may_throw" flag if the conversion may throw an exception */
+	if(convert_intrinsics[oper - 1].descr.ptr_result_type)
+	{
+		func->builder->may_throw = 1;
+	}
+
 	/* Bail out early if the conversion opcode is supported by the back end */
 	if(_jit_opcode_is_supported(oper))
 	{
