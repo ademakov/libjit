@@ -7694,10 +7694,33 @@ int jit_insn_mark_offset(jit_function_t func, jit_int offset)
 					   			(func, jit_type_int, offset));
 }
 
+#if !defined(JIT_BACKEND_INTERP)
+
+/*
+ * Perform first-level debug hook testing.
+ */
+void _jit_hook_test(jit_function_t func, jit_nint data1, jit_nint data2)
+{
+	if(func->breakpoints_enabled || func->context->breakpoints_enabled)
+	{
+		jit_debug_hook_func hook;
+		hook = (jit_debug_hook_func)
+			jit_context_get_meta(func->context, JIT_OPTION_DEBUG_HOOK);
+		if(hook)
+		{
+			(*hook)(func, data1, data2);
+		}
+	}
+}
+
+#endif /* !JIT_BACKEND_INTERP */
+
 /* Documentation is in jit-debug.c */
 int jit_insn_mark_breakpoint
 	(jit_function_t func, jit_nint data1, jit_nint data2)
 {
+#if defined(JIT_BACKEND_INTERP)
+	/* Use the "mark_breakpoint" instruction for the interpreter */
 	if(!jit_insn_new_block(func))
 	{
 		return 0;
@@ -7707,6 +7730,43 @@ int jit_insn_mark_breakpoint
 							(func, jit_type_nint, data1),
 				       jit_value_create_nint_constant
 							(func, jit_type_nint, data2));
+#else
+	/* Insert a call to "_jit_hook_test" on native platforms */
+	jit_type_t params[3];
+	jit_type_t signature;
+	jit_value_t values[3];
+	params[0] = jit_type_void_ptr;
+	params[1] = jit_type_nint;
+	params[2] = jit_type_nint;
+	signature = jit_type_create_signature
+		(jit_abi_cdecl, jit_type_void, params, 3, 0);
+	if(!signature)
+	{
+		return 0;
+	}
+	if((values[0] = jit_value_create_nint_constant
+			(func, jit_type_void_ptr, (jit_nint)func)) == 0)
+	{
+		jit_type_free(signature);
+		return 0;
+	}
+	if((values[1] = jit_value_create_nint_constant
+			(func, jit_type_nint, data1)) == 0)
+	{
+		jit_type_free(signature);
+		return 0;
+	}
+	if((values[2] = jit_value_create_nint_constant
+			(func, jit_type_nint, data2)) == 0)
+	{
+		jit_type_free(signature);
+		return 0;
+	}
+	jit_insn_call_native(func, "_jit_hook_test", (void *)_jit_hook_test,
+						 signature, values, 3, JIT_CALL_NOTHROW);
+	jit_type_free(signature);
+	return 1;
+#endif
 }
 
 /*@

@@ -2800,13 +2800,3 @@ JIT_OP_ALLOCA: unary
 		x86_mov_reg_reg(inst, $1, X86_ESP, 4);
 		gen->stack_changed = 1;
 	}
-
-/*
- * Debugging support.
- */
-
-JIT_OP_MARK_BREAKPOINT: manual
-	[] -> {
-		/* TODO */
-		TODO();
-	}
