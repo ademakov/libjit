@@ -74,42 +74,63 @@ static void dpas_write_string(char *value)
 }
 
 /*
- * Call a native "write" function.
+ * Call a native builtin function.
  */
-static void call_write(jit_function_t func, const char *name,
-					   void *native_func, jit_type_t arg_type,
-					   jit_value_t value)
+static jit_value_t call_builtin
+	(jit_function_t func, const char *name, void *native_func,
+	 jit_type_t arg1_type, jit_value_t value1,
+	 jit_type_t arg2_type, jit_value_t value2,
+	 jit_type_t return_type)
 {
 	jit_type_t signature;
-	jit_value_t args[1];
+	jit_type_t arg_types[2];
+	jit_value_t args[2];
 	int num_args = 0;
-	if(arg_type)
+	if(arg1_type)
 	{
-		args[0] = jit_insn_convert(func, value, arg_type, 0);
-		if(!(args[0]))
+		args[num_args] = jit_insn_convert(func, value1, arg1_type, 0);
+		if(!(args[num_args]))
 		{
 			dpas_out_of_memory();
 		}
-		num_args = 1;
-		signature = jit_type_create_signature
-			(jit_abi_cdecl, jit_type_void, &arg_type, 1, 1);
+		arg_types[num_args] = arg1_type;
+		++num_args;
 	}
-	else
+	if(arg2_type)
 	{
-		num_args = 0;
-		signature = jit_type_create_signature
-			(jit_abi_cdecl, jit_type_void, 0, 0, 1);
+		args[num_args] = jit_insn_convert(func, value2, arg2_type, 0);
+		if(!(args[num_args]))
+		{
+			dpas_out_of_memory();
+		}
+		arg_types[num_args] = arg2_type;
+		++num_args;
 	}
+	signature = jit_type_create_signature
+		(jit_abi_cdecl, return_type, arg_types, num_args, 1);
 	if(!signature)
 	{
 		dpas_out_of_memory();
 	}
-	if(!jit_insn_call_native(func, name, native_func, signature,
-							 args, num_args, JIT_CALL_NOTHROW))
+	value1 = jit_insn_call_native(func, name, native_func, signature,
+							      args, num_args, JIT_CALL_NOTHROW);
+	if(!value1)
 	{
 		dpas_out_of_memory();
 	}
 	jit_type_free(signature);
+	return value1;
+}
+
+/*
+ * Call a native "write" function.
+ */
+static void call_write
+	(jit_function_t func, const char *name, void *native_func,
+	 jit_type_t arg1_type, jit_value_t value1)
+{
+	call_builtin(func, name, native_func, arg1_type,
+				 value1, 0, 0, jit_type_void);
 }
 
 /*
@@ -243,12 +264,99 @@ static dpas_semvalue dpas_terminate(dpas_semvalue *args, int num_args)
 }
 
 /*
+ * Create a new object of a specific type and put its pointer into a variable.
+ */
+static dpas_semvalue dpas_new(dpas_semvalue *args, int num_args)
+{
+	dpas_semvalue result;
+	jit_type_t type = dpas_sem_get_type(args[0]);
+	jit_nuint size;
+	jit_value_t value;
+	if(dpas_sem_is_lvalue(args[0]) && jit_type_is_pointer(type))
+	{
+		size = jit_type_get_size(jit_type_get_ref(type));
+		value = call_builtin
+			(dpas_current_function(), "jit_calloc", (void *)jit_calloc,
+			 jit_type_sys_uint,
+			 jit_value_create_nint_constant
+			 	(dpas_current_function(), jit_type_sys_uint, 1),
+			 jit_type_sys_uint,
+			 jit_value_create_nint_constant
+			 	(dpas_current_function(), jit_type_sys_uint, (jit_nint)size),
+			 jit_type_void_ptr);
+		if(!value)
+		{
+			dpas_out_of_memory();
+		}
+		if(!jit_insn_store(dpas_current_function(),
+						   dpas_sem_get_value(args[0]), value))
+		{
+			dpas_out_of_memory();
+		}
+	}
+	else if(dpas_sem_is_lvalue_ea(args[0]) && jit_type_is_pointer(type))
+	{
+		size = jit_type_get_size(jit_type_get_ref(type));
+		value = call_builtin
+			(dpas_current_function(), "jit_calloc", (void *)jit_calloc,
+			 jit_type_sys_uint,
+			 jit_value_create_nint_constant
+			 	(dpas_current_function(), jit_type_sys_uint, 1),
+			 jit_type_sys_uint,
+			 jit_value_create_nint_constant
+			 	(dpas_current_function(), jit_type_sys_uint, (jit_nint)size),
+			 jit_type_void_ptr);
+		if(!value)
+		{
+			dpas_out_of_memory();
+		}
+		if(!jit_insn_store_relative(dpas_current_function(),
+						            dpas_sem_get_value(args[0]), 0, value))
+		{
+			dpas_out_of_memory();
+		}
+	}
+	else
+	{
+		if(!dpas_sem_is_error(args[0]))
+		{
+			dpas_error("invalid l-value used with `New'");
+		}
+	}
+	dpas_sem_set_void(result);
+	return result;
+}
+
+/*
+ * Dispose of an object that is referenced by a pointer.
+ */
+static dpas_semvalue dpas_dispose(dpas_semvalue *args, int num_args)
+{
+	dpas_semvalue result;
+	jit_type_t type = dpas_sem_get_type(args[0]);
+	result = dpas_lvalue_to_rvalue(args[0]);
+	if(dpas_sem_is_rvalue(result) && jit_type_is_pointer(type))
+	{
+		call_write(dpas_current_function(), "jit_free", (void *)jit_free,
+				   jit_type_void_ptr, dpas_sem_get_value(result));
+	}
+	else if(!dpas_sem_is_error(result))
+	{
+		dpas_error("invalid argument used with `Dispose'");
+	}
+	dpas_sem_set_void(result);
+	return result;
+}
+
+/*
  * Builtins that we currently recognize.
  */
 #define	DPAS_BUILTIN_WRITE			1
 #define	DPAS_BUILTIN_WRITELN		2
 #define	DPAS_BUILTIN_FLUSH			3
 #define	DPAS_BUILTIN_TERMINATE		4
+#define	DPAS_BUILTIN_NEW			5
+#define	DPAS_BUILTIN_DISPOSE		6
 
 /*
  * Table that defines the builtins.
@@ -266,6 +374,8 @@ static dpas_builtin const builtins[] = {
 	{"WriteLn",		DPAS_BUILTIN_WRITELN,	dpas_writeln,	-1},
 	{"Flush",		DPAS_BUILTIN_FLUSH,		dpas_flush,		 0},
 	{"Terminate",	DPAS_BUILTIN_TERMINATE,	dpas_terminate,	 1},
+	{"New",			DPAS_BUILTIN_NEW,		dpas_new,	 	 1},
+	{"Dispose",		DPAS_BUILTIN_DISPOSE,	dpas_dispose, 	 1},
 };
 #define	num_builtins	(sizeof(builtins) / sizeof(dpas_builtin))
 
