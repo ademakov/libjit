@@ -720,6 +720,8 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	int num_regs, reg;
 	unsigned char *inst;
 	int struct_return_offset = 0;
+	void **fixup;
+	void **next;
 
 	/* Bail out if there is insufficient space for the epilog */
 	if(!jit_cache_check_for_n(&(gen->posn), 32))
@@ -793,9 +795,19 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	}
 #endif
 
+	/* Perform fixups on any blocks that jump to the epilog */
+	inst = gen->posn.ptr;
+	fixup = (void **)(gen->epilog_fixup);
+	while(fixup != 0)
+	{
+		next = (void **)(fixup[0]);
+		fixup[0] = (void *)(((jit_nint)inst) - ((jit_nint)fixup) - 4);
+		fixup = next;
+	}
+	gen->epilog_fixup = 0;
+
 	/* If we are returning a structure via a pointer, then copy
 	   the pointer value into EAX when we return */
-	inst = gen->posn.ptr;
 	if(struct_return_offset != 0)
 	{
 		x86_mov_reg_membase(inst, X86_EAX, X86_EBP, struct_return_offset, 4);
@@ -1205,6 +1217,100 @@ static unsigned char *setcc_reg
 		x86_mov_reg_imm(inst, reg, 1);
 		x86_patch(patch2, inst);
 	}
+	return inst;
+}
+
+/*
+ * Get the long form of a branch opcode.
+ */
+static int long_form_branch(int opcode)
+{
+	if(opcode == 0xEB)
+	{
+		return 0xE9;
+	}
+	else
+	{
+		return opcode + 0x0F10;
+	}
+}
+
+/*
+ * Output a branch instruction.
+ */
+static unsigned char *output_branch
+	(jit_function_t func, unsigned char *inst, int opcode, jit_insn_t insn)
+{
+	jit_block_t block;
+	int offset;
+	block = jit_block_from_label(func, (jit_label_t)(insn->dest));
+	if(!block)
+	{
+		return inst;
+	}
+	if(block->address)
+	{
+		/* We already know the address of the block */
+		offset = ((unsigned char *)(block->address)) - (inst + 2);
+		if(x86_is_imm8(offset))
+		{
+			/* We can output a short-form backwards branch */
+			*inst++ = (unsigned char)opcode;
+			*inst++ = (unsigned char)offset;
+		}
+		else
+		{
+			/* We need to output a long-form backwards branch */
+			offset -= 3;
+			opcode = long_form_branch(opcode);
+			if(opcode < 256)
+			{
+				*inst++ = (unsigned char)opcode;
+			}
+			else
+			{
+				*inst++ = (unsigned char)(opcode >> 8);
+				*inst++ = (unsigned char)opcode;
+			}
+			x86_imm_emit32(inst, offset);
+		}
+	}
+	else
+	{
+		/* Output a placeholder and record on the block's fixup list */
+		opcode = long_form_branch(opcode);
+		if(opcode < 256)
+		{
+			*inst++ = (unsigned char)opcode;
+		}
+		else
+		{
+			*inst++ = (unsigned char)(opcode >> 8);
+			*inst++ = (unsigned char)opcode;
+		}
+		x86_imm_emit32(inst, (int)(block->fixup_list));
+		block->fixup_list = (void *)(inst - 4);
+	}
+	return inst;
+}
+
+/*
+ * Jump to the current function's epilog.
+ */
+static unsigned char *jump_to_epilog
+	(jit_gencode_t gen, unsigned char *inst, jit_block_t block)
+{
+	/* If the epilog is the next thing that we will output,
+	   then fall through to the epilog directly */
+	if(!(block->next))
+	{
+		return inst;
+	}
+
+	/* Output a placeholder for the jump and add it to the fixup list */
+	*inst++ = (unsigned char)0xE9;
+	x86_imm_emit32(inst, (int)(gen->epilog_fixup));
+	gen->epilog_fixup = (void *)(inst - 4);
 	return inst;
 }
 

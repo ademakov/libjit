@@ -137,6 +137,7 @@ struct jit_gencode
 #ifdef jit_extra_gen_state
 	jit_extra_gen_state;			/* CPU-specific extra information */
 #endif
+	void			   *epilog_fixup; /* Fixup list for function epilogs */
 };
 
 /*

@@ -549,8 +549,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 		if((options & (GENSEL_OPT_BINARY_BRANCH |
 					   GENSEL_OPT_UNARY_BRANCH)) != 0)
 		{
-			/* Spill all registers back to their original positions */
-			printf("\t\t_jit_gen_spill_all(gen);\n");
+			/* Spill all other registers back to their original positions */
+			printf("\t\t_jit_regs_spill_all(gen);\n");
 		}
 		gensel_output_clause(clause);
 		printf("\t}\n");

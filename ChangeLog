@@ -1,4 +1,10 @@
 
+2004-05-26  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-insn.c, jit/jit-rules-x86.c, jit/jit-rules-x86.sel,
+	jit/jit-rules.h, tools/gen-sel-parser.y: fix some compile issues
+	in the x86 native back end.
+
 2004-05-25  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* tools/.cvsignore, tools/Makefile.am, tools/gen-sel-parser.y,

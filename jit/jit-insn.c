@@ -4628,12 +4628,8 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 {
 #if !defined(JIT_BACKEND_INTERP)
 	jit_type_t type;
-	jit_value_t eh_frame_info;
-	jit_block_t block;
 	jit_value_t args[2];
 	jit_insn_t insn;
-	jit_type_t params[2];
-	jit_value_t struct_return;
 
 	/* If "tail" is set, then we need to pop the "setjmp" context */
 	if((flags & JIT_CALL_TAIL) != 0 && func->has_try)
@@ -4660,62 +4656,67 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 	func->builder->may_throw = 1;
 
 #if JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
-	/* Get the value that holds the exception frame information */
-	if((eh_frame_info = func->builder->eh_frame_info) == 0)
 	{
-		type = jit_type_create_struct(0, 0, 0);
+		jit_value_t eh_frame_info;
+		jit_type_t params[2];
+
+		/* Get the value that holds the exception frame information */
+		if((eh_frame_info = func->builder->eh_frame_info) == 0)
+		{
+			type = jit_type_create_struct(0, 0, 0);
+			if(!type)
+			{
+				return 0;
+			}
+			jit_type_set_size_and_alignment
+				(type, sizeof(struct jit_backtrace), sizeof(void *));
+			eh_frame_info = jit_value_create(func, type);
+			jit_type_free(type);
+			if(!eh_frame_info)
+			{
+				return 0;
+			}
+			func->builder->eh_frame_info = eh_frame_info;
+		}
+
+		/* Output an instruction to load the "pc" into a value */
+		args[1] = jit_value_create(func, jit_type_void_ptr);
+		if(!(args[1]))
+		{
+			return 0;
+		}
+		insn = _jit_block_add_insn(func->builder->current_block);
+		if(!insn)
+		{
+			return 0;
+		}
+		jit_value_ref(func, args[1]);
+		insn->opcode = JIT_OP_LOAD_PC;
+		insn->dest = args[1];
+
+		/* Load the address of "eh_frame_info" into another value */
+		args[0] = jit_insn_address_of(func, eh_frame_info);
+		if(!(args[0]))
+		{
+			return 0;
+		}
+
+		/* Create a signature for the prototype "void (void *, void *)" */
+		params[0] = jit_type_void_ptr;
+		params[1] = jit_type_void_ptr;
+		type = jit_type_create_signature
+			(jit_abi_cdecl, jit_type_void, params, 2, 1);
 		if(!type)
 		{
 			return 0;
 		}
-		jit_type_set_size_and_alignment
-			(type, sizeof(struct jit_backtrace), sizeof(void *));
-		eh_frame_info = jit_value_create(func, type);
+
+		/* Call the "_jit_backtrace_push" function */
+		jit_insn_call_native
+			(func, "_jit_backtrace_push",
+			 (void *)_jit_backtrace_push, type, args, 2, JIT_CALL_NOTHROW);
 		jit_type_free(type);
-		if(!eh_frame_info)
-		{
-			return 0;
-		}
-		func->builder->eh_frame_info = eh_frame_info;
 	}
-
-	/* Output an instruction to load the "pc" into a value */
-	args[1] = jit_value_create(func, jit_type_void_ptr);
-	if(!(args[1]))
-	{
-		return 0;
-	}
-	insn = _jit_block_add_insn(func->builder->current_block);
-	if(!insn)
-	{
-		return 0;
-	}
-	jit_value_ref(func, args[1]);
-	insn->opcode = JIT_OP_LOAD_PC;
-	insn->dest = args[1];
-
-	/* Load the address of "eh_frame_info" into another value */
-	args[0] = jit_insn_address_of(func, eh_frame_info);
-	if(!(args[0]))
-	{
-		return 0;
-	}
-
-	/* Create a signature for the prototype "void (void *, void *)" */
-	params[0] = jit_type_void_ptr;
-	params[1] = jit_type_void_ptr;
-	type = jit_type_create_signature
-		(jit_abi_cdecl, jit_type_void, params, 2, 1);
-	if(!type)
-	{
-		return 0;
-	}
-
-	/* Call the "_jit_backtrace_push" function */
-	jit_insn_call_native
-		(func, "_jit_backtrace_push",
-		 (void *)_jit_backtrace_push, type, args, 2, JIT_CALL_NOTHROW);
-	jit_type_free(type);
 #endif
 
 	/* Update the "catch_pc" value to reflect the current context */
@@ -4735,7 +4736,7 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 		insn->opcode = JIT_OP_LOAD_PC;
 		insn->dest = args[0];
 		if(!jit_insn_store_relative
-			(func, jit_insn_address_of(func->builder->setjmp_value),
+			(func, jit_insn_address_of(func, func->builder->setjmp_value),
 			 jit_jmp_catch_pc_offset, args[0]))
 		{
 			return 0;
@@ -4760,10 +4761,7 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 static int restore_eh_frame_after_call(jit_function_t func, int flags)
 {
 #if !defined(JIT_BACKEND_INTERP)
-	jit_type_t type;
-	jit_value_t struct_return;
-	jit_block_t block;
-	jit_insn_t insn;
+	jit_value_t value;
 
 	/* If the "nothrow", "noreturn", or "tail" flags are set, then we
 	   don't need to worry about this */
@@ -4773,32 +4771,36 @@ static int restore_eh_frame_after_call(jit_function_t func, int flags)
 	}
 
 #if JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
-	/* Create the signature prototype "void (void)" */
-	type = jit_type_create_signature
-		(jit_abi_cdecl, jit_type_void, 0, 0, 0);
-	if(!type)
 	{
-		return 0;
-	}
+		jit_type_t type;
 
-	/* Call the "_jit_backtrace_pop" function */
-	jit_insn_call_native
-		(func, "_jit_backtrace_pop",
-		 (void *)_jit_backtrace_pop, type, 0, 0, JIT_CALL_NOTHROW);
-	jit_type_free(type);
+		/* Create the signature prototype "void (void)" */
+		type = jit_type_create_signature
+			(jit_abi_cdecl, jit_type_void, 0, 0, 0);
+		if(!type)
+		{
+			return 0;
+		}
+
+		/* Call the "_jit_backtrace_pop" function */
+		jit_insn_call_native
+			(func, "_jit_backtrace_pop",
+			 (void *)_jit_backtrace_pop, type, 0, 0, JIT_CALL_NOTHROW);
+		jit_type_free(type);
+	}
 #endif
 
 	/* Clear the "catch_pc" value for the current context */
 	if(func->builder->setjmp_value != 0)
 	{
-		args[0] = jit_value_create_nint_constant(func, jit_type_void_ptr, 0);
-		if(!(args[0]))
+		value = jit_value_create_nint_constant(func, jit_type_void_ptr, 0);
+		if(!value)
 		{
 			return 0;
 		}
 		if(!jit_insn_store_relative
-			(func, jit_insn_address_of(func->builder->setjmp_value),
-			 jit_jmp_catch_pc_offset, args[0]))
+			(func, jit_insn_address_of(func, func->builder->setjmp_value),
+			 jit_jmp_catch_pc_offset, value))
 		{
 			return 0;
 		}
@@ -6365,14 +6367,14 @@ static int initialize_setjmp_block(jit_function_t func)
 	/* Clear the original "catch_pc" value within "setjmp_value" */
 	if(!jit_insn_store_relative
 		(func, jit_insn_address_of(func, func->builder->setjmp_value),
-		 jit_jmp_catcher_offset, jit_value_create_nint_constant
+		 jit_jmp_catch_pc_offset, jit_value_create_nint_constant
 		 	(func, jit_type_void_ptr, 0)))
 	{
 		return 0;
 	}
 
 	/* Jump to this function's exception catcher */
-	if(!jit_insn_branch(func, &(func->builder->catcher_label))
+	if(!jit_insn_branch(func, &(func->builder->catcher_label)))
 	{
 		return 0;
 	}
