@@ -21,17 +21,20 @@
 #ifndef	_JIT_META_H
 #define	_JIT_META_H
 
+#include <jit/jit-defs.h>
+
 #ifdef	__cplusplus
 extern	"C" {
 #endif
 
 typedef struct _jit_meta *jit_meta_t;
 
-int jit_meta_set(jit_meta_t *list, int type, void *data,
-				 jit_meta_free_func free_data, jit_function_t pool_owner);
-void *jit_meta_get(jit_meta_t list, int type);
-void jit_meta_free(jit_meta_t *list, int type);
-void jit_meta_destroy(jit_meta_t *list);
+int jit_meta_set
+	(jit_meta_t *list, int type, void *data,
+	 jit_meta_free_func free_data, jit_function_t pool_owner) JIT_NOTHROW;
+void *jit_meta_get(jit_meta_t list, int type) JIT_NOTHROW;
+void jit_meta_free(jit_meta_t *list, int type) JIT_NOTHROW;
+void jit_meta_destroy(jit_meta_t *list) JIT_NOTHROW;
 
 #ifdef	__cplusplus
 };

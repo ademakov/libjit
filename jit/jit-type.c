@@ -603,6 +603,46 @@ jit_type_t jit_type_create_pointer(jit_type_t type, int incref)
  * tag a type multiple times.  The order in which multiple tags are
  * applied is irrelevant to @code{libjit}, although it may be relevant
  * to the higher-level program.
+ *
+ * Tag kinds of 10000 or greater are reserved for @code{libjit} itself.
+ * The following special tag kinds are currently provided in the
+ * base implementation:
+ *
+ * @table @code
+ * @vindex JIT_TYPETAG_NAME
+ * @item JIT_TYPETAG_NAME
+ * The @code{data} pointer is a @code{char *} string indicating a friendly
+ * name to display for the type.
+ *
+ * @vindex JIT_TYPETAG_STRUCT_NAME
+ * @item JIT_TYPETAG_STRUCT_NAME
+ * The @code{data} pointer is a @code{char *} string indicating a friendly
+ * name to display for a @code{struct} or @code{union} type.  This is
+ * for languages like C that have separate naming scopes for typedef's and
+ * structures.
+ *
+ * @vindex JIT_TYPETAG_CONST
+ * @item JIT_TYPETAG_CONST
+ * The underlying value is assumed to have @code{const} semantics.
+ * The @code{libjit} library doesn't enforce such semantics: it is
+ * up to the front-end to only use constant values in appopriate contexts.
+ *
+ * @vindex JIT_TYPETAG_VOLATILE
+ * @item JIT_TYPETAG_VOLATILE
+ * The underlying value is assumed to be volatile.  The @code{libjit}
+ * library will automatically call @code{jit_value_set_volatile} when a
+ * value is constructed using this type.
+ *
+ * @vindex JIT_TYPETAG_REFERENCE
+ * @item JIT_TYPETAG_REFERENCE
+ * The underlying value is a pointer, but it is assumed to refer to a
+ * pass-by-reference parameter.
+ *
+ * @vindex JIT_TYPETAG_OUTPUT
+ * @item JIT_TYPETAG_OUTPUT
+ * This is similar to @code{JIT_TYPETAG_REFERENCE}, except that the
+ * underlying parameter is assumed to be output-only.
+ * @end table
  * @end deftypefun
 @*/
 jit_type_t jit_type_create_tagged(jit_type_t type, int kind, void *data,
@@ -1320,4 +1360,23 @@ int jit_type_return_via_pointer(jit_type_t type)
 		}
 	}
 	return 1;
+}
+
+/*@
+ * @deftypefun int jit_type_has_tag (jit_type_t type, int kind)
+ * Determine if @code{type} has a specific kind of tag.  This will
+ * resolve multiple levels of tagging.
+ * @end deftypefun
+@*/
+int jit_type_has_tag(jit_type_t type, int kind)
+{
+	while(type != 0 && type->kind >= JIT_TYPE_FIRST_TAGGED)
+	{
+		if(type->kind == (JIT_TYPE_FIRST_TAGGED + kind))
+		{
+			return 1;
+		}
+		type = type->sub_type;
+	}
+	return 0;
 }

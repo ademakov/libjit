@@ -21,12 +21,14 @@
 #ifndef	_JIT_INIT_H
 #define	_JIT_INIT_H
 
+#include <jit/jit-defs.h>
+
 #ifdef	__cplusplus
 extern	"C" {
 #endif
 
-void jit_init(void);
-int jit_uses_interpreter(void);
+void jit_init(void) JIT_NOTHROW;
+int jit_uses_interpreter(void) JIT_NOTHROW;
 
 #ifdef	__cplusplus
 };

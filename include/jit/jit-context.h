@@ -27,19 +27,20 @@
 extern	"C" {
 #endif
 
-jit_context_t jit_context_create(void);
-void jit_context_destroy(jit_context_t context);
-int jit_context_supports_threads(jit_context_t context);
-void jit_context_build_start(jit_context_t context);
-void jit_context_build_end(jit_context_t context);
+jit_context_t jit_context_create(void) JIT_NOTHROW;
+void jit_context_destroy(jit_context_t context) JIT_NOTHROW;
+int jit_context_supports_threads(jit_context_t context) JIT_NOTHROW;
+void jit_context_build_start(jit_context_t context) JIT_NOTHROW;
+void jit_context_build_end(jit_context_t context) JIT_NOTHROW;
 int jit_context_set_meta
 	(jit_context_t context, int type, void *data,
-	 jit_meta_free_func free_data);
+	 jit_meta_free_func free_data) JIT_NOTHROW;
 int jit_context_set_meta_numeric
-	(jit_context_t context, int type, jit_nuint data);
-void *jit_context_get_meta(jit_context_t context, int type);
-jit_nuint jit_context_get_meta_numeric(jit_context_t context, int type);
-void jit_context_free_meta(jit_context_t context, int type);
+	(jit_context_t context, int type, jit_nuint data) JIT_NOTHROW;
+void *jit_context_get_meta(jit_context_t context, int type) JIT_NOTHROW;
+jit_nuint jit_context_get_meta_numeric
+	(jit_context_t context, int type) JIT_NOTHROW;
+void jit_context_free_meta(jit_context_t context, int type) JIT_NOTHROW;
 
 /*
  * Standard meta values for builtin configurable options.

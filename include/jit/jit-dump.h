@@ -28,11 +28,14 @@
 extern	"C" {
 #endif
 
-void jit_dump_type(FILE *stream, jit_type_t type);
-void jit_dump_value(FILE *stream, jit_function_t func,
-					jit_value_t value, const char *prefix);
-void jit_dump_insn(FILE *stream, jit_function_t func, jit_insn_t insn);
-void jit_dump_function(FILE *stream, jit_function_t func, const char *name);
+void jit_dump_type(FILE *stream, jit_type_t type) JIT_NOTHROW;
+void jit_dump_value
+	(FILE *stream, jit_function_t func,
+	 jit_value_t value, const char *prefix) JIT_NOTHROW;
+void jit_dump_insn
+	(FILE *stream, jit_function_t func, jit_insn_t insn) JIT_NOTHROW;
+void jit_dump_function
+	(FILE *stream, jit_function_t func, const char *name) JIT_NOTHROW;
 
 #ifdef	__cplusplus
 };

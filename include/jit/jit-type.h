@@ -66,6 +66,16 @@ extern jit_type_t const jit_type_sys_double;
 extern jit_type_t const jit_type_sys_long_double;
 
 /*
+ * Special tag types.
+ */
+#define	JIT_TYPETAG_NAME			10000
+#define	JIT_TYPETAG_STRUCT_NAME		10001
+#define	JIT_TYPETAG_CONST			10002
+#define	JIT_TYPETAG_VOLATILE		10003
+#define	JIT_TYPETAG_REFERENCE		10004
+#define	JIT_TYPETAG_OUTPUT			10005
+
+/*
  * ABI types for function signatures.
  */
 typedef enum
@@ -80,54 +90,60 @@ typedef enum
 /*
  * External function declarations.
  */
-jit_type_t jit_type_copy(jit_type_t type);
-void jit_type_free(jit_type_t type);
-jit_type_t jit_type_create_struct(jit_type_t *fields, unsigned int num_fields,
-                                  int incref);
-jit_type_t jit_type_create_union(jit_type_t *fields, unsigned int num_fields,
-                                  int incref);
-jit_type_t jit_type_create_signature(jit_abi_t abi, jit_type_t return_type,
-                                     jit_type_t *params,
-									 unsigned int num_params, int incref);
-jit_type_t jit_type_create_pointer(jit_type_t type, int incref);
-jit_type_t jit_type_create_tagged(jit_type_t type, int kind, void *data,
-								  jit_meta_free_func free_func, int incref);
-int jit_type_set_names(jit_type_t type, char **names, unsigned int num_names);
-void jit_type_set_size_and_alignment(jit_type_t type, jit_nint size,
-									 jit_nint alignment);
-void jit_type_set_offset(jit_type_t type, unsigned int field_index,
-						 jit_nuint offset);
-jit_nuint jit_type_get_size(jit_type_t type);
-jit_nuint jit_type_get_alignment(jit_type_t type);
-unsigned int jit_type_num_fields(jit_type_t type);
-jit_type_t jit_type_get_field(jit_type_t type, unsigned int field_index);
-jit_nuint jit_type_get_offset(jit_type_t type, unsigned int field_index);
-const char *jit_type_get_name(jit_type_t type, unsigned int index);
+jit_type_t jit_type_copy(jit_type_t type) JIT_NOTHROW;
+void jit_type_free(jit_type_t type) JIT_NOTHROW;
+jit_type_t jit_type_create_struct
+	(jit_type_t *fields, unsigned int num_fields, int incref) JIT_NOTHROW;
+jit_type_t jit_type_create_union
+	(jit_type_t *fields, unsigned int num_fields, int incref) JIT_NOTHROW;
+jit_type_t jit_type_create_signature
+	(jit_abi_t abi, jit_type_t return_type, jit_type_t *params,
+	 unsigned int num_params, int incref) JIT_NOTHROW;
+jit_type_t jit_type_create_pointer(jit_type_t type, int incref) JIT_NOTHROW;
+jit_type_t jit_type_create_tagged
+	(jit_type_t type, int kind, void *data,
+	 jit_meta_free_func free_func, int incref) JIT_NOTHROW;
+int jit_type_set_names
+	(jit_type_t type, char **names, unsigned int num_names) JIT_NOTHROW;
+void jit_type_set_size_and_alignment
+	(jit_type_t type, jit_nint size, jit_nint alignment) JIT_NOTHROW;
+void jit_type_set_offset
+	(jit_type_t type, unsigned int field_index, jit_nuint offset) JIT_NOTHROW;
+jit_nuint jit_type_get_size(jit_type_t type) JIT_NOTHROW;
+jit_nuint jit_type_get_alignment(jit_type_t type) JIT_NOTHROW;
+unsigned int jit_type_num_fields(jit_type_t type) JIT_NOTHROW;
+jit_type_t jit_type_get_field
+	(jit_type_t type, unsigned int field_index) JIT_NOTHROW;
+jit_nuint jit_type_get_offset
+	(jit_type_t type, unsigned int field_index) JIT_NOTHROW;
+const char *jit_type_get_name(jit_type_t type, unsigned int index) JIT_NOTHROW;
 #define	JIT_INVALID_NAME	(~((unsigned int)0))
-unsigned int jit_type_find_name(jit_type_t type, const char *name);
-unsigned int jit_type_num_params(jit_type_t type);
-jit_type_t jit_type_get_return(jit_type_t type);
-jit_type_t jit_type_get_param(jit_type_t type, unsigned int param_index);
-jit_abi_t jit_type_get_abi(jit_type_t type);
-jit_type_t jit_type_get_ref(jit_type_t type);
-jit_type_t jit_type_get_tagged_type(jit_type_t type);
-void jit_type_set_tagged_type(jit_type_t type, jit_type_t underlying,
-                              int incref);
-int jit_type_get_tagged_kind(jit_type_t type);
-void *jit_type_get_tagged_data(jit_type_t type);
-void jit_type_set_tagged_data(jit_type_t type, void *data,
-                              jit_meta_free_func free_func);
-int jit_type_is_primitive(jit_type_t type);
-int jit_type_is_struct(jit_type_t type);
-int jit_type_is_union(jit_type_t type);
-int jit_type_is_signature(jit_type_t type);
-int jit_type_is_pointer(jit_type_t type);
-int jit_type_is_tagged(jit_type_t type);
-jit_nuint jit_type_best_alignment(void);
-jit_type_t jit_type_normalize(jit_type_t type);
-jit_type_t jit_type_remove_tags(jit_type_t type);
-jit_type_t jit_type_promote_int(jit_type_t type);
-int jit_type_return_via_pointer(jit_type_t type);
+unsigned int jit_type_find_name(jit_type_t type, const char *name) JIT_NOTHROW;
+unsigned int jit_type_num_params(jit_type_t type) JIT_NOTHROW;
+jit_type_t jit_type_get_return(jit_type_t type) JIT_NOTHROW;
+jit_type_t jit_type_get_param
+	(jit_type_t type, unsigned int param_index) JIT_NOTHROW;
+jit_abi_t jit_type_get_abi(jit_type_t type) JIT_NOTHROW;
+jit_type_t jit_type_get_ref(jit_type_t type) JIT_NOTHROW;
+jit_type_t jit_type_get_tagged_type(jit_type_t type) JIT_NOTHROW;
+void jit_type_set_tagged_type
+	(jit_type_t type, jit_type_t underlying, int incref) JIT_NOTHROW;
+int jit_type_get_tagged_kind(jit_type_t type) JIT_NOTHROW;
+void *jit_type_get_tagged_data(jit_type_t type) JIT_NOTHROW;
+void jit_type_set_tagged_data
+	(jit_type_t type, void *data, jit_meta_free_func free_func) JIT_NOTHROW;
+int jit_type_is_primitive(jit_type_t type) JIT_NOTHROW;
+int jit_type_is_struct(jit_type_t type) JIT_NOTHROW;
+int jit_type_is_union(jit_type_t type) JIT_NOTHROW;
+int jit_type_is_signature(jit_type_t type) JIT_NOTHROW;
+int jit_type_is_pointer(jit_type_t type) JIT_NOTHROW;
+int jit_type_is_tagged(jit_type_t type) JIT_NOTHROW;
+jit_nuint jit_type_best_alignment(void) JIT_NOTHROW;
+jit_type_t jit_type_normalize(jit_type_t type) JIT_NOTHROW;
+jit_type_t jit_type_remove_tags(jit_type_t type) JIT_NOTHROW;
+jit_type_t jit_type_promote_int(jit_type_t type) JIT_NOTHROW;
+int jit_type_return_via_pointer(jit_type_t type) JIT_NOTHROW;
+int jit_type_has_tag(jit_type_t type, int kind) JIT_NOTHROW;
 
 #ifdef	__cplusplus
 };

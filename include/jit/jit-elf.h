@@ -52,30 +52,38 @@ typedef struct jit_writeelf *jit_writeelf_t;
 /*
  * External function declarations.
  */
-int jit_readelf_open(jit_readelf_t *readelf, const char *filename, int flags);
-void jit_readelf_close(jit_readelf_t readelf);
-const char *jit_readelf_get_name(jit_readelf_t readelf);
-void *jit_readelf_get_symbol(jit_readelf_t readelf, const char *name);
+int jit_readelf_open
+	(jit_readelf_t *readelf, const char *filename, int flags) JIT_NOTHROW;
+void jit_readelf_close(jit_readelf_t readelf) JIT_NOTHROW;
+const char *jit_readelf_get_name(jit_readelf_t readelf) JIT_NOTHROW;
+void *jit_readelf_get_symbol
+	(jit_readelf_t readelf, const char *name) JIT_NOTHROW;
 void *jit_readelf_get_section
-	(jit_readelf_t readelf, const char *name, jit_nuint *size);
+	(jit_readelf_t readelf, const char *name, jit_nuint *size) JIT_NOTHROW;
 void *jit_readelf_get_section_by_type
-	(jit_readelf_t readelf, jit_int type, jit_nuint *size);
-void *jit_readelf_map_vaddr(jit_readelf_t readelf, jit_nuint vaddr);
-unsigned int jit_readelf_num_needed(jit_readelf_t readelf);
-const char *jit_readelf_get_needed(jit_readelf_t readelf, unsigned int index);
-void jit_readelf_add_to_context(jit_readelf_t readelf, jit_context_t context);
-int jit_readelf_resolve_all(jit_context_t context, int print_failures);
+	(jit_readelf_t readelf, jit_int type, jit_nuint *size) JIT_NOTHROW;
+void *jit_readelf_map_vaddr
+	(jit_readelf_t readelf, jit_nuint vaddr) JIT_NOTHROW;
+unsigned int jit_readelf_num_needed(jit_readelf_t readelf) JIT_NOTHROW;
+const char *jit_readelf_get_needed
+	(jit_readelf_t readelf, unsigned int index) JIT_NOTHROW;
+void jit_readelf_add_to_context
+	(jit_readelf_t readelf, jit_context_t context) JIT_NOTHROW;
+int jit_readelf_resolve_all
+	(jit_context_t context, int print_failures) JIT_NOTHROW;
 
-jit_writeelf_t jit_writeelf_create(const char *library_name);
-void jit_writeelf_destroy(jit_writeelf_t writeelf);
-int jit_writeelf_write(jit_writeelf_t writeelf, const char *filename);
+jit_writeelf_t jit_writeelf_create(const char *library_name) JIT_NOTHROW;
+void jit_writeelf_destroy(jit_writeelf_t writeelf) JIT_NOTHROW;
+int jit_writeelf_write
+	(jit_writeelf_t writeelf, const char *filename) JIT_NOTHROW;
 int jit_writeelf_add_function
-	(jit_writeelf_t writeelf, jit_function_t func, const char *name);
+	(jit_writeelf_t writeelf, jit_function_t func,
+	 const char *name) JIT_NOTHROW;
 int jit_writeelf_add_needed
-	(jit_writeelf_t writeelf, const char *library_name);
+	(jit_writeelf_t writeelf, const char *library_name) JIT_NOTHROW;
 int jit_writeelf_write_section
 	(jit_writeelf_t writeelf, const char *name, jit_int type,
-	 const void *buf, unsigned int len, int discardable);
+	 const void *buf, unsigned int len, int discardable) JIT_NOTHROW;
 
 #ifdef	__cplusplus
 };

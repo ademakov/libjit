@@ -227,6 +227,10 @@ jit_value_t jit_value_create(jit_function_t func, jit_type_t type)
 		return 0;
 	}
 	value->is_temporary = 1;
+	if(jit_type_has_tag(type, JIT_TYPETAG_VOLATILE))
+	{
+		value->is_volatile = 1;
+	}
 	return value;
 }
 
