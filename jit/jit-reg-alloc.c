@@ -1493,6 +1493,10 @@ void _jit_regs_get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
 	}
 	*reg = index;
 	_jit_regs_want_reg(gen, index, 0);
+	if(!reg2)
+	{
+		return;
+	}
 	for(; index < 8; ++index)
 	{
 		if((_jit_reg_info[index].flags & JIT_REG_WORD) == 0 ||

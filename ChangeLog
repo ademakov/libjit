@@ -7,6 +7,9 @@
 	* include/jit/jit-opcode.h, jit/jit-interp.c, jit/jit-opcode.c:
 	remove obsolete opcodes which violate "_jit_load_opcode"'s rules.
 
+	* jit/jit-reg-alloc.c, jit/jit-rules-x86.c, jit/jit-rules-x86.sel:
+	more x86 instruction selection rules.
+
 2004-06-08  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c: fix ROUND_END_PTR so that it adds the size

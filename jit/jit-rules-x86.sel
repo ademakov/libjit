@@ -2310,3 +2310,143 @@ JIT_OP_ADD_RELATIVE: unary
 			x86_alu_reg_imm(inst, X86_ADD, $1, insn->value2->address);
 		}
 	}
+
+/*
+ * Array element loads and stores.
+ */
+
+JIT_OP_LOAD_ELEMENT_SBYTE: binary
+	[reg, reg] -> {
+		x86_widen_memindex(inst, $1, $1, 0, $2, 0, 1, 0);
+	}
+
+JIT_OP_LOAD_ELEMENT_UBYTE: binary
+	[reg, reg] -> {
+		x86_widen_memindex(inst, $1, $1, 0, $2, 0, 0, 0);
+	}
+
+JIT_OP_LOAD_ELEMENT_SHORT: binary
+	[reg, reg] -> {
+		x86_widen_memindex(inst, $1, $1, 0, $2, 1, 1, 1);
+	}
+
+JIT_OP_LOAD_ELEMENT_USHORT: binary
+	[reg, reg] -> {
+		x86_widen_memindex(inst, $1, $1, 0, $2, 1, 0, 1);
+	}
+
+JIT_OP_LOAD_ELEMENT_INT: binary
+	[reg, reg] -> {
+		x86_mov_reg_memindex(inst, $1, $1, 0, $2, 2, 4);
+	}
+
+JIT_OP_LOAD_ELEMENT_LONG: manual
+	[] -> {
+		unsigned char *inst;
+		int reg, reg2, temp_reg, offset;
+		_jit_regs_force_out(gen, insn->dest, 1);
+		_jit_gen_fix_value(insn->dest);
+		reg = _jit_regs_load_value
+			(gen, insn->value1, 0,
+			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+			 				 JIT_INSN_VALUE1_LIVE)));
+		reg2 = _jit_regs_load_value
+			(gen, insn->value2, 1,
+			 (insn->flags & (JIT_INSN_VALUE2_NEXT_USE |
+			 				 JIT_INSN_VALUE2_LIVE)));
+		_jit_regs_get_reg_pair(gen, reg, reg2, -1, &temp_reg, 0);
+		offset = insn->dest->frame_offset;
+		inst = gen->posn.ptr;
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		reg = _jit_reg_info[reg].cpu_reg;
+		reg2 = _jit_reg_info[reg2].cpu_reg;
+		temp_reg = _jit_reg_info[temp_reg].cpu_reg;
+		x86_mov_reg_memindex(inst, temp_reg, reg, 0, reg2, 3, 4);
+		x86_mov_reg_memindex(inst, reg2, reg, 4, reg2, 3, 4);
+		x86_mov_membase_reg(inst, X86_EBP, offset, temp_reg, 4);
+		x86_mov_membase_reg(inst, X86_EBP, offset + 4, reg2, 4);
+		gen->posn.ptr = inst;
+	}
+
+JIT_OP_LOAD_ELEMENT_FLOAT32: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_LOAD_ELEMENT_FLOAT64: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_LOAD_ELEMENT_NFLOAT: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_STORE_ELEMENT_BYTE: ternary
+	[reg, reg, reg] -> {
+		inst = mov_memindex_reg_byte(inst, $1, 0, $2, $3);
+	}
+
+JIT_OP_STORE_ELEMENT_SHORT: ternary
+	[reg, reg, reg] -> {
+		x86_mov_memindex_reg(inst, $1, 0, $2, 1, $3, 2);
+	}
+
+JIT_OP_STORE_ELEMENT_INT: ternary
+	[reg, reg, reg] -> {
+		x86_mov_memindex_reg(inst, $1, 0, $2, 2, $3, 4);
+	}
+
+JIT_OP_STORE_ELEMENT_LONG: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_STORE_ELEMENT_FLOAT32: ternary
+	[reg, reg, freg] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_STORE_ELEMENT_FLOAT64: ternary
+	[reg, reg, freg] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_STORE_ELEMENT_NFLOAT: ternary
+	[reg, reg, freg] -> {
+		/* TODO */
+		TODO();
+	}
+
+/*
+ * Block operations.
+ */
+
+/*
+#define	JIT_OP_MEMCPY						0x0194
+#define	JIT_OP_MEMMOVE						0x0195
+#define	JIT_OP_MEMSET						0x0196
+*/
+
+/*
+ * Allocate memory from the stack.
+ */
+
+JIT_OP_ALLOCA: unary
+	[reg] -> {
+		x86_alu_reg_imm(inst, X86_ADD, $1, 15);
+		x86_alu_reg_imm(inst, X86_AND, $1, ~15);
+		x86_alu_reg_reg(inst, X86_SUB, X86_ESP, $1);
+		x86_mov_reg_reg(inst, $1, X86_ESP, 4);
+	}
