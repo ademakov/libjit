@@ -133,7 +133,7 @@ static void dpas_parse_hex(const char *text, YYSTYPE *lval)
 		{
 			value = value * 16 + (jit_ulong)(*text - 'A' + 10);
 		}
-		else
+		else if(*text >= 'a' && *text <= 'f')
 		{
 			value = value * 16 + (jit_ulong)(*text - 'a' + 10);
 		}
