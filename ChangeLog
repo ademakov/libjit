@@ -20,6 +20,10 @@
 	tools/gen-sel-parser.y: redesign the ARM code generation macros
 	so that they have stronger protection against buffer overruns.
 
+	* jit/jit-rules-arm.sel: flush the constant pool after unconditional
+	branches, to try to minimize the probability that the pool will
+	be flushed in the middle of a loop body.
+
 2004-06-08  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/Makefile.am, jit/jit-cpuid-x86.c, jit/jit-cpuid-x86.h:

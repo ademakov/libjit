@@ -268,6 +268,12 @@ JIT_OP_BR: spill_before
 	[] -> {
 		/* ARM_CC_AL == "always branch" */
 		output_branch(func, &inst, ARM_CC_AL, insn);
+
+		/* Flush the constant pool now, to minimize the probability that
+		   it is accidentally flushed in the middle of a loop body */
+		jit_gen_save_inst_ptr(gen, inst);
+		flush_constants(gen, 1);
+		jit_gen_load_inst_ptr(gen, inst);
 	}
 
 JIT_OP_BR_IFALSE: unary_branch
