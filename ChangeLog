@@ -1,4 +1,9 @@
 
+2004-05-30  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* doc/libjit.texi: clarify the text that describes LLVM, at the
+	request of Chris Lattner, LLVM's author.
+
 2004-05-29  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-insn.c, jit/jit-reg-alloc.c, jit/jit-reg-alloc.h,
