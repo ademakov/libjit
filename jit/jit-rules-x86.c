@@ -427,7 +427,7 @@ int _jit_create_call_setup_insns
 		while(size > index)
 		{
 			size -= sizeof(void *);
-			value = jit_value_create(func, jit_type_void_ptr);
+			value = jit_insn_address_of(func, partial);
 			if(!value)
 			{
 				return 0;
@@ -443,10 +443,11 @@ int _jit_create_call_setup_insns
 				return 0;
 			}
 		}
+		word_regs = 2;
 		while(size > 0)
 		{
 			size -= sizeof(void *);
-			value = jit_value_create(func, jit_type_void_ptr);
+			value = jit_insn_address_of(func, partial);
 			if(!value)
 			{
 				return 0;

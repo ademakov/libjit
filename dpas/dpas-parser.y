@@ -352,7 +352,7 @@ static void parameter_list_init(dpas_params *list)
 	list->names = 0;
 	list->types = 0;
 	list->len = 0;
-	list->has_vararg = 0;
+	list->abi = jit_abi_cdecl;
 }
 
 /*
@@ -781,6 +781,7 @@ static void push_if(jit_label_t end_label)
 		int			len;
 	}				expr_list;
 	int				direction;
+	jit_abi_t		abi;
 }
 
 /*
@@ -806,6 +807,7 @@ static void push_if(jit_label_t end_label)
 %token K_ELSE				"`else'"
 %token K_END				"`end'"
 %token K_EXIT				"`exit'"
+%token K_FASTCALL			"`fastcall'"
 %token K_FINALLY			"`finally'"
 %token K_FOR				"`for'"
 %token K_FORWARD			"`forward'"
@@ -831,6 +833,7 @@ static void push_if(jit_label_t end_label)
 %token K_SHL				"`shl'"
 %token K_SHR				"`shr'"
 %token K_SIZEOF				"`sizeof'"
+%token K_STDCALL			"`stdcall'"
 %token K_THEN				"`then'"
 %token K_THROW				"`throw'"
 %token K_TO					"`to'"
@@ -882,6 +885,8 @@ static void push_if(jit_label_t end_label)
 %type <expr_list>			ExpressionList ActualParameters
 
 %type <direction>			Direction
+
+%type <abi>					OptAbi
 
 %expect 3
 
@@ -1315,8 +1320,8 @@ ProcedureHeading
 	: K_PROCEDURE Identifier FormalParameterList	{
 				$$.name = $2;
 				$$.type = jit_type_create_signature
-					(($3.has_vararg ? jit_abi_vararg : jit_abi_cdecl),
-					 jit_type_void, $3.types, (unsigned int)($3.len), 1);
+					($3.abi, jit_type_void,
+					 $3.types, (unsigned int)($3.len), 1);
 				if(!($$.type))
 				{
 					dpas_out_of_memory();
@@ -1334,8 +1339,7 @@ FunctionHeading
 	: K_FUNCTION Identifier FormalParameterList ':' TypeIdentifier	{
 				$$.name = $2;
 				$$.type = jit_type_create_signature
-					(($3.has_vararg ? jit_abi_vararg : jit_abi_cdecl),
-					 $5, $3.types, (unsigned int)($3.len), 1);
+					($3.abi, $5, $3.types, (unsigned int)($3.len), 1);
 				if(!($$.type))
 				{
 					dpas_out_of_memory();
@@ -1352,11 +1356,20 @@ FunctionHeading
 
 FormalParameterList
 	: /* empty */		{ parameter_list_init(&($$)); }
-	| '(' FormalParameterSections ')'					{ $$ = $2; }
+	| '(' FormalParameterSections ')' OptAbi	{
+				$$ = $2;
+				$$.abi = $4;
+			}
 	| '(' FormalParameterSections ';' K_DOT_DOT ')'		{
 				$$ = $2;
-				$$.has_vararg = 1;
+				$$.abi = jit_abi_vararg;
 			}
+	;
+
+OptAbi
+	: /* empty */		{ $$ = jit_abi_cdecl; }
+	| K_FASTCALL		{ $$ = jit_abi_fastcall; }
+	| K_STDCALL			{ $$ = jit_abi_stdcall; }
 	;
 
 FormalParameterSections

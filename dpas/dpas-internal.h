@@ -51,7 +51,7 @@ typedef struct
 	char		  **names;
 	jit_type_t	   *types;
 	int				len;
-	int				has_vararg;
+	jit_abi_t		abi;
 
 } dpas_params;
 

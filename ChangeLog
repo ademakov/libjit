@@ -10,6 +10,11 @@
 	jitplus/jit-plus-function.cpp: add the "outgoing_frame_posn"
 	instruction, to support tail calls.
 
+	* dpas/dpas-internal.h, dpas/dpas-parser.y, dpas/dpas-scanner.l,
+	jit/jit-rules-x86.c, jit/jit-rules-x86.sel, tests/Makefile.am,
+	tests/param.pas, tools/gen-apply.c: add some test cases for
+	parameter passing; fix fastcall/stdcall conventions for x86.
+
 2004-06-11  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* doc/libjit.texi, jit/jit-insn.c, jit/jit-internal.h,

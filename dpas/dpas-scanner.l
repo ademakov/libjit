@@ -182,6 +182,7 @@ WHITE					[ \t\v\r\f]
 "else"					{ RETURNTOK(K_ELSE); }
 "end"					{ RETURNTOK(K_END); }
 "exit"					{ RETURNTOK(K_EXIT); }
+"fastcall"				{ RETURNTOK(K_FASTCALL); }
 "finally"				{ RETURNTOK(K_FINALLY); }
 "for"					{ RETURNTOK(K_FOR); }
 "forward"				{ RETURNTOK(K_FORWARD); }
@@ -207,6 +208,7 @@ WHITE					[ \t\v\r\f]
 "shl"					{ RETURNTOK(K_SHL); }
 "shr"					{ RETURNTOK(K_SHR); }
 "sizeof"				{ RETURNTOK(K_SIZEOF); }
+"stdcall"				{ RETURNTOK(K_STDCALL); }
 "then"					{ RETURNTOK(K_THEN); }
 "throw"					{ RETURNTOK(K_THROW); }
 "to"					{ RETURNTOK(K_TO); }

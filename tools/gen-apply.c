@@ -2311,8 +2311,8 @@ int main(int argc, char *argv[])
 	/* Detect the calling conventions for structures */
 	detect_struct_conventions();
 
-	/* Detect support for x86 FASTCALL handling code (Win32 only) */
-#if defined(PLATFORM_IS_WIN32)
+	/* Detect support for x86 FASTCALL handling code */
+#if defined(PLATFORM_IS_X86)
 	x86_fastcall = 1;
 #endif
 
