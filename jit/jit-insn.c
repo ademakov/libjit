@@ -6630,6 +6630,26 @@ int jit_insn_memset
 }
 
 /*@
+ * @deftypefun jit_value_t jit_insn_alloca (jit_function_t func, jit_value_t size)
+ * Allocate @code{size} bytes of memory from the stack.
+ * @end deftypefun
+@*/
+jit_value_t jit_insn_alloca(jit_function_t func, jit_value_t size)
+{
+	/* Round the size to the best alignment boundary on this platform */
+	size = jit_insn_convert(func, size, jit_type_nuint, 0);
+	size = jit_insn_add
+		(func, size, jit_value_create_nint_constant
+			(func, jit_type_nuint, JIT_BEST_ALIGNMENT - 1));
+	size = jit_insn_and
+		(func, size, jit_value_create_nint_constant
+			(func, jit_type_nuint, ~((jit_nint)(JIT_BEST_ALIGNMENT - 1))));
+
+	/* Allocate "size" bytes of memory from the stack */
+	return apply_unary(func, JIT_OP_ALLOCA, size, jit_type_void_ptr);
+}
+
+/*@
  * @deftypefun int jit_insn_move_blocks (jit_function_t func, jit_label_t from_label, jit_label_t to_label)
  * Move all of the blocks between @code{from_label} (inclusive) and
  * @code{to_label} (exclusive) to the end of the current function.

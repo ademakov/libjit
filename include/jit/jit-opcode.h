@@ -500,9 +500,14 @@ extern	"C" {
 #define	JIT_OP_MEMSET						0x0197
 
 /*
+ * Allocate memory from the stack.
+ */
+#define	JIT_OP_ALLOCA						0x0198
+
+/*
  * The number of opcodes in the above list.
  */
-#define	JIT_OP_NUM_OPCODES					0x0198
+#define	JIT_OP_NUM_OPCODES					0x0199
 
 /*
  * Opcode information.

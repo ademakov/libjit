@@ -279,6 +279,8 @@ int jit_insn_memmove
 int jit_insn_memset
 	(jit_function_t func, jit_value_t dest,
 	 jit_value_t value, jit_value_t size) JIT_NOTHROW;
+jit_value_t jit_insn_alloca
+	(jit_function_t func, jit_value_t size) JIT_NOTHROW;
 
 int jit_insn_move_blocks
 	(jit_function_t func, jit_label_t from_label, jit_label_t to_label);

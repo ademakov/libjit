@@ -514,6 +514,12 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	{"memcpy",						F_(PTR, PTR, PTR)},
 	{"memmove",						F_(PTR, PTR, PTR)},
 	{"memset",						F_(PTR, INT, PTR)},
+
+	/*
+	 * Allocate memory from the stack.
+	 */
+	{"alloca",						F_(PTR, PTR, EMPTY)},
+
 };
 
 #if defined(JIT_BACKEND_INTERP)

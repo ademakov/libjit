@@ -3949,6 +3949,31 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 		VMBREAK;
 
 		/******************************************************************
+		 * Allocate memory from the stack.
+		 ******************************************************************/
+
+		VMCASE(JIT_OP_ALLOCA):
+		{
+			/* Allocate memory from the stack */
+			VM_STK_PTR0 = (void *)alloca(VM_STK_NUINT0);
+			VM_MODIFY_PC_AND_STACK(1, 0);
+
+			/* We need to reset the "setjmp" point for this function
+			   because the saved stack pointer is no longer the same.
+			   If we don't do this, then an exception throw will pop
+			   the alloca'ed memory, causing dangling pointer problems */
+			if(jbuf)
+			{
+				if(setjmp(jbuf->buf))
+				{
+					exception_object = jit_exception_get_last_and_clear();
+					goto handle_exception;
+				}
+			}
+		}
+		VMBREAK;
+
+		/******************************************************************
 		 * Argument variable access opcodes.
 		 ******************************************************************/
 

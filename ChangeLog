@@ -15,6 +15,11 @@
 	remove the last remaining C++ code from libjit.so so that
 	it is now a pure C library.
 
+	* include/jit/jit-insn.h, include/jit/jit-opcode.h,
+	include/jit/jit-plus.h, jit/jit-insn.c, jit/jit-interp.c,
+	jit/jit-opcode.c, jitplus/jit-plus-function.cpp:
+	add the "jit_insn_alloca" instruction.
+
 2004-05-20  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/jit-value.h, jit/jit-insn.c, jit/jit-value.c:

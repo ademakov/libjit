@@ -644,6 +644,7 @@ jit_value jit_function::get_struct_pointer()
  * @deftypemethodx jit_function void insn_memcpy ({const jit_value&} dest, {const jit_value&} src, {const jit_value&} size)
  * @deftypemethodx void insn_memmove ({const jit_value&} dest, {const jit_value&} src, {const jit_value&} size)
  * @deftypemethodx void jit_insn_memset ({const jit_value&} dest, {const jit_value&} value, {const jit_value&} size)
+ * @deftypemethodx jit_value jit_insn_alloca ({const jit_value&} size)
  * Create instructions of various kinds.  @xref{Instructions}, for more
  * information on the individual instructions and their arguments.
  * @end deftypemethod
@@ -1185,6 +1186,11 @@ void jit_function::insn_memset
 	{
 		out_of_memory();
 	}
+}
+
+jit_value jit_function::insn_alloca(const jit_value& size)
+{
+	value_wrap(jit_insn_alloca(func, size.raw()));
 }
 
 void jit_function::register_on_demand()

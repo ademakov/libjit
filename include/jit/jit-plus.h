@@ -315,6 +315,7 @@ public:
 		(const jit_value& dest, const jit_value& src, const jit_value& size);
 	void insn_memset
 		(const jit_value& dest, const jit_value& value, const jit_value& size);
+	jit_value insn_alloca(const jit_value& size);
 
 private:
 	jit_function_t func;
