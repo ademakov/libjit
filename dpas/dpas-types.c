@@ -130,7 +130,7 @@ void dpas_init_types(void)
 	dpas_type_nil = jit_type_create_tagged
 		(jit_type_void_ptr, DPAS_TAG_NIL, 0, 0, 1);
 	dpas_type_size_t = get_uint_type(sizeof(size_t));
-	dpas_type_ptrdiff_t = get_uint_type(sizeof(ptrdiff_t));
+	dpas_type_ptrdiff_t = get_int_type(sizeof(ptrdiff_t));
 
 	/*
 	 * Register all of the builtin types.
@@ -1191,4 +1191,97 @@ jit_type_t dpas_type_is_var(jit_type_t type)
 		return jit_type_get_ref(jit_type_normalize(type));
 	}
 	return 0;
+}
+
+int dpas_type_identical(jit_type_t type1, jit_type_t type2, int normalize)
+{
+	if(normalize)
+	{
+		type1 = jit_type_normalize(type1);
+		type2 = jit_type_normalize(type2);
+	}
+	if(jit_type_get_kind(type1) != jit_type_get_kind(type2))
+	{
+		return 0;
+	}
+	switch(jit_type_get_kind(type1))
+	{
+		case JIT_TYPE_STRUCT:
+		case JIT_TYPE_UNION:
+		{
+			if(jit_type_get_size(type1) != jit_type_get_size(type2))
+			{
+				return 0;
+			}
+		}
+		break;
+
+		case JIT_TYPE_SIGNATURE:
+		{
+			/* TODO */
+		}
+		break;
+
+		case JIT_TYPE_PTR:
+		{
+			return dpas_type_identical
+				(jit_type_get_ref(type1), jit_type_get_ref(type2), 0);
+		}
+		/* Not reached */
+
+		case JIT_TYPE_FIRST_TAGGED + DPAS_TAG_NAME:
+		{
+			if(jit_stricmp((char *)jit_type_get_tagged_data(type1),
+						   (char *)jit_type_get_tagged_data(type2)) != 0)
+			{
+				return 0;
+			}
+		}
+		break;
+
+		case JIT_TYPE_FIRST_TAGGED + DPAS_TAG_VAR:
+		{
+			return dpas_type_identical
+				(jit_type_get_tagged_type(type1),
+				 jit_type_get_tagged_type(type2), 0);
+		}
+		/* Not reached */
+
+		case JIT_TYPE_FIRST_TAGGED + DPAS_TAG_SUBRANGE:
+		{
+		}
+		break;
+
+		case JIT_TYPE_FIRST_TAGGED + DPAS_TAG_ENUM:
+		{
+			if(jit_stricmp
+				(((dpas_enum *)jit_type_get_tagged_data(type1))->name,
+				 ((dpas_enum *)jit_type_get_tagged_data(type2))->name) != 0)
+			{
+				return 0;
+			}
+		}
+		break;
+
+		case JIT_TYPE_FIRST_TAGGED + DPAS_TAG_SET:
+		{
+			return dpas_type_identical
+				((jit_type_t)jit_type_get_tagged_data(type1),
+				 (jit_type_t)jit_type_get_tagged_data(type2), 0);
+		}
+		/* Not reached */
+
+		case JIT_TYPE_FIRST_TAGGED + DPAS_TAG_ARRAY:
+		{
+			/* TODO */
+		}
+		break;
+
+		case JIT_TYPE_FIRST_TAGGED + DPAS_TAG_CONFORMANT_ARRAY:
+		{
+			/* TODO */
+		}
+		break;
+	}
+	return 1;
 }

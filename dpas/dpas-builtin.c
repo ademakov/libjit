@@ -349,6 +349,66 @@ static dpas_semvalue dpas_dispose(dpas_semvalue *args, int num_args)
 }
 
 /*
+ * Determine if two values/types have identical types.
+ */
+static dpas_semvalue dpas_same_type(dpas_semvalue *args, int num_args)
+{
+	dpas_semvalue result;
+	if((!dpas_sem_is_rvalue(args[0]) && !dpas_sem_is_type(args[0])) ||
+	   (!dpas_sem_is_rvalue(args[1]) && !dpas_sem_is_type(args[1])))
+	{
+		dpas_error("invalid operands to `SameType'");
+		dpas_sem_set_error(result);
+	}
+	else if(dpas_type_identical(dpas_sem_get_type(args[0]),
+								dpas_sem_get_type(args[1]), 0))
+	{
+		dpas_sem_set_rvalue
+			(result, dpas_type_boolean,
+			 jit_value_create_nint_constant
+			 	(dpas_current_function(), dpas_type_boolean, 1));
+	}
+	else
+	{
+		dpas_sem_set_rvalue
+			(result, dpas_type_boolean,
+			 jit_value_create_nint_constant
+			 	(dpas_current_function(), dpas_type_boolean, 0));
+	}
+	return result;
+}
+
+/*
+ * Determine if two values/types have the same basic shape.
+ */
+static dpas_semvalue dpas_same_shape(dpas_semvalue *args, int num_args)
+{
+	dpas_semvalue result;
+	if((!dpas_sem_is_rvalue(args[0]) && !dpas_sem_is_type(args[0])) ||
+	   (!dpas_sem_is_rvalue(args[1]) && !dpas_sem_is_type(args[1])))
+	{
+		dpas_error("invalid operands to `SameShape'");
+		dpas_sem_set_error(result);
+	}
+	else if(dpas_type_identical(dpas_sem_get_type(args[0]),
+								dpas_sem_get_type(args[1]), 1))
+	{
+		dpas_sem_set_rvalue
+			(result, dpas_type_boolean,
+			 jit_value_create_nint_constant
+			 	(dpas_current_function(), dpas_type_boolean, 1));
+	}
+	else
+	{
+		dpas_sem_set_rvalue
+			(result, dpas_type_boolean,
+			 jit_value_create_nint_constant
+			 	(dpas_current_function(), dpas_type_boolean, 0));
+	}
+	return result;
+}
+
+/*
  * Builtins that we currently recognize.
  */
 #define	DPAS_BUILTIN_WRITE			1
@@ -357,6 +417,8 @@ static dpas_semvalue dpas_dispose(dpas_semvalue *args, int num_args)
 #define	DPAS_BUILTIN_TERMINATE		4
 #define	DPAS_BUILTIN_NEW			5
 #define	DPAS_BUILTIN_DISPOSE		6
+#define	DPAS_BUILTIN_SAMETYPE		7
+#define	DPAS_BUILTIN_SAMESHAPE		8
 
 /*
  * Table that defines the builtins.
@@ -376,6 +438,8 @@ static dpas_builtin const builtins[] = {
 	{"Terminate",	DPAS_BUILTIN_TERMINATE,	dpas_terminate,	 1},
 	{"New",			DPAS_BUILTIN_NEW,		dpas_new,	 	 1},
 	{"Dispose",		DPAS_BUILTIN_DISPOSE,	dpas_dispose, 	 1},
+	{"SameType",	DPAS_BUILTIN_SAMETYPE,	dpas_same_type,  2},
+	{"SameShape",	DPAS_BUILTIN_SAMESHAPE,	dpas_same_shape, 2},
 };
 #define	num_builtins	(sizeof(builtins) / sizeof(dpas_builtin))
 

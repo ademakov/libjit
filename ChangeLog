@@ -5,6 +5,10 @@
 	non.libs versions of the so paths, because some versions of libtool
 	add .libs implicitly and others don't.
 
+	* dpas/dpas-builtin.c, dpas/dpas-parser.y, dpas/dpas-types.c,
+	dpas/dpas-types.h: add the "SameType" and "SameShape" builtins,
+	to assist with unit testing type coercions.
+
 2004-05-11  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/jit-insn.h, jit/jit-insn.c, jit/jit-interp.cpp,

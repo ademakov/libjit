@@ -2408,13 +2408,7 @@ Power
 	;
 
 Factor
-	: Variable						{
-				if(!dpas_sem_is_rvalue($1) && !dpas_sem_is_error($1))
-				{
-					dpas_error("invalid r-value used in expression");
-				}
-				$$ = $1;
-			}
+	: Variable						{ $$ = $1; }
 	| BasicConstant					{
 				jit_value_t value = jit_value_create_constant
 					(dpas_current_function(), &($1));

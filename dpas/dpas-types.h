@@ -196,6 +196,11 @@ int dpas_type_is_record(jit_type_t type);
  */
 jit_type_t dpas_type_is_var(jit_type_t type);
 
+/*
+ * Determine if two types are identical.
+ */
+int dpas_type_identical(jit_type_t type1, jit_type_t type2, int normalize);
+
 #ifdef	__cplusplus
 };
 #endif
