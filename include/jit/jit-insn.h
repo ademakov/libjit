@@ -210,6 +210,8 @@ int jit_insn_branch_if_not
 	(jit_function_t func, jit_value_t value, jit_label_t *label) JIT_NOTHROW;
 jit_value_t jit_insn_address_of
 	(jit_function_t func, jit_value_t value1) JIT_NOTHROW;
+jit_value_t jit_insn_address_of_label
+	(jit_function_t func, jit_label_t *label) JIT_NOTHROW;
 jit_value_t jit_insn_convert
 	(jit_function_t func, jit_value_t value,
 	 jit_type_t type, int overflow_check) JIT_NOTHROW;
@@ -255,20 +257,26 @@ int jit_insn_return_ptr
 int jit_insn_default_return(jit_function_t func) JIT_NOTHROW;
 int jit_insn_throw(jit_function_t func, jit_value_t value) JIT_NOTHROW;
 jit_value_t jit_insn_get_call_stack(jit_function_t func) JIT_NOTHROW;
-int jit_insn_start_try
-	(jit_function_t func, jit_label_t *catch_label,
-	 jit_label_t *finally_label, int finally_on_fault);
-jit_value_t jit_insn_start_catch
-	(jit_function_t func, jit_label_t *catch_label);
-int jit_insn_end_try(jit_function_t func);
-int jit_insn_start_finally(jit_function_t func, jit_label_t *finally_label);
-int jit_insn_return_from_finally(jit_function_t func);
+
+jit_value_t jit_insn_thrown_exception(jit_function_t func) JIT_NOTHROW;
+int jit_insn_uses_catcher(jit_function_t func) JIT_NOTHROW;
+jit_value_t jit_insn_start_catcher(jit_function_t func) JIT_NOTHROW;
+int jit_insn_branch_if_pc_not_in_range
+	(jit_function_t func, jit_label_t start_label,
+	 jit_label_t end_label, jit_label_t *label) JIT_NOTHROW;
+int jit_insn_rethrow_unhandled(jit_function_t func) JIT_NOTHROW;
+int jit_insn_start_finally
+	(jit_function_t func, jit_label_t *finally_label) JIT_NOTHROW;
+int jit_insn_return_from_finally(jit_function_t func) JIT_NOTHROW;
+int jit_insn_call_finally
+	(jit_function_t func, jit_label_t *finally_label) JIT_NOTHROW;
 jit_value_t jit_insn_start_filter
-	(jit_function_t func, jit_label_t *label, jit_type_t type);
-int jit_insn_return_from_filter(jit_function_t func, jit_value_t value);
+	(jit_function_t func, jit_label_t *label, jit_type_t type) JIT_NOTHROW;
+int jit_insn_return_from_filter
+	(jit_function_t func, jit_value_t value) JIT_NOTHROW;
 jit_value_t jit_insn_call_filter
 	(jit_function_t func, jit_label_t *label,
-	 jit_value_t value, jit_type_t type);
+	 jit_value_t value, jit_type_t type) JIT_NOTHROW;
 
 int jit_insn_memcpy
 	(jit_function_t func, jit_value_t dest,

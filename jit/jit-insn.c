@@ -946,6 +946,11 @@ jit_label_t jit_insn_get_label(jit_insn_t insn)
 	{
 		return (jit_label_t)(insn->dest);
 	}
+	else if(insn && (insn->flags & JIT_INSN_VALUE1_IS_LABEL) != 0)
+	{
+		/* "address_of_label" instruction */
+		return (jit_label_t)(insn->value1);
+	}
 	else
 	{
 		return 0;
@@ -3439,33 +3444,6 @@ jit_value_t jit_insn_sign(jit_function_t func, jit_value_t value1)
 	}
 }
 
-/*
- * Output instructions to handle "finally" clauses in the current context.
- */
-static int handle_finally(jit_function_t func, int opcode)
-{
-	jit_block_eh_t eh = func->builder->current_handler;
-	while(eh != 0)
-	{
-		if(eh->finally_on_fault)
-		{
-			/* The "finally" clause only applies to the "catch" block */
-			if(!(eh->in_try_body) &&
-			   eh->finally_label != jit_label_undefined)
-			{
-				return create_noarg_note(func, opcode);
-			}
-		}
-		else if(eh->finally_label != jit_label_undefined)
-		{
-			/* The "finally" clause applies to "try" body and the "catch" */
-			return create_noarg_note(func, opcode);
-		}
-		eh = eh->parent;
-	}
-	return 1;
-}
-
 /*@
  * @deftypefun int jit_insn_branch (jit_function_t func, {jit_label_t *} label)
  * Terminate the current block by branching unconditionally
@@ -3481,10 +3459,6 @@ int jit_insn_branch(jit_function_t func, jit_label_t *label)
 		return 0;
 	}
 	if(!_jit_function_ensure_builder(func))
-	{
-		return 0;
-	}
-	if(!handle_finally(func, JIT_OP_PREPARE_FOR_LEAVE))
 	{
 		return 0;
 	}
@@ -3934,6 +3908,42 @@ jit_value_t jit_insn_address_of(jit_function_t func, jit_value_t value1)
 	result = apply_unary(func, JIT_OP_ADDRESS_OF, value1, type);
 	jit_type_free(type);
 	return result;
+}
+
+/*@
+ * @deftypefun jit_value_t jit_insn_address_of_label (jit_function_t func, {jit_label_t *} label)
+ * Get the address of @code{label} into a new temporary.  This is typically
+ * used for exception handling, to track where in a function an exception
+ * was actually thrown.
+ * @end deftypefun
+@*/
+jit_value_t jit_insn_address_of_label(jit_function_t func, jit_label_t *label)
+{
+	jit_value_t dest;
+	jit_insn_t insn;
+	if(!_jit_function_ensure_builder(func) || !label)
+	{
+		return 0;
+	}
+	if(*label == jit_label_undefined)
+	{
+		*label = (func->builder->next_label)++;
+	}
+	insn = _jit_block_add_insn(func->builder->current_block);
+	if(!insn)
+	{
+		return 0;
+	}
+	dest = jit_value_create(func, jit_type_void_ptr);
+	if(!dest)
+	{
+		return 0;
+	}
+	insn->opcode = (short)JIT_OP_ADDRESS_OF_LABEL;
+	insn->flags = JIT_INSN_VALUE1_IS_LABEL;
+	insn->dest = dest;
+	insn->value1 = (jit_value_t)label;
+	return dest;
 }
 
 /*
@@ -4708,13 +4718,9 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 	jit_type_free(type);
 #endif
 
-	/* Are we currently within a "try" context covered by a "catch"? */
-	block = func->builder->current_block;
-	if(block->block_eh &&
-	   block->block_eh->catch_label != jit_label_undefined &&
-	   func->builder->setjmp_value != 0)
+	/* Update the "catch_pc" value to reflect the current context */
+	if(func->builder->setjmp_value != 0)
 	{
-		/* Set the "catcher" field within "setjmp_value" to the catcher */
 		args[0] = jit_value_create(func, jit_type_void_ptr);
 		if(!(args[0]))
 		{
@@ -4725,14 +4731,12 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 		{
 			return 0;
 		}
-		jit_value_ref(func, args[1]);
-		insn->opcode = JIT_OP_LOAD_CATCHER_PC;
-		insn->flags |= JIT_INSN_VALUE1_IS_LABEL;
+		jit_value_ref(func, args[0]);
+		insn->opcode = JIT_OP_LOAD_PC;
 		insn->dest = args[0];
-		insn->value1 = (jit_value_t)(block->block_eh->catch_label);
 		if(!jit_insn_store_relative
 			(func, jit_insn_address_of(func->builder->setjmp_value),
-			 jit_jmp_catcher_offset, args[0]))
+			 jit_jmp_catch_pc_offset, args[0]))
 		{
 			return 0;
 		}
@@ -4784,13 +4788,9 @@ static int restore_eh_frame_after_call(jit_function_t func, int flags)
 	jit_type_free(type);
 #endif
 
-	/* Are we currently within a "try" context covered by a "catch"? */
-	block = func->builder->current_block;
-	if(block->block_eh &&
-	   block->block_eh->catch_label != jit_label_undefined &&
-	   func->builder->setjmp_value != 0)
+	/* Clear the "catch_pc" value for the current context */
+	if(func->builder->setjmp_value != 0)
 	{
-		/* Set the "catcher" field within "setjmp_value" to NULL */
 		args[0] = jit_value_create_nint_constant(func, jit_type_void_ptr, 0);
 		if(!(args[0]))
 		{
@@ -4798,7 +4798,7 @@ static int restore_eh_frame_after_call(jit_function_t func, int flags)
 		}
 		if(!jit_insn_store_relative
 			(func, jit_insn_address_of(func->builder->setjmp_value),
-			 jit_jmp_catcher_offset, args[0]))
+			 jit_jmp_catch_pc_offset, args[0]))
 		{
 			return 0;
 		}
@@ -5873,12 +5873,6 @@ int jit_insn_return(jit_function_t func, jit_value_t value)
 	type = jit_type_promote_int(type);
 	if(!value || type == jit_type_void)
 	{
-		/* Handle "finally" clauses if necessary */
-		if(!handle_finally(func, JIT_OP_PREPARE_FOR_RETURN))
-		{
-			return 0;
-		}
-
 		/* This function returns "void" */
 		if(!create_noarg_note(func, JIT_OP_RETURN))
 		{
@@ -5890,12 +5884,6 @@ int jit_insn_return(jit_function_t func, jit_value_t value)
 		/* Convert the value into the desired return type */
 		value = jit_insn_convert(func, value, type, 0);
 		if(!value)
-		{
-			return 0;
-		}
-
-		/* Handle "finally" clauses if necessary */
-		if(!handle_finally(func, JIT_OP_PREPARE_FOR_RETURN))
 		{
 			return 0;
 		}
@@ -6050,12 +6038,6 @@ int jit_insn_return_ptr
 		case JIT_TYPE_STRUCT:
 		case JIT_TYPE_UNION:
 		{
-			/* Handle "finally" clauses if necessary */
-			if(!handle_finally(func, JIT_OP_PREPARE_FOR_RETURN))
-			{
-				return 0;
-			}
-
 			/* Determine the kind of structure return to use */
 			return_ptr = jit_value_get_struct_pointer(func);
 			if(return_ptr)
@@ -6223,6 +6205,26 @@ jit_value_t jit_insn_get_call_stack(jit_function_t func)
 	return value;
 }
 
+/*@
+ * @deftypefun jit_value_t jit_insn_thrown_exception (jit_function_t func)
+ * Get the value that holds the most recent thrown exception.  This is
+ * typically used in @code{catch} clauses.
+ * @end deftypefun
+@*/
+jit_value_t jit_insn_thrown_exception(jit_function_t func)
+{
+	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+	if(!(func->builder->thrown_exception))
+	{
+		func->builder->thrown_exception =
+			jit_value_create(func, jit_type_void_ptr);
+	}
+	return func->builder->thrown_exception;
+}
+
 /*
  * Initialize the "setjmp" setup block that is needed to catch exceptions
  * thrown back to this level of execution.  The block looks like this:
@@ -6233,10 +6235,10 @@ jit_value_t jit_insn_get_call_stack(jit_function_t func)
  *      _jit_unwind_push_setjmp(&jbuf);
  *      if(setjmp(&jbuf.buf))
  *		{
- *			catcher = jbuf.catcher;
- *			if(catcher)
+ *			catch_pc = jbuf.catch_pc;
+ *			if(catch_pc)
  *			{
- *				jbuf.catcher = 0;
+ *				jbuf.catch_pc = 0;
  *				goto *catcher;
  *			}
  *			else
@@ -6245,7 +6247,7 @@ jit_value_t jit_insn_get_call_stack(jit_function_t func)
  *			}
  *		}
  *
- * The field "jbuf.catcher" will be set to the address of the relevant
+ * The field "jbuf.catch_pc" will be set to the address of the relevant
  * "catch" block just before a subroutine call that may involve exceptions.
  * It will be reset to NULL after such subroutine calls.
  *
@@ -6269,6 +6271,7 @@ static int initialize_setjmp_block(jit_function_t func)
 		return 1;
 	}
 	func->builder->longjmp_label = jit_label_undefined;
+	func->builder->catcher_label = jit_label_undefined;
 
 	/* Force the start of a new block to mark the start of the init code */
 	if(!jit_insn_label(func, &start_label))
@@ -6334,14 +6337,23 @@ static int initialize_setjmp_block(jit_function_t func)
 		return 0;
 	}
 
-	/* Get the value of "catcher" from within "setjmp_value".  This indicates
-	   which catcher we should use to handle the thrown exception.  If the
-	   catcher is NULL, then we need to rethrow the exception higher up
-	   because it isn't covered by any of the catch blocks that we have */
+	/* We need a value to hold the location of the thrown exception */
+	if((func->builder->thrown_pc =
+			jit_value_create(func, jit_type_void_ptr)) == 0)
+	{
+		return 0;
+	}
+
+	/* Get the value of "catch_pc" from within "setjmp_value" and store it
+	   into the current frame.  This indicates where the exception occurred */
 	value = jit_insn_load_relative
 		(func, jit_insn_address_of(func, func->builder->setjmp_value),
-		 jit_jmp_catcher_offset, jit_type_void_ptr);
+		 jit_jmp_catch_pc_offset, jit_type_void_ptr);
 	if(!value)
+	{
+		return 0;
+	}
+	if(!jit_insn_store(func, func->builder->thrown_pc, value))
 	{
 		return 0;
 	}
@@ -6350,7 +6362,7 @@ static int initialize_setjmp_block(jit_function_t func)
 		return 0;
 	}
 
-	/* Clear the original "catcher" value within "setjmp_value" */
+	/* Clear the original "catch_pc" value within "setjmp_value" */
 	if(!jit_insn_store_relative
 		(func, jit_insn_address_of(func, func->builder->setjmp_value),
 		 jit_jmp_catcher_offset, jit_value_create_nint_constant
@@ -6359,12 +6371,11 @@ static int initialize_setjmp_block(jit_function_t func)
 		return 0;
 	}
 
-	/* Jump to the address indicated by the catcher */
-	if(!create_unary_note(func, JIT_OP_JUMP_TO_CATCHER, value))
+	/* Jump to this function's exception catcher */
+	if(!jit_insn_branch(func, &(func->builder->catcher_label))
 	{
 		return 0;
 	}
-	func->builder->current_block->ends_in_dead = 1;
 
 	/* Mark the position of the rethrow label */
 	if(!jit_insn_label(func, &rethrow_label))
@@ -6397,190 +6408,148 @@ static int initialize_setjmp_block(jit_function_t func)
 	return jit_insn_move_blocks_to_start(func, start_label, end_label);
 #else
 	/* The interpreter doesn't need the "setjmp" setup block */
+	func->builder->catcher_label = jit_label_undefined;
 	return 1;
 #endif
 }
 
 /*@
- * @deftypefun int jit_insn_start_try (jit_function_t func, {jit_label_t *} catch_label, {jit_label_t *} finally_label, int finally_on_fault)
- * Start an exception-handling @code{try} block at the current position
- * within @code{func}.
- *
- * Whenever an exception occurs in the block, execution will jump to
- * @code{catch_label}.  When execution exits the @code{try} block's scope,
- * @code{finally_label} will be called.  If @code{finally_on_fault} is
- * non-zero, then @code{finally_label} will be called for exceptions,
- * but not when control exits the @code{try} block normally.
- *
- * The @code{finally_label} parameter may be NULL if the @code{try} block
- * does not have a @code{finally} clause associated with it.
- *
- * All of the blocks between @code{jit_insn_start_try} and
- * @code{jit_insn_start_catch} are covered by the @code{catch}
- * clause and the @code{finally} clause.  Blocks between
- * @code{jit_insn_start_catch} and @code{jit_insn_end_try} are
- * covered by the @code{finally} clause.
- *
- * Calls to @code{jit_insn_branch}, @code{jit_insn_return},
- * @code{jit_insn_throw} and @code{jit_insn_rethrow} will cause
- * additional code to be output to invoke the relevant @code{finally}
- * clauses.
- *
- * The destinations for @code{jit_insn_branch_if} and
- * @code{jit_insn_branch_if_not} must never be outside the current
- * @code{finally} context.  You should always use @code{jit_insn_branch}
- * to branch out of @code{finally} contexts.
- *
- * Note: you don't need to output calls to @code{finally} clauses
- * yourself as @code{libjit} can detect when it is necessary on its own.
+ * @deftypefun int jit_insn_uses_catcher (jit_function_t func)
+ * Notify the function building process that @code{func} contains
+ * some form of @code{catch} clause for catching exceptions.  This must
+ * be called before any instruction that is covered by a @code{try},
+ * ideally at the start of the function output process.
  * @end deftypefun
 @*/
-int jit_insn_start_try
-	(jit_function_t func, jit_label_t *catch_label,
-	 jit_label_t *finally_label, int finally_on_fault)
+int jit_insn_uses_catcher(jit_function_t func)
 {
-	jit_block_eh_t eh;
-	jit_block_t block;
-
-	/* Ensure that we have a function builder */
-	if(!_jit_function_ensure_builder(func) || !catch_label)
+	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-
-	/* Allocate the label numbers */
-	if(*catch_label == jit_label_undefined)
+	if(func->has_try)
 	{
-		*catch_label = (func->builder->next_label)++;
+		return 1;
 	}
-	if(finally_label && *finally_label == jit_label_undefined)
-	{
-		*finally_label = (func->builder->next_label)++;
-	}
-
-	/* This function has a "try" block.  This flag helps native
-	   back ends know when they must be careful about global
-	   register allocation */
 	func->has_try = 1;
+	func->builder->may_throw = 1;
+	func->builder->non_leaf = 1;
+	return initialize_setjmp_block(func);
+}
 
-	/* Make sure that the "setjmp" setup block is present in this function */
-	if(!initialize_setjmp_block(func))
+/*@
+ * @deftypefun jit_value_t jit_insn_start_catcher (jit_function_t func)
+ * Start the catcher block for @code{func}.  There should be exactly one
+ * catcher block for any function that involves a @code{try}.  All
+ * exceptions that are thrown within the function will cause control
+ * to jump to this point.  Returns a value that holds the exception
+ * that was thrown.
+ * @end deftypefun
+@*/
+jit_value_t jit_insn_start_catcher(jit_function_t func)
+{
+	jit_value_t value;
+	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+	if(!jit_insn_label(func, &(func->builder->catcher_label)))
+	{
+		return 0;
+	}
+	value = jit_insn_thrown_exception(func);
+	if(!value)
+	{
+		return 0;
+	}
+#if defined(JIT_BACKEND_INTERP)
+	/* In the interpreter, the exception object will be on the top of
+	   the operand stack when control reaches the catcher */
+	if(!jit_insn_incoming_reg(func, value, 0))
+	{
+		return 0;
+	}
+#endif
+	return value;
+}
+
+/*@
+ * @deftypefun int jit_insn_branch_if_pc_not_in_range (jit_function_t func, jit_label_t start_label, jit_label_t end_label, {jit_label_t *} label)
+ * Branch to @code{label} if the program counter where an exception occurred
+ * does not fall between @code{start_label} and @code{end_label}.
+ * @end deftypefun
+@*/
+int jit_insn_branch_if_pc_not_in_range
+	(jit_function_t func, jit_label_t start_label,
+	 jit_label_t end_label, jit_label_t *label)
+{
+	jit_value_t value1;
+	jit_value_t value2;
+
+	/* Ensure that we have a function builder and a try block */
+	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+	if(!(func->has_try))
 	{
 		return 0;
 	}
 
-	/* Anything with a finally handler makes the function not a leaf,
-	   because we may need to do a native "call" to invoke the handler */
-	if(finally_label)
-	{
-		func->builder->non_leaf = 1;
-	}
-
-	/* Create a new exception handling context and populate it */
-	eh = jit_cnew(struct jit_block_eh);
-	if(!eh)
+	/* Get the location where the exception occurred in this function */
+#if defined(JIT_BACKEND_INTERP)
+	value1 = create_dest_note
+		(func, JIT_OP_LOAD_EXCEPTION_PC, jit_type_void_ptr);
+#else
+	value1 = func->builder->thrown_pc;
+#endif
+	if(!value1)
 	{
 		return 0;
 	}
-	eh->parent = func->builder->current_handler;
-	eh->next = func->builder->exception_handlers;
-	func->builder->exception_handlers = eh;
-	eh->catch_label = *catch_label;
-	eh->finally_label = (finally_label ? *finally_label : jit_label_undefined);
-	eh->finally_on_fault = finally_on_fault;
-	eh->in_try_body = 1;
-	func->builder->current_handler = eh;
 
-	/* Start a new block, for the body of the "try" */
-	block = _jit_block_create(func, 0);
-	if(!block)
+	/* Compare the location against the start and end labels */
+	value2 = jit_insn_address_of_label(func, &start_label);
+	if(!value2)
 	{
 		return 0;
 	}
-	block->entered_via_top = 1;
+	if(!jit_insn_branch_if(func, jit_insn_lt(func, value1, value2), label))
+	{
+		return 0;
+	}
+	value2 = jit_insn_address_of_label(func, &end_label);
+	if(!value2)
+	{
+		return 0;
+	}
+	if(!jit_insn_branch_if(func, jit_insn_ge(func, value1, value2), label))
+	{
+		return 0;
+	}
+
+	/* If control gets here, then we have a location match */
 	return 1;
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_start_catch (jit_function_t func, {jit_label_t *} catch_label)
- * Start the @code{catch} clause for the currently active @code{try}
- * block.  Returns a pointer @code{value} that indicates the exception
- * that is thrown.
+ * @deftypefun int jit_insn_rethrow_unhandled (jit_function_t func)
+ * Rethrow the current exception because it cannot be handled by
+ * any of the @code{catch} blocks in the current function.
  *
- * There can be only one @code{catch} clause per @code{try} block.
- * The front end is responsible for outputting instructions that
- * inspect the exception object, determine if it is appropriate to
- * the clause, and then either handle it or rethrow it.
- *
- * Every @code{try} block must have an associated @code{catch} clause,
- * even if all it does is rethrow the exception immediately.  Without a
- * @code{catch} clause, the correct @code{finally} logic will not be
- * performed for thrown exceptions.
+ * Note: this is intended for use within catcher blocks.  It should not
+ * be used to rethrow exceptions in response to programmer requests
+ * (e.g. @code{throw;} in C#).  The @code{jit_insn_throw} function
+ * should be used for that purpose.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_start_catch
-	(jit_function_t func, jit_label_t *catch_label)
+int jit_insn_rethrow_unhandled(jit_function_t func)
 {
-	jit_block_eh_t eh;
-	jit_block_eh_t new_eh;
-
-	/* Ensure that we have a function builder */
-	if(!_jit_function_ensure_builder(func))
-	{
-		return 0;
-	}
-
-	/* Create a new exception handler to indicate that we are in a "catch" */
-	eh = func->builder->current_handler;
-	if(!eh)
-	{
-		return 0;
-	}
-	new_eh = jit_cnew(struct jit_block_eh);
-	if(!new_eh)
-	{
-		return 0;
-	}
-	new_eh->parent = eh->parent;
-	new_eh->next = func->builder->exception_handlers;
-	func->builder->exception_handlers = new_eh;
-	if(eh->finally_label != jit_label_undefined)
-	{
-		/* We will need a mini "catch" block to call the "finally"
-		   clause when an exception occurs within the "catch" */
-		new_eh->catch_label = (func->builder->next_label)++;
-	}
-	else
-	{
-		new_eh->catch_label = jit_label_undefined;
-	}
-	new_eh->finally_label = eh->finally_label;
-	new_eh->finally_on_fault = eh->finally_on_fault;
-	new_eh->in_try_body = 0;
-	func->builder->current_handler = new_eh;
-
-	/* Start a new block for the "catch" clause */
-	if(!jit_insn_label(func, catch_label))
-	{
-		return 0;
-	}
-
-	/* Output an instruction to notice the caught value */
-	return create_dest_note(func, JIT_OP_ENTER_CATCH, jit_type_void_ptr);
-}
-
-/*@
- * @deftypefun int jit_insn_end_try (jit_function_t func)
- * Mark the end of the @code{try} block and its associated @code{catch}
- * clause.  This is normally followed by a call to
- * @code{jit_insn_start_finally} to define the @code{finally} clause.
- * @end deftypefun
-@*/
-int jit_insn_end_try(jit_function_t func)
-{
-	jit_block_eh_t eh;
 	jit_block_t block;
 	jit_value_t value;
+#if !defined(JIT_BACKEND_INTERP)
+	jit_type_t type;
+#endif
 
 	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
@@ -6588,48 +6557,69 @@ int jit_insn_end_try(jit_function_t func)
 		return 0;
 	}
 
-	/* Get the current exception handling context */
-	eh = func->builder->current_handler;
-	if(!eh)
+	/* Get the current exception value to be thrown */
+	value = jit_insn_thrown_exception(func);
+	if(!value)
 	{
 		return 0;
 	}
 
-	/* We may need another mini "catch" block to invoke the "finally"
-	   clause for exceptions that happen during the "catch" */
-	if(eh->catch_label != jit_label_undefined)
+#if defined(JIT_BACKEND_INTERP)
+
+	/* Rethrow the current exception (interpreter version) */
+	if(!create_unary_note(func, JIT_OP_RETHROW, value))
 	{
-		/* TODO: not quite right */
-		if(!jit_insn_label(func, &(eh->catch_label)))
-		{
-			return 0;
-		}
-		value = create_dest_note(func, JIT_OP_ENTER_CATCH, jit_type_void_ptr);
-		if(!value)
-		{
-			return 0;
-		}
-		if(!jit_insn_throw(func, value))
-		{
-			return 0;
-		}
+		return 0;
 	}
 
-	/* Pop the current exception context */
-	func->builder->current_handler = eh->parent;
+#else /* !JIT_BACKEND_INTERP */
 
-	/* Start a new block, covered by the next outer "try" context */
+	/* Call "_jit_unwind_pop_setjmp" to remove the current exception catcher */
+	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+	type = jit_type_create_signature
+		(jit_abi_cdecl, jit_type_void, 0, 0, 1);
+	if(!type)
+	{
+		return 0;
+	}
+	jit_insn_call_native
+		(func, "_jit_unwind_pop_setjmp",
+		 (void *)_jit_unwind_pop_setjmp, type, 0, 0, JIT_CALL_NOTHROW);
+	jit_type_free(type);
+
+	/* Call the "jit_exception_throw" function to effect the rethrow */
+	type = jit_type_void_ptr;
+	type = jit_type_create_signature
+		(jit_abi_cdecl, jit_type_void, &type, 1, 1);
+	if(!type)
+	{
+		return 0;
+	}
+	jit_insn_call_native
+		(func, "jit_exception_throw",
+		 (void *)jit_exception_throw, type, &value, 1,
+		 JIT_CALL_NOTHROW | JIT_CALL_NORETURN);
+	jit_type_free(type);
+
+#endif /* !JIT_BACKEND_INTERP */
+
+	/* The current block ends in dead and we need to start a new block */
+	func->builder->current_block->ends_in_dead = 1;
 	block = _jit_block_create(func, 0);
 	if(!block)
 	{
 		return 0;
 	}
+	func->builder->current_block = block;
 	return 1;
 }
 
 /*@
  * @deftypefun int jit_insn_start_finally (jit_function_t func, {jit_label_t *} finally_label)
- * Start the @code{finally} clause for the preceding @code{try} block.
+ * Start a @code{finally} clause.
  * @end deftypefun
 @*/
 int jit_insn_start_finally(jit_function_t func, jit_label_t *finally_label)
@@ -6667,6 +6657,20 @@ int jit_insn_return_from_finally(jit_function_t func)
 		return 0;
 	}
 	return 1;
+}
+
+/*@
+ * @deftypefun int jit_insn_call_finally (jit_function_t func, {jit_label_t *} finally_label)
+ * Call a @code{finally} clause.
+ * @end deftypefun
+@*/
+int jit_insn_call_finally(jit_function_t func, jit_label_t *finally_label)
+{
+	if(!jit_insn_label(func, finally_label))
+	{
+		return 0;
+	}
+	return create_noarg_note(func, JIT_OP_CALL_FINALLY);
 }
 
 /*@

@@ -655,15 +655,4 @@ void _jit_gen_end_block(jit_gencode_t gen, jit_block_t block)
 	/* Nothing to do here for ARM */
 }
 
-void _jit_gen_call_finally
-	(jit_gencode_t gen, jit_function_t func, jit_label_t label)
-{
-	/* TODO */
-}
-
-void _jit_gen_unwind_stack(void *stacktop, void *catch_pc, void *object)
-{
-	/* TODO */
-}
-
 #endif /* JIT_BACKEND_ARM */

@@ -34,12 +34,12 @@ typedef struct jit_jmp_buf
 {
 	jmp_buf				buf;
 	jit_backtrace_t		trace;
-	void			   *catcher;
+	void			   *catch_pc;
 	struct jit_jmp_buf *parent;
 
 } jit_jmp_buf;
-#define	jit_jmp_catcher_offset	\
-			((jit_nint)&(((jit_jmp_buf *)0)->catcher))
+#define	jit_jmp_catch_pc_offset	\
+			((jit_nint)&(((jit_jmp_buf *)0)->catch_pc))
 
 /*
  * Push a "setjmp" buffer onto the current thread's unwind stck.

@@ -241,6 +241,7 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 	struct jit_backtrace call_trace;
 	void *entry;
 	void *exception_object = 0;
+	void *exception_pc = 0;
 	void *handler;
 	jit_jmp_buf *jbuf;
 
@@ -3553,6 +3554,7 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 			/* Throw an exception, which may be handled in this function */
 			exception_object = VM_STK_PTR0;
 		handle_exception:
+			exception_pc = pc;
 			if(jit_function_from_pc(func->func->context, pc, &handler)
 					== func->func && handler != 0)
 			{
@@ -3570,10 +3572,26 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 		}
 		VMBREAK;
 
+		VMCASE(JIT_OP_RETHROW):
+		{
+			/* Rethrow an exception to the caller */
+			_jit_unwind_pop_setjmp();
+			jit_exception_throw(VM_STK_PTR0);
+		}
+		VMBREAK;
+
 		VMCASE(JIT_OP_LOAD_PC):
 		{
 			/* Load the current program counter onto the stack */
 			VM_STK_PTRP = (void *)pc;
+			VM_MODIFY_PC_AND_STACK(1, -1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_LOAD_EXCEPTION_PC):
+		{
+			/* Load the address where the exception occurred onto the stack */
+			VM_STK_PTRP = (void *)exception_pc;
 			VM_MODIFY_PC_AND_STACK(1, -1);
 		}
 		VMBREAK;
@@ -3611,6 +3629,14 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 			VM_STK_PTRP = (void *)(pc + 2);
 			VM_MODIFY_STACK(-1);
 			pc = VM_BR_TARGET;
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_ADDRESS_OF_LABEL):
+		{
+			/* Load the address of a label onto the stack */
+			VM_STK_PTRP = VM_BR_TARGET;
+			VM_MODIFY_PC_AND_STACK(2, -1);
 		}
 		VMBREAK;
 
@@ -4472,13 +4498,9 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 		VMCASE(JIT_OP_PUSH_FLOAT64):
 		VMCASE(JIT_OP_PUSH_NFLOAT):
 		VMCASE(JIT_OP_FLUSH_SMALL_STRUCT):
-		VMCASE(JIT_OP_ENTER_CATCH):
 		VMCASE(JIT_OP_ENTER_FINALLY):
 		VMCASE(JIT_OP_ENTER_FILTER):
 		VMCASE(JIT_OP_CALL_FILTER_RETURN):
-		VMCASE(JIT_OP_PREPARE_FOR_LEAVE):
-		VMCASE(JIT_OP_PREPARE_FOR_RETURN):
-		VMCASE(JIT_OP_JUMP_TO_CATCHER):
 		{
 			/* Shouldn't happen, but skip the instruction anyway */
 			VM_MODIFY_PC_AND_STACK(1, 0);

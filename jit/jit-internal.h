@@ -170,20 +170,6 @@ struct _jit_meta
 };
 
 /*
- * Exception handling information that is attached to blocks.
- */
-typedef struct jit_block_eh *jit_block_eh_t;
-struct jit_block_eh
-{
-	jit_block_eh_t		parent;
-	jit_block_eh_t		next;
-	jit_label_t			catch_label;
-	jit_label_t			finally_label;
-	int					finally_on_fault : 1;
-	int					in_try_body : 1;
-};
-
-/*
  * Internal structure of a block.
  */
 struct _jit_block
@@ -195,7 +181,6 @@ struct _jit_block
 	jit_block_t 		next;
 	jit_block_t 		prev;
 	jit_meta_t			meta;
-	jit_block_eh_t		block_eh;
 	int					entered_via_top : 1;
 	int					entered_via_branch : 1;
 	int					ends_in_dead : 1;
@@ -261,10 +246,11 @@ struct _jit_insn
 #define	JIT_INSN_DEST_IS_NATIVE			0x0100
 #define	JIT_INSN_DEST_OTHER_FLAGS		0x01C0
 #define	JIT_INSN_VALUE1_IS_NAME			0x0200
-#define	JIT_INSN_VALUE1_OTHER_FLAGS		0x0200
-#define	JIT_INSN_VALUE2_IS_SIGNATURE	0x0400
-#define	JIT_INSN_VALUE2_OTHER_FLAGS		0x0400
-#define	JIT_INSN_DEST_IS_VALUE			0x0800
+#define	JIT_INSN_VALUE1_IS_LABEL		0x0400
+#define	JIT_INSN_VALUE1_OTHER_FLAGS		0x0600
+#define	JIT_INSN_VALUE2_IS_SIGNATURE	0x0800
+#define	JIT_INSN_VALUE2_OTHER_FLAGS		0x0800
+#define	JIT_INSN_DEST_IS_VALUE			0x1000
 
 /*
  * Information that is associated with a function for building
@@ -295,11 +281,13 @@ struct _jit_builder
 	jit_block_t			init_block;
 	int					init_insn;
 
-	/* Exception handlers for the function */
-	jit_block_eh_t		exception_handlers;
-	jit_block_eh_t		current_handler;
+	/* Exception handling definitions for the function */
 	jit_value_t			setjmp_value;
 	jit_label_t			longjmp_label;
+	jit_value_t			thrown_exception;
+	jit_value_t			thrown_pc;
+	jit_label_t			catcher_label;
+	jit_value_t			eh_frame_info;
 
 	/* Flag that is set to indicate that this function is not a leaf */
 	int					non_leaf : 1;
@@ -328,9 +316,6 @@ struct _jit_builder
 	jit_value_t		   *param_values;
 	jit_value_t			struct_return;
 	jit_value_t			parent_frame;
-
-	/* The value that holds the exception frame information for a callout */
-	jit_value_t			eh_frame_info;
 
 	/* Metadata that is stored only while the function is being built */
 	jit_meta_t			meta;

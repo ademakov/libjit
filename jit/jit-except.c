@@ -485,7 +485,7 @@ void _jit_unwind_push_setjmp(jit_jmp_buf *jbuf)
 	if(control)
 	{
 		jbuf->trace = control->backtrace_head;
-		jbuf->catcher = 0;
+		jbuf->catch_pc = 0;
 		jbuf->parent = control->setjmp_head;
 		control->setjmp_head = jbuf;
 	}

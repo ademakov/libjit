@@ -43,8 +43,6 @@ void _jit_block_free(jit_function_t func)
 {
 	jit_block_t current = func->builder->first_block;
 	jit_block_t next;
-	jit_block_eh_t current_eh;
-	jit_block_eh_t next_eh;
 	while(current != 0)
 	{
 		next = current->next;
@@ -52,19 +50,10 @@ void _jit_block_free(jit_function_t func)
 		jit_free(current);
 		current = next;
 	}
-	current_eh = func->builder->exception_handlers;
-	while(current_eh != 0)
-	{
-		next_eh = current_eh->next;
-		jit_free(current_eh);
-		current_eh = next_eh;
-	}
 	func->builder->first_block = 0;
 	func->builder->last_block = 0;
 	func->builder->entry = 0;
 	func->builder->current_block = 0;
-	func->builder->exception_handlers = 0;
-	func->builder->current_handler = 0;
 }
 
 jit_block_t _jit_block_create(jit_function_t func, jit_label_t *label)
@@ -99,9 +88,6 @@ jit_block_t _jit_block_create(jit_function_t func, jit_label_t *label)
 	{
 		block->label = jit_label_undefined;
 	}
-
-	/* Set the exception handling context for this block */
-	block->block_eh = func->builder->current_handler;
 
 	/* Add the block to the end of the function's list */
 	block->next = 0;
@@ -479,11 +465,6 @@ void _jit_block_peephole_branch(jit_block_t block)
 		}
 		if(!new_block)
 		{
-			break;
-		}
-		if(new_block->block_eh != block->block_eh && insn->opcode != JIT_OP_BR)
-		{
-			/* Conditional branches must never cross an exception context */
 			break;
 		}
 		if(new_block->first_insn < new_block->last_insn)

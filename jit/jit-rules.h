@@ -181,9 +181,6 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 				   jit_block_t block, jit_insn_t insn);
 void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block);
 void _jit_gen_end_block(jit_gencode_t gen, jit_block_t block);
-void _jit_gen_call_finally
-	(jit_gencode_t gen, jit_function_t func, jit_label_t label);
-void _jit_gen_unwind_stack(void *stacktop, void *catch_pc, void *object);
 
 /*
  * Determine the byte number within a "jit_int" where the low

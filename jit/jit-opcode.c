@@ -419,17 +419,17 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	 * Exception handling.
 	 */
 	{"throw",						F_(EMPTY, PTR, EMPTY)},
+	{"rethrow",						F_(EMPTY, PTR, EMPTY)},
 	{"load_pc",						F_(PTR, EMPTY, EMPTY)},
-	{"enter_catch",					F_(PTR, EMPTY, EMPTY)},
+	{"load_exception_pc",			F_(PTR, EMPTY, EMPTY)},
 	{"enter_finally",				F_(EMPTY, EMPTY, EMPTY)},
 	{"leave_finally",				F_(EMPTY, EMPTY, EMPTY)},
+	{"call_finally",				B_(EMPTY, EMPTY)},
 	{"enter_filter",				F_(ANY, EMPTY, EMPTY)},
 	{"leave_filter",				F_(EMPTY, ANY, EMPTY)},
 	{"call_filter",					B_(ANY, EMPTY)},
 	{"call_filter_return",			F_(ANY, EMPTY, EMPTY)},
-	{"prepare_for_leave",			F_(EMPTY, EMPTY, EMPTY)},
-	{"prepare_for_return",			F_(EMPTY, EMPTY, EMPTY)},
-	{"jump_to_catcher",				F_(EMPTY, PTR, EMPTY)},
+	{"address_of_label",			JIT_OPCODE_IS_ADDROF_LABEL},
 
 	/*
 	 * Data manipulation.
@@ -606,11 +606,6 @@ jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES] = {
 	{"push_const_float32",			JIT_OPCODE_CONST_FLOAT32},
 	{"push_const_float64",			JIT_OPCODE_CONST_FLOAT64},
 	{"push_const_nfloat",			JIT_OPCODE_CONST_NFLOAT},
-
-	/*
-	 * Exception handling (interpreter only).
-	 */
-	{"call_finally",				B_(EMPTY, EMPTY)},
 
 	/*
 	 * Marker opcode for the end of a function.

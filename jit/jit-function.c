@@ -432,66 +432,6 @@ jit_function_t jit_function_get_nested_parent(jit_function_t func)
 }
 
 /*
- * Call "finally" blocks that are relevant for a transition from
- * "src" to "dest".  "dest" should be NULL for a return instruction.
- */
-static void call_finally_blocks(jit_gencode_t gen, jit_function_t func,
-								jit_block_eh_t src, jit_block_eh_t dest)
-{
-	jit_block_eh_t temp;
-
-	/* Bail out if we are branching to an inner scope, because we
-	   don't need to call "finally" clauses to go further in */
-	temp = dest;
-	while(temp != 0)
-	{
-		if(temp == src)
-		{
-			return;
-		}
-		temp = temp->parent;
-	}
-
-	/* Find the common ancestor of "src" and "dest" */
-	while(dest != 0)
-	{
-		temp = src;
-		while(temp != 0 && temp != dest)
-		{
-			temp = temp->parent;
-		}
-		if(temp != 0)
-		{
-			break;
-		}
-		dest = dest->parent;
-	}
-
-	/* Output all finally blocks between "src" and "dest" */
-	while(src != dest)
-	{
-		if(src->catch_label != jit_label_undefined &&
-		   !(src->finally_on_fault))
-		{
-			/* Call "finally" from the body of the "try" */
-			if(src->finally_label != jit_label_undefined)
-			{
-				_jit_gen_call_finally(gen, func, src->finally_label);
-			}
-		}
-		else if(src->catch_label == jit_label_undefined)
-		{
-			/* Call "finally" from the body of the "catch" */
-			if(src->finally_label != jit_label_undefined)
-			{
-				_jit_gen_call_finally(gen, func, src->finally_label);
-			}
-		}
-		src = src->parent;
-	}
-}
-
-/*
  * Compile a single basic block within a function.
  */
 static void compile_block(jit_gencode_t gen, jit_function_t func,
@@ -499,7 +439,6 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 {
 	jit_insn_iter_t iter;
 	jit_insn_t insn;
-	jit_block_t branch_block;
 
 	/* Iterate over all blocks in the function */
 	jit_insn_iter_init(&iter, block);
@@ -516,28 +455,6 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 				{
 					_jit_gen_insn(gen, func, block, insn);
 				}
-			}
-			break;
-
-			case JIT_OP_PREPARE_FOR_LEAVE:
-			{
-				/* Call the finally clauses that are relevant to the
-				   "JIT_OP_BR" instruction that follows */
-				_jit_regs_spill_all(gen);
-				insn = jit_insn_iter_next(&iter);
-				branch_block = jit_block_from_label
-					(func, (jit_label_t)(insn->dest));
-				call_finally_blocks
-					(gen, func, block->block_eh, branch_block->block_eh);
-				_jit_gen_insn(gen, func, block, insn);
-			}
-			break;
-
-			case JIT_OP_PREPARE_FOR_RETURN:
-			{
-				/* Call all finally clauses on the way out of the function */
-				_jit_regs_spill_all(gen);
-				call_finally_blocks(gen, func, block->block_eh, 0);
 			}
 			break;
 
@@ -626,10 +543,6 @@ int jit_function_compile(jit_function_t func)
 	void *recompilable_start = 0;
 	void *end;
 	jit_block_t block;
-	jit_block_eh_t eh;
-	jit_block_eh_t new_eh;
-	jit_cache_eh_t cache_eh;
-	jit_cache_eh_t cache_new_eh;
 	int result;
 #ifdef JIT_PROLOG_SIZE
 	int have_prolog;
@@ -708,42 +621,12 @@ int jit_function_compile(jit_function_t func)
 
 		/* Generate code for the blocks in the function */
 		block = 0;
-		eh = 0;
-		cache_eh = 0;
 		while((block = jit_block_next(func, block)) != 0)
 		{
 			/* If this block is never entered, then discard it */
 			if(!(block->entered_via_top) && !(block->entered_via_branch))
 			{
 				continue;
-			}
-
-			/* Start a new exception region in the cache if necessary */
-			new_eh = block->block_eh;
-			if(new_eh && new_eh->catch_label == jit_label_undefined)
-			{
-				new_eh = 0;
-			}
-			if(new_eh != eh)
-			{
-				eh = new_eh;
-				cache_new_eh = _jit_cache_alloc
-					(&(gen.posn), sizeof(struct jit_cache_eh));
-				if(cache_new_eh)
-				{
-					if(eh)
-					{
-						cache_new_eh->handler_label = eh->catch_label;
-					}
-					else
-					{
-						cache_new_eh->handler_label = jit_label_undefined;
-					}
-					cache_new_eh->handler = 0;
-					cache_new_eh->previous = cache_eh;
-					_jit_cache_new_region(&(gen.posn), cache_new_eh);
-					cache_eh = cache_new_eh;
-				}
 			}
 
 			/* Notify the back end that the block is starting */
@@ -760,20 +643,6 @@ int jit_function_compile(jit_function_t func)
 	
 			/* Clear the local register assignments, ready for the next block */
 			_jit_regs_init_for_block(&gen);
-		}
-
-		/* Fix up the labels for the exception regions */
-		while(cache_eh != 0)
-		{
-			if(cache_eh->handler_label != jit_label_undefined)
-			{
-				block = jit_block_from_label(func, cache_eh->handler_label);
-				if(block)
-				{
-					cache_eh->handler = (unsigned char *)(block->address);
-				}
-			}
-			cache_eh = cache_eh->previous;
 		}
 
 		/* Output the function epilog.  All return paths will jump to here */

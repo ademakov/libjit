@@ -886,6 +886,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	switch(insn->opcode)
 	{
 		case JIT_OP_BR:
+		case JIT_OP_CALL_FINALLY:
 		{
 			/* Unconditional branch */
 			_jit_regs_spill_all(gen);
@@ -1005,6 +1006,38 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 			goto branch;
 		}
 		/* Not reached */
+
+		case JIT_OP_ADDRESS_OF_LABEL:
+		{
+			/* Get the address of a particular label */
+			if(_jit_regs_num_used(gen, 0) >= JIT_NUM_REGS)
+			{
+				_jit_regs_spill_all(gen);
+			}
+			reg = _jit_regs_new_top(gen, insn->dest, 0);
+			adjust_working(gen, 1);
+			label = (jit_label_t)(insn->value1);
+			pc = (void **)(gen->posn.ptr);
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			block = jit_block_from_label(func, label);
+			if(!block)
+			{
+				break;
+			}
+			if(block->address)
+			{
+				/* We already know the address of the block */
+				jit_cache_native
+					(&(gen->posn), ((void **)(block->address)) - pc);
+			}
+			else
+			{
+				/* Record this position on the block's fixup list */
+				jit_cache_native(&(gen->posn), block->fixup_list);
+				block->fixup_list = (void *)pc;
+			}
+		}
+		break;
 
 		case JIT_OP_CALL:
 		case JIT_OP_CALL_TAIL:
@@ -1160,6 +1193,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		break;
 
 		case JIT_OP_LOAD_PC:
+		case JIT_OP_LOAD_EXCEPTION_PC:
 		{
 			/* Load the current program counter onto the stack */
 			if(_jit_regs_num_used(gen, 0) >= JIT_NUM_REGS)
@@ -1172,7 +1206,6 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		}
 		break;
 
-		case JIT_OP_ENTER_CATCH:
 		case JIT_OP_CALL_FILTER_RETURN:
 		{
 			/* The top of stack currently contains "dest" */
@@ -1626,50 +1659,6 @@ void _jit_gen_end_block(jit_gencode_t gen, jit_block_t block)
 {
 	/* Reset the working area size to zero for the next block */
 	gen->working_area = 0;
-}
-
-/*@
- * @deftypefun void _jit_gen_call_finally (jit_gencode_t gen, jit_function_t func, jit_label_t label)
- * Call a @code{finally} clause at @code{label}.
- * @end deftypefun
-@*/
-void _jit_gen_call_finally
-	(jit_gencode_t gen, jit_function_t func, jit_label_t label)
-{
-	jit_block_t block;
-	void **pc;
-	_jit_regs_spill_all(gen);
-	pc = (void **)(gen->posn.ptr);
-	jit_cache_opcode(&(gen->posn), JIT_OP_CALL_FINALLY);
-	block = jit_block_from_label(func, label);
-	if(!block)
-	{
-		return;
-	}
-	if(block->address)
-	{
-		/* We already know the address of the block */
-		jit_cache_native
-			(&(gen->posn), ((void **)(block->address)) - pc);
-	}
-	else
-	{
-		/* Record this position on the block's fixup list */
-		jit_cache_native(&(gen->posn), block->fixup_list);
-		block->fixup_list = (void *)pc;
-	}
-}
-
-/*@
- * @deftypefun void _jit_gen_unwind_stack ({void *} stacktop, {void *} catch_pc, {void *} object)
- * Unwind the stack back to @code{stacktop}, restore the frame, and
- * jump to @code{catch_pc}.  The registers are set up to arrange for
- * @code{object} to be in the right place for a @code{catch} clause.
- * @end deftypefun
-@*/
-void _jit_gen_unwind_stack(void *stacktop, void *catch_pc, void *object)
-{
-	/* Not used by the interpreted back end */
 }
 
 #endif /* JIT_BACKEND_INTERP */

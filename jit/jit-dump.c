@@ -406,6 +406,12 @@ void jit_dump_insn(FILE *stream, jit_function_t func, jit_insn_t insn)
 		putc(')', stream);
 		return;
 	}
+	else if((flags & JIT_OPCODE_IS_ADDROF_LABEL) != 0)
+	{
+		fprintf(stream, "address_of_label .L%ld",
+				(long)(jit_insn_get_label(insn)));
+		return;
+	}
 
 	/* Output the destination information */
 	if((flags & JIT_OPCODE_DEST_MASK) != JIT_OPCODE_DEST_EMPTY &&
@@ -598,7 +604,8 @@ static void dump_interp_code(FILE *stream, void **pc, void **end)
 
 			default:
 			{
-				if((info->flags & JIT_OPCODE_IS_BRANCH) != 0)
+				if((info->flags & (JIT_OPCODE_IS_BRANCH |
+								   JIT_OPCODE_IS_ADDROF_LABEL)) != 0)
 				{
 					fprintf(stream, " %08lX",
 							(long)(jit_nint)((pc - 1) + (jit_nint)(*pc)));
