@@ -18,8 +18,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <jit/jit-dynamic.h>
+#include <jit/jit-util.h>
 #include <stdio.h>
-#include "jit-internal.h"
+#include <config.h>
 #ifdef JIT_WIN32_PLATFORM
 	#include <windows.h>
 	#ifndef JIT_WIN32_NATIVE
@@ -42,6 +44,9 @@ The following routines are supplied to help load and inspect dynamic
 libraries.  They should be used in place of the traditional
 @code{dlopen}, @code{dlclose}, and @code{dlsym} functions, which
 are not portable across operating systems.
+
+You must include @code{<jit/jit-dynamic.h>} to use these routines,
+and then link with @code{-ljitdynamic -ljit}.
 
 @deftypefun jit_dynlib_handle_t jit_dynlib_open ({const char *} name)
 Opens the dynamic library called @code{name}, returning a handle for it.

@@ -1,5 +1,5 @@
 /*
- * jit-mangle.c - Perform C++ name mangling.
+ * jit-cpp-mangle.c - Perform C++ name mangling.
  *
  * Copyright (C) 2004  Southern Storm Software, Pty Ltd.
  *
@@ -18,6 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <jit/jit-dynamic.h>
 #include "jit-internal.h"
 #include <config.h>
 #include <stdio.h>

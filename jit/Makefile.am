@@ -13,7 +13,6 @@ libjit_a_SOURCES = \
 		jit-cache.c \
 		jit-context.c \
 		jit-dump.c \
-		jit-dynlib.c \
 		jit-elf-defs.h \
 		jit-elf-read.c \
 		jit-elf-write.c \
@@ -28,7 +27,6 @@ libjit_a_SOURCES = \
 		jit-interp.cpp \
 		jit-intrinsic.c \
 		jit-live.c \
-		jit-mangle.c \
 		jit-memory.c \
 		jit-memory.h \
 		jit-meta.c \

@@ -1,2 +1,2 @@
 
-SUBDIRS = include tools jit jitplus dpas tutorial doc
+SUBDIRS = include tools jit jitdynamic jitplus dpas tutorial doc

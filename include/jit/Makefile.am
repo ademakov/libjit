@@ -7,6 +7,7 @@ libjitinclude_HEADERS = jit.h \
 						jit-context.h \
 						jit-defs.h \
 						jit-dump.h \
+						jit-dynamic.h \
 						jit-elf.h \
 						jit-except.h \
 						jit-function.h \

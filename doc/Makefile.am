@@ -15,7 +15,7 @@ libjit_TEXINFOS = \
 	$(srcdir)/libjitext-init.texi \
 	$(srcdir)/libjitext-insn.texi \
 	$(srcdir)/libjitext-intrinsic.texi \
-	$(srcdir)/libjitext-mangle.texi \
+	$(srcdir)/libjitext-cpp-mangle.texi \
 	$(srcdir)/libjitext-memory.texi \
 	$(srcdir)/libjitext-meta.texi \
 	$(srcdir)/libjitext-reg-alloc.texi \
@@ -40,7 +40,7 @@ $(srcdir)/libjitext-block.texi: $(top_srcdir)/jit/jit-block.c
 $(srcdir)/libjitext-context.texi: $(top_srcdir)/jit/jit-context.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
-$(srcdir)/libjitext-dynlib.texi: $(top_srcdir)/jit/jit-dynlib.c
+$(srcdir)/libjitext-dynlib.texi: $(top_srcdir)/jitdynamic/jit-dynlib.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
 $(srcdir)/libjitext-elf-read.texi: $(top_srcdir)/jit/jit-elf-read.c
@@ -61,7 +61,7 @@ $(srcdir)/libjitext-insn.texi: $(top_srcdir)/jit/jit-insn.c
 $(srcdir)/libjitext-intrinsic.texi: $(top_srcdir)/jit/jit-intrinsic.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
-$(srcdir)/libjitext-mangle.texi: $(top_srcdir)/jit/jit-mangle.c
+$(srcdir)/libjitext-cpp-mangle.texi: $(top_srcdir)/jitdynamic/jit-cpp-mangle.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
 $(srcdir)/libjitext-memory.texi: $(top_srcdir)/jit/jit-memory.c

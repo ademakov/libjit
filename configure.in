@@ -370,6 +370,7 @@ include/jit/Makefile
 include/jit/jit-defs.h
 tools/Makefile
 jit/Makefile
+jitdynamic/Makefile
 jitplus/Makefile
 dpas/Makefile
 tutorial/Makefile
