@@ -576,9 +576,10 @@ extern arm_inst_ptr _arm_mov_reg_imm
 				} \
 				else \
 				{ \
-					arm_mov_reg_imm((inst), ARM_WORK, (int)(target)); \
-					arm_mov_reg_reg((inst), ARM_LINK, ARM_PC); \
+					arm_load_membase((inst), ARM_WORK, ARM_PC, 4); \
+					arm_alu_reg_imm8((inst), ARM_ADD, ARM_LINK, ARM_PC, 4); \
 					arm_mov_reg_reg((inst), ARM_PC, ARM_WORK); \
+					*(inst)++ = (int)(target); \
 				} \
 			} while (0)
 

@@ -13,6 +13,9 @@
 	* jit/jit-reg-alloc.c (_jit_regs_set_outgoing): implement
 	missing function.
 
+	* jit/jit-gen-arm.h (arm_call): use a more efficient form of
+	call for offsets beyond the simple target range.
+
 2004-06-08  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c: fix ROUND_END_PTR so that it adds the size
