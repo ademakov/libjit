@@ -15,6 +15,11 @@
 	* jit/jit-rules-arm.c (_jit_gen_load_value): use ARM register pairs
 	properly for "long" and "float64" values.
 
+	* jit/jit-apply-arm.c, jit/jit-gen-arm.c, jit/jit-gen-arm.h,
+	jit/jit-rules-arm.c, jit/jit-rules-arm.h, jit/jit-rules-arm.sel,
+	tools/gen-sel-parser.y: redesign the ARM code generation macros
+	so that they have stronger protection against buffer overruns.
+
 2004-06-08  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/Makefile.am, jit/jit-cpuid-x86.c, jit/jit-cpuid-x86.h:

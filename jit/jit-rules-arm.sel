@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-%inst_type arm_inst_ptr
+%inst_type arm_inst_buf
 
 /*
  * Conversion opcodes.
@@ -267,119 +267,119 @@ JIT_OP_ISHR_UN: binary
 JIT_OP_BR: spill_before
 	[] -> {
 		/* ARM_CC_AL == "always branch" */
-		inst = output_branch(func, inst, ARM_CC_AL, insn);
+		output_branch(func, &inst, ARM_CC_AL, insn);
 	}
 
 JIT_OP_BR_IFALSE: unary_branch
 	[reg] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, 0);
-		inst = output_branch(func, inst, ARM_CC_EQ, insn);
+		output_branch(func, &inst, ARM_CC_EQ, insn);
 	}
 
 JIT_OP_BR_ITRUE: unary_branch
 	[reg] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, 0);
-		inst = output_branch(func, inst, ARM_CC_NE, insn);
+		output_branch(func, &inst, ARM_CC_NE, insn);
 	}
 
 JIT_OP_BR_IEQ: binary_branch
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_EQ, insn);
+		output_branch(func, &inst, ARM_CC_EQ, insn);
 	}
 	[reg, reg] -> {
 		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_EQ, insn);
+		output_branch(func, &inst, ARM_CC_EQ, insn);
 	}
 
 JIT_OP_BR_INE: binary_branch
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_NE, insn);
+		output_branch(func, &inst, ARM_CC_NE, insn);
 	}
 	[reg, reg] -> {
 		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_NE, insn);
+		output_branch(func, &inst, ARM_CC_NE, insn);
 	}
 
 JIT_OP_BR_ILT: binary_branch
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_LT, insn);
+		output_branch(func, &inst, ARM_CC_LT, insn);
 	}
 	[reg, reg] -> {
 		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_LT, insn);
+		output_branch(func, &inst, ARM_CC_LT, insn);
 	}
 
 JIT_OP_BR_ILT_UN: binary_branch
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_LT_UN, insn);
+		output_branch(func, &inst, ARM_CC_LT_UN, insn);
 	}
 	[reg, reg] -> {
 		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_LT_UN, insn);
+		output_branch(func, &inst, ARM_CC_LT_UN, insn);
 	}
 
 JIT_OP_BR_ILE: binary_branch
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_LE, insn);
+		output_branch(func, &inst, ARM_CC_LE, insn);
 	}
 	[reg, reg] -> {
 		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_LE, insn);
+		output_branch(func, &inst, ARM_CC_LE, insn);
 	}
 
 JIT_OP_BR_ILE_UN: binary_branch
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_LE_UN, insn);
+		output_branch(func, &inst, ARM_CC_LE_UN, insn);
 	}
 	[reg, reg] -> {
 		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_LE_UN, insn);
+		output_branch(func, &inst, ARM_CC_LE_UN, insn);
 	}
 
 JIT_OP_BR_IGT: binary_branch
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_GT, insn);
+		output_branch(func, &inst, ARM_CC_GT, insn);
 	}
 	[reg, reg] -> {
 		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_GT, insn);
+		output_branch(func, &inst, ARM_CC_GT, insn);
 	}
 
 JIT_OP_BR_IGT_UN: binary_branch
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_GT_UN, insn);
+		output_branch(func, &inst, ARM_CC_GT_UN, insn);
 	}
 	[reg, reg] -> {
 		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_GT_UN, insn);
+		output_branch(func, &inst, ARM_CC_GT_UN, insn);
 	}
 
 JIT_OP_BR_IGE: binary_branch
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_GE, insn);
+		output_branch(func, &inst, ARM_CC_GE, insn);
 	}
 	[reg, reg] -> {
 		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_GE, insn);
+		output_branch(func, &inst, ARM_CC_GE, insn);
 	}
 
 JIT_OP_BR_IGE_UN: binary_branch
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_GE_UN, insn);
+		output_branch(func, &inst, ARM_CC_GE_UN, insn);
 	}
 	[reg, reg] -> {
 		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
-		inst = output_branch(func, inst, ARM_CC_GE_UN, insn);
+		output_branch(func, &inst, ARM_CC_GE_UN, insn);
 	}
 
 /*
@@ -541,7 +541,7 @@ JIT_OP_IGE_UN: binary
 JIT_OP_CHECK_NULL: unary_note
 	[reg] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, 0);
-		inst = throw_builtin(inst, func, ARM_CC_EQ, JIT_RESULT_NULL_REFERENCE);
+		throw_builtin(&inst, func, ARM_CC_EQ, JIT_RESULT_NULL_REFERENCE);
 	}
 
 /*
@@ -579,7 +579,7 @@ JIT_OP_CALL_EXTERNAL:
 
 JIT_OP_RETURN:
 	[] -> {
-		inst = jump_to_epilog(gen, inst, block);
+		jump_to_epilog(gen, &inst, block);
 	}
 
 JIT_OP_RETURN_INT: unary_branch
@@ -589,17 +589,17 @@ JIT_OP_RETURN_INT: unary_branch
 		{
 			arm_mov_reg_reg(inst, ARM_R0, cpu_reg);
 		}
-		inst = jump_to_epilog(gen, inst, block);
+		jump_to_epilog(gen, &inst, block);
 	}
 
 JIT_OP_RETURN_LONG: spill_before
 	[] -> {
 		if(jit_value_is_constant(insn->value1))
 		{
-			inst = mov_reg_imm
-				(gen, inst, ARM_R0, ((jit_int *)(insn->value1->address))[0]);
-			inst = mov_reg_imm
-				(gen, inst, ARM_R1, ((jit_int *)(insn->value1->address))[1]);
+			mov_reg_imm
+				(gen, &inst, ARM_R0, ((jit_int *)(insn->value1->address))[0]);
+			mov_reg_imm
+				(gen, &inst, ARM_R1, ((jit_int *)(insn->value1->address))[1]);
 		}
 		else
 		{
@@ -609,7 +609,7 @@ JIT_OP_RETURN_LONG: spill_before
 			arm_load_membase(inst, ARM_R0, ARM_FP, offset);
 			arm_load_membase(inst, ARM_R1, ARM_FP, offset + 4);
 		}
-		inst = jump_to_epilog(gen, inst, block);
+		jump_to_epilog(gen, &inst, block);
 	}
 
 JIT_OP_RETURN_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary_branch
@@ -618,31 +618,26 @@ JIT_OP_RETURN_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary_branch
 		{
 			arm_alu_freg_32(inst, ARM_MVF, ARM_F0, $1);
 		}
-		inst = jump_to_epilog(gen, inst, block);
+		jump_to_epilog(gen, &inst, block);
 	}
 
 JIT_OP_RETURN_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		_jit_regs_spill_all(gen);
 		_jit_gen_fix_value(insn->value1);
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		if(insn->value1->is_constant)
 		{
-			inst = mov_reg_imm
-				(gen, inst, ARM_R0, ((int *)(insn->value1->address))[0]);
+			mov_reg_imm
+				(gen, &inst, ARM_R0, ((int *)(insn->value1->address))[0]);
 		}
 		else
 		{
 			arm_load_membase(inst, ARM_R0, ARM_FP, insn->value1->frame_offset);
 		}
-		inst = jump_to_epilog(gen, inst, block);
-		gen->posn.ptr = (unsigned char *)inst;
+		jump_to_epilog(gen, &inst, block);
+		jit_gen_save_inst_ptr(gen, inst);
 	}
 
 JIT_OP_RETURN_FLOAT64, JIT_OP_RETURN_NFLOAT
@@ -652,26 +647,21 @@ JIT_OP_RETURN_FLOAT64, JIT_OP_RETURN_NFLOAT
 		{
 			arm_alu_freg(inst, ARM_MVF, ARM_F0, $1);
 		}
-		inst = jump_to_epilog(gen, inst, block);
+		jump_to_epilog(gen, &inst, block);
 	}
 
 JIT_OP_RETURN_FLOAT64, JIT_OP_RETURN_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		_jit_regs_spill_all(gen);
 		_jit_gen_fix_value(insn->value1);
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		if(insn->value1->is_constant)
 		{
-			inst = mov_reg_imm
-				(gen, inst, ARM_R0, ((int *)(insn->value1->address))[0]);
-			inst= mov_reg_imm
-				(gen, inst, ARM_R1, ((int *)(insn->value1->address))[1]);
+			mov_reg_imm
+				(gen, &inst, ARM_R0, ((int *)(insn->value1->address))[0]);
+			mov_reg_imm
+				(gen, &inst, ARM_R1, ((int *)(insn->value1->address))[1]);
 		}
 		else
 		{
@@ -679,8 +669,8 @@ JIT_OP_RETURN_FLOAT64, JIT_OP_RETURN_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
 			arm_load_membase(inst, ARM_R1, ARM_FP,
 							 insn->value1->frame_offset + 4);
 		}
-		inst = jump_to_epilog(gen, inst, block);
-		gen->posn.ptr = (unsigned char *)inst;
+		jump_to_epilog(gen, &inst, block);
+		jit_gen_save_inst_ptr(gen, inst);
 	}
 
 JIT_OP_RETURN_SMALL_STRUCT: unary_branch
@@ -751,7 +741,7 @@ JIT_OP_RETURN_SMALL_STRUCT: unary_branch
 			}
 			break;
 		}
-		inst = jump_to_epilog(gen, inst, block);
+		jump_to_epilog(gen, &inst, block);
 	}
 
 JIT_OP_SETUP_FOR_NESTED: spill_before
@@ -783,12 +773,6 @@ JIT_OP_SETUP_FOR_SIBLING: spill_before
 		arm_load_membase(inst, cpu_reg, ARM_FP, JIT_APPLY_PARENT_FRAME_OFFSET);
 		while(level > 0)
 		{
-			gen->posn.ptr = (unsigned char *)inst;
-			if(!jit_cache_check_for_n(&(gen->posn), 16))
-			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
-			}
 			arm_load_membase(inst, cpu_reg, cpu_reg,
 							 JIT_APPLY_PARENT_FRAME_OFFSET);
 			--level;
@@ -826,25 +810,20 @@ JIT_OP_COPY_INT: unary
 
 JIT_OP_COPY_LONG: manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		_jit_regs_force_out(gen, insn->value1, 0);
 		_jit_regs_force_out(gen, insn->dest, 1);
 		_jit_gen_fix_value(insn->value1);
 		_jit_gen_fix_value(insn->dest);
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		if(insn->value1->is_constant)
 		{
-			inst = mov_reg_imm
-				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
 			arm_store_membase(inst, ARM_WORK, ARM_FP,
 							  insn->dest->frame_offset);
-			inst = mov_reg_imm
-				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
 			arm_store_membase(inst, ARM_WORK, ARM_FP,
 							  insn->dest->frame_offset + 4);
 		}
@@ -859,7 +838,7 @@ JIT_OP_COPY_LONG: manual
 			arm_store_membase(inst, ARM_WORK, ARM_FP,
 							  insn->dest->frame_offset + 4);
 		}
-		gen->posn.ptr = (unsigned char *)inst;
+		jit_gen_save_inst_ptr(gen, inst);
 	}
 
 JIT_OP_COPY_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary
@@ -867,21 +846,16 @@ JIT_OP_COPY_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary
 
 JIT_OP_COPY_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		_jit_regs_force_out(gen, insn->value1, 0);
 		_jit_regs_force_out(gen, insn->dest, 1);
 		_jit_gen_fix_value(insn->value1);
 		_jit_gen_fix_value(insn->dest);
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		if(insn->value1->is_constant)
 		{
-			inst = mov_reg_imm
-				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
 		}
 		else
 		{
@@ -889,7 +863,7 @@ JIT_OP_COPY_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 							 insn->value1->frame_offset);
 		}
 		arm_store_membase(inst, ARM_WORK, ARM_FP, insn->dest->frame_offset);
-		gen->posn.ptr = (unsigned char *)inst;
+		jit_gen_save_inst_ptr(gen, inst);
 	}
 
 JIT_OP_COPY_FLOAT64, JIT_OP_COPY_NFLOAT (JIT_ARM_HAS_FLOAT_REGS): unary
@@ -897,25 +871,20 @@ JIT_OP_COPY_FLOAT64, JIT_OP_COPY_NFLOAT (JIT_ARM_HAS_FLOAT_REGS): unary
 
 JIT_OP_COPY_FLOAT64, JIT_OP_COPY_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		_jit_regs_force_out(gen, insn->value1, 0);
 		_jit_regs_force_out(gen, insn->dest, 1);
 		_jit_gen_fix_value(insn->value1);
 		_jit_gen_fix_value(insn->dest);
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		if(insn->value1->is_constant)
 		{
-			inst = mov_reg_imm
-				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
 			arm_store_membase(inst, ARM_WORK, ARM_FP,
 							  insn->dest->frame_offset);
-			inst = mov_reg_imm
-				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
 			arm_store_membase(inst, ARM_WORK, ARM_FP,
 							  insn->dest->frame_offset + 4);
 		}
@@ -930,7 +899,7 @@ JIT_OP_COPY_FLOAT64, JIT_OP_COPY_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
 			arm_store_membase(inst, ARM_WORK, ARM_FP,
 							  insn->dest->frame_offset + 4);
 		}
-		gen->posn.ptr = (unsigned char *)inst;
+		jit_gen_save_inst_ptr(gen, inst);
 	}
 
 JIT_OP_COPY_STRUCT: manual
@@ -941,7 +910,7 @@ JIT_OP_COPY_STRUCT: manual
 
 JIT_OP_COPY_STORE_BYTE: manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		int reg;
 		_jit_regs_force_out(gen, insn->dest, 1);
 		_jit_gen_fix_value(insn->dest);
@@ -949,20 +918,15 @@ JIT_OP_COPY_STORE_BYTE: manual
 			(gen, insn->value1, 0,
 			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
 			 				 JIT_INSN_VALUE1_LIVE)));
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		arm_store_membase_byte(inst, _jit_reg_info[reg].cpu_reg,
 							   ARM_FP, insn->dest->frame_offset);
-		gen->posn.ptr = (unsigned char *)inst;
+		jit_gen_save_inst_ptr(gen, inst);
 	}
 
 JIT_OP_COPY_STORE_SHORT: manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		int reg;
 		_jit_regs_force_out(gen, insn->dest, 1);
 		_jit_gen_fix_value(insn->dest);
@@ -970,30 +934,20 @@ JIT_OP_COPY_STORE_SHORT: manual
 			(gen, insn->value1, 1,
 			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
 			 				 JIT_INSN_VALUE1_LIVE)));
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		arm_store_membase_short(inst, _jit_reg_info[reg].cpu_reg,
 							    ARM_FP, insn->dest->frame_offset);
-		gen->posn.ptr = (unsigned char *)inst;
+		jit_gen_save_inst_ptr(gen, inst);
 		_jit_regs_free_reg(gen, reg, 1);
 	}
 
 JIT_OP_ADDRESS_OF: manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		int reg, offset;
 		_jit_regs_force_out(gen, insn->value1, 0);
 		_jit_gen_fix_value(insn->value1);
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		reg = _jit_regs_dest_value(gen, insn->dest);
 		reg = _jit_reg_info[reg].cpu_reg;
 		offset = insn->value1->frame_offset;
@@ -1009,7 +963,7 @@ JIT_OP_ADDRESS_OF: manual
 		{
 			arm_mov_reg_reg(inst, reg, ARM_FP);
 		}
-		gen->posn.ptr = (unsigned char *)inst;
+		jit_gen_save_inst_ptr(gen, inst);
 	}
 
 /*
@@ -1026,22 +980,17 @@ JIT_OP_PUSH_INT: unary_note
 
 JIT_OP_PUSH_LONG: manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		_jit_regs_force_out(gen, insn->value1, 0);
 		_jit_gen_fix_value(insn->value1);
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		if(insn->value1->is_constant)
 		{
-			inst = mov_reg_imm
-				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
 			arm_push_reg(inst, ARM_WORK);
-			inst = mov_reg_imm
-				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
 			arm_push_reg(inst, ARM_WORK);
 		}
 		else
@@ -1053,7 +1002,7 @@ JIT_OP_PUSH_LONG: manual
 							 insn->value1->frame_offset);
 			arm_push_reg(inst, ARM_WORK);
 		}
-		gen->posn.ptr = (unsigned char *)inst;
+		jit_gen_save_inst_ptr(gen, inst);
 	}
 
 JIT_OP_PUSH_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary_note
@@ -1063,19 +1012,14 @@ JIT_OP_PUSH_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary_note
 
 JIT_OP_PUSH_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		_jit_regs_force_out(gen, insn->value1, 0);
 		_jit_gen_fix_value(insn->value1);
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		if(insn->value1->is_constant)
 		{
-			inst = mov_reg_imm
-				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
 		}
 		else
 		{
@@ -1083,7 +1027,7 @@ JIT_OP_PUSH_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 							 insn->value1->frame_offset);
 		}
 		arm_push_reg(inst, ARM_WORK);
-		gen->posn.ptr = (unsigned char *)inst;
+		jit_gen_save_inst_ptr(gen, inst);
 	}
 
 JIT_OP_PUSH_FLOAT64, JIT_OP_PUSH_NFLOAT (JIT_ARM_HAS_FLOAT_REGS): unary_note
@@ -1093,22 +1037,17 @@ JIT_OP_PUSH_FLOAT64, JIT_OP_PUSH_NFLOAT (JIT_ARM_HAS_FLOAT_REGS): unary_note
 
 JIT_OP_PUSH_FLOAT64, JIT_OP_PUSH_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		_jit_regs_force_out(gen, insn->value1, 0);
 		_jit_gen_fix_value(insn->value1);
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		if(insn->value1->is_constant)
 		{
-			inst = mov_reg_imm
-				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
 			arm_push_reg(inst, ARM_WORK);
-			inst = mov_reg_imm
-				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
 			arm_push_reg(inst, ARM_WORK);
 		}
 		else
@@ -1120,7 +1059,7 @@ JIT_OP_PUSH_FLOAT64, JIT_OP_PUSH_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
 							 insn->value1->frame_offset);
 			arm_push_reg(inst, ARM_WORK);
 		}
-		gen->posn.ptr = (unsigned char *)inst;
+		jit_gen_save_inst_ptr(gen, inst);
 	}
 
 JIT_OP_PUSH_STRUCT: unary_note
@@ -1234,7 +1173,7 @@ JIT_OP_LOAD_RELATIVE_INT: unary
 
 JIT_OP_LOAD_RELATIVE_LONG: manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		int reg = _jit_regs_load_value
 			(gen, insn->value1, 0,
 			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
@@ -1247,18 +1186,13 @@ JIT_OP_LOAD_RELATIVE_LONG: manual
 		reg2 = _jit_reg_info[reg2].cpu_reg;
 		reg3 = _jit_reg_info[reg3].cpu_reg;
 		frame_offset = insn->dest->frame_offset;
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		arm_load_membase(inst, reg2, reg, insn->value2->address);
 		arm_load_membase(inst, reg3, reg, insn->value2->address + 4);
 		arm_store_membase(inst, reg2, ARM_FP, frame_offset);
 		arm_store_membase(inst, reg3, ARM_FP, frame_offset + 4);
 		insn->dest->in_frame = 1;
-		gen->posn.ptr = (unsigned char *)inst;
+		jit_gen_save_inst_ptr(gen, inst);
 	}
 
 JIT_OP_LOAD_RELATIVE_FLOAT32: manual
@@ -1281,7 +1215,7 @@ JIT_OP_LOAD_RELATIVE_STRUCT: manual
 
 JIT_OP_STORE_RELATIVE_BYTE: manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		int reg = _jit_regs_load_value
 			(gen, insn->dest, 0,
 			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
@@ -1290,21 +1224,16 @@ JIT_OP_STORE_RELATIVE_BYTE: manual
 			(gen, insn->value1, 0,
 			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
 			 				 JIT_INSN_VALUE1_LIVE)));
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		reg  = _jit_reg_info[reg].cpu_reg;
 		reg2 = _jit_reg_info[reg2].cpu_reg;
 		arm_store_membase_byte(inst, reg2, reg, insn->value2->address);
-		gen->posn.ptr = (unsigned char *)inst;
+		jit_gen_save_inst_ptr(gen, inst);
 	}
 
 JIT_OP_STORE_RELATIVE_SHORT: manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		int reg = _jit_regs_load_value
 			(gen, insn->dest, 0,
 			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
@@ -1313,22 +1242,17 @@ JIT_OP_STORE_RELATIVE_SHORT: manual
 			(gen, insn->value1, 1,
 			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
 			 				 JIT_INSN_VALUE1_LIVE)));
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		reg  = _jit_reg_info[reg].cpu_reg;
 		reg2 = _jit_reg_info[reg2].cpu_reg;
 		arm_store_membase_short(inst, reg2, reg, insn->value2->address);
-		gen->posn.ptr = (unsigned char *)inst;
+		jit_gen_save_inst_ptr(gen, inst);
 		_jit_regs_free_reg(gen, reg2, 1);
 	}
 
 JIT_OP_STORE_RELATIVE_INT: manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		int reg = _jit_regs_load_value
 			(gen, insn->dest, 0,
 			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
@@ -1337,21 +1261,16 @@ JIT_OP_STORE_RELATIVE_INT: manual
 			(gen, insn->value1, 0,
 			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
 			 				 JIT_INSN_VALUE1_LIVE)));
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		reg  = _jit_reg_info[reg].cpu_reg;
 		reg2 = _jit_reg_info[reg2].cpu_reg;
 		arm_store_membase(inst, reg2, reg, insn->value2->address);
-		gen->posn.ptr = (unsigned char *)inst;
+		jit_gen_save_inst_ptr(gen, inst);
 	}
 
 JIT_OP_STORE_RELATIVE_LONG: manual
 	[] -> {
-		arm_inst_ptr inst;
+		arm_inst_buf inst;
 		int reg = _jit_regs_load_value
 			(gen, insn->dest, 0,
 			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
@@ -1360,12 +1279,7 @@ JIT_OP_STORE_RELATIVE_LONG: manual
 		int frame_offset;
 		_jit_regs_get_reg_pair(gen, reg, -1, -1, &reg2, &reg3);
 		_jit_gen_fix_value(insn->value1);
-		inst = (arm_inst_ptr)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		jit_gen_load_inst_ptr(gen, inst);
 		reg  = _jit_reg_info[reg].cpu_reg;
 		reg2 = _jit_reg_info[reg2].cpu_reg;
 		reg3 = _jit_reg_info[reg3].cpu_reg;
@@ -1374,7 +1288,7 @@ JIT_OP_STORE_RELATIVE_LONG: manual
 		arm_load_membase(inst, reg3, ARM_FP, frame_offset + 4);
 		arm_store_membase(inst, reg2, reg, insn->value2->address);
 		arm_store_membase(inst, reg3, reg, insn->value2->address + 4);
-		gen->posn.ptr = (unsigned char *)inst;
+		jit_gen_save_inst_ptr(gen, inst);
 	}
 
 JIT_OP_STORE_RELATIVE_FLOAT32: manual

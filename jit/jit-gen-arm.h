@@ -183,9 +183,17 @@ typedef enum
 #define	ARM_NUM_PARAM_REGS	4
 
 /*
- * Type for instruction pointers (word-based, not byte-based).
+ * Type that keeps track of the instruction buffer.
  */
-typedef unsigned int *arm_inst_ptr;
+typedef unsigned int arm_inst_word;
+typedef struct
+{
+	arm_inst_word *current;
+	arm_inst_word *limit;
+
+} arm_inst_buf;
+#define	arm_inst_get_posn(inst)		((inst).current)
+#define	arm_inst_get_limit(inst)	((inst).limit)
 
 /*
  * Build an instruction prefix from a condition code and a mask value.
@@ -217,43 +225,63 @@ typedef unsigned int *arm_inst_ptr;
 #endif
 
 /*
+ * Initialize an instruction buffer.
+ */
+#define	arm_inst_buf_init(inst,start,end)	\
+			do { \
+				(inst).current = (arm_inst_word *)(start); \
+				(inst).limit = (arm_inst_word *)(end); \
+			} while (0)
+
+/*
+ * Add an instruction to an instruction buffer.
+ */
+#define	arm_inst_add(inst,value)	\
+			do { \
+				if((inst).current < (inst).limit) \
+				{ \
+					*((inst).current)++ = (value); \
+				} \
+			} while (0)
+
+/*
  * Arithmetic or logical operation which doesn't set condition codes.
  */
 #define	arm_alu_reg_reg(inst,opc,dreg,sreg1,sreg2)	\
 			do { \
-				*(inst)++ = arm_execute | \
+				arm_inst_add((inst), arm_execute | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg1)) << 16) | \
-							 ((unsigned int)(sreg2)); \
+							 ((unsigned int)(sreg2))); \
 			} while (0)
 #define	arm_alu_reg_imm8(inst,opc,dreg,sreg,imm)	\
 			do { \
-				*(inst)++ = arm_execute_imm | \
+				arm_inst_add((inst), arm_execute_imm | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg)) << 16) | \
-							 ((unsigned int)((imm) & 0xFF)); \
+							 ((unsigned int)((imm) & 0xFF))); \
 			} while (0)
 #define	arm_alu_reg_imm8_cond(inst,opc,dreg,sreg,imm,cond)	\
 			do { \
-				*(inst)++ = arm_build_prefix((cond), (1 << 25)) | \
+				arm_inst_add((inst), arm_build_prefix((cond), (1 << 25)) | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg)) << 16) | \
-							 ((unsigned int)((imm) & 0xFF)); \
+							 ((unsigned int)((imm) & 0xFF))); \
 			} while (0)
 #define	arm_alu_reg_imm8_rotate(inst,opc,dreg,sreg,imm,rotate)	\
 			do { \
-				*(inst)++ = arm_execute_imm | \
+				arm_inst_add((inst), arm_execute_imm | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg)) << 16) | \
 							(((unsigned int)(rotate)) << 8) | \
-							 ((unsigned int)((imm) & 0xFF)); \
+							 ((unsigned int)((imm) & 0xFF))); \
 			} while (0)
-extern arm_inst_ptr _arm_alu_reg_imm
-		(arm_inst_ptr inst, int opc, int dreg,
+extern void _arm_alu_reg_imm
+		(arm_inst_buf *inst, int opc, int dreg,
 		 int sreg, int imm, int saveWork, int execute_prefix);
 #define	arm_alu_reg_imm(inst,opc,dreg,sreg,imm)	\
 			do { \
@@ -265,8 +293,8 @@ extern arm_inst_ptr _arm_alu_reg_imm
 				} \
 				else \
 				{ \
-					(inst) = _arm_alu_reg_imm \
-						((inst), (opc), (dreg), (sreg), __alu_imm, 0, \
+					_arm_alu_reg_imm \
+						(&(inst), (opc), (dreg), (sreg), __alu_imm, 0, \
 						 arm_execute); \
 				} \
 			} while (0)
@@ -280,24 +308,24 @@ extern arm_inst_ptr _arm_alu_reg_imm
 				} \
 				else \
 				{ \
-					(inst) = _arm_alu_reg_imm \
-						((inst), (opc), (dreg), (sreg), __alu_imm_save, 1, \
+					_arm_alu_reg_imm \
+						(&(inst), (opc), (dreg), (sreg), __alu_imm_save, 1, \
 						 arm_execute); \
 				} \
 			} while (0)
 #define arm_alu_reg(inst,opc,dreg,sreg)	\
 			do { \
-				*(inst)++ = arm_execute | \
+				arm_inst_add((inst), arm_execute | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
-							 ((unsigned int)(sreg)); \
+							 ((unsigned int)(sreg))); \
 			} while (0)
 #define arm_alu_reg_cond(inst,opc,dreg,sreg,cond)	\
 			do { \
-				*(inst)++ = arm_build_prefix((cond), 0) | \
+				arm_inst_add((inst), arm_build_prefix((cond), 0) | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
-							 ((unsigned int)(sreg)); \
+							 ((unsigned int)(sreg))); \
 			} while (0)
 
 /*
@@ -305,26 +333,26 @@ extern arm_inst_ptr _arm_alu_reg_imm
  */
 #define	arm_alu_cc_reg_reg(inst,opc,dreg,sreg1,sreg2)	\
 			do { \
-				*(inst)++ = arm_execute_cc | \
+				arm_inst_add((inst), arm_execute_cc | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg1)) << 16) | \
-							 ((unsigned int)(sreg2)); \
+							 ((unsigned int)(sreg2))); \
 			} while (0)
 #define	arm_alu_cc_reg_imm8(inst,opc,dreg,sreg,imm)	\
 			do { \
-				*(inst)++ = arm_execute_imm | arm_execute_cc | \
+				arm_inst_add((inst), arm_execute_imm | arm_execute_cc | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg)) << 16) | \
-							 ((unsigned int)((imm) & 0xFF)); \
+							 ((unsigned int)((imm) & 0xFF))); \
 			} while (0)
 #define arm_alu_cc_reg(inst,opc,dreg,sreg)	\
 			do { \
-				*(inst)++ = arm_execute_cc | \
+				arm_inst_add((inst), = arm_execute_cc | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
-							 ((unsigned int)(sreg)); \
+							 ((unsigned int)(sreg))); \
 			} while (0)
 
 /*
@@ -374,8 +402,8 @@ extern arm_inst_ptr _arm_alu_reg_imm
 				arm_alu_reg_imm8_rotate((inst), ARM_MOV, (reg), \
 										0, (imm), (rotate)); \
 			} while (0)
-extern arm_inst_ptr _arm_mov_reg_imm
-	(arm_inst_ptr inst, int reg, int value, int execute_prefix);
+extern void _arm_mov_reg_imm
+	(arm_inst_buf *inst, int reg, int value, int execute_prefix);
 extern int arm_is_complex_imm(int value);
 #define	arm_mov_reg_imm(inst,reg,imm)	\
 			do { \
@@ -386,8 +414,8 @@ extern int arm_is_complex_imm(int value);
 				} \
 				else if((reg) == ARM_PC) \
 				{ \
-					(inst) = _arm_mov_reg_imm \
-						((inst), ARM_WORK, __imm, arm_execute); \
+					_arm_mov_reg_imm \
+						(&(inst), ARM_WORK, __imm, arm_execute); \
 					arm_mov_reg_reg((inst), ARM_PC, ARM_WORK); \
 				} \
 				else if(__imm > -256 && __imm < 0) \
@@ -397,8 +425,7 @@ extern int arm_is_complex_imm(int value);
 				} \
 				else \
 				{ \
-					(inst) = _arm_mov_reg_imm \
-						((inst), (reg), __imm, arm_execute); \
+					_arm_mov_reg_imm(&(inst), (reg), __imm, arm_execute); \
 				} \
 			} while (0)
 
@@ -420,22 +447,22 @@ extern int arm_is_complex_imm(int value);
  */
 #define	arm_shift_reg_reg(inst,opc,dreg,sreg1,sreg2) \
 			do { \
-				*(inst)++ = arm_execute | \
+				arm_inst_add((inst), arm_execute | \
 							(((unsigned int)ARM_MOV) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg2)) << 8) | \
 							(((unsigned int)(opc)) << 5) | \
 							 ((unsigned int)(1 << 4)) | \
-							 ((unsigned int)(sreg1)); \
+							 ((unsigned int)(sreg1))); \
 			} while (0)
 #define	arm_shift_reg_imm8(inst,opc,dreg,sreg,imm) \
 			do { \
-				*(inst)++ = arm_execute | \
+				arm_inst_add((inst), arm_execute | \
 							(((unsigned int)ARM_MOV) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(opc)) << 5) | \
 							(((unsigned int)(imm)) << 7) | \
-							 ((unsigned int)(sreg)); \
+							 ((unsigned int)(sreg))); \
 			} while (0)
 
 /*
@@ -448,17 +475,17 @@ extern int arm_is_complex_imm(int value);
 			do { \
 				if((dreg) != (sreg2)) \
 				{ \
-					*(inst)++ = arm_prefix(0x00000090) | \
+					arm_inst_add((inst), arm_prefix(0x00000090) | \
 								(((unsigned int)(dreg)) << 16) | \
 								(((unsigned int)(sreg1)) << 8) | \
-								 ((unsigned int)(sreg2)); \
+								 ((unsigned int)(sreg2))); \
 				} \
 				else \
 				{ \
-					*(inst)++ = arm_prefix(0x00000090) | \
+					arm_inst_add((inst), arm_prefix(0x00000090) | \
 								(((unsigned int)(dreg)) << 16) | \
 								(((unsigned int)(sreg2)) << 8) | \
-								 ((unsigned int)(sreg1)); \
+								 ((unsigned int)(sreg1))); \
 				} \
 			} while (0)
 
@@ -467,19 +494,19 @@ extern int arm_is_complex_imm(int value);
  */
 #define	arm_alu_freg_freg(inst,opc,dreg,sreg1,sreg2)	\
 			do { \
-				*(inst)++ = arm_prefix(0x0E000180) | \
+				arm_inst_add((inst), arm_prefix(0x0E000180) | \
 							(((unsigned int)(opc)) << 20) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg1)) << 16) | \
-							 ((unsigned int)(sreg2)); \
+							 ((unsigned int)(sreg2))); \
 			} while (0)
 #define	arm_alu_freg_freg_32(inst,opc,dreg,sreg1,sreg2)	\
 			do { \
-				*(inst)++ = arm_prefix(0x0E000100) | \
+				arm_inst_add((inst), arm_prefix(0x0E000100) | \
 							(((unsigned int)(opc)) << 20) | \
 							(((unsigned int)(dreg)) << 12) | \
 							(((unsigned int)(sreg1)) << 16) | \
-							 ((unsigned int)(sreg2)); \
+							 ((unsigned int)(sreg2))); \
 			} while (0)
 
 /*
@@ -487,17 +514,17 @@ extern int arm_is_complex_imm(int value);
  */
 #define	arm_alu_freg(inst,opc,dreg,sreg)	\
 			do { \
-				*(inst)++ = arm_prefix(0x0E008180) | \
+				arm_inst_add((inst), arm_prefix(0x0E008180) | \
 							(((unsigned int)(opc)) << 20) | \
 							(((unsigned int)(dreg)) << 12) | \
-							 ((unsigned int)(sreg)); \
+							 ((unsigned int)(sreg))); \
 			} while (0)
 #define	arm_alu_freg_32(inst,opc,dreg,sreg)	\
 			do { \
-				*(inst)++ = arm_prefix(0x0E008100) | \
+				arm_inst_add((inst), arm_prefix(0x0E008100) | \
 							(((unsigned int)(opc)) << 20) | \
 							(((unsigned int)(dreg)) << 12) | \
-							 ((unsigned int)(sreg)); \
+							 ((unsigned int)(sreg))); \
 			} while (0)
 
 /*
@@ -506,9 +533,9 @@ extern int arm_is_complex_imm(int value);
  */
 #define	arm_branch_imm(inst,cond,imm)	\
 			do { \
-				*(inst)++ = arm_build_prefix((cond), 0x0A000000) | \
+				arm_inst_add((inst), arm_build_prefix((cond), 0x0A000000) | \
 							(((unsigned int)(((int)(imm)) >> 2)) & \
-								0x00FFFFFF); \
+								0x00FFFFFF)); \
 			} while (0)
 #define	arm_jump_imm(inst,imm)	arm_branch_imm((inst), ARM_CC_AL, (imm))
 
@@ -519,7 +546,7 @@ extern int arm_is_complex_imm(int value);
 #define	arm_branch(inst,cond,target)	\
 			do { \
 				int __br_offset = (int)(((unsigned char *)(target)) - \
-							           (((unsigned char *)(inst)) + 8)); \
+					           (((unsigned char *)((inst).current)) + 8)); \
 				arm_branch_imm((inst), (cond), __br_offset); \
 			} while (0)
 #define	arm_jump(inst,target)	arm_branch((inst), ARM_CC_AL, (target))
@@ -531,7 +558,7 @@ extern int arm_is_complex_imm(int value);
 #define	arm_jump_long(inst,target)	\
 			do { \
 				int __jmp_offset = (int)(((unsigned char *)(target)) - \
-							            (((unsigned char *)(inst)) + 8)); \
+					            (((unsigned char *)((inst).current)) + 8)); \
 				if(__jmp_offset >= -0x04000000 && __jmp_offset < 0x04000000) \
 				{ \
 					arm_jump_imm((inst), __jmp_offset); \
@@ -545,13 +572,16 @@ extern int arm_is_complex_imm(int value);
 /*
  * Back-patch a branch instruction.
  */
-#define	arm_patch(inst,target)	\
+#define	arm_patch(inst,posn,target)	\
 			do { \
 				int __p_offset = (int)(((unsigned char *)(target)) - \
-							          (((unsigned char *)(inst)) + 8)); \
+							          (((unsigned char *)(posn)) + 8)); \
 				__p_offset = (__p_offset >> 2) & 0x00FFFFFF; \
-				*((int *)(inst)) = (*((int *)(inst)) & 0xFF000000) | \
-					__p_offset; \
+				if(((arm_inst_word *)(posn)) < (inst).limit) \
+				{ \
+					*((int *)(posn)) = (*((int *)(posn)) & 0xFF000000) | \
+						__p_offset; \
+				} \
 			} while (0)
 
 /*
@@ -559,9 +589,9 @@ extern int arm_is_complex_imm(int value);
  */
 #define	arm_call_imm(inst,imm)	\
 			do { \
-				*(inst)++ = arm_prefix(0x0B000000) | \
+				arm_inst_add((inst), arm_prefix(0x0B000000) | \
 							(((unsigned int)(((int)(imm)) >> 2)) & \
-								0x00FFFFFF); \
+								0x00FFFFFF)); \
 			} while (0)
 
 /*
@@ -570,7 +600,7 @@ extern int arm_is_complex_imm(int value);
 #define	arm_call(inst,target)	\
 			do { \
 				int __call_offset = (int)(((unsigned char *)(target)) - \
-							             (((unsigned char *)(inst)) + 8)); \
+					             (((unsigned char *)((inst).current)) + 8)); \
 				if(__call_offset >= -0x04000000 && __call_offset < 0x04000000) \
 				{ \
 					arm_call_imm((inst), __call_offset); \
@@ -580,7 +610,7 @@ extern int arm_is_complex_imm(int value);
 					arm_load_membase((inst), ARM_WORK, ARM_PC, 4); \
 					arm_alu_reg_imm8((inst), ARM_ADD, ARM_LINK, ARM_PC, 4); \
 					arm_mov_reg_reg((inst), ARM_PC, ARM_WORK); \
-					*(inst)++ = (int)(target); \
+					arm_inst_add((inst), (int)(target)); \
 				} \
 			} while (0)
 
@@ -597,9 +627,9 @@ extern int arm_is_complex_imm(int value);
  */
 #define	arm_push_reg(inst,reg)	\
 			do { \
-				*(inst)++ = arm_prefix(0x05200004) | \
+				arm_inst_add((inst), arm_prefix(0x05200004) | \
 							(((unsigned int)ARM_SP) << 16) | \
-							(((unsigned int)(reg)) << 12); \
+							(((unsigned int)(reg)) << 12)); \
 			} while (0)
 
 /*
@@ -607,9 +637,9 @@ extern int arm_is_complex_imm(int value);
  */
 #define	arm_pop_reg(inst,reg)	\
 			do { \
-				*(inst)++ = arm_prefix(0x04900004) | \
+				arm_inst_add((inst), arm_prefix(0x04900004) | \
 							(((unsigned int)ARM_SP) << 16) | \
-							(((unsigned int)(reg)) << 12); \
+							(((unsigned int)(reg)) << 12)); \
 			} while (0)
 
 /*
@@ -618,9 +648,9 @@ extern int arm_is_complex_imm(int value);
 #define	arm_setup_frame(inst,regset)	\
 			do { \
 				arm_mov_reg_reg((inst), ARM_WORK, ARM_SP); \
-				*(inst)++ = arm_prefix(0x0920D800) | \
+				arm_inst_add((inst), arm_prefix(0x0920D800) | \
 							(((unsigned int)ARM_SP) << 16) | \
-							(((unsigned int)(regset))); \
+							(((unsigned int)(regset)))); \
 				arm_alu_reg_imm8((inst), ARM_SUB, ARM_FP, ARM_WORK, 4); \
 			} while (0)
 
@@ -630,9 +660,9 @@ extern int arm_is_complex_imm(int value);
  */
 #define	arm_pop_frame(inst,regset)	\
 			do { \
-				*(inst)++ = arm_prefix(0x0910A800) | \
+				arm_inst_add((inst), arm_prefix(0x0910A800) | \
 							(((unsigned int)ARM_FP) << 16) | \
-							(((unsigned int)(regset))); \
+							(((unsigned int)(regset)))); \
 			} while (0)
 
 /*
@@ -641,9 +671,9 @@ extern int arm_is_complex_imm(int value);
  */
 #define	arm_pop_frame_tail(inst,regset)	\
 			do { \
-				*(inst)++ = arm_prefix(0x09106800) | \
+				arm_inst_add((inst), arm_prefix(0x09106800) | \
 							(((unsigned int)ARM_FP) << 16) | \
-							(((unsigned int)(regset))); \
+							(((unsigned int)(regset)))); \
 			} while (0)
 
 /*
@@ -651,9 +681,9 @@ extern int arm_is_complex_imm(int value);
  */
 #define	arm_load_advance(inst,dreg,sreg)	\
 			do { \
-				*(inst)++ = arm_prefix(0x04900004) | \
+				arm_inst_add((inst), arm_prefix(0x04900004) | \
 							(((unsigned int)(sreg)) << 16) | \
-							(((unsigned int)(dreg)) << 12); \
+							(((unsigned int)(dreg)) << 12)); \
 			} while (0)
 
 /*
@@ -664,25 +694,25 @@ extern int arm_is_complex_imm(int value);
 				int __mb_offset = (int)(imm); \
 				if(__mb_offset >= 0 && __mb_offset < (1 << 12)) \
 				{ \
-					*(inst)++ = arm_prefix(0x05900000 | (mask)) | \
+					arm_inst_add((inst), arm_prefix(0x05900000 | (mask)) | \
 								(((unsigned int)(basereg)) << 16) | \
 								(((unsigned int)(reg)) << 12) | \
-								 ((unsigned int)__mb_offset); \
+								 ((unsigned int)__mb_offset)); \
 				} \
 				else if(__mb_offset > -(1 << 12) && __mb_offset < 0) \
 				{ \
-					*(inst)++ = arm_prefix(0x05100000 | (mask)) | \
+					arm_inst_add((inst), arm_prefix(0x05100000 | (mask)) | \
 								(((unsigned int)(basereg)) << 16) | \
 								(((unsigned int)(reg)) << 12) | \
-								 ((unsigned int)(-__mb_offset)); \
+								 ((unsigned int)(-__mb_offset))); \
 				} \
 				else \
 				{ \
 					arm_mov_reg_imm((inst), ARM_WORK, __mb_offset); \
-					*(inst)++ = arm_prefix(0x07900000 | (mask)) | \
+					arm_inst_add((inst), arm_prefix(0x07900000 | (mask)) | \
 								(((unsigned int)(basereg)) << 16) | \
 								(((unsigned int)(reg)) << 12) | \
-								 ((unsigned int)ARM_WORK); \
+								 ((unsigned int)ARM_WORK)); \
 				} \
 			} while (0)
 #define	arm_load_membase(inst,reg,basereg,imm)	\
@@ -726,27 +756,27 @@ extern int arm_is_complex_imm(int value);
 				if(__mb_offset >= 0 && __mb_offset < (1 << 10) && \
 				   (__mb_offset & 3) == 0) \
 				{ \
-					*(inst)++ = arm_prefix(0x0D900100 | (mask)) | \
+					arm_inst_add((inst), arm_prefix(0x0D900100 | (mask)) | \
 							(((unsigned int)(basereg)) << 16) | \
 							(((unsigned int)(reg)) << 12) | \
-							 ((unsigned int)((__mb_offset / 4) & 0xFF)); \
+							 ((unsigned int)((__mb_offset / 4) & 0xFF))); \
 				} \
 				else if(__mb_offset > -(1 << 10) && __mb_offset < 0 && \
 				        (__mb_offset & 3) == 0) \
 				{ \
-					*(inst)++ = arm_prefix(0x0D180100 | (mask)) | \
+					arm_inst_add((inst), arm_prefix(0x0D180100 | (mask)) | \
 							(((unsigned int)(basereg)) << 16) | \
 							(((unsigned int)(reg)) << 12) | \
-							 ((unsigned int)(((-__mb_offset) / 4) & 0xFF));\
+							 ((unsigned int)(((-__mb_offset) / 4) & 0xFF)));\
 				} \
 				else \
 				{ \
 					arm_mov_reg_imm((inst), ARM_WORK, __mb_offset); \
 					arm_alu_reg_reg((inst), ARM_ADD, ARM_WORK, \
 								    (basereg), ARM_WORK); \
-					*(inst)++ = arm_prefix(0x0D900100 | (mask)) | \
+					arm_inst_add((inst), arm_prefix(0x0D900100 | (mask)) | \
 							(((unsigned int)ARM_WORK) << 16) | \
-							(((unsigned int)(reg)) << 12); \
+							(((unsigned int)(reg)) << 12)); \
 				} \
 			} while (0)
 #define	arm_load_membase_float32(inst,reg,basereg,imm)	\
@@ -769,25 +799,25 @@ extern int arm_is_complex_imm(int value);
 				int __sm_offset = (int)(imm); \
 				if(__sm_offset >= 0 && __sm_offset < (1 << 12)) \
 				{ \
-					*(inst)++ = arm_prefix(0x05800000 | (mask)) | \
+					arm_inst_add((inst), arm_prefix(0x05800000 | (mask)) | \
 								(((unsigned int)(basereg)) << 16) | \
 								(((unsigned int)(reg)) << 12) | \
-								 ((unsigned int)__sm_offset); \
+								 ((unsigned int)__sm_offset)); \
 				} \
 				else if(__sm_offset > -(1 << 12) && __sm_offset < 0) \
 				{ \
-					*(inst)++ = arm_prefix(0x05000000 | (mask)) | \
+					arm_inst_add((inst), arm_prefix(0x05000000 | (mask)) | \
 								(((unsigned int)(basereg)) << 16) | \
 								(((unsigned int)(reg)) << 12) | \
-								 ((unsigned int)(-__sm_offset)); \
+								 ((unsigned int)(-__sm_offset))); \
 				} \
 				else \
 				{ \
 					arm_mov_reg_imm((inst), ARM_WORK, __sm_offset); \
-					*(inst)++ = arm_prefix(0x07800000 | (mask)) | \
+					arm_inst_add((inst), arm_prefix(0x07800000 | (mask)) | \
 								(((unsigned int)(basereg)) << 16) | \
 								(((unsigned int)(reg)) << 12) | \
-								 ((unsigned int)ARM_WORK); \
+								 ((unsigned int)ARM_WORK)); \
 				} \
 			} while (0)
 #define	arm_store_membase(inst,reg,basereg,imm)	\
@@ -825,27 +855,27 @@ extern int arm_is_complex_imm(int value);
 				if(__mb_offset >= 0 && __mb_offset < (1 << 10) && \
 				   (__mb_offset & 3) == 0) \
 				{ \
-					*(inst)++ = arm_prefix(0x0D800100 | (mask)) | \
+					arm_inst_add((inst), arm_prefix(0x0D800100 | (mask)) | \
 							(((unsigned int)(basereg)) << 16) | \
 							(((unsigned int)(reg)) << 12) | \
-							 ((unsigned int)((__mb_offset / 4) & 0xFF)); \
+							 ((unsigned int)((__mb_offset / 4) & 0xFF))); \
 				} \
 				else if(__mb_offset > -(1 << 10) && __mb_offset < 0 && \
 				        (__mb_offset & 3) == 0) \
 				{ \
-					*(inst)++ = arm_prefix(0x0D080100 | (mask)) | \
+					arm_inst_add((inst), arm_prefix(0x0D080100 | (mask)) | \
 							(((unsigned int)(basereg)) << 16) | \
 							(((unsigned int)(reg)) << 12) | \
-							 ((unsigned int)(((-__mb_offset) / 4) & 0xFF));\
+							 ((unsigned int)(((-__mb_offset) / 4) & 0xFF)));\
 				} \
 				else \
 				{ \
 					arm_mov_reg_imm((inst), ARM_WORK, __mb_offset); \
 					arm_alu_reg_reg((inst), ARM_ADD, ARM_WORK, \
 								    (basereg), ARM_WORK); \
-					*(inst)++ = arm_prefix(0x0D800100 | (mask)) | \
+					arm_inst_add((inst), arm_prefix(0x0D800100 | (mask)) | \
 							(((unsigned int)ARM_WORK) << 16) | \
-							(((unsigned int)(reg)) << 12); \
+							(((unsigned int)(reg)) << 12)); \
 				} \
 			} while (0)
 #define	arm_store_membase_float32(inst,reg,basereg,imm)	\
@@ -873,11 +903,11 @@ extern int arm_is_complex_imm(int value);
  */
 #define arm_load_memindex_either(inst,reg,basereg,indexreg,shift,mask)	\
 			do { \
-				*(inst)++ = arm_prefix(0x07900000 | (mask)) | \
+				arm_inst_add((inst), arm_prefix(0x07900000 | (mask)) | \
 							(((unsigned int)(basereg)) << 16) | \
 							(((unsigned int)(reg)) << 12) | \
 							(((unsigned int)(shift)) << 7) | \
-							 ((unsigned int)(indexreg)); \
+							 ((unsigned int)(indexreg))); \
 			} while (0)
 #define	arm_load_memindex(inst,reg,basereg,indexreg)	\
 			do { \
@@ -928,11 +958,11 @@ extern int arm_is_complex_imm(int value);
  */
 #define arm_store_memindex_either(inst,reg,basereg,indexreg,shift,mask)	\
 			do { \
-				*(inst)++ = arm_prefix(0x07800000 | (mask)) | \
+				arm_inst_add((inst), arm_prefix(0x07800000 | (mask)) | \
 							(((unsigned int)(basereg)) << 16) | \
 							(((unsigned int)(reg)) << 12) | \
 							(((unsigned int)(shift)) << 7) | \
-							 ((unsigned int)(indexreg)); \
+							 ((unsigned int)(indexreg))); \
 			} while (0)
 #define	arm_store_memindex(inst,reg,basereg,indexreg)	\
 			do { \

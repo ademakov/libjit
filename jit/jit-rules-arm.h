@@ -105,7 +105,7 @@ extern	"C" {
 			int *fixup_constants[JIT_ARM_MAX_CONSTANTS]; \
 			int num_constants; \
 			int align_constants; \
-			int *first_constant_use
+			unsigned int *first_constant_use
 #define	jit_extra_gen_init(gen)	\
 			do { \
 				(gen)->num_constants = 0; \

@@ -59,6 +59,7 @@ extern long gensel_linenum;
  * Instruction type for the "inst" variable.
  */
 static char *gensel_inst_type = "unsigned char *";
+static int gensel_new_inst_type = 0;
 
 /*
  * Amount of space to reserve for the primary instruction output.
@@ -277,20 +278,34 @@ static void gensel_output_clause_code(gensel_clause_t clause)
 static void gensel_output_clause(gensel_clause_t clause, int options)
 {
 	/* Cache the instruction pointer into "inst" */
-	printf("\t\tinst = (%s)(gen->posn.ptr);\n", gensel_inst_type);
-	printf("\t\tif(!jit_cache_check_for_n(&(gen->posn), %d))\n",
-		   (((options & GENSEL_OPT_MORE_SPACE) == 0)
-		   		? gensel_reserve_space : gensel_reserve_more_space));
-	printf("\t\t{\n");
-	printf("\t\t\tjit_cache_mark_full(&(gen->posn));\n");
-	printf("\t\t\treturn;\n");
-	printf("\t\t}\n");
+	if(gensel_new_inst_type)
+	{
+		printf("\t\tjit_gen_load_inst_ptr(gen, inst);\n");
+	}
+	else
+	{
+		printf("\t\tinst = (%s)(gen->posn.ptr);\n", gensel_inst_type);
+		printf("\t\tif(!jit_cache_check_for_n(&(gen->posn), %d))\n",
+			   (((options & GENSEL_OPT_MORE_SPACE) == 0)
+			   		? gensel_reserve_space : gensel_reserve_more_space));
+		printf("\t\t{\n");
+		printf("\t\t\tjit_cache_mark_full(&(gen->posn));\n");
+		printf("\t\t\treturn;\n");
+		printf("\t\t}\n");
+	}
 
 	/* Output the clause code */
 	gensel_output_clause_code(clause);
 
 	/* Copy "inst" back into the generation context */
-	printf("\t\tgen->posn.ptr = (unsigned char *)inst;\n");
+	if(gensel_new_inst_type)
+	{
+		printf("\t\tjit_gen_save_inst_ptr(gen, inst);\n");
+	}
+	else
+	{
+		printf("\t\tgen->posn.ptr = (unsigned char *)inst;\n");
+	}
 }
 
 /*
@@ -791,6 +806,7 @@ Rule
 			}
 	| K_INST_TYPE IDENTIFIER	{
 				gensel_inst_type = $2;
+				gensel_new_inst_type = 1;
 			}
 	;
 

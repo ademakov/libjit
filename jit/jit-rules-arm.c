@@ -35,6 +35,22 @@
 #define	ROUND_STACK(size)	\
 		(((size) + (sizeof(void *) - 1)) & ~(sizeof(void *) - 1))
 
+/*
+ * Load the instruction pointer from the generation context.
+ */
+#define	jit_gen_load_inst_ptr(gen,inst)	\
+		do { \
+			arm_inst_buf_init((inst), (gen)->posn.ptr, (gen)->posn.limit); \
+		} while (0)
+
+/*
+ * Save the instruction pointer back to the generation context.
+ */
+#define	jit_gen_save_inst_ptr(gen,inst)	\
+		do { \
+			(gen)->posn.ptr = (unsigned char *)arm_inst_get_posn(inst); \
+		} while (0)
+
 void _jit_init_backend(void)
 {
 	/* Nothing to do here */
@@ -50,24 +66,12 @@ void _jit_gen_get_elf_info(jit_elf_info_t *info)
 /*
  * Flush the contents of the constant pool.
  */
-#define	check_for_word()	\
-	do { \
-		if(inst >= limit) \
-		{ \
-			jit_cache_mark_full(&(gen->posn)); \
-			gen->num_constants = 0; \
-			gen->align_constants = 0; \
-			gen->first_constant_use = 0; \
-			return; \
-		} \
-	} while (0)
 static void flush_constants(jit_gencode_t gen, int after_epilog)
 {
-	arm_inst_ptr inst;
-	arm_inst_ptr limit;
-	arm_inst_ptr patch;
-	arm_inst_ptr current;
-	arm_inst_ptr fixup;
+	arm_inst_buf inst;
+	arm_inst_word *patch;
+	arm_inst_word *current;
+	arm_inst_word *fixup;
 	int index, value, offset;
 
 	/* Bail out if there are no constants to flush */
@@ -77,14 +81,12 @@ static void flush_constants(jit_gencode_t gen, int after_epilog)
 	}
 
 	/* Initialize the cache output pointer */
-	inst = (arm_inst_ptr)(gen->posn.ptr);
-	limit = (arm_inst_ptr)(gen->posn.limit);
+	jit_gen_load_inst_ptr(gen, inst);
 
 	/* Jump over the constant pool if it is being output inline */
 	if(!after_epilog)
 	{
-		patch = inst;
-		check_for_word();
+		patch = arm_inst_get_posn(inst);
 		arm_jump_imm(inst, 0);
 	}
 	else
@@ -93,18 +95,16 @@ static void flush_constants(jit_gencode_t gen, int after_epilog)
 	}
 
 	/* Align the constant pool, if requested */
-	if(gen->align_constants && (((int)inst) & 7) != 0)
+	if(gen->align_constants && (((int)arm_inst_get_posn(inst)) & 7) != 0)
 	{
-		check_for_word();
-		*inst++ = 0;
+		arm_inst_add(inst, 0);
 	}
 
 	/* Output the constant values and apply the necessary fixups */
 	for(index = 0; index < gen->num_constants; ++index)
 	{
-		current = inst;
-		check_for_word();
-		*inst++ = gen->constants[index];
+		current = arm_inst_get_posn(inst);
+		arm_inst_add(inst, gen->constants[index]);
 		fixup = gen->fixup_constants[index];
 		while(fixup != 0)
 		{
@@ -112,14 +112,14 @@ static void flush_constants(jit_gencode_t gen, int after_epilog)
 			{
 				/* Word constant fixup */
 				value = *fixup & 0x0FFF;
-				offset = ((inst - 1 - fixup) * 4) - 8;
+				offset = ((arm_inst_get_posn(inst) - 1 - fixup) * 4) - 8;
 				*fixup = ((*fixup & ~0x0FFF) | offset);
 			}
 			else
 			{
 				/* Floating-point constant fixup */
 				value = (*fixup & 0x00FF) * 4;
-				offset = ((inst - 1 - fixup) * 4) - 8;
+				offset = ((arm_inst_get_posn(inst) - 1 - fixup) * 4) - 8;
 				*fixup = ((*fixup & ~0x00FF) | (offset / 4));
 			}
 			if(value)
@@ -136,14 +136,14 @@ static void flush_constants(jit_gencode_t gen, int after_epilog)
 	/* Backpatch the jump if necessary */
 	if(!after_epilog)
 	{
-		arm_patch(patch, inst);
+		arm_patch(inst, patch, arm_inst_get_posn(inst));
 	}
 
 	/* Flush the pool state and restart */
 	gen->num_constants = 0;
 	gen->align_constants = 0;
 	gen->first_constant_use = 0;
-	gen->posn.ptr = (unsigned char *)inst;
+	jit_gen_save_inst_ptr(gen, inst);
 }
 
 /*
@@ -152,8 +152,8 @@ static void flush_constants(jit_gencode_t gen, int after_epilog)
 static int flush_if_too_far(jit_gencode_t gen)
 {
 	if(gen->first_constant_use &&
-	   (((arm_inst_ptr)(gen->posn.ptr)) -
-	   		((arm_inst_ptr)(gen->first_constant_use))) >= 100)
+	   (((arm_inst_word *)(gen->posn.ptr)) -
+	   		((arm_inst_word *)(gen->first_constant_use))) >= 100)
 	{
 		flush_constants(gen, 0);
 		return 1;
@@ -168,10 +168,15 @@ static int flush_if_too_far(jit_gencode_t gen)
  * Add a fixup for a particular constant pool entry.
  */
 static void add_constant_fixup
-	(jit_gencode_t gen, int index, arm_inst_ptr fixup)
+	(jit_gencode_t gen, int index, arm_inst_word *fixup)
 {
-	arm_inst_ptr prev;
+	arm_inst_word *prev;
 	int value;
+	if(((unsigned char *)fixup) >= gen->posn.limit)
+	{
+		/* The instruction buffer is full, so don't record this fixup */
+		return;
+	}
 	prev = gen->fixup_constants[index];
 	if(prev)
 	{
@@ -200,7 +205,7 @@ static void add_constant_fixup
  * Add an immediate value to the constant pool.  The constant
  * is loaded from the instruction at "fixup".
  */
-static void add_constant(jit_gencode_t gen, int value, arm_inst_ptr fixup)
+static void add_constant(jit_gencode_t gen, int value, arm_inst_word *fixup)
 {
 	int index;
 
@@ -231,7 +236,7 @@ static void add_constant(jit_gencode_t gen, int value, arm_inst_ptr fixup)
  * Add a double-word immedite value to the constant pool.
  */
 static void add_constant_dword
-	(jit_gencode_t gen, int value1, int value2, arm_inst_ptr fixup, int align)
+	(jit_gencode_t gen, int value1, int value2, arm_inst_word *fixup, int align)
 {
 	int index;
 
@@ -282,88 +287,64 @@ static void add_constant_dword
  * Load an immediate value into a word register.  If the value is
  * complicated, then add an entry to the constant pool.
  */
-static arm_inst_ptr mov_reg_imm
-	(jit_gencode_t gen, arm_inst_ptr inst, int reg, int value)
+static void mov_reg_imm
+	(jit_gencode_t gen, arm_inst_buf *inst, int reg, int value)
 {
-	arm_inst_ptr fixup;
-
-	/* Bail out if the buffer is full */
-	if(inst >= (arm_inst_ptr)(gen->posn.limit))
-	{
-		return inst;
-	}
+	arm_inst_word *fixup;
 
 	/* Bail out if the value is not complex enough to need a pool entry */
 	if(!arm_is_complex_imm(value))
 	{
-		arm_mov_reg_imm(inst, reg, value);
-		return inst;
+		arm_mov_reg_imm(*inst, reg, value);
+		return;
 	}
 
 	/* Output a placeholder to load the value later */
-	fixup = inst;
-	arm_load_membase(inst, reg, ARM_PC, 0);
+	fixup = arm_inst_get_posn(*inst);
+	arm_load_membase(*inst, reg, ARM_PC, 0);
 
 	/* Add the constant to the pool, which may cause a flush */
-	gen->posn.ptr = (unsigned char *)inst;
+	jit_gen_save_inst_ptr(gen, *inst);
 	add_constant(gen, value, fixup);
-
-	/* Return the new program counter location */
-	return (arm_inst_ptr)(gen->posn.ptr);
+	jit_gen_load_inst_ptr(gen, *inst);
 }
 
 /*
  * Load a float32 immediate value into a float register.  If the value is
  * complicated, then add an entry to the constant pool.
  */
-static arm_inst_ptr mov_freg_imm_32
-	(jit_gencode_t gen, arm_inst_ptr inst, int reg, int value)
+static void mov_freg_imm_32
+	(jit_gencode_t gen, arm_inst_buf *inst, int reg, int value)
 {
-	arm_inst_ptr fixup;
-
-	/* Bail out if the buffer is full */
-	if(inst >= (arm_inst_ptr)(gen->posn.limit))
-	{
-		return inst;
-	}
+	arm_inst_word *fixup;
 
 	/* Output a placeholder to load the value later */
-	fixup = inst;
-	arm_load_membase_float32(inst, reg, ARM_PC, 0);
+	fixup = arm_inst_get_posn(*inst);
+	arm_load_membase_float32(*inst, reg, ARM_PC, 0);
 
 	/* Add the constant to the pool, which may cause a flush */
-	gen->posn.ptr = (unsigned char *)inst;
+	jit_gen_save_inst_ptr(gen, *inst);
 	add_constant(gen, value, fixup);
-
-	/* Return the new program counter location */
-	return (arm_inst_ptr)(gen->posn.ptr);
+	jit_gen_load_inst_ptr(gen, *inst);
 }
 
 /*
  * Load a float64 immediate value into a float register.  If the value is
  * complicated, then add an entry to the constant pool.
  */
-static arm_inst_ptr mov_freg_imm_64
-	(jit_gencode_t gen, arm_inst_ptr inst, int reg, int value1, int value2)
+static void mov_freg_imm_64
+	(jit_gencode_t gen, arm_inst_buf *inst, int reg, int value1, int value2)
 {
-	arm_inst_ptr fixup;
-
-	/* Bail out if the buffer is full */
-	if(inst >= (arm_inst_ptr)(gen->posn.limit))
-	{
-		return inst;
-	}
+	arm_inst_word *fixup;
 
 	/* Output a placeholder to load the value later */
-	fixup = inst;
-	arm_load_membase_float64(inst, reg, ARM_PC, 0);
+	fixup = arm_inst_get_posn(*inst);
+	arm_load_membase_float64(*inst, reg, ARM_PC, 0);
 
 	/* Add the constant to the pool, which may cause a flush */
-	gen->posn.ptr = (unsigned char *)inst;
+	jit_gen_save_inst_ptr(gen, *inst);
 	add_constant_dword(gen, value1, value2, fixup, 1);
-
-	/* Return the new program counter location */
-	return (arm_inst_ptr)(gen->posn.ptr);
+	jit_gen_load_inst_ptr(gen, *inst);
 }
 
 /*
@@ -774,10 +755,13 @@ int _jit_opcode_is_supported(int opcode)
 void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 {
 	unsigned int prolog[JIT_PROLOG_SIZE / sizeof(int)];
-	arm_inst_ptr inst = prolog;
+	arm_inst_buf inst;
 	int reg, regset;
 	unsigned int saved;
 	unsigned int frame_size;
+
+	/* Initialize the instruction buffer */
+	arm_inst_buf_init(inst, prolog, prolog + JIT_PROLOG_SIZE / sizeof(int));
 
 	/* Determine which registers need to be preserved */
 	regset = 0;
@@ -805,7 +789,7 @@ void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 	}
 
 	/* Copy the prolog into place and return the adjusted entry position */
-	reg = (int)((inst - prolog) * sizeof(unsigned int));
+	reg = (int)((arm_inst_get_posn(inst) - prolog) * sizeof(unsigned int));
 	jit_memcpy(((unsigned char *)buf) + JIT_PROLOG_SIZE - reg, prolog, reg);
 	return (void *)(((unsigned char *)buf) + JIT_PROLOG_SIZE - reg);
 }
@@ -813,17 +797,13 @@ void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 {
 	int reg, regset;
-	arm_inst_ptr inst;
+	arm_inst_buf inst;
 	void **fixup;
 	void **next;
 	jit_nint offset;
 
-	/* Bail out if there is insufficient space for the epilog */
-	if(!jit_cache_check_for_n(&(gen->posn), 4))
-	{
-		jit_cache_mark_full(&(gen->posn));
-		return;
-	}
+	/* Initialize the instruction buffer */
+	jit_gen_load_inst_ptr(gen, inst);
 
 	/* Determine which registers need to be restored when we return */
 	regset = 0;
@@ -849,15 +829,14 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 		{
 			next = (void **)(((unsigned char *)fixup) - offset);
 		}
-		arm_patch(fixup, gen->posn.ptr);
+		arm_patch(inst, fixup, arm_inst_get_posn(inst));
 		fixup = next;
 	}
 	gen->epilog_fixup = 0;
 
 	/* Pop the local stack frame and return */
-	inst = (arm_inst_ptr)(gen->posn.ptr);
 	arm_pop_frame(inst, regset);
-	gen->posn.ptr = (unsigned char *)inst;
+	jit_gen_save_inst_ptr(gen, inst);
 
 	/* Flush the remainder of the constant pool */
 	flush_constants(gen, 1);
@@ -866,19 +845,14 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func)
 {
 	void *ptr, *entry;
-	arm_inst_ptr inst;
-	if(!jit_cache_check_for_n(&(gen->posn), 12))
-	{
-		jit_cache_mark_full(&(gen->posn));
-		return 0;
-	}
+	arm_inst_buf inst;
+	jit_gen_load_inst_ptr(gen, inst);
 	ptr = (void *)&(func->entry_point);
 	entry = gen->posn.ptr;
-	inst = (arm_inst_ptr)(gen->posn.ptr);
 	arm_load_membase(inst, ARM_WORK, ARM_PC, 0);
 	arm_load_membase(inst, ARM_PC, ARM_WORK, 0);
-	*inst++ = (unsigned int)ptr;
-	gen->posn.ptr = (unsigned char *)inst;
+	arm_inst_add(inst, (unsigned int)ptr);
+	jit_gen_save_inst_ptr(gen, inst);
 	return entry;
 }
 
@@ -886,14 +860,10 @@ void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func)
  * Setup or teardown the ARM code output process.
  */
 #define	jit_cache_setup_output(needed)	\
-	arm_inst_ptr inst = (arm_inst_ptr)(gen->posn.ptr); \
-	if(!jit_cache_check_for_n(&(gen->posn), (needed))) \
-	{ \
-		jit_cache_mark_full(&(gen->posn)); \
-		return; \
-	}
+	arm_inst_buf inst; \
+	jit_gen_load_inst_ptr(gen, inst)
 #define	jit_cache_end_output()	\
-	gen->posn.ptr = (unsigned char *)inst
+	jit_gen_save_inst_ptr(gen, inst)
 
 void _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 						int other_reg, jit_value_t value)
@@ -904,7 +874,7 @@ void _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 	jit_cache_setup_output(32);
 	if(flush_if_too_far(gen))
 	{
-		inst = (arm_inst_ptr)(gen->posn.ptr);
+		jit_gen_load_inst_ptr(gen, inst);
 	}
 
 	/* Output an appropriate instruction to spill the value */
@@ -956,7 +926,7 @@ void _jit_gen_load_value
 	jit_cache_setup_output(32);
 	if(flush_if_too_far(gen))
 	{
-		inst = (arm_inst_ptr)(gen->posn.ptr);
+		jit_gen_load_inst_ptr(gen, inst);
 	}
 
 	if(value->is_constant)
@@ -971,8 +941,8 @@ void _jit_gen_load_value
 			case JIT_TYPE_INT:
 			case JIT_TYPE_UINT:
 			{
-				inst = mov_reg_imm(gen, inst, _jit_reg_info[reg].cpu_reg,
-							       (jit_nint)(value->address));
+				mov_reg_imm(gen, &inst, _jit_reg_info[reg].cpu_reg,
+							(jit_nint)(value->address));
 			}
 			break;
 
@@ -981,10 +951,10 @@ void _jit_gen_load_value
 			{
 				jit_long long_value;
 				long_value = jit_value_get_long_constant(value);
-				inst = mov_reg_imm(gen, inst, _jit_reg_info[reg].cpu_reg,
-								   (jit_int)long_value);
-				inst = mov_reg_imm(gen, inst, _jit_reg_info[reg].cpu_reg + 1,
-								    (jit_int)(long_value >> 32));
+				mov_reg_imm(gen, &inst, _jit_reg_info[reg].cpu_reg,
+						    (jit_int)long_value);
+				mov_reg_imm(gen, &inst, _jit_reg_info[reg].cpu_reg + 1,
+						    (jit_int)(long_value >> 32));
 			}
 			break;
 
@@ -992,20 +962,15 @@ void _jit_gen_load_value
 			{
 				jit_float32 float32_value;
 				float32_value = jit_value_get_float32_constant(value);
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
 				if(reg < 16)
 				{
-					inst = mov_reg_imm(gen, inst, _jit_reg_info[reg].cpu_reg,
-									   *((int *)&float32_value));
+					mov_reg_imm(gen, &inst, _jit_reg_info[reg].cpu_reg,
+							    *((int *)&float32_value));
 				}
 				else
 				{
-					inst = mov_freg_imm_32
-						(gen, inst, _jit_reg_info[reg].cpu_reg,
+					mov_freg_imm_32
+						(gen, &inst, _jit_reg_info[reg].cpu_reg,
 					     *((int *)&float32_value));
 				}
 			}
@@ -1016,24 +981,19 @@ void _jit_gen_load_value
 			{
 				jit_float64 float64_value;
 				float64_value = jit_value_get_float64_constant(value);
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
 				if(reg < 16)
 				{
-					inst = mov_reg_imm
-						(gen, inst, _jit_reg_info[reg].cpu_reg,
+					mov_reg_imm
+						(gen, &inst, _jit_reg_info[reg].cpu_reg,
 						 ((int *)&float64_value)[0]);
-					inst = mov_reg_imm
-						(gen, inst, _jit_reg_info[reg].cpu_reg + 1,
+					mov_reg_imm
+						(gen, &inst, _jit_reg_info[reg].cpu_reg + 1,
 						 ((int *)&float64_value)[1]);
 				}
 				else
 				{
-					inst = mov_freg_imm_64
-						(gen, inst, _jit_reg_info[reg].cpu_reg,
+					mov_freg_imm_64
+						(gen, &inst, _jit_reg_info[reg].cpu_reg,
 					     ((int *)&float64_value)[0],
 					     ((int *)&float64_value)[1]);
 				}
@@ -1155,78 +1115,81 @@ void _jit_gen_fix_value(jit_value_t value)
 /*
  * Output a branch instruction.
  */
-static arm_inst_ptr output_branch
-	(jit_function_t func, arm_inst_ptr inst, int cond, jit_insn_t insn)
+static void output_branch
+	(jit_function_t func, arm_inst_buf *inst, int cond, jit_insn_t insn)
 {
 	jit_block_t block;
 	int offset;
 	block = jit_block_from_label(func, (jit_label_t)(insn->dest));
 	if(!block)
 	{
-		return inst;
+		return;
+	}
+	if(arm_inst_get_posn(*inst) >= arm_inst_get_limit(*inst))
+	{
+		/* The buffer has overflowed, so don't worry about fixups */
+		return;
 	}
 	if(block->address)
 	{
 		/* We already know the address of the block */
-		arm_branch(inst, cond, block->address);
+		arm_branch(*inst, cond, block->address);
 	}
 	else
 	{
 		/* Output a placeholder and record on the block's fixup list */
 		if(block->fixup_list)
 		{
-			offset = (int)(((unsigned char *)inst) -
+			offset = (int)(((unsigned char *)arm_inst_get_posn(*inst)) -
 						   ((unsigned char *)(block->fixup_list)));
 		}
 		else
 		{
 			offset = 0;
 		}
-		arm_branch_imm(inst, cond, offset);
-		block->fixup_list = (void *)(inst - 1);
+		arm_branch_imm(*inst, cond, offset);
+		block->fixup_list = (void *)(arm_inst_get_posn(*inst) - 1);
 	}
-	return inst;
 }
 
 /*
  * Throw a builtin exception.
  */
-static arm_inst_ptr throw_builtin
-		(arm_inst_ptr inst, jit_function_t func, int cond, int type)
+static void throw_builtin
+		(arm_inst_buf *inst, jit_function_t func, int cond, int type)
 {
-	arm_inst_ptr patch;
+	arm_inst_word *patch;
 
 	/* Branch past the following code if "cond" is not true */
-	patch = inst;
-	arm_branch_imm(inst, cond ^ 0x01, 0);
+	patch = arm_inst_get_posn(*inst);
+	arm_branch_imm(*inst, cond ^ 0x01, 0);
 
 	/* We need to update "catch_pc" if we have a "try" block */
 	if(func->builder->setjmp_value != 0)
 	{
 		_jit_gen_fix_value(func->builder->setjmp_value);
-		arm_mov_reg_reg(inst, ARM_WORK, ARM_PC);
-		arm_store_membase(inst, ARM_WORK, ARM_FP,
+		arm_mov_reg_reg(*inst, ARM_WORK, ARM_PC);
+		arm_store_membase(*inst, ARM_WORK, ARM_FP,
 						  func->builder->setjmp_value->frame_offset +
 						  jit_jmp_catch_pc_offset);
 	}
 
 	/* Push the exception type onto the stack */
-	arm_mov_reg_imm(inst, ARM_WORK, type);
-	arm_push_reg(inst, ARM_WORK);
+	arm_mov_reg_imm(*inst, ARM_WORK, type);
+	arm_push_reg(*inst, ARM_WORK);
 
 	/* Call the "jit_exception_builtin" function, which will never return */
-	arm_call(inst, jit_exception_builtin);
+	arm_call(*inst, jit_exception_builtin);
 
 	/* Back-patch the previous branch instruction */
-	arm_patch(patch, inst);
-	return inst;
+	arm_patch(*inst, patch, arm_inst_get_posn(*inst));
 }
 
 /*
  * Jump to the current function's epilog.
  */
-static arm_inst_ptr jump_to_epilog
-	(jit_gencode_t gen, arm_inst_ptr inst, jit_block_t block)
+static void jump_to_epilog
+	(jit_gencode_t gen, arm_inst_buf *inst, jit_block_t block)
 {
 	int offset;
 
@@ -1239,22 +1202,27 @@ static arm_inst_ptr jump_to_epilog
 	}
 	if(!block)
 	{
-		return inst;
+		return;
+	}
+
+	/* Bail out if the instruction buffer has overflowed */
+	if(arm_inst_get_posn(*inst) >= arm_inst_get_limit(*inst))
+	{
+		return;
 	}
 
 	/* Output a placeholder for the jump and add it to the fixup list */
 	if(gen->epilog_fixup)
 	{
-		offset = (int)(((unsigned char *)inst) -
+		offset = (int)(((unsigned char *)arm_inst_get_posn(*inst)) -
 					   ((unsigned char *)(gen->epilog_fixup)));
 	}
 	else
 	{
 		offset = 0;
 	}
-	arm_branch_imm(inst, ARM_CC_AL, offset);
-	gen->epilog_fixup = (void *)(inst - 1);
-	return inst;
+	arm_branch_imm(*inst, ARM_CC_AL, offset);
+	gen->epilog_fixup = (void *)(arm_inst_get_posn(*inst) - 1);
 }
 
 #define	TODO()		\
@@ -1286,6 +1254,7 @@ void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block)
 	void **fixup;
 	void **next;
 	jit_nint offset;
+	arm_inst_buf inst;
 
 	/* Set the address of this block */
 	block->address = (void *)(gen->posn.ptr);
@@ -1303,7 +1272,8 @@ void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block)
 		{
 			next = (void **)(((unsigned char *)fixup) - offset);
 		}
-		arm_patch(fixup, block->address);
+		jit_gen_load_inst_ptr(gen, inst);
+		arm_patch(inst, fixup, block->address);
 		fixup = next;
 	}
 	block->fixup_list = 0;
