@@ -1665,7 +1665,7 @@ void dump_apply_macros(void)
 		printf("\t\t\tjit_memcpy((builder)->apply_args->word_regs + (builder)->word_used, (ptr), (size)); \\\n");
 		printf("\t\t\t(builder)->word_used += __num_words; \\\n");
 		printf("\t\t} \\\n");
-		printf("\t\telse if((builder)->word_used) < %s) \\\n", word_reg_limit);
+		printf("\t\telse if((builder)->word_used < %s) \\\n", word_reg_limit);
 		printf("\t\t{ \\\n");
 		printf("\t\t\tunsigned int __split = (%s - (builder)->word_used); \\\n", word_reg_limit);
 		printf("\t\t\tjit_memcpy((builder)->apply_args->word_regs + (builder)->word_used, (ptr), __split * sizeof(jit_nint)); \\\n");
@@ -1707,7 +1707,7 @@ void dump_apply_macros(void)
 		printf("\t\t\tjit_memcpy(&__temp, (builder)->apply_args->word_regs + (builder)->word_used, sizeof(__temp)); \\\n");
 		printf("\t\t\t(builder)->word_used += __num_words; \\\n");
 		printf("\t\t} \\\n");
-		printf("\t\telse if((builder)->word_used) < %s) \\\n", word_reg_limit);
+		printf("\t\telse if((builder)->word_used < %s) \\\n", word_reg_limit);
 		printf("\t\t{ \\\n");
 		printf("\t\t\tunsigned int __split = (%s - (builder)->word_used); \\\n", word_reg_limit);
 		printf("\t\t\tjit_memcpy(&__temp, (builder)->apply_args->word_regs + (builder)->word_used, __split * sizeof(jit_nint)); \\\n");
