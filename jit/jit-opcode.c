@@ -402,7 +402,7 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	{"call",						JIT_OPCODE_IS_CALL},
 	{"call_tail",					JIT_OPCODE_IS_CALL},
 	{"call_indirect",				F_(EMPTY, PTR, EMPTY) | INDIRECT_ARGS},
-	{"call_vtable_ptr",				F_(EMPTY, PTR, EMPTY) | INDIRECT_ARGS},
+	{"call_vtable_ptr",				F_(EMPTY, PTR, EMPTY)},
 	{"call_external",				JIT_OPCODE_IS_CALL_EXTERNAL},
 	{"return",						F_(EMPTY, EMPTY, EMPTY)},
 	{"return_int",					F_(EMPTY, INT, EMPTY)},

@@ -1,4 +1,8 @@
 
+2004-08-04  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-opcode.c: fix the operand types for "call_vtable_ptr".
+
 2004-06-25  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* tools/gen-apply.c: fix a crash in gen-apply under x86-64.
