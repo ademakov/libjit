@@ -210,13 +210,6 @@ static void spill_all_between(jit_gencode_t gen, int first, int last)
 			first_stack_reg = reg;
 		}
 
-		/* Skip this register if there is nothing in it */
-		if(gen->contents[reg].num_values == 0 &&
-		   !(gen->contents[reg].used_for_temp))
-		{
-			continue;
-		}
-
 		/* If this is a stack register, then we need to find the
 		   register that contains the top-most stack position,
 		   because we must spill stack registers from top down.
@@ -224,10 +217,21 @@ static void spill_all_between(jit_gencode_t gen, int first, int last)
 		if((_jit_reg_info[reg].flags & JIT_REG_IN_STACK) != 0)
 		{
 			real_reg = gen->stack_map[first_stack_reg];
+			if(real_reg == -1)
+			{
+				continue;
+			}
 		}
 		else
 		{
 			real_reg = reg;
+		}
+
+		/* Skip this register if there is nothing in it */
+		if(gen->contents[real_reg].num_values == 0 &&
+		   !(gen->contents[real_reg].used_for_temp))
+		{
+			continue;
 		}
 
 		/* Get the other register in a long pair, if there is one */
@@ -1245,4 +1249,31 @@ int _jit_regs_num_used(jit_gencode_t gen, int type_reg)
 		++type_reg;
 	}
 	return count;
+}
+
+/*@
+ * @deftypefun int _jit_regs_new_top (jit_gencode_t gen, jit_value_t value, int type_reg)
+ * Record that the top of the stack indicated by @code{type_reg} now
+ * contains @code{value}.  This is slightly different from
+ * @code{_jit_regs_set_value}, in that the register wasn't previously
+ * allocated to a temporary operand value.  Returns the actual stack
+ * register that contains @code{value}.
+ * @end deftypefun
+@*/
+int _jit_regs_new_top(jit_gencode_t gen, jit_value_t value, int type_reg)
+{
+	int reg;
+	
+	/* Create space for the value at the top of the stack */
+	reg = create_stack_reg(gen, type_reg, 1);
+
+	/* Record the "value" is now in this register */
+	value->in_register = 1;
+	value->in_frame = 0;
+	value->reg = reg;
+	gen->contents[reg].values[0] = value;
+	gen->contents[reg].num_values = 1;
+
+	/* Return the allocated register to the caller */
+	return reg;
 }

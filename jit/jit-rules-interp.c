@@ -870,6 +870,33 @@ static jit_label_t get_branch_dest(jit_block_t block, jit_insn_t insn)
 	return label;
 }
 
+/*
+ * Record that a destination is now in a particular register.
+ */
+static void record_dest(jit_gencode_t gen, jit_insn_t insn, int reg)
+{
+	if(insn->dest)
+	{
+		if((insn->flags & JIT_INSN_DEST_NEXT_USE) != 0)
+		{
+			/* Record that the destination is in "reg" */
+			_jit_regs_set_value(gen, reg, insn->dest, 0);
+		}
+		else
+		{
+			/* No next use, so store to the destination */
+			_jit_gen_spill_reg(gen, reg, -1, insn->dest);
+			insn->dest->in_frame = 1;
+			_jit_regs_free_reg(gen, reg, 1);
+		}
+	}
+	else
+	{
+		/* This is a note, with the result left on the stack */
+		_jit_regs_free_reg(gen, reg, 1);
+	}
+}
+
 /*@
  * @deftypefun void _jit_gen_insn (jit_gencode_t gen, jit_function_t func, jit_block_t block, jit_insn_t insn)
  * Generate native code for the specified @code{insn}.  This function should
@@ -884,6 +911,8 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	int reg;
 	jit_label_t label;
 	void **pc;
+	jit_nint offset;
+	jit_nint size;
 
 	switch(insn->opcode)
 	{
@@ -1135,6 +1164,52 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		}
 		break;
 
+		case JIT_OP_COPY_LOAD_SBYTE:
+		case JIT_OP_COPY_LOAD_UBYTE:
+		case JIT_OP_COPY_LOAD_SHORT:
+		case JIT_OP_COPY_LOAD_USHORT:
+		case JIT_OP_COPY_INT:
+		case JIT_OP_COPY_LONG:
+		case JIT_OP_COPY_FLOAT32:
+		case JIT_OP_COPY_FLOAT64:
+		case JIT_OP_COPY_NFLOAT:
+		case JIT_OP_COPY_STRUCT:
+		case JIT_OP_COPY_STORE_BYTE:
+		case JIT_OP_COPY_STORE_SHORT:
+		{
+			/* Copy a value from one temporary variable to another */
+			reg = _jit_regs_load_to_top
+				(gen, insn->value1,
+				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+				 				 JIT_INSN_VALUE1_LIVE)), 0);
+			record_dest(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_ADDRESS_OF:
+		{
+			/* Get the address of a local variable */
+			if(_jit_regs_num_used(gen, 0) >= JIT_NUM_REGS)
+			{
+				_jit_regs_spill_all(gen);
+			}
+			_jit_gen_fix_value(insn->value1);
+			if(insn->value1->frame_offset >= 0)
+			{
+				jit_cache_opcode(&(gen->posn), JIT_OP_LDLOCA);
+				jit_cache_native(&(gen->posn), insn->value1->frame_offset);
+			}
+			else
+			{
+				jit_cache_opcode(&(gen->posn), JIT_OP_LDARGA);
+				jit_cache_native
+					(&(gen->posn), -(insn->value1->frame_offset + 1));
+			}
+			reg = _jit_regs_new_top(gen, insn->dest, 0);
+			adjust_working(gen, 1);
+		}
+		break;
+
 		case JIT_OP_PUSH_INT:
 		case JIT_OP_PUSH_LONG:
 		case JIT_OP_PUSH_FLOAT32:
@@ -1209,6 +1284,107 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 			jit_cache_native
 				(&(gen->posn), jit_type_get_size(insn->value1->type));
 			adjust_working(gen, -2);
+		}
+		break;
+
+		case JIT_OP_LOAD_RELATIVE_SBYTE:
+		case JIT_OP_LOAD_RELATIVE_UBYTE:
+		case JIT_OP_LOAD_RELATIVE_SHORT:
+		case JIT_OP_LOAD_RELATIVE_USHORT:
+		case JIT_OP_LOAD_RELATIVE_INT:
+		case JIT_OP_LOAD_RELATIVE_LONG:
+		case JIT_OP_LOAD_RELATIVE_FLOAT32:
+		case JIT_OP_LOAD_RELATIVE_FLOAT64:
+		case JIT_OP_LOAD_RELATIVE_NFLOAT:
+		{
+			/* Load a value from a relative pointer */
+			reg = _jit_regs_load_to_top
+				(gen, insn->value1,
+				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+				 				 JIT_INSN_VALUE1_LIVE)), 0);
+			offset = jit_value_get_nint_constant(insn->value2);
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			jit_cache_native(&(gen->posn), offset);
+			record_dest(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_LOAD_RELATIVE_STRUCT:
+		{
+			/* Load a structured value from a relative pointer */
+			reg = _jit_regs_load_to_top
+				(gen, insn->value1,
+				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+				 				 JIT_INSN_VALUE1_LIVE)), 0);
+			offset = jit_value_get_nint_constant(insn->value2);
+			size = (jit_nint)jit_type_get_size(jit_value_get_type(insn->dest));
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			jit_cache_native(&(gen->posn), offset);
+			jit_cache_native(&(gen->posn), size);
+			size = JIT_NUM_ITEMS_IN_STRUCT(size);
+			record_dest(gen, insn, reg);
+			adjust_working(gen, size - 1);
+		}
+		break;
+
+		case JIT_OP_STORE_RELATIVE_BYTE:
+		case JIT_OP_STORE_RELATIVE_SHORT:
+		case JIT_OP_STORE_RELATIVE_INT:
+		case JIT_OP_STORE_RELATIVE_LONG:
+		case JIT_OP_STORE_RELATIVE_FLOAT32:
+		case JIT_OP_STORE_RELATIVE_FLOAT64:
+		case JIT_OP_STORE_RELATIVE_NFLOAT:
+		{
+			/* Store a value to a relative pointer */
+			reg = _jit_regs_load_to_top_two
+				(gen, insn->dest, insn->value1,
+				 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
+				 				 JIT_INSN_DEST_LIVE)),
+				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+				 				 JIT_INSN_VALUE1_LIVE)), 0);
+			offset = jit_value_get_nint_constant(insn->value2);
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			jit_cache_native(&(gen->posn), offset);
+			_jit_regs_free_reg(gen, reg, 1);
+			adjust_working(gen, -2);
+		}
+		break;
+
+		case JIT_OP_STORE_RELATIVE_STRUCT:
+		{
+			/* Store a structured value to a relative pointer */
+			reg = _jit_regs_load_to_top_two
+				(gen, insn->dest, insn->value1,
+				 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
+				 				 JIT_INSN_DEST_LIVE)),
+				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+				 				 JIT_INSN_VALUE1_LIVE)), 0);
+			offset = jit_value_get_nint_constant(insn->value2);
+			size = (jit_nint)jit_type_get_size
+				(jit_value_get_type(insn->value1));
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			jit_cache_native(&(gen->posn), offset);
+			jit_cache_native(&(gen->posn), size);
+			_jit_regs_free_reg(gen, reg, 1);
+			size = JIT_NUM_ITEMS_IN_STRUCT(size);
+			adjust_working(gen, -(size + 1));
+		}
+		break;
+
+		case JIT_OP_ADD_RELATIVE:
+		{
+			/* Add a relative offset to a pointer */
+			reg = _jit_regs_load_to_top
+				(gen, insn->value1,
+				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+				 				 JIT_INSN_VALUE1_LIVE)), 0);
+			offset = jit_value_get_nint_constant(insn->value2);
+			if(offset != 0)
+			{
+				jit_cache_opcode(&(gen->posn), insn->opcode);
+				jit_cache_native(&(gen->posn), offset);
+			}
+			record_dest(gen, insn, reg);
 		}
 		break;
 

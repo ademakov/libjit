@@ -52,6 +52,7 @@ void _jit_regs_load_to_top_three
 	 jit_value_t value3, int used_again1, int used_again2,
 	 int used_again3, int type_reg);
 int _jit_regs_num_used(jit_gencode_t gen, int type_reg);
+int _jit_regs_new_top(jit_gencode_t gen, jit_value_t value, int type_reg);
 
 #ifdef	__cplusplus
 };
