@@ -4,6 +4,11 @@
 	* jit/jit-gen-arm.c, jit/jit-gen-arm.h: modify the ARM codegen
 	macros so that they can be used for branch elimination.
 
+	* include/jit/jit-except.h, jit/jit-except.cpp, jit/jit-function.c,
+	jit/jit-insn.c, jit/jit-internal.h, jit/jit-interp.cpp,
+	jit/jit-interp.h, jit/jit-setjmp.h: redesign the exception handling
+	mechanism to use "setjmp" rather than C++ exceptions.
+
 2004-05-20  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/jit-value.h, jit/jit-insn.c, jit/jit-value.c:

@@ -6278,7 +6278,7 @@ int jit_insn_start_try
 	/* This function has a "try" block.  This flag helps native
 	   back ends know when they must be careful about global
 	   register allocation */
-	func->builder->has_try = 1;
+	func->has_try = 1;
 
 	/* Anything with a finally handler makes the function not a leaf,
 	   because we may need to do a native "call" to invoke the handler */

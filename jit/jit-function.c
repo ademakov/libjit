@@ -23,7 +23,7 @@
 #include "jit-rules.h"
 #include "jit-reg-alloc.h"
 #include "jit-apply-func.h"
-#include <setjmp.h>
+#include "jit-setjmp.h"
 
 /*@
  * @deftypefun jit_function_t jit_function_create (jit_context_t context, jit_type_t signature)
@@ -1249,14 +1249,14 @@ void *_jit_function_compile_on_demand(jit_function_t func)
 
 int jit_function_apply(jit_function_t func, void **args, void *return_area)
 {
-	if(!func)
-	{
-		return 0;
-	}
-	else
+	if(func)
 	{
 		return jit_function_apply_vararg
 			(func, func->signature, args, return_area);
+	}
+	else
+	{
+		return jit_function_apply_vararg(func, 0, args, return_area);
 	}
 }
 
@@ -1265,19 +1265,21 @@ int jit_function_apply_vararg
 {
 	struct jit_backtrace call_trace;
 	void *entry;
-	jmp_buf buf;
+	jit_jmp_buf jbuf;
+
+	/* Establish a "setjmp" point here so that we can unwind the
+	   stack to this point when an exception occurs and then prevent
+	   the exception from propagating further up the stack */
+	_jit_unwind_push_setjmp(&jbuf);
+	if(setjmp(jbuf.buf))
+	{
+		_jit_unwind_pop_setjmp();
+		return 1;
+	}
 
 	/* Create a backtrace entry that blocks exceptions from
 	   flowing further than this up the stack */
-	_jit_backtrace_push(&call_trace, 0, 0, &jbuf);
-
-	/* Establish a "setjmp" point here so that we can unwind the
-	   stack when an exception occurs that is blocked by us */
-	if(setjmp(jbuf) != 0)
-	{
-		_jit_backtrace_set(call_trace.parent);
-		return 1;
-	}
+	_jit_backtrace_push(&call_trace, 0, 0, 0);
 
 	/* Get the function's entry point */
 	if(!func)
@@ -1312,8 +1314,8 @@ int jit_function_apply_vararg
 	jit_apply(signature, func->entry_point, args,
 			  jit_type_num_params(func->signature), return_area);
 
-	/* Restore the backtrace context and exit */
-	_jit_backtrace_set(call_trace.parent);
+	/* Restore the backtrace and "setjmp" contexts and exit */
+	_jit_unwind_pop_setjmp();
 	return 0;
 }
 

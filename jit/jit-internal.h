@@ -304,9 +304,6 @@ struct _jit_builder
 	/* Flag that indicates if the function has an ordinary return */
 	int					ordinary_return : 1;
 
-	/* Flag that indicates if we have "try" blocks */
-	int					has_try : 1;
-
 	/* List of all instructions in this function */
 	jit_insn_t		   *insns;
 	int					num_insns;
@@ -363,6 +360,7 @@ struct _jit_function
 	int					is_recompilable : 1;
 	int					no_throw : 1;
 	int					no_return : 1;
+	int					has_try : 1;
 	int					optimization_level : 8;
 	int volatile		is_compiled;
 
@@ -487,6 +485,7 @@ struct jit_thread_control
 	void			   *last_exception;
 	jit_exception_func	exception_handler;
 	jit_backtrace_t		backtrace_head;
+	struct jit_jmp_buf *setjmp_head;
 };
 
 /*

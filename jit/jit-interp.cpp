@@ -39,6 +39,7 @@ straight vanilla ANSI C.
 		#define	alloca	_alloca
 	#endif
 #endif
+#include "jit-setjmp.h"
 
 #if defined(JIT_BACKEND_INTERP)
 
@@ -240,6 +241,7 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 	void *entry;
 	void *exception_object = 0;
 	void *handler;
+	jit_jmp_buf *jbuf;
 
 	/* Set up the stack frame for this function */
 	frame = (jit_item *)alloca(func->frame_size);
@@ -248,6 +250,24 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 
 	/* Get the initial program counter */
 	pc = jit_function_interp_entry_pc(func);
+
+	/* Create a "setjmp" point if this function has a "try" block.
+	   This is used to catch exceptions on their way up the stack */
+	if(func->func->has_try)
+	{
+		jbuf = (jit_jmp_buf *)alloca(sizeof(jit_jmp_buf));
+		_jit_unwind_push_setjmp(jbuf);
+		if(setjmp(jbuf->buf))
+		{
+			/* An exception has been thrown by lower-level code */
+			exception_object = jit_exception_get_last_and_clear();
+			goto handle_exception;
+		}
+	}
+	else
+	{
+		jbuf = 0;
+	}
 
 	/* Enter the instruction dispatch loop */
 	VMSWITCH(pc)
@@ -3301,23 +3321,13 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 			VM_MODIFY_PC_AND_STACK(2, 0);
 			entry = call_func->entry_point;
 			_jit_backtrace_push(&call_trace, pc, 0, 0);
-			try
+			if(!entry)
 			{
-				if(!entry)
-				{
-					entry = _jit_function_compile_on_demand(call_func);
-				}
-				_jit_run_function((jit_function_interp_t)entry, stacktop,
-								  return_area);
-				_jit_backtrace_pop();
+				entry = _jit_function_compile_on_demand(call_func);
 			}
-			catch(jit_exception *e)
-			{
-				_jit_backtrace_set(call_trace.parent);
-				exception_object = e->object;
-				delete e;
-				goto handle_exception;
-			}
+			_jit_run_function((jit_function_interp_t)entry, stacktop,
+							  return_area);
+			_jit_backtrace_pop();
 		}
 		VMBREAK;
 
@@ -3328,22 +3338,12 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 			temparg = VM_NINT_ARG2;
 			VM_MODIFY_PC_AND_STACK(3, 2);
 			_jit_backtrace_push(&call_trace, pc, 0, 0);
-			try
-			{
-				apply_from_interpreter((jit_type_t)tempptr,
-									   (void *)VM_STK_PTRP2,
-									   stacktop,
-									   (unsigned int)temparg,
-									   VM_STK_PTRP);
-				_jit_backtrace_pop();
-			}
-			catch(jit_exception *e)
-			{
-				_jit_backtrace_set(call_trace.parent);
-				exception_object = e->object;
-				delete e;
-				goto handle_exception;
-			}
+			apply_from_interpreter((jit_type_t)tempptr,
+								   (void *)VM_STK_PTRP2,
+								   stacktop,
+								   (unsigned int)temparg,
+								   VM_STK_PTRP);
+			_jit_backtrace_pop();
 		}
 		VMBREAK;
 
@@ -3358,23 +3358,13 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 			VM_MODIFY_PC_AND_STACK(1, 1);
 			entry = call_func->entry_point;
 			_jit_backtrace_push(&call_trace, pc, 0, 0);
-			try
+			if(!entry)
 			{
-				if(!entry)
-				{
-					entry = _jit_function_compile_on_demand(call_func);
-				}
-				_jit_run_function((jit_function_interp_t)entry, stacktop,
-								  return_area);
-				_jit_backtrace_pop();
+				entry = _jit_function_compile_on_demand(call_func);
 			}
-			catch(jit_exception *e)
-			{
-				_jit_backtrace_set(call_trace.parent);
-				exception_object = e->object;
-				delete e;
-				goto handle_exception;
-			}
+			_jit_run_function((jit_function_interp_t)entry, stacktop,
+							  return_area);
+			_jit_backtrace_pop();
 		}
 		VMBREAK;
 
@@ -3386,28 +3376,22 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 			temparg = VM_NINT_ARG3;
 			VM_MODIFY_PC_AND_STACK(4, 1);
 			_jit_backtrace_push(&call_trace, pc, 0, 0);
-			try
-			{
-				apply_from_interpreter((jit_type_t)tempptr,
-									   (void *)tempptr2,
-									   stacktop,
-									   (unsigned int)temparg,
-									   VM_STK_PTRP);
-				_jit_backtrace_pop();
-			}
-			catch(jit_exception *e)
-			{
-				_jit_backtrace_set(call_trace.parent);
-				exception_object = e->object;
-				delete e;
-				goto handle_exception;
-			}
+			apply_from_interpreter((jit_type_t)tempptr,
+								   (void *)tempptr2,
+								   stacktop,
+								   (unsigned int)temparg,
+								   VM_STK_PTRP);
+			_jit_backtrace_pop();
 		}
 		VMBREAK;
 
 		VMCASE(JIT_OP_RETURN):
 		{
 			/* Return from the current function, with no result */
+			if(jbuf)
+			{
+				_jit_unwind_pop_setjmp();
+			}
 			return;
 		}
 		/* Not reached */
@@ -3416,6 +3400,10 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 		{
 			/* Return from the current function, with an integer result */
 			return_area->int_value = VM_STK_INT0;
+			if(jbuf)
+			{
+				_jit_unwind_pop_setjmp();
+			}
 			return;
 		}
 		/* Not reached */
@@ -3424,6 +3412,10 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 		{
 			/* Return from the current function, with a long result */
 			return_area->long_value = VM_STK_LONG0;
+			if(jbuf)
+			{
+				_jit_unwind_pop_setjmp();
+			}
 			return;
 		}
 		/* Not reached */
@@ -3432,6 +3424,10 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 		{
 			/* Return from the current function, with a 32-bit float result */
 			return_area->float32_value = VM_STK_FLOAT320;
+			if(jbuf)
+			{
+				_jit_unwind_pop_setjmp();
+			}
 			return;
 		}
 		/* Not reached */
@@ -3440,6 +3436,10 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 		{
 			/* Return from the current function, with a 64-bit float result */
 			return_area->float64_value = VM_STK_FLOAT640;
+			if(jbuf)
+			{
+				_jit_unwind_pop_setjmp();
+			}
 			return;
 		}
 		/* Not reached */
@@ -3448,6 +3448,10 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 		{
 			/* Return from the current function, with a native float result */
 			return_area->nfloat_value = VM_STK_NFLOAT0;
+			if(jbuf)
+			{
+				_jit_unwind_pop_setjmp();
+			}
 			return;
 		}
 		/* Not reached */
@@ -3459,6 +3463,10 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 			jit_memcpy(return_area->struct_value, VM_STK_PTR0,
 					   (unsigned int)VM_NINT_ARG);
 		#endif
+			if(jbuf)
+			{
+				_jit_unwind_pop_setjmp();
+			}
 			return;
 		}
 		/* Not reached */
@@ -3552,7 +3560,8 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 			else
 			{
 				/* Throw the exception up to the next level */
-				throw new jit_exception(exception_object);
+				_jit_unwind_pop_setjmp();
+				jit_exception_throw(exception_object);
 			}
 		}
 		VMBREAK;
@@ -4451,22 +4460,8 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 	VMSWITCHEND
 
 handle_builtin: ;
-	/* TODO */
+	jit_exception_builtin(builtin_exception);
 }
-
-/*
- * Class that helps restore the backtrace when C++ exceptions
- * travel up the stack.  Acts sort of like a "finally" clause.
- */
-class jit_trace_restorer
-{
-public:
-	jit_backtrace_t previous;
-	jit_trace_restorer(jit_backtrace_t previous)
-		{ this->previous = previous; }
-	~jit_trace_restorer()
-		{ _jit_backtrace_set(previous); }
-};
 
 extern "C" int jit_function_apply
 	(jit_function_t func, void **args, void *return_area)
@@ -4497,238 +4492,243 @@ extern "C" int jit_function_apply_vararg
 	jit_type_t type;
 	unsigned int num_params;
 	unsigned int param;
+	jit_jmp_buf jbuf;
 
-	_jit_backtrace_push(&call_trace, 0, 0, 0);
+	/* Push a "setjmp" context onto the stack, so that we can catch
+	   any exceptions that are thrown up to this level and prevent
+	   them from propagating further */
+	_jit_unwind_push_setjmp(&jbuf);
+	if(setjmp(jbuf.buf))
 	{
-		jit_trace_restorer restorer(call_trace.parent);
-		jit_exception_clear_last();
-		try
+		_jit_unwind_pop_setjmp();
+		return 1;
+	}
+
+	/* Initialize the backtrace information */
+	_jit_backtrace_push(&call_trace, 0, 0, 0);
+
+	/* Clear the exception context */
+	jit_exception_clear_last();
+
+	/* Bail out if the function is NULL */
+	if(!func)
+	{
+		jit_exception_builtin(JIT_RESULT_NULL_FUNCTION);
+	}
+
+	/* Make sure that the function is compiled */
+	if(func->is_compiled)
+	{
+		entry = (jit_function_interp *)(func->entry_point);
+	}
+	else
+	{
+		entry = (jit_function_interp *)
+			_jit_function_compile_on_demand(func);
+	}
+
+	/* Populate the low-level argument buffer */
+	if(!signature)
+	{
+		signature = func->signature;
+		arg_buffer = (jit_item *)alloca(entry->args_size);
+	}
+	else if(signature == func->signature)
+	{
+		arg_buffer = (jit_item *)alloca(entry->args_size);
+	}
+	else
+	{
+		arg_buffer = (jit_item *)alloca
+			(_jit_interp_calculate_arg_size(func, signature));
+	}
+	temp_arg = arg_buffer;
+	if(func->nested_parent)
+	{
+		jit_exception_builtin(JIT_RESULT_CALLED_NESTED);
+	}
+	type = jit_type_get_return(signature);
+	if(jit_type_return_via_pointer(type))
+	{
+		if(!return_area)
 		{
-			/* Bail out if the function is NULL */
-			if(!func)
+			return_area = alloca(jit_type_get_size(type));
+		}
+		temp_arg->ptr_value = return_area;
+		++temp_arg;
+	}
+	num_params = jit_type_num_params(signature);
+	for(param = 0; param < num_params; ++param)
+	{
+		type = jit_type_normalize
+			(jit_type_get_param(signature, param));
+		if(!(args[param]))
+		{
+			jit_exception_builtin(JIT_RESULT_NULL_REFERENCE);
+		}
+		switch(type->kind)
+		{
+			case JIT_TYPE_SBYTE:
 			{
-				jit_exception_builtin(JIT_RESULT_NULL_FUNCTION);
-			}
-
-			/* Make sure that the function is compiled */
-			if(func->is_compiled)
-			{
-				entry = (jit_function_interp *)(func->entry_point);
-			}
-			else
-			{
-				entry = (jit_function_interp *)
-					_jit_function_compile_on_demand(func);
-			}
-
-			/* Populate the low-level argument buffer */
-			if(!signature)
-			{
-				signature = func->signature;
-				arg_buffer = (jit_item *)alloca(entry->args_size);
-			}
-			else if(signature == func->signature)
-			{
-				arg_buffer = (jit_item *)alloca(entry->args_size);
-			}
-			else
-			{
-				arg_buffer = (jit_item *)alloca
-					(_jit_interp_calculate_arg_size(func, signature));
-			}
-			temp_arg = arg_buffer;
-			if(func->nested_parent)
-			{
-				jit_exception_builtin(JIT_RESULT_CALLED_NESTED);
-			}
-			type = jit_type_get_return(signature);
-			if(jit_type_return_via_pointer(type))
-			{
-				if(!return_area)
-				{
-					return_area = alloca(jit_type_get_size(type));
-				}
-				temp_arg->ptr_value = return_area;
+				temp_arg->int_value = *((jit_sbyte *)(args[param]));
 				++temp_arg;
 			}
-			num_params = jit_type_num_params(signature);
-			for(param = 0; param < num_params; ++param)
+			break;
+
+			case JIT_TYPE_UBYTE:
 			{
-				type = jit_type_normalize
-					(jit_type_get_param(signature, param));
-				if(!(args[param]))
-				{
-					jit_exception_builtin(JIT_RESULT_NULL_REFERENCE);
-				}
-				switch(type->kind)
-				{
-					case JIT_TYPE_SBYTE:
-					{
-						temp_arg->int_value = *((jit_sbyte *)(args[param]));
-						++temp_arg;
-					}
-					break;
-
-					case JIT_TYPE_UBYTE:
-					{
-						temp_arg->int_value = *((jit_ubyte *)(args[param]));
-						++temp_arg;
-					}
-					break;
-
-					case JIT_TYPE_SHORT:
-					{
-						temp_arg->int_value = *((jit_short *)(args[param]));
-						++temp_arg;
-					}
-					break;
-
-					case JIT_TYPE_USHORT:
-					{
-						temp_arg->int_value = *((jit_ushort *)(args[param]));
-						++temp_arg;
-					}
-					break;
-
-					case JIT_TYPE_INT:
-					case JIT_TYPE_UINT:
-					{
-						temp_arg->int_value = *((jit_int *)(args[param]));
-						++temp_arg;
-					}
-					break;
-
-					case JIT_TYPE_LONG:
-					case JIT_TYPE_ULONG:
-					{
-						temp_arg->long_value = *((jit_long *)(args[param]));
-						++temp_arg;
-					}
-					break;
-
-					case JIT_TYPE_FLOAT32:
-					{
-						temp_arg->float32_value =
-							*((jit_float32 *)(args[param]));
-						++temp_arg;
-					}
-					break;
-
-					case JIT_TYPE_FLOAT64:
-					{
-						temp_arg->float64_value =
-							*((jit_float64 *)(args[param]));
-						++temp_arg;
-					}
-					break;
-
-					case JIT_TYPE_NFLOAT:
-					{
-						temp_arg->nfloat_value =
-							*((jit_nfloat *)(args[param]));
-						++temp_arg;
-					}
-					break;
-
-					case JIT_TYPE_STRUCT:
-					case JIT_TYPE_UNION:
-					{
-						jit_memcpy(temp_arg, args[param],
-								   jit_type_get_size(type));
-						temp_arg += JIT_NUM_ITEMS_IN_STRUCT
-							(jit_type_get_size(type));
-					}
-					break;
-				}
+				temp_arg->int_value = *((jit_ubyte *)(args[param]));
+				++temp_arg;
 			}
+			break;
 
-			/* Run the function */
-			_jit_run_function(entry, arg_buffer, &interp_return_area);
-
-			/* Copy the return value into place, if it isn't already there */
-			if(return_area)
+			case JIT_TYPE_SHORT:
 			{
-				type = jit_type_normalize(jit_type_get_return(signature));
-				if(type && type != jit_type_void)
-				{
-					switch(type->kind)
-					{
-						case JIT_TYPE_SBYTE:
-						case JIT_TYPE_UBYTE:
-						{
-							*((jit_sbyte *)return_area) =
-								(jit_sbyte)(interp_return_area.int_value);
-						}
-						break;
-
-						case JIT_TYPE_SHORT:
-						case JIT_TYPE_USHORT:
-						{
-							*((jit_short *)return_area) =
-								(jit_short)(interp_return_area.int_value);
-						}
-						break;
-
-						case JIT_TYPE_INT:
-						case JIT_TYPE_UINT:
-						{
-							*((jit_int *)return_area) =
-								interp_return_area.int_value;
-						}
-						break;
-
-						case JIT_TYPE_LONG:
-						case JIT_TYPE_ULONG:
-						{
-							*((jit_long *)return_area) =
-								interp_return_area.long_value;
-						}
-						break;
-
-						case JIT_TYPE_FLOAT32:
-						{
-							*((jit_float32 *)return_area) =
-								interp_return_area.float32_value;
-						}
-						break;
-
-						case JIT_TYPE_FLOAT64:
-						{
-							*((jit_float64 *)return_area) =
-								interp_return_area.float64_value;
-						}
-						break;
-
-						case JIT_TYPE_NFLOAT:
-						{
-							*((jit_nfloat *)return_area) =
-								interp_return_area.nfloat_value;
-						}
-						break;
-
-						case JIT_TYPE_STRUCT:
-						case JIT_TYPE_UNION:
-						{
-							if(!jit_type_return_via_pointer(type))
-							{
-								jit_memcpy(return_area, &interp_return_area,
-										   jit_type_get_size(type));
-							}
-						}
-						break;
-					}
-				}
+				temp_arg->int_value = *((jit_short *)(args[param]));
+				++temp_arg;
 			}
-			return 1;
-		}
-		catch(jit_exception *e)
-		{
-			/* Record the exception, but don't throw it any further yet */
-			jit_exception_set_last(e->object);
-			delete e;
-			return 0;
+			break;
+
+			case JIT_TYPE_USHORT:
+			{
+				temp_arg->int_value = *((jit_ushort *)(args[param]));
+				++temp_arg;
+			}
+			break;
+
+			case JIT_TYPE_INT:
+			case JIT_TYPE_UINT:
+			{
+				temp_arg->int_value = *((jit_int *)(args[param]));
+				++temp_arg;
+			}
+			break;
+
+			case JIT_TYPE_LONG:
+			case JIT_TYPE_ULONG:
+			{
+				temp_arg->long_value = *((jit_long *)(args[param]));
+				++temp_arg;
+			}
+			break;
+
+			case JIT_TYPE_FLOAT32:
+			{
+				temp_arg->float32_value =
+					*((jit_float32 *)(args[param]));
+				++temp_arg;
+			}
+			break;
+
+			case JIT_TYPE_FLOAT64:
+			{
+				temp_arg->float64_value =
+					*((jit_float64 *)(args[param]));
+				++temp_arg;
+			}
+			break;
+
+			case JIT_TYPE_NFLOAT:
+			{
+				temp_arg->nfloat_value =
+					*((jit_nfloat *)(args[param]));
+				++temp_arg;
+			}
+			break;
+
+			case JIT_TYPE_STRUCT:
+			case JIT_TYPE_UNION:
+			{
+				jit_memcpy(temp_arg, args[param],
+						   jit_type_get_size(type));
+				temp_arg += JIT_NUM_ITEMS_IN_STRUCT
+					(jit_type_get_size(type));
+			}
+			break;
 		}
 	}
+
+	/* Run the function */
+	_jit_run_function(entry, arg_buffer, &interp_return_area);
+
+	/* Copy the return value into place, if it isn't already there */
+	if(return_area)
+	{
+		type = jit_type_normalize(jit_type_get_return(signature));
+		if(type && type != jit_type_void)
+		{
+			switch(type->kind)
+			{
+				case JIT_TYPE_SBYTE:
+				case JIT_TYPE_UBYTE:
+				{
+					*((jit_sbyte *)return_area) =
+						(jit_sbyte)(interp_return_area.int_value);
+				}
+				break;
+
+				case JIT_TYPE_SHORT:
+				case JIT_TYPE_USHORT:
+				{
+					*((jit_short *)return_area) =
+						(jit_short)(interp_return_area.int_value);
+				}
+				break;
+
+				case JIT_TYPE_INT:
+				case JIT_TYPE_UINT:
+				{
+					*((jit_int *)return_area) =
+						interp_return_area.int_value;
+				}
+				break;
+
+				case JIT_TYPE_LONG:
+				case JIT_TYPE_ULONG:
+				{
+					*((jit_long *)return_area) =
+						interp_return_area.long_value;
+				}
+				break;
+
+				case JIT_TYPE_FLOAT32:
+				{
+					*((jit_float32 *)return_area) =
+						interp_return_area.float32_value;
+				}
+				break;
+
+				case JIT_TYPE_FLOAT64:
+				{
+					*((jit_float64 *)return_area) =
+						interp_return_area.float64_value;
+				}
+				break;
+
+				case JIT_TYPE_NFLOAT:
+				{
+					*((jit_nfloat *)return_area) =
+						interp_return_area.nfloat_value;
+				}
+				break;
+
+				case JIT_TYPE_STRUCT:
+				case JIT_TYPE_UNION:
+				{
+					if(!jit_type_return_via_pointer(type))
+					{
+						jit_memcpy(return_area, &interp_return_area,
+								   jit_type_get_size(type));
+					}
+				}
+				break;
+			}
+		}
+	}
+
+	/* Pop the "setjmp" context and exit */
+	_jit_unwind_pop_setjmp();
+	return 1;
 }
 
 #endif /* JIT_BACKEND_INTERP */

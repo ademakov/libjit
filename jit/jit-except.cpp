@@ -36,7 +36,7 @@ straight vanilla ANSI C.
 	#include "jit-interp.h"
 #endif
 #include <stdio.h>
-#include <setjmp.h>
+#include "jit-setjmp.h"
 
 /*@
 
@@ -58,6 +58,28 @@ extern "C" void *jit_exception_get_last(void)
 	if(control)
 	{
 		return control->last_exception;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+/*@
+ * @deftypefun {void *} jit_exception_get_last_and_clear (void)
+ * Get the last exception object that occurred on this thread and also
+ * clear the exception state to NULL.  This combines the effect of
+ * both @code{jit_exception_get_last} and @code{jit_exception_clear_last}.
+ * @end deftypefun
+@*/
+extern "C" void *jit_exception_get_last_and_clear(void)
+{
+	jit_thread_control_t control = _jit_thread_get_control();
+	if(control)
+	{
+		void *obj = control->last_exception;
+		control->last_exception = 0;
+		return obj;
 	}
 	else
 	{
@@ -110,36 +132,16 @@ extern "C" void jit_exception_clear_last(void)
 @*/
 extern "C" void jit_exception_throw(void *object)
 {
-#if defined(JIT_BACKEND_INTERP)
-	throw new jit_exception(object);
-#else
 	jit_thread_control_t control = _jit_thread_get_control();
-	jit_backtrace_t trace;
 	if(control)
 	{
-		trace = control->backtrace_head;
-		while(trace != 0 && trace->pc != 0 && trace->catch_pc == 0)
+		control->last_exception = object;
+		if(control->setjmp_head)
 		{
-			trace = trace->parent;
-		}
-		if(trace)
-		{
-			if(trace->catch_pc)
-			{
-				/* We have a native "catch" clause at this level */
-				_jit_backtrace_set(trace->parent);
-				_jit_gen_unwind_stack(trace->sp, trace->catch_pc, object);
-			}
-			else
-			{
-				/* The next higher level is "jit_function_apply_vararg",
-				   so use "longjmp" to unwind the stack to that position */
-				jit_exception_set_last(object);
-				longjmp(*((jmp_buf *)(trace->sp)), 1);
-			}
+			control->backtrace_head = control->setjmp_head->trace;
+			longjmp(control->setjmp_head->buf, 1);
 		}
 	}
-#endif
 }
 
 /*@
@@ -487,5 +489,35 @@ extern "C" void _jit_backtrace_set(jit_backtrace_t trace)
 	if(control)
 	{
 		control->backtrace_head = trace;
+	}
+}
+
+extern "C" void _jit_unwind_push_setjmp(jit_jmp_buf *jbuf)
+{
+	jit_thread_control_t control = _jit_thread_get_control();
+	if(control)
+	{
+		jbuf->trace = control->backtrace_head;
+		jbuf->parent = control->setjmp_head;
+		control->setjmp_head = jbuf;
+	}
+}
+
+extern "C" void _jit_unwind_pop_setjmp(void)
+{
+	jit_thread_control_t control = _jit_thread_get_control();
+	if(control && control->setjmp_head)
+	{
+		control->backtrace_head = control->setjmp_head->trace;
+		control->setjmp_head = control->setjmp_head->parent;
+	}
+}
+
+extern "C" void _jit_unwind_fix_setjmp(void)
+{
+	jit_thread_control_t control = _jit_thread_get_control();
+	if(control && control->setjmp_head)
+	{
+		control->backtrace_head = control->setjmp_head->trace;
 	}
 }

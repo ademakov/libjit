@@ -54,6 +54,7 @@ typedef struct jit_stack_trace *jit_stack_trace_t;
  * External function declarations.
  */
 void *jit_exception_get_last(void);
+void *jit_exception_get_last_and_clear(void);
 void jit_exception_set_last(void *object);
 void jit_exception_clear_last(void);
 void jit_exception_throw(void *object);

@@ -87,22 +87,6 @@ struct jit_function_interp
 #define	jit_function_interp_entry_pc(info)	\
 			((void **)(((unsigned char *)(info)) + jit_function_interp_size))
 
-#if defined(__cplusplus)
-
-/*
- * The JIT exception class.  Instances of this object are thrown
- * to simulate a JIT-level exception.
- */
-class jit_exception
-{
-public:
-	jit_exception(void *object) { this->object = object; }
-
-	void *object;
-};
-
-#endif /* __cplusplus */
-
 /*
  * Argument variable access opcodes.
  */
