@@ -51,6 +51,9 @@ the "jit-apply-rules.h" file.
 #if defined(__APPLE__) && defined(__MACH__)
 	#define	PLATFORM_IS_MACOSX	1
 #endif
+#if defined(__x86_64__) || defined(__x86_64)
+	#define	PLATFORM_IS_X86_64	1
+#endif
 
 #if defined(PLATFORM_IS_GCC) || defined(PLATFORM_IS_WIN32)
 
@@ -924,6 +927,7 @@ void detect_struct_conventions(void)
 	call_struct_test(14);
 	call_struct_test(15);
 	call_struct_test(16);
+#ifndef PLATFORM_IS_X86_64
 	call_struct_test(17);
 	call_struct_test(18);
 	call_struct_test(19);
@@ -972,6 +976,7 @@ void detect_struct_conventions(void)
 	call_struct_test(62);
 	call_struct_test(63);
 	call_struct_test(64);
+#endif /* PLATFORM_IS_X86_64 */
 }
 
 /*
