@@ -115,6 +115,76 @@ If it is important to distinguish these special versions from the
 numeric types, then you should use the @code{jit_type_create_tagged}
 function below.
 
+The following types correspond to the system types on the local
+platform.  i.e. @code{jit_type_sys_int} will be the same size as
+@code{long} on the local platform, whereas @code{jit_type_long} is
+always 64 bits in size.  These types should not be used to compile
+code that is intended to work identically on all platforms:
+
+@table @code
+@vindex jit_type_sys_bool
+@item jit_type_sys_bool
+Corresponds to the system @code{bool} type.
+
+@vindex jit_type_sys_char
+@item jit_type_sys_char
+Corresponds to the system @code{char} type.  This may be either signed
+or unsigned, depending upon the underlying system.
+
+@vindex jit_type_sys_schar
+@item jit_type_sys_schar
+Corresponds to the system @code{signed char} type.
+
+@vindex jit_type_sys_uchar
+@item jit_type_sys_uchar
+Corresponds to the system @code{unsigned char} type.
+
+@vindex jit_type_sys_short
+@item jit_type_sys_short
+Corresponds to the system @code{short} type.
+
+@vindex jit_type_sys_ushort
+@item jit_type_sys_ushort
+Corresponds to the system @code{unsigned short} type.
+
+@vindex jit_type_sys_int
+@item jit_type_sys_int
+Corresponds to the system @code{int} type.
+
+@vindex jit_type_sys_uint
+@item jit_type_sys_uint
+Corresponds to the system @code{unsigned int} type.
+
+@vindex jit_type_sys_long
+@item jit_type_sys_long
+Corresponds to the system @code{long} type.
+
+@vindex jit_type_sys_ulong
+@item jit_type_sys_ulong
+Corresponds to the system @code{unsigned long} type.
+
+@vindex jit_type_sys_longlong
+@item jit_type_sys_longlong
+Corresponds to the system @code{long long} type (@code{__int64} under Win32).
+
+@vindex jit_type_sys_ulonglong
+@item jit_type_sys_ulonglong
+Corresponds to the system @code{unsigned long long} type
+(@code{unsigned __int64} under Win32).
+
+@vindex jit_type_sys_float
+@item jit_type_sys_float
+Corresponds to the system @code{float} type.
+
+@vindex jit_type_sys_double
+@item jit_type_sys_double
+Corresponds to the system @code{double} type.
+
+@vindex jit_type_sys_long_double
+@item jit_type_sys_long_double
+Corresponds to the system @code{long double} type.
+@end table
+
 @*/
 
 /*
@@ -169,61 +239,68 @@ jit_type_t const jit_type_void_ptr = (jit_type_t)&_jit_type_void_ptr_def;
 
 /*
  * Type descriptors for the system "char", "int", "long", etc types.
- * These are defined to one of the above values.
+ * These are defined to one of the above values, tagged with a value
+ * that indicates which system type it is referring to.
  */
+#define DECLARE_TAGGED(name,real,tag)	\
+static struct jit_tagged_type const name##_tagged = \
+	{{1, JIT_TYPE_FIRST_TAGGED + (tag), 0, 1, 0, 0, 0, \
+	 (jit_type_t)&_jit_type_##real}, 0, 0}; \
+jit_type_t const jit_type_##name = (jit_type_t)&name##_tagged
+DECLARE_TAGGED(sys_bool, ubyte_def, JIT_TYPETAG_SYS_BOOL);
 #ifdef __CHAR_UNSIGNED__
-jit_type_t const jit_type_sys_char = (jit_type_t)&_jit_type_ubyte_def;
+DECLARE_TAGGED(sys_char, ubyte_def, JIT_TYPETAG_SYS_CHAR);
 #else
-jit_type_t const jit_type_sys_char = (jit_type_t)&_jit_type_sbyte_def;
+DECLARE_TAGGED(sys_char, sbyte_def, JIT_TYPETAG_SYS_CHAR);
 #endif
-jit_type_t const jit_type_sys_schar = (jit_type_t)&_jit_type_sbyte_def;
-jit_type_t const jit_type_sys_uchar = (jit_type_t)&_jit_type_ubyte_def;
+DECLARE_TAGGED(sys_schar, sbyte_def, JIT_TYPETAG_SYS_SCHAR);
+DECLARE_TAGGED(sys_uchar, ubyte_def, JIT_TYPETAG_SYS_UCHAR);
 #if SIZEOF_SHORT == 4
-jit_type_t const jit_type_sys_short = (jit_type_t)&_jit_type_int_def;
-jit_type_t const jit_type_sys_ushort = (jit_type_t)&_jit_type_uint_def;
+DECLARE_TAGGED(sys_short, int_def, JIT_TYPETAG_SYS_SHORT);
+DECLARE_TAGGED(sys_ushort, uint_def, JIT_TYPETAG_SYS_USHORT);
 #elif SIZEOF_SHORT == 8
-jit_type_t const jit_type_sys_short = (jit_type_t)&_jit_type_long_def;
-jit_type_t const jit_type_sys_ushort = (jit_type_t)&_jit_type_ulong_def;
+DECLARE_TAGGED(sys_short, long_def, JIT_TYPETAG_SYS_SHORT);
+DECLARE_TAGGED(sys_ushort, ulong_def, JIT_TYPETAG_SYS_USHORT);
 #else
-jit_type_t const jit_type_sys_short = (jit_type_t)&_jit_type_short_def;
-jit_type_t const jit_type_sys_ushort = (jit_type_t)&_jit_type_ushort_def;
+DECLARE_TAGGED(sys_short, short_def, JIT_TYPETAG_SYS_SHORT);
+DECLARE_TAGGED(sys_ushort, ushort_def, JIT_TYPETAG_SYS_USHORT);
 #endif
 #if SIZEOF_INT == 8
-jit_type_t const jit_type_sys_int = (jit_type_t)&_jit_type_long_def;
-jit_type_t const jit_type_sys_uint = (jit_type_t)&_jit_type_ulong_def;
+DECLARE_TAGGED(sys_int, long_def, JIT_TYPETAG_SYS_INT);
+DECLARE_TAGGED(sys_uint, ulong_def, JIT_TYPETAG_SYS_UINT);
 #elif SIZEOF_INT == 2
-jit_type_t const jit_type_sys_int = (jit_type_t)&_jit_type_short_def;
-jit_type_t const jit_type_sys_uint = (jit_type_t)&_jit_type_ushort_def;
+DECLARE_TAGGED(sys_int, short_def, JIT_TYPETAG_SYS_INT);
+DECLARE_TAGGED(sys_uint, ushort_def, JIT_TYPETAG_SYS_UINT);
 #else
-jit_type_t const jit_type_sys_int = (jit_type_t)&_jit_type_int_def;
-jit_type_t const jit_type_sys_uint = (jit_type_t)&_jit_type_uint_def;
+DECLARE_TAGGED(sys_int, int_def, JIT_TYPETAG_SYS_INT);
+DECLARE_TAGGED(sys_uint, uint_def, JIT_TYPETAG_SYS_UINT);
 #endif
 #if SIZEOF_LONG == 8
-jit_type_t const jit_type_sys_long = (jit_type_t)&_jit_type_long_def;
-jit_type_t const jit_type_sys_ulong = (jit_type_t)&_jit_type_ulong_def;
+DECLARE_TAGGED(sys_long, long_def, JIT_TYPETAG_SYS_LONG);
+DECLARE_TAGGED(sys_ulong, ulong_def, JIT_TYPETAG_SYS_ULONG);
 #elif SIZEOF_LONG == 2
-jit_type_t const jit_type_sys_long = (jit_type_t)&_jit_type_short_def;
-jit_type_t const jit_type_sys_ulong = (jit_type_t)&_jit_type_ushort_def;
+DECLARE_TAGGED(sys_long, short_def, JIT_TYPETAG_SYS_LONG);
+DECLARE_TAGGED(sys_ulong, ushort_def, JIT_TYPETAG_SYS_ULONG);
 #else
-jit_type_t const jit_type_sys_long = (jit_type_t)&_jit_type_int_def;
-jit_type_t const jit_type_sys_ulong = (jit_type_t)&_jit_type_uint_def;
+DECLARE_TAGGED(sys_long, int_def, JIT_TYPETAG_SYS_LONG);
+DECLARE_TAGGED(sys_ulong, uint_def, JIT_TYPETAG_SYS_ULONG);
 #endif
 #if SIZEOF_LONG_LONG == 8 || SIZEOF___INT64 == 8
-jit_type_t const jit_type_sys_longlong = (jit_type_t)&_jit_type_long_def;
-jit_type_t const jit_type_sys_ulonglong = (jit_type_t)&_jit_type_ulong_def;
+DECLARE_TAGGED(sys_longlong, long_def, JIT_TYPETAG_SYS_LONGLONG);
+DECLARE_TAGGED(sys_ulonglong, ulong_def, JIT_TYPETAG_SYS_ULONGLONG);
 #elif SIZEOF_LONG_LONG == 4
-jit_type_t const jit_type_sys_longlong = (jit_type_t)&_jit_type_int_def;
-jit_type_t const jit_type_sys_ulonglong = (jit_type_t)&_jit_type_uint_def;
+DECLARE_TAGGED(sys_longlong, int_def, JIT_TYPETAG_SYS_LONGLONG);
+DECLARE_TAGGED(sys_ulonglong, uint_def, JIT_TYPETAG_SYS_ULONGLONG);
 #elif SIZEOF_LONG_LONG == 2
-jit_type_t const jit_type_sys_longlong = (jit_type_t)&_jit_type_short_def;
-jit_type_t const jit_type_sys_ulonglong = (jit_type_t)&_jit_type_ushort_def;
+DECLARE_TAGGED(sys_longlong, short_def, JIT_TYPETAG_SYS_LONGLONG);
+DECLARE_TAGGED(sys_ulonglong, ushort_def, JIT_TYPETAG_SYS_ULONGLONG);
 #else
-jit_type_t const jit_type_sys_longlong = (jit_type_t)&_jit_type_long_def;
-jit_type_t const jit_type_sys_ulonglong = (jit_type_t)&_jit_type_ulong_def;
+DECLARE_TAGGED(sys_longlong, long_def, JIT_TYPETAG_SYS_LONGLONG);
+DECLARE_TAGGED(sys_ulonglong, ulong_def, JIT_TYPETAG_SYS_ULONGLONG);
 #endif
-jit_type_t const jit_type_sys_float = (jit_type_t)&_jit_type_float32_def;
-jit_type_t const jit_type_sys_double = (jit_type_t)&_jit_type_float64_def;
-jit_type_t const jit_type_sys_long_double = (jit_type_t)&_jit_type_nfloat_def;
+DECLARE_TAGGED(sys_float, float32_def, JIT_TYPETAG_SYS_FLOAT);
+DECLARE_TAGGED(sys_double, float64_def, JIT_TYPETAG_SYS_DOUBLE);
+DECLARE_TAGGED(sys_long_double, nfloat_def, JIT_TYPETAG_SYS_LONGDOUBLE);
 
 /*
  * Special offset flags.
@@ -642,6 +719,46 @@ jit_type_t jit_type_create_pointer(jit_type_t type, int incref)
  * @item JIT_TYPETAG_OUTPUT
  * This is similar to @code{JIT_TYPETAG_REFERENCE}, except that the
  * underlying parameter is assumed to be output-only.
+ *
+ * @vindex JIT_TYPETAG_RESTRICT
+ * @item JIT_TYPETAG_RESTRICT
+ * The underlying type is marked as @code{restrict}.  Normally ignored.
+ *
+ * @vindex JIT_TYPETAG_SYS_BOOL
+ * @vindex JIT_TYPETAG_SYS_CHAR
+ * @vindex JIT_TYPETAG_SYS_SCHAR
+ * @vindex JIT_TYPETAG_SYS_UCHAR
+ * @vindex JIT_TYPETAG_SYS_SHORT
+ * @vindex JIT_TYPETAG_SYS_USHORT
+ * @vindex JIT_TYPETAG_SYS_INT
+ * @vindex JIT_TYPETAG_SYS_UINT
+ * @vindex JIT_TYPETAG_SYS_LONG
+ * @vindex JIT_TYPETAG_SYS_ULONG
+ * @vindex JIT_TYPETAG_SYS_LONGLONG
+ * @vindex JIT_TYPETAG_SYS_ULONGLONG
+ * @vindex JIT_TYPETAG_SYS_FLOAT
+ * @vindex JIT_TYPETAG_SYS_DOUBLE
+ * @vindex JIT_TYPETAG_SYS_LONGDOUBLE
+ * @item JIT_TYPETAG_SYS_BOOL
+ * @itemx JIT_TYPETAG_SYS_CHAR
+ * @itemx JIT_TYPETAG_SYS_SCHAR
+ * @itemx JIT_TYPETAG_SYS_UCHAR
+ * @itemx JIT_TYPETAG_SYS_SHORT
+ * @itemx JIT_TYPETAG_SYS_USHORT
+ * @itemx JIT_TYPETAG_SYS_INT
+ * @itemx JIT_TYPETAG_SYS_UINT
+ * @itemx JIT_TYPETAG_SYS_LONG
+ * @itemx JIT_TYPETAG_SYS_ULONG
+ * @itemx JIT_TYPETAG_SYS_LONGLONG
+ * @itemx JIT_TYPETAG_SYS_ULONGLONG
+ * @itemx JIT_TYPETAG_SYS_FLOAT
+ * @itemx JIT_TYPETAG_SYS_DOUBLE
+ * @itemx JIT_TYPETAG_SYS_LONGDOUBLE
+ * Used to mark types that we know for a fact correspond to the system
+ * C types of the corresponding names.  This is primarily used to distinguish
+ * system types like @code{int} and @code{long} types on 32-bit platforms
+ * when it is necessary to do so.  The @code{jit_type_sys_xxx} values are
+ * all tagged in this manner.
  * @end table
  * @end deftypefun
 @*/

@@ -50,6 +50,7 @@ extern jit_type_t const jit_type_void_ptr;
  * Type descriptors for the system "char", "int", "long", etc types.
  * These are defined to one of the above values.
  */
+extern jit_type_t const jit_type_sys_bool;
 extern jit_type_t const jit_type_sys_char;
 extern jit_type_t const jit_type_sys_schar;
 extern jit_type_t const jit_type_sys_uchar;
@@ -74,6 +75,22 @@ extern jit_type_t const jit_type_sys_long_double;
 #define	JIT_TYPETAG_VOLATILE		10003
 #define	JIT_TYPETAG_REFERENCE		10004
 #define	JIT_TYPETAG_OUTPUT			10005
+#define	JIT_TYPETAG_RESTRICT		10006
+#define	JIT_TYPETAG_SYS_BOOL		10007
+#define	JIT_TYPETAG_SYS_CHAR		10008
+#define	JIT_TYPETAG_SYS_SCHAR		10009
+#define	JIT_TYPETAG_SYS_UCHAR		10010
+#define	JIT_TYPETAG_SYS_SHORT		10011
+#define	JIT_TYPETAG_SYS_USHORT		10012
+#define	JIT_TYPETAG_SYS_INT			10013
+#define	JIT_TYPETAG_SYS_UINT		10014
+#define	JIT_TYPETAG_SYS_LONG		10015
+#define	JIT_TYPETAG_SYS_ULONG		10016
+#define	JIT_TYPETAG_SYS_LONGLONG	10017
+#define	JIT_TYPETAG_SYS_ULONGLONG	10018
+#define	JIT_TYPETAG_SYS_FLOAT		10019
+#define	JIT_TYPETAG_SYS_DOUBLE		10020
+#define	JIT_TYPETAG_SYS_LONGDOUBLE	10021
 
 /*
  * ABI types for function signatures.
