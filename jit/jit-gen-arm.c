@@ -31,53 +31,30 @@
 arm_inst_ptr _arm_mov_reg_imm
 	(arm_inst_ptr inst, int reg, int value, int execute_prefix)
 {
+	int bit;
+
 	/* Handle bytes in various positions */
-	if((value & 0x000000FF) == value)
+	for(bit = 0; bit <= (32 - 8); bit += 2)
 	{
-		arm_mov_reg_imm8(inst, reg, value);
-		return inst;
-	}
-	else if((value & 0x0000FF00) == value)
-	{
-		arm_mov_reg_imm8_rotate(inst, reg, (value >> 8), 12);
-		return inst;
-	}
-	else if((value & 0x00FF0000) == value)
-	{
-		arm_mov_reg_imm8_rotate(inst, reg, (value >> 16), 8);
-		return inst;
-	}
-	else if((value & 0xFF000000) == value)
-	{
-		arm_mov_reg_imm8_rotate(inst, reg, ((value >> 24) & 0xFF), 4);
-		return inst;
+		if((value & (0xFF << bit)) == value)
+		{
+			arm_mov_reg_imm8_rotate
+				(inst, reg, ((value >> bit) & 0xFF), (16 - bit / 2) & 0x0F);
+			return inst;
+		}
 	}
 
 	/* Handle inverted bytes in various positions */
 	value = ~value;
-	if((value & 0x000000FF) == value)
+	for(bit = 0; bit <= (32 - 8); bit += 2)
 	{
-		arm_mov_reg_imm8(inst, reg, value);
-		arm_alu_reg(inst, ARM_MVN, reg, reg);
-		return inst;
-	}
-	else if((value & 0x0000FF00) == value)
-	{
-		arm_mov_reg_imm8_rotate(inst, reg, (value >> 8), 12);
-		arm_alu_reg(inst, ARM_MVN, reg, reg);
-		return inst;
-	}
-	else if((value & 0x00FF0000) == value)
-	{
-		arm_mov_reg_imm8_rotate(inst, reg, (value >> 16), 8);
-		arm_alu_reg(inst, ARM_MVN, reg, reg);
-		return inst;
-	}
-	else if((value & 0xFF000000) == value)
-	{
-		arm_mov_reg_imm8_rotate(inst, reg, ((value >> 24) & 0xFF), 4);
-		arm_alu_reg(inst, ARM_MVN, reg, reg);
-		return inst;
+		if((value & (0xFF << bit)) == value)
+		{
+			arm_alu_reg_imm8_rotate
+				(inst, ARM_MVN, reg, 0,
+				 ((value >> bit) & 0xFF), (16 - bit / 2) & 0x0F);
+			return inst;
+		}
 	}
 
 	/* Build the value the hard way, byte by byte */
@@ -130,42 +107,18 @@ arm_inst_ptr _arm_mov_reg_imm
 
 int arm_is_complex_imm(int value)
 {
-	if(value > -256 && value < 256)
+	int bit;
+	int inv_value = ~value;
+	for(bit = 0; bit <= (32 - 8); bit += 2)
 	{
-		return 0;
-	}
-	else if((value & 0x000000FF) == value)
-	{
-		return 0;
-	}
-	else if((value & 0x0000FF00) == value)
-	{
-		return 0;
-	}
-	else if((value & 0x00FF0000) == value)
-	{
-		return 0;
-	}
-	else if((value & 0xFF000000) == value)
-	{
-		return 0;
-	}
-	value = ~value;
-	if((value & 0x000000FF) == value)
-	{
-		return 0;
-	}
-	else if((value & 0x0000FF00) == value)
-	{
-		return 0;
-	}
-	else if((value & 0x00FF0000) == value)
-	{
-		return 0;
-	}
-	else if((value & 0xFF000000) == value)
-	{
-		return 0;
+		if((value & (0xFF << bit)) == value)
+		{
+			return 0;
+		}
+		if((inv_value & (0xFF << bit)) == inv_value)
+		{
+			return 0;
+		}
 	}
 	return 1;
 }
@@ -174,7 +127,17 @@ arm_inst_ptr _arm_alu_reg_imm
 	(arm_inst_ptr inst, int opc, int dreg,
 	 int sreg, int imm, int saveWork, int execute_prefix)
 {
-	int tempreg;
+	int bit, tempreg;
+	for(bit = 0; bit <= (32 - 8); bit += 2)
+	{
+		if((imm & (0xFF << bit)) == imm)
+		{
+			arm_alu_reg_imm8_rotate
+				(inst, opc, dreg, sreg,
+				 ((imm >> bit) & 0xFF), (16 - bit / 2) & 0x0F);
+			return inst;
+		}
+	}
 	if(saveWork)
 	{
 		if(dreg != ARM_R2 && sreg != ARM_R2)
