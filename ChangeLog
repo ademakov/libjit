@@ -9,6 +9,9 @@
 	rewrite the exception region routines to make them easier
 	to use from CLI and JVM style systems.
 
+	* jit/jit-rules-interp.c (_jit_gen_start_block): set the address
+	of the exception handler for interpreted code.
+
 2004-05-22  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-block.c (_jit_block_peephole_branch): don't allow

@@ -1647,6 +1647,14 @@ void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block)
 		fixup = next;
 	}
 	block->fixup_list = 0;
+
+	/* If this is the exception catcher block, then we need to update
+	   the exception cookie for the function to point to here */
+	if(block->label == block->func->builder->catcher_label &&
+	   block->func->has_try)
+	{
+		_jit_cache_set_cookie(&(gen->posn), block->address);
+	}
 }
 
 /*@
