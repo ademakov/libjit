@@ -51,8 +51,7 @@ int   jit_memcmp(const void *s1, const void *s2, unsigned int len) JIT_NOTHROW;
 void *jit_memchr(const void *str, int ch, unsigned int len) JIT_NOTHROW;
 
 /*
- * String routines.  Note: jit_stricmp uses fixed ASCII rules for case
- * comparison, whereas jit_stricoll uses localized rules.
+ * String routines.
  */
 unsigned int jit_strlen(const char *str) JIT_NOTHROW;
 char *jit_strcpy(char *dest, const char *src) JIT_NOTHROW;
@@ -65,12 +64,6 @@ int jit_strncmp
 	(const char *str1, const char *str2, unsigned int len) JIT_NOTHROW;
 int jit_stricmp(const char *str1, const char *str2) JIT_NOTHROW;
 int jit_strnicmp
-	(const char *str1, const char *str2, unsigned int len) JIT_NOTHROW;
-int jit_strcoll(const char *str1, const char *str2) JIT_NOTHROW;
-int jit_strncoll
-	(const char *str1, const char *str2, unsigned int len) JIT_NOTHROW;
-int jit_stricoll(const char *str1, const char *str2) JIT_NOTHROW;
-int jit_strnicoll
 	(const char *str1, const char *str2, unsigned int len) JIT_NOTHROW;
 char *jit_strchr(const char *str, int ch) JIT_NOTHROW;
 char *jit_strrchr(const char *str, int ch) JIT_NOTHROW;

@@ -350,8 +350,6 @@ fi
 AC_FUNC_MEMCMP
 AC_CHECK_FUNCS(memset memcmp memchr memcpy memmove bcopy bzero bcmp)
 AC_CHECK_FUNCS(strlen strcpy strcat strncpy strcmp strncmp)
-AC_CHECK_FUNCS(strcoll _strcoll stricoll _stricoll strcasecmp)
-AC_CHECK_FUNCS(strncoll _strncoll strnicoll _strnicoll strncasecmp)
 AC_CHECK_FUNCS(strchr strrchr vsprintf vsnprintf _vsnprintf getpagesize)
 AC_CHECK_FUNCS(isnan isinf finite fmod remainder drem ceil floor)
 AC_CHECK_FUNCS(acos asin atan atan2 cos cosh exp log log10 pow)

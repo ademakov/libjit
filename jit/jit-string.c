@@ -239,8 +239,12 @@ int jit_strncmp(const char *str1, const char *str2, unsigned int len)
  * lower case counterparts before comparison.
  *
  * Note: this function is guaranteed to use English case comparison rules,
- * no matter what the current locale is set to.  Use @code{jit_stricoll} for
- * locale-sensitive string comparison.
+ * no matter what the current locale is set to, making it suitable for
+ * comparing token tags and simple programming language identifiers.
+ *
+ * Locale-sensitive string comparison is complicated and usually specific
+ * to the front end language or its supporting runtime library.  We
+ * deliberately chose not to handle this in @code{libjit}.
  * @end deftypefun
 @*/
 int jit_stricmp(const char *str1, const char *str2)
@@ -273,10 +277,6 @@ int jit_stricmp(const char *str1, const char *str2)
  * At most @code{len} characters are compared.  Instances of the English
  * letters A to Z are converted into their lower case counterparts
  * before comparison.
- *
- * Note: this function is guaranteed to use English case comparison rules,
- * no matter what the current locale is set to.  Use @code{jit_strnicoll} for
- * locale-sensitive string comparison.
  * @end deftypefun
 @*/
 int jit_strnicmp(const char *str1, const char *str2, unsigned int len)
@@ -301,93 +301,6 @@ int jit_strnicmp(const char *str1, const char *str2, unsigned int len)
 		--len;
 	}
 	return 0;
-}
-
-/*@
- * @deftypefun int jit_strcoll ({const char *} str1, {const char *} str2)
- * Compare the two strings @code{str1} and @code{str2}, returning
- * a negative, zero, or positive value depending upon their relationship.
- * This function uses locale-sensitive comparison rules, but case is
- * still considered significant.  If the system does not have locale
- * sensitive comparisons, this function will be identical to
- * @code{jit_strcmp}.
- * @end deftypefun
-@*/
-int jit_strcoll(const char *str1, const char *str2)
-{
-#if defined(HAVE_STRCOLL)
-	return strcoll(str1, str2);
-#elif defined(HAVE__STRCOLL)
-	return _strcoll(str1, str2);
-#elif defined(HAVE_STRCMP)
-	return strcmp(str1, str2);
-#else
-	return jit_strcmp(str1, str2);
-#endif
-}
-
-/*@
- * @deftypefun int jit_stricoll ({const char *} str1, {const char *} str2)
- * Compare the two strings @code{str1} and @code{str2}, returning
- * a negative, zero, or positive value depending upon their relationship.
- * This function uses locale-sensitive comparison rules, while ignoring
- * case.  If the system does not have locale sensitive comparisons, this
- * function will be identical to @code{jit_stricmp}.
- * @end deftypefun
-@*/
-int jit_stricoll(const char *str1, const char *str2)
-{
-#if defined(HAVE_STRICOLL)
-	return stricoll(str1, str2);
-#elif defined(HAVE__STRICOLL)
-	return _stricoll(str1, str2);
-#elif defined(HAVE_STRCASECMP)
-	return strcasecmp(str1, str2);
-#else
-	return jit_stricmp(str1, str2);
-#endif
-}
-
-/*@
- * @deftypefun int jit_strncoll ({const char *} str1, {const char *} str2, {unsigned int} len)
- * Compare the two strings @code{str1} and @code{str2}, returning
- * a negative, zero, or positive value depending upon their relationship.
- * At most @code{len} characters are compared, but it is otherwise
- * the same as @code{jit_strcoll}.
- * @end deftypefun
-@*/
-int jit_strncoll(const char *str1, const char *str2, unsigned int len)
-{
-#if defined(HAVE_STRNCOLL)
-	return strncoll(str1, str2, len);
-#elif defined(HAVE__STRNCOLL)
-	return _strncoll(str1, str2, len);
-#elif defined(HAVE_STRNCMP)
-	return strncmp(str1, str2, len);
-#else
-	return jit_strncmp(str1, str2, len);
-#endif
-}
-
-/*@
- * @deftypefun int jit_strnicoll ({const char *} str1, {const char *} str2, {unsigned int} len)
- * Compare the two strings @code{str1} and @code{str2}, returning
- * a negative, zero, or positive value depending upon their relationship.
- * At most @code{len} characters are compared, but it is otherwise
- * the same as @code{jit_stricoll}.
- * @end deftypefun
-@*/
-int jit_strnicoll(const char *str1, const char *str2, unsigned int len)
-{
-#if defined(HAVE_STRNICOLL)
-	return strincoll(str1, str2, len);
-#elif defined(HAVE__STRNICOLL)
-	return _strnicoll(str1, str2, len);
-#elif defined(HAVE_STRNCASECMP)
-	return strncasecmp(str1, str2, len);
-#else
-	return jit_strnicmp(str1, str2, len);
-#endif
 }
 
 /*@
