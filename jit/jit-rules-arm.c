@@ -634,7 +634,7 @@ void _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 	/* Output an appropriate instruction to spill the value */
 	if(value->has_global_register)
 	{
-		arm_mov_reg_reg(gen, _jit_reg_info[value->global_reg].cpu_reg,
+		arm_mov_reg_reg(inst, _jit_reg_info[value->global_reg].cpu_reg,
 						_jit_reg_info[reg].cpu_reg);
 	}
 	else
