@@ -10,6 +10,12 @@
 	* jit/jit-rules-x86.c: implement x86 code generation for some of
 	the basic operators.
 
+	* include/jit/jit-insn.h, include/jit/jit-opcode.h,
+	include/jit/jit-plus.h, jit/jit-insn.c, jit/jit-interp.cpp,
+	jit/jit-opcode.c, jit/jit-reg-alloc.c, jit/jit-reg-alloc.h,
+	jit/jit-rules-interp.c, jitplus/jit-plus-function.cpp:
+	add array access instructions.
+
 2004-04-30  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/jit-function.h, include/jit/jit-insn.h,

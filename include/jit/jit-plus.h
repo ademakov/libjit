@@ -215,6 +215,15 @@ public:
 	void insn_store_relative
 		(const jit_value& dest, jit_nint offset, const jit_value& value);
 	jit_value insn_add_relative(const jit_value& value, jit_nint offset);
+	jit_value insn_load_elem
+		(const jit_value& base_addr, const jit_value& index,
+		 jit_type_t elem_type);
+	jit_value insn_load_elem_address
+		(const jit_value& base_addr, const jit_value& index,
+		 jit_type_t elem_type);
+	void insn_store_elem
+		(const jit_value& base_addr, const jit_value& index,
+		 const jit_value& value);
 	void insn_check_null(const jit_value& value);
 	jit_value insn_add(const jit_value& value1, const jit_value& value2);
 	jit_value insn_add_ovf(const jit_value& value1, const jit_value& value2);
@@ -299,6 +308,12 @@ public:
 	void insn_default_return();
 	void insn_throw(const jit_value& value);
 	jit_value insn_get_call_stack();
+	void insn_memcpy
+		(const jit_value& dest, const jit_value& src, const jit_value& size);
+	void insn_memmove
+		(const jit_value& dest, const jit_value& src, const jit_value& size);
+	void insn_memset
+		(const jit_value& dest, const jit_value& value, const jit_value& size);
 
 private:
 	jit_function_t func;

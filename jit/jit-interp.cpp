@@ -103,14 +103,34 @@ straight vanilla ANSI C.
 #define	VM_STK_NFLOATP	(stacktop[-1].nfloat_value)
 #define	VM_STK_PTR0		(stacktop[0].ptr_value)
 #define	VM_STK_PTR1		(stacktop[1].ptr_value)
+#define	VM_STK_PTR2		(stacktop[2].ptr_value)
 #define	VM_STK_PTRP		(stacktop[-1].ptr_value)
 #define	VM_STK_PTRP2	(stacktop[-2].ptr_value)
+#ifdef JIT_NATIVE_INT32
+#define	VM_STK_NINT0	VM_STK_INT0
+#define	VM_STK_NINT1	VM_STK_INT1
+#define	VM_STK_NUINT0	VM_STK_UINT0
+#define	VM_STK_NUINT1	VM_STK_UINT1
+#else
+#define	VM_STK_NINT0	VM_STK_LONG0
+#define	VM_STK_NINT1	VM_STK_LONG1
+#define	VM_STK_NUINT0	VM_STK_ULONG0
+#define	VM_STK_NUINT1	VM_STK_ULONG1
+#endif
 
 /*
  * Apply a relative adjustment to a pointer and cast to a specific type.
  */
 #define	VM_REL(type,ptr)	\
 			((type *)(((unsigned char *)(ptr)) + VM_NINT_ARG))
+
+/*
+ * Apply an array adjustment to a pointer.
+ */
+#define	VM_LOAD_ELEM(type)	\
+			(*(((type *)VM_STK_PTR1) + VM_STK_NINT0))
+#define	VM_STORE_ELEM(type,value)	\
+			(*(((type *)VM_STK_PTR2) + VM_STK_NINT1) = (type)(value))
 
 /*
  * Get the address of an argument or local variable at a particular offset.
@@ -3712,6 +3732,182 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 			/* Add a relative offset to a pointer */
 			VM_STK_PTR0 = VM_REL(void, VM_STK_PTR0);
 			VM_MODIFY_PC_AND_STACK(2, 0);
+		}
+		VMBREAK;
+
+		/******************************************************************
+		 * Array element loads and stores.
+		 ******************************************************************/
+
+		VMCASE(JIT_OP_LOAD_ELEMENT_SBYTE):
+		{
+			/* Load a signed 8-bit integer value from an array */
+			VM_STK_INT1 = VM_LOAD_ELEM(jit_sbyte);
+			VM_MODIFY_PC_AND_STACK(1, 1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_LOAD_ELEMENT_UBYTE):
+		{
+			/* Load an unsigned 8-bit integer value from an array */
+			VM_STK_INT1 = VM_LOAD_ELEM(jit_ubyte);
+			VM_MODIFY_PC_AND_STACK(1, 1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_LOAD_ELEMENT_SHORT):
+		{
+			/* Load a signed 16-bit integer value from an array */
+			VM_STK_INT1 = VM_LOAD_ELEM(jit_short);
+			VM_MODIFY_PC_AND_STACK(1, 1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_LOAD_ELEMENT_USHORT):
+		{
+			/* Load an unsigned 16-bit integer value from an array */
+			VM_STK_INT1 = VM_LOAD_ELEM(jit_ushort);
+			VM_MODIFY_PC_AND_STACK(1, 1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_LOAD_ELEMENT_INT):
+		{
+			/* Load a signed 32-bit integer value from an array */
+			VM_STK_INT1 = VM_LOAD_ELEM(jit_int);
+			VM_MODIFY_PC_AND_STACK(1, 1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_LOAD_ELEMENT_UINT):
+		{
+			/* Load an unsigned 32-bit integer value from an array */
+			VM_STK_UINT1 = VM_LOAD_ELEM(jit_uint);
+			VM_MODIFY_PC_AND_STACK(1, 1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_LOAD_ELEMENT_LONG):
+		{
+			/* Load a signed 64-bit integer value from an array */
+			VM_STK_LONG1 = VM_LOAD_ELEM(jit_long);
+			VM_MODIFY_PC_AND_STACK(1, 1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_LOAD_ELEMENT_ULONG):
+		{
+			/* Load an unsigned 64-bit integer value from an array */
+			VM_STK_ULONG1 = VM_LOAD_ELEM(jit_ulong);
+			VM_MODIFY_PC_AND_STACK(1, 1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_LOAD_ELEMENT_FLOAT32):
+		{
+			/* Load a 32-bit float value from an array */
+			VM_STK_FLOAT321 = VM_LOAD_ELEM(jit_float32);
+			VM_MODIFY_PC_AND_STACK(1, 1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_LOAD_ELEMENT_FLOAT64):
+		{
+			/* Load a 64-bit float value from an array */
+			VM_STK_FLOAT641 = VM_LOAD_ELEM(jit_float64);
+			VM_MODIFY_PC_AND_STACK(1, 1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_LOAD_ELEMENT_NFLOAT):
+		{
+			/* Load a native float value from an array */
+			VM_STK_NFLOAT1 = VM_LOAD_ELEM(jit_nfloat);
+			VM_MODIFY_PC_AND_STACK(1, 1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_STORE_ELEMENT_BYTE):
+		{
+			/* Store a 8-bit integer value to an array */
+			VM_STORE_ELEM(jit_sbyte, VM_STK_INT0);
+			VM_MODIFY_PC_AND_STACK(1, 3);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_STORE_ELEMENT_SHORT):
+		{
+			/* Store a 16-bit integer value to an array */
+			VM_STORE_ELEM(jit_short, VM_STK_INT0);
+			VM_MODIFY_PC_AND_STACK(1, 3);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_STORE_ELEMENT_INT):
+		{
+			/* Store a 32-bit integer value to an array */
+			VM_STORE_ELEM(jit_int, VM_STK_INT0);
+			VM_MODIFY_PC_AND_STACK(1, 3);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_STORE_ELEMENT_LONG):
+		{
+			/* Store a 64-bit integer value to an array */
+			VM_STORE_ELEM(jit_long, VM_STK_LONG0);
+			VM_MODIFY_PC_AND_STACK(1, 3);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_STORE_ELEMENT_FLOAT32):
+		{
+			/* Store a 32-bit float value to an array */
+			VM_STORE_ELEM(jit_float32, VM_STK_FLOAT320);
+			VM_MODIFY_PC_AND_STACK(1, 3);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_STORE_ELEMENT_FLOAT64):
+		{
+			/* Store a 64-bit float value to an array */
+			VM_STORE_ELEM(jit_float64, VM_STK_FLOAT640);
+			VM_MODIFY_PC_AND_STACK(1, 3);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_STORE_ELEMENT_NFLOAT):
+		{
+			/* Store a native float value to an array */
+			VM_STORE_ELEM(jit_nfloat, VM_STK_NFLOAT0);
+			VM_MODIFY_PC_AND_STACK(1, 3);
+		}
+		VMBREAK;
+
+		/******************************************************************
+		 * Block operations.
+		 ******************************************************************/
+
+		VMCASE(JIT_OP_MEMCPY):
+		{
+			/* Copy a block of memory */
+			jit_memcpy(VM_STK_PTR2, VM_STK_PTR1, VM_STK_NUINT0);
+			VM_MODIFY_PC_AND_STACK(1, 3);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_MEMMOVE):
+		{
+			/* Move a block of memory */
+			jit_memmove(VM_STK_PTR2, VM_STK_PTR1, VM_STK_NUINT0);
+			VM_MODIFY_PC_AND_STACK(1, 3);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_MEMSET):
+		{
+			/* Set a block of memory to a value */
+			jit_memset(VM_STK_PTR2, (int)VM_STK_INT1, VM_STK_NUINT0);
+			VM_MODIFY_PC_AND_STACK(1, 3);
 		}
 		VMBREAK;
 

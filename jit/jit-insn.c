@@ -337,6 +337,38 @@ static jit_value_t apply_binary
 }
 
 /*
+ * Apply a ternary operator.
+ */
+static int apply_ternary
+		(jit_function_t func, int oper, jit_value_t value1,
+		 jit_value_t value2, jit_value_t value3)
+{
+	jit_insn_t insn;
+	if(!value1 || !value2 || !value3)
+	{
+		return 0;
+	}
+	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+	insn = _jit_block_add_insn(func->builder->current_block);
+	if(!insn)
+	{
+		return 0;
+	}
+	jit_value_ref(func, value1);
+	jit_value_ref(func, value2);
+	jit_value_ref(func, value3);
+	insn->opcode = (short)oper;
+	insn->flags = JIT_INSN_DEST_IS_VALUE;
+	insn->dest = value1;
+	insn->value1 = value2;
+	insn->value2 = value3;
+	return 1;
+}
+
+/*
  * Create a note instruction, which doesn't have a result.
  */
 static int create_note
@@ -1621,6 +1653,127 @@ jit_value_t jit_insn_add_relative
 								(func, jit_type_nint, offset),
 							jit_type_void_ptr);
 	}
+}
+
+/*@
+ * @deftypefun jit_value_t jit_insn_load_elem (jit_function_t func, jit_value_t base_addr, jit_value_t index, jit_type_t elem_type)
+ * Load an element of type @code{elem_type} from position @code{index} within
+ * the array starting at @code{base_addr}.  The effective address of the
+ * array element is @code{base_addr + index * sizeof(elem_type)}.
+ * @end deftypefun
+@*/
+jit_value_t jit_insn_load_elem
+	(jit_function_t func, jit_value_t base_addr,
+	 jit_value_t index, jit_type_t elem_type)
+{
+	jit_nint size;
+	int opcode;
+
+	/* Get the size of the element that we are fetching */
+	size = (jit_nint)(jit_type_get_size(elem_type));
+
+	/* Convert the index into a native integer */
+	index = jit_insn_convert(func, index, jit_type_nint, 0);
+	if(!index)
+	{
+		return 0;
+	}
+
+	/* If the index is constant, then turn this into a relative load */
+	if(jit_value_is_constant(index))
+	{
+		return jit_insn_load_relative
+			(func, base_addr,
+			 jit_value_get_nint_constant(index) * size, elem_type);
+	}
+
+	/* See if we can use a special-case instruction */
+	opcode = _jit_load_opcode(JIT_OP_LOAD_ELEMENT_SBYTE, elem_type, 0, 0);
+	if(opcode != 0 && opcode != (JIT_OP_LOAD_ELEMENT_SBYTE + 9))
+	{
+		return apply_binary(func, opcode, base_addr, index, elem_type);
+	}
+
+	/* Calculate the effective address and then use a relative load */
+	base_addr = jit_insn_add(func, base_addr,
+		jit_insn_mul(func, index,
+					 jit_value_create_nint_constant
+					 	(func, jit_type_nint, size)));
+	return jit_insn_load_relative(func, base_addr, 0, elem_type);
+}
+
+/*@
+ * @deftypefun jit_value_t jit_insn_load_elem_address (jit_function_t func, jit_value_t base_addr, jit_value_t index, jit_type_t elem_type)
+ * Load the effective address of an element of type @code{elem_type} at
+ * position @code{index} within the array starting at @code{base_addr}.
+ * Essentially, this computes the expression @code{base_addr + index *
+ * sizeof(elem_type)}, but may be more efficient than performing the
+ * steps with @code{jit_insn_mul} and @code{jit_insn_add}.
+ * @end deftypefun
+@*/
+jit_value_t jit_insn_load_elem_address
+	(jit_function_t func, jit_value_t base_addr,
+	 jit_value_t index, jit_type_t elem_type)
+{
+	jit_nint size = (jit_nint)(jit_type_get_size(elem_type));
+	index = jit_insn_convert(func, index, jit_type_nint, 0);
+	return jit_insn_add(func, base_addr,
+		jit_insn_mul(func, index,
+					 jit_value_create_nint_constant
+					 	(func, jit_type_nint, size)));
+}
+
+/*@
+ * @deftypefun int jit_insn_store_elem (jit_function_t func, jit_value_t base_addr, jit_value_t index, jit_value_t value)
+ * Store @code{value} at position @code{index} of the array starting at
+ * @code{base_addr}.  The effective address of the storage location is
+ * @code{base_addr + index * sizeof(jit_value_get_type(value))}.
+ * @end deftypefun
+@*/
+int jit_insn_store_elem
+	(jit_function_t func, jit_value_t base_addr,
+	 jit_value_t index, jit_value_t value)
+{
+	jit_nint size;
+	int opcode;
+	jit_type_t elem_type;
+
+	/* Get the size of the element that we are fetching */
+	if(!value)
+	{
+		return 0;
+	}
+	elem_type = jit_value_get_type(value);
+	size = (jit_nint)(jit_type_get_size(elem_type));
+
+	/* Convert the index into a native integer */
+	index = jit_insn_convert(func, index, jit_type_nint, 0);
+	if(!index)
+	{
+		return 0;
+	}
+
+	/* If the index is constant, then turn this into a relative store */
+	if(jit_value_is_constant(index))
+	{
+		return jit_insn_store_relative
+			(func, base_addr,
+			 jit_value_get_nint_constant(index) * size, value);
+	}
+
+	/* See if we can use a special-case instruction */
+	opcode = _jit_store_opcode(JIT_OP_STORE_ELEMENT_BYTE, 0, elem_type);
+	if(opcode != 0 && opcode != (JIT_OP_STORE_ELEMENT_BYTE + 7))
+	{
+		return apply_ternary(func, opcode, base_addr, index, value);
+	}
+
+	/* Calculate the effective address and then use a relative store */
+	base_addr = jit_insn_add(func, base_addr,
+		jit_insn_mul(func, index,
+					 jit_value_create_nint_constant
+					 	(func, jit_type_nint, size)));
+	return jit_insn_store_relative(func, base_addr, 0, value);
 }
 
 /*@
@@ -6176,6 +6329,48 @@ jit_value_t jit_insn_call_filter
 	}
 	block->entered_via_top = 1;
 	return create_dest_note(func, JIT_OP_CALL_FILTER_RETURN, type);
+}
+
+/*@
+ * @deftypefun int jit_insn_memcpy (jit_function_t func, jit_value_t dest, jit_value_t src, jit_value_t size)
+ * Copy the @code{size} bytes of memory at @code{src} to @code{dest}.
+ * It is assumed that the source and destination do not overlap.
+ * @end deftypefun
+@*/
+int jit_insn_memcpy
+	(jit_function_t func, jit_value_t dest,
+	 jit_value_t src, jit_value_t size)
+{
+	size = jit_insn_convert(func, size, jit_type_nint, 0);
+	return apply_ternary(func, JIT_OP_MEMCPY, dest, src, size);
+}
+
+/*@
+ * @deftypefun int jit_insn_memmove (jit_function_t func, jit_value_t dest, jit_value_t src, jit_value_t size)
+ * Copy the @code{size} bytes of memory at @code{src} to @code{dest}.
+ * This is save to use if the source and destination overlap.
+ * @end deftypefun
+@*/
+int jit_insn_memmove
+	(jit_function_t func, jit_value_t dest,
+	 jit_value_t src, jit_value_t size)
+{
+	size = jit_insn_convert(func, size, jit_type_nint, 0);
+	return apply_ternary(func, JIT_OP_MEMMOVE, dest, src, size);
+}
+
+/*@
+ * @deftypefun int jit_insn_memset (jit_function_t func, jit_value_t dest, jit_value_t value, jit_value_t size)
+ * Set the @code{size} bytes at @code{dest} to @code{value}.
+ * @end deftypefun
+@*/
+int jit_insn_memset
+	(jit_function_t func, jit_value_t dest,
+	 jit_value_t value, jit_value_t size)
+{
+	value = jit_insn_convert(func, value, jit_type_int, 0);
+	size = jit_insn_convert(func, size, jit_type_nint, 0);
+	return apply_ternary(func, JIT_OP_MEMSET, dest, value, size);
 }
 
 /*@

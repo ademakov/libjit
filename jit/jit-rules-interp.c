@@ -1199,9 +1199,23 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 
 		default:
 		{
-			/* Whatever opcodes are left are binary or unary operators,
+			/* Whatever opcodes are left are ordinary operators,
 			   and the interpreter's opcode is identical to the JIT's */
-			if(insn->value2)
+			if(insn->value2 && (insn->flags & JIT_INSN_DEST_IS_VALUE) != 0)
+			{
+				/* Generate code for a ternary operator with no real dest */
+				_jit_regs_load_to_top_three
+					(gen, insn->dest, insn->value1, insn->value2,
+					 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
+					 				 JIT_INSN_DEST_LIVE)),
+					 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+					 				 JIT_INSN_VALUE1_LIVE)),
+					 (insn->flags & (JIT_INSN_VALUE2_NEXT_USE |
+					 				 JIT_INSN_VALUE2_LIVE)), 0);
+				jit_cache_opcode(&(gen->posn), insn->opcode);
+				adjust_working(gen, -3);
+			}
+			else if(insn->value2)
 			{
 				/* Generate code for a binary operator */
 				reg = _jit_regs_load_to_top_two

@@ -47,6 +47,10 @@ int _jit_regs_load_to_top
 int _jit_regs_load_to_top_two
 	(jit_gencode_t gen, jit_value_t value, jit_value_t value2,
 	 int used_again1, int used_again2, int type_reg);
+void _jit_regs_load_to_top_three
+	(jit_gencode_t gen, jit_value_t value, jit_value_t value2,
+	 jit_value_t value3, int used_again1, int used_again2,
+	 int used_again3, int type_reg);
 int _jit_regs_num_used(jit_gencode_t gen, int type_reg);
 
 #ifdef	__cplusplus

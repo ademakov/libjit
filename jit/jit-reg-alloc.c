@@ -1114,7 +1114,7 @@ int _jit_regs_load_to_top_two
 	if(value->in_register && value2->in_register)
 	{
 		reg = value->reg;
-		reg2 = value->reg;
+		reg2 = value2->reg;
 		if((_jit_reg_info[gen->contents[reg2].remap].flags
 				& JIT_REG_START_STACK) != 0 &&
 		   gen->contents[reg].remap == (gen->contents[reg2].remap + 1))
@@ -1158,6 +1158,63 @@ int _jit_regs_load_to_top_two
 	free_stack_reg(gen, reg2);
 	gen->contents[reg2].used_for_temp = 0;
 	return reg;
+}
+
+/*@
+ * @deftypefun void _jit_regs_load_to_top_three (jit_gencode_t gen, jit_value_t value, jit_value_t value2, jit_value_t value3, int used_again1, int used_again2, int used_again3, int type_reg)
+ * Load three values to the top of a register stack.  The values are assumed
+ * to be popped by the subsequent operation.  This is used by the interpreted
+ * back end for things like array stores, that need three values but all
+ * of them are discarded after the operation.
+ * @end deftypefun
+@*/
+void _jit_regs_load_to_top_three
+	(jit_gencode_t gen, jit_value_t value, jit_value_t value2,
+	 jit_value_t value3, int used_again1, int used_again2,
+	 int used_again3, int type_reg)
+{
+	int reg, reg2, reg3;
+
+	/* Determine if the values are already in the top three registers */
+	if(value->in_register && value2->in_register && value3->in_register)
+	{
+		reg = value->reg;
+		reg2 = value2->reg;
+		reg3 = value3->reg;
+		if((_jit_reg_info[gen->contents[reg2].remap].flags
+				& JIT_REG_START_STACK) != 0 &&
+		   gen->contents[reg].remap == (gen->contents[reg2].remap + 1) &&
+		   gen->contents[reg2].remap == (gen->contents[reg3].remap + 1))
+		{
+			if((value->in_frame || !used_again1) &&
+			   (value2->in_frame || !used_again2) &&
+			   (value3->in_frame || !used_again3))
+			{
+				/* Disassociate the values from the registers and return */
+				free_stack_reg(gen, reg);
+				free_stack_reg(gen, reg2);
+				free_stack_reg(gen, reg3);
+				value->in_register = 0;
+				value2->in_register = 0;
+				value3->in_register = 0;
+				gen->contents[reg].used_for_temp = 0;
+				gen->contents[reg2].used_for_temp = 0;
+				gen->contents[reg3].used_for_temp = 0;
+				return;
+			}
+		}
+	}
+
+	/* Spill everything out, so that we know where things are */
+	spill_all_stack(gen, type_reg);
+
+	/* Load the three values that we want onto the stack */
+	reg = _jit_regs_load_value(gen, value, 1, used_again1);
+	reg2 = _jit_regs_load_value(gen, value2, 1, used_again2);
+	reg3 = _jit_regs_load_value(gen, value3, 1, used_again3);
+	gen->contents[reg].used_for_temp = 0;
+	gen->contents[reg2].used_for_temp = 0;
+	gen->contents[reg3].used_for_temp = 0;
 }
 
 /*@

@@ -83,6 +83,15 @@ int jit_insn_store_relative
 	 jit_nint offset, jit_value_t value) JIT_NOTHROW;
 jit_value_t jit_insn_add_relative
 	(jit_function_t func, jit_value_t value, jit_nint offset) JIT_NOTHROW;
+jit_value_t jit_insn_load_elem
+	(jit_function_t func, jit_value_t base_addr,
+	 jit_value_t index, jit_type_t elem_type) JIT_NOTHROW;
+jit_value_t jit_insn_load_elem_address
+	(jit_function_t func, jit_value_t base_addr,
+	 jit_value_t index, jit_type_t elem_type) JIT_NOTHROW;
+int jit_insn_store_elem
+	(jit_function_t func, jit_value_t base_addr,
+	 jit_value_t index, jit_value_t value) JIT_NOTHROW;
 int jit_insn_check_null(jit_function_t func, jit_value_t value) JIT_NOTHROW;
 
 jit_value_t jit_insn_add
@@ -256,6 +265,16 @@ int jit_insn_return_from_filter(jit_function_t func, jit_value_t value);
 jit_value_t jit_insn_call_filter
 	(jit_function_t func, jit_label_t *label,
 	 jit_value_t value, jit_type_t type);
+
+int jit_insn_memcpy
+	(jit_function_t func, jit_value_t dest,
+	 jit_value_t src, jit_value_t size) JIT_NOTHROW;
+int jit_insn_memmove
+	(jit_function_t func, jit_value_t dest,
+	 jit_value_t src, jit_value_t size) JIT_NOTHROW;
+int jit_insn_memset
+	(jit_function_t func, jit_value_t dest,
+	 jit_value_t value, jit_value_t size) JIT_NOTHROW;
 
 void jit_insn_iter_init(jit_insn_iter_t *iter, jit_block_t block) JIT_NOTHROW;
 void jit_insn_iter_init_last

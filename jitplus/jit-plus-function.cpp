@@ -566,6 +566,9 @@ jit_value jit_function::get_struct_pointer()
  * @deftypemethodx jit_function jit_value insn_load_relative ({const jit_value&} value, jit_nint offset, jit_type_t type)
  * @deftypemethodx jit_function void insn_store_relative ({const jit_value&} dest, jit_nint offset, {const jit_value&} value)
  * @deftypemethodx jit_function jit_value insn_add_relative ({const jit_value&} value, jit_nint offset)
+ * @deftypemethodx jit_function jit_value insn_load_elem ({const jit_value&} base_addr, {const jit_value&} index, jit_type_t elem_type)
+ * @deftypemethodx jit_function jit_value insn_load_elem_address ({const jit_value&} base_addr, {const jit_value&} index, jit_type_t elem_type)
+ * @deftypemethodx jit_function void insn_store_elem ({const jit_value&} base_addr, {const jit_value&} index, {const jit_value&} value)
  * @deftypemethodx jit_function void insn_check_null ({const jit_value&} value)
  * @deftypemethodx jit_function jit_value insn_add ({const jit_value&} value1, {const jit_value&} value2)
  * @deftypemethodx jit_function jit_value insn_add_ovf ({const jit_value&} value1, {const jit_value&} value2)
@@ -637,6 +640,9 @@ jit_value jit_function::get_struct_pointer()
  * @deftypemethodx jit_function void insn_default_return ()
  * @deftypemethodx jit_function void insn_throw ({const jit_value&} value)
  * @deftypemethodx jit_function jit_value insn_get_call_stack ()
+ * @deftypemethodx jit_function void insn_memcpy ({const jit_value&} dest, {const jit_value&} src, {const jit_value&} size)
+ * @deftypemethodx void insn_memmove ({const jit_value&} dest, {const jit_value&} src, {const jit_value&} size)
+ * @deftypemethodx void jit_insn_memset ({const jit_value&} dest, {const jit_value&} value, {const jit_value&} size)
  * Create instructions of various kinds.  @xref{Instructions}, for more
  * information on the individual instructions and their arguments.
  * @end deftypemethod
@@ -692,6 +698,32 @@ jit_value jit_function::insn_add_relative
 	(const jit_value& value, jit_nint offset)
 {
 	value_wrap(jit_insn_add_relative(func, value.raw(), offset));
+}
+
+jit_value jit_function::insn_load_elem
+	(const jit_value& base_addr, const jit_value& index,
+	 jit_type_t elem_type)
+{
+	value_wrap(jit_insn_load_elem
+		(func, base_addr.raw(), index.raw(), elem_type));
+}
+
+jit_value jit_function::insn_load_elem_address
+	(const jit_value& base_addr, const jit_value& index,
+	 jit_type_t elem_type)
+{
+	value_wrap(jit_insn_load_elem_address
+		(func, base_addr.raw(), index.raw(), elem_type));
+}
+
+void jit_function::insn_store_elem
+	(const jit_value& base_addr, const jit_value& index,
+	 const jit_value& value)
+{
+	if(!jit_insn_store_elem(func, base_addr.raw(), index.raw(), value.raw()))
+	{
+		out_of_memory();
+	}
 }
 
 void jit_function::insn_check_null(const jit_value& value)
@@ -1117,6 +1149,33 @@ void jit_function::insn_throw(const jit_value& value)
 jit_value jit_function::insn_get_call_stack()
 {
 	value_wrap(jit_insn_get_call_stack(func));
+}
+
+void jit_function::insn_memcpy
+	(const jit_value& dest, const jit_value& src, const jit_value& size)
+{
+	if(!jit_insn_memcpy(func, dest.raw(), src.raw(), size.raw()))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_memmove
+	(const jit_value& dest, const jit_value& src, const jit_value& size)
+{
+	if(!jit_insn_memmove(func, dest.raw(), src.raw(), size.raw()))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_memset
+	(const jit_value& dest, const jit_value& value, const jit_value& size)
+{
+	if(!jit_insn_memset(func, dest.raw(), value.raw(), size.raw()))
+	{
+		out_of_memory();
+	}
 }
 
 void jit_function::register_on_demand()

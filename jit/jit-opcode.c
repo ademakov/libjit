@@ -485,6 +485,35 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	{"store_relative_nfloat",		F_(PTR, NFLOAT, INT) | NINT_ARG},
 	{"store_relative_struct",		F_(PTR, ANY, INT) | NINT_ARG_TWO},
 	{"add_relative",				F_(PTR, PTR, INT) | NINT_ARG},
+
+	/*
+	 * Array element loads and stores.
+	 */
+	{"load_element_sbyte",			F_(INT, PTR, INT)},
+	{"load_element_ubyte",			F_(INT, PTR, INT)},
+	{"load_element_short",			F_(INT, PTR, INT)},
+	{"load_element_ushort",			F_(INT, PTR, INT)},
+	{"load_element_int",			F_(INT, PTR, INT)},
+	{"load_element_uint",			F_(INT, PTR, INT)},
+	{"load_element_long",			F_(LONG, PTR, INT)},
+	{"load_element_ulong",			F_(LONG, PTR, INT)},
+	{"load_element_float32",		F_(FLOAT32, PTR, INT)},
+	{"load_element_float64",		F_(FLOAT64, PTR, INT)},
+	{"load_element_nfloat",			F_(NFLOAT, PTR, INT)},
+	{"store_element_byte",			F_(PTR, INT, INT)},
+	{"store_element_short",			F_(PTR, INT, INT)},
+	{"store_element_int",			F_(PTR, INT, INT)},
+	{"store_element_long",			F_(PTR, INT, LONG)},
+	{"store_element_float32",		F_(PTR, INT, FLOAT32)},
+	{"store_element_float64",		F_(PTR, INT, FLOAT64)},
+	{"store_element_nfloat",		F_(PTR, INT, NFLOAT)},
+
+	/*
+	 * Block operations.
+	 */
+	{"memcpy",						F_(PTR, PTR, INT)},
+	{"memmove",						F_(PTR, PTR, INT)},
+	{"memset",						F_(PTR, INT, INT)},
 };
 
 #if defined(JIT_BACKEND_INTERP)
