@@ -1,4 +1,9 @@
 
+2004-09-05  Norbert Bollow  <nb@SoftwareEconomics.biz>
+
+	* samples/hellovm.c: add a sample program that demonstrates a
+	simple VM based on libjit (committed by Rhys).
+
 2004-08-30  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit-rules-x86.sel: fix x86 code generation for floating-point
