@@ -1,4 +1,11 @@
 
+2004-05-27  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* tools/gen-apply.c: split "detect_struct_conventions" up a bit
+	more to (hopefully) prevent problems under MacOSX; fix a bug in
+	the generation of "jit_apply_builder_align_regs" that affected
+	ARM and PPC systems.
+
 2004-05-26  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-insn.c, jit/jit-rules-x86.c, jit/jit-rules-x86.sel,

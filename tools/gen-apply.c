@@ -761,16 +761,33 @@ void detect_float_return(void)
 		struct detect_##n d; \
 		mem_set(&d, 0xFF, sizeof(d)); \
 		return d; \
-	}
-#define	call_struct_test(n)	\
-	mem_set(buffer, 0, sizeof(buffer)); \
-	jit_builtin_apply(detect_struct_##n, args, \
-					  sizeof(jit_nint), 0, apply_return); \
-	if(((struct detect_##n *)buffer)->value[0] == 0x00) \
+	} \
+	void run_detect_struct_##n(void) \
 	{ \
-		/* The buffer doesn't contain the value, so it must be in registers */ \
-		struct_return_in_reg[(n) - 1] = 1; \
+		jit_nint *args; \
+		jit_nint stack[1]; \
+		jit_nint buffer[64 / sizeof(jit_nint)]; \
+		void *apply_return; \
+		jit_builtin_apply_args(jit_nint *, args); \
+		args[0] = (jit_nint)stack; \
+		stack[0] = (jit_nint)buffer; \
+		if(struct_return_special_reg || num_word_regs > 0) \
+		{ \
+			args[1] = (jit_nint)buffer; \
+			if(struct_reg_overlaps_word_reg) \
+			{ \
+				args[2] = (jit_nint)buffer; \
+			} \
+		} \
+		mem_set(buffer, 0, sizeof(buffer)); \
+		jit_builtin_apply(detect_struct_##n, args, \
+						  sizeof(jit_nint), 0, apply_return); \
+		if(((struct detect_##n *)buffer)->value[0] == 0x00) \
+		{ \
+			struct_return_in_reg[(n) - 1] = 1; \
+		} \
 	}
+#define	call_struct_test(n)	run_detect_struct_##n()
 declare_struct_test(1);
 declare_struct_test(2);
 declare_struct_test(3);
@@ -837,24 +854,6 @@ declare_struct_test(63);
 declare_struct_test(64);
 void detect_struct_conventions(void)
 {
-	jit_nint *args;
-	jit_nint stack[1];
-	jit_nint buffer[64 / sizeof(jit_nint)];
-	void *apply_return;
-
-	/* Initialize the arguments as though we'll be using a struct pointer */
-	jit_builtin_apply_args(jit_nint *, args);
-	args[0] = (jit_nint)stack;
-	stack[0] = (jit_nint)buffer;
-	if(struct_return_special_reg || num_word_regs > 0)
-	{
-		args[1] = (jit_nint)buffer;
-		if(struct_reg_overlaps_word_reg)
-		{
-			args[2] = (jit_nint)buffer;
-		}
-	}
-
 	/* Apply the structure return tests for all sizes from 1 to 64 */
 	call_struct_test(1);
 	call_struct_test(2);
@@ -1615,16 +1614,16 @@ void dump_apply_macros(void)
 		if(align_long_regs)
 		{
 			printf("\t\t\tif(((builder)->word_used %% 2) == 1) \\\n");
-			printf("\t\t\t{ \\n");
-			printf("\t\t\t\t++((builder)->word_used); \\n");
-			printf("\t\t\t} \\n");
+			printf("\t\t\t{ \\\n");
+			printf("\t\t\t\t++((builder)->word_used); \\\n");
+			printf("\t\t\t} \\\n");
 		}
 		if(!can_split_long)
 		{
 			printf("\t\t\tif((%s - (builder)->word_used) < (num_words)) \\\n", word_reg_limit);
-			printf("\t\t\t{ \\n");
-			printf("\t\t\t\t(builder)->word_used = %s; \\n", word_reg_limit);
-			printf("\t\t\t} \\n");
+			printf("\t\t\t{ \\\n");
+			printf("\t\t\t\t(builder)->word_used = %s; \\\n", word_reg_limit);
+			printf("\t\t\t} \\\n");
 		}
 		printf("\t\t} \\\n");
 		printf("\t} while (0)\n\n");
@@ -1642,9 +1641,9 @@ void dump_apply_macros(void)
 		printf("\t\tif((align) > sizeof(jit_nint) && (num_words) > 1) \\\n");
 		printf("\t\t{ \\\n");
 		printf("\t\t\tif(((builder)->stack_used %% 2) == 1) \\\n");
-		printf("\t\t\t{ \\n");
-		printf("\t\t\t\t++((builder)->stack_used); \\n");
-		printf("\t\t\t} \\n");
+		printf("\t\t\t{ \\\n");
+		printf("\t\t\t\t++((builder)->stack_used); \\\n");
+		printf("\t\t\t} \\\n");
 		printf("\t\t} \\\n");
 		printf("\t} while (0)\n\n");
 	}
