@@ -1069,6 +1069,10 @@ int jit_insn_label(jit_function_t func, jit_label_t *label)
 	{
 		return 0;
 	}
+	if(!jit_insn_flush_defer_pop(func, 0))
+	{
+		return 0;
+	}
 	current = func->builder->current_block;
 	last = _jit_block_get_last(current);
 	if(current->label == jit_label_undefined && !last)
@@ -3481,6 +3485,10 @@ int jit_insn_branch(jit_function_t func, jit_label_t *label)
 	{
 		return 0;
 	}
+	if(!jit_insn_flush_defer_pop(func, 0))
+	{
+		return 0;
+	}
 	insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
@@ -3525,6 +3533,12 @@ int jit_insn_branch_if
 
 	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+
+	/* Flush any stack pops that were deferred previously */
+	if(!jit_insn_flush_defer_pop(func, 0))
 	{
 		return 0;
 	}
@@ -3719,6 +3733,12 @@ int jit_insn_branch_if_not
 
 	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+
+	/* Flush any stack pops that were deferred previously */
+	if(!jit_insn_flush_defer_pop(func, 0))
 	{
 		return 0;
 	}
@@ -5942,6 +5962,52 @@ int jit_insn_pop_stack(jit_function_t func, jit_nint num_items)
 }
 
 /*@
+ * @deftypefun int jit_insn_defer_pop_stack (jit_function_t func, jit_nint num_items)
+ * This is similar to @code{jit_insn_pop_stack}, except that it tries to
+ * defer the pop as long as possible.  Multiple subroutine calls may
+ * result in parameters collecting up on the stack, and only being popped
+ * at the next branch or label instruction.  You normally wouldn't
+ * call this yourself - it is used by CPU back ends.
+ * @end deftypefun
+@*/
+int jit_insn_defer_pop_stack(jit_function_t func, jit_nint num_items)
+{
+	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+	func->builder->deferred_items += num_items;
+	return 1;
+}
+
+/*@
+ * @deftypefun int jit_insn_flush_defer_pop (jit_function_t func, jit_nint num_items)
+ * Flush any deferred items that were scheduled for popping by
+ * @code{jit_insn_defer_pop_stack} if there are @code{num_items}
+ * or more items scheduled.  You normally wouldn't call this
+ * yourself - it is used by CPU back ends to clean up the stack just
+ * prior to a subroutine call when too many items have collected up.
+ * Calling @code{jit_insn_flush_defer_pop(func, 0)} will flush
+ * all deferred items.
+ * @end deftypefun
+@*/
+int jit_insn_flush_defer_pop(jit_function_t func, jit_nint num_items)
+{
+	jit_nint current_items;
+	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+	current_items = func->builder->deferred_items;
+	if(current_items >= num_items && current_items > 0)
+	{
+		func->builder->deferred_items = 0;
+		return jit_insn_pop_stack(func, current_items);
+	}
+	return 1;
+}
+
+/*@
  * @deftypefun int jit_insn_return (jit_function_t func, jit_value_t value)
  * Output an instruction to return @code{value} as the function's result.
  * If @code{value} is NULL, then the function is assumed to return
@@ -6556,6 +6622,12 @@ int jit_insn_branch_if_pc_not_in_range
 		return 0;
 	}
 
+	/* Flush any stack pops that were deferred previously */
+	if(!jit_insn_flush_defer_pop(func, 0))
+	{
+		return 0;
+	}
+
 	/* Get the location where the exception occurred in this function */
 #if defined(JIT_BACKEND_INTERP)
 	value1 = create_dest_note
@@ -6786,6 +6858,12 @@ jit_value_t jit_insn_call_filter
 		return 0;
 	}
 
+	/* Flush any stack pops that were deferred previously */
+	if(!jit_insn_flush_defer_pop(func, 0))
+	{
+		return 0;
+	}
+
 	/* Allocate the label number if necessary */
 	if(*label == jit_label_undefined)
 	{
@@ -6865,6 +6943,12 @@ int jit_insn_memset
 @*/
 jit_value_t jit_insn_alloca(jit_function_t func, jit_value_t size)
 {
+	/* Make sure that all deferred pops have been done */
+	if(!jit_insn_flush_defer_pop(func, 0))
+	{
+		return 0;
+	}
+
 	/* Round the size to the best alignment boundary on this platform */
 	size = jit_insn_convert(func, size, jit_type_nuint, 0);
 	size = jit_insn_add
@@ -6946,6 +7030,12 @@ int jit_insn_move_blocks_to_end
 	jit_block_t block;
 	jit_block_t next;
 
+	/* Make sure that deferred stack pops are flushed */
+	if(!jit_insn_flush_defer_pop(func, 0))
+	{
+		return 0;
+	}
+
 	/* Find the first block that needs to be moved */
 	first_block = jit_block_from_label(func, from_label);
 	if(!first_block)
@@ -6987,6 +7077,12 @@ int jit_insn_move_blocks_to_start
 	jit_block_t block;
 	jit_block_t next;
 	int move_current;
+
+	/* Make sure that deferred stack pops are flushed */
+	if(!jit_insn_flush_defer_pop(func, 0))
+	{
+		return 0;
+	}
 
 	/* Find the first block that needs to be moved */
 	first_block = jit_block_from_label(func, from_label);

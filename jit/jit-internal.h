@@ -323,6 +323,9 @@ struct _jit_builder
 	/* Current size of the local variable frame (used by the back end) */
 	jit_nint			frame_size;
 
+	/* Number of stack items that are queued for a deferred pop */
+	jit_nint			deferred_items;
+
 };
 
 /*

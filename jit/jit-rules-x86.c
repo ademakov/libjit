@@ -399,6 +399,14 @@ int _jit_create_call_setup_insns
 		num_stack_args = num_args;
 	}
 
+	/* Flush deferred stack pops from previous calls if too many
+	   parameters have collected up on the stack since last time */
+	if(!jit_insn_flush_defer_pop
+			(func, 32 - (jit_nint)(num_stack_args * sizeof(void *))))
+	{
+		return 0;
+	}
+
 	/* Push all of the stacked arguments in reverse order */
 	while(num_stack_args > 0)
 	{
@@ -623,7 +631,7 @@ int _jit_create_call_return_insns
 	/* Pop the bytes from the system stack */
 	if(pop_bytes > 0)
 	{
-		if(!jit_insn_pop_stack(func, pop_bytes))
+		if(!jit_insn_defer_pop_stack(func, pop_bytes))
 		{
 			return 0;
 		}

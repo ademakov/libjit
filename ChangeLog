@@ -11,6 +11,11 @@
 	tools/gen-sel-scanner.l: improve instruction selection for
 	floating-point "push" operations.
 
+	* include/jit/jit-insn.h, jit/jit-insn.c, jit/jit-internal.h,
+	jit/jit-rules-x86.c: add "jit_insn_defer_pop_stack" and
+	"jit_insn_flush_defer_pop", to defer the popping of function
+	call arguments as long as possible.
+
 2004-05-29  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-insn.c, jit/jit-reg-alloc.c, jit/jit-reg-alloc.h,
