@@ -7,6 +7,9 @@
 
 	* configure.in: set the initial working version to 0.0.1.
 
+	* jit/jit-rules-x86.c: implement x86 code generation for some of
+	the basic operators.
+
 2004-04-30  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/jit-function.h, include/jit/jit-insn.h,

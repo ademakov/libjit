@@ -663,6 +663,59 @@ int _jit_create_call_return_insns
 	return 1;
 }
 
+int _jit_opcode_is_supported(int opcode)
+{
+	switch(opcode)
+	{
+		/* TODO: float and long opcodes */
+
+		/*
+		 * Conversion opcodes.
+		 */
+		case JIT_OP_TRUNC_SBYTE:
+		case JIT_OP_TRUNC_UBYTE:
+		case JIT_OP_TRUNC_SHORT:
+		case JIT_OP_TRUNC_USHORT:
+
+		/*
+		 * Arithmetic opcodes.
+		 */
+		case JIT_OP_IADD:
+		case JIT_OP_ISUB:
+		case JIT_OP_IMUL:
+		case JIT_OP_INEG:
+
+		/*
+		 * Bitwise opcodes.
+		 */
+		case JIT_OP_IAND:
+		case JIT_OP_IOR:
+		case JIT_OP_IXOR:
+		case JIT_OP_INOT:
+		case JIT_OP_ISHL:
+		case JIT_OP_ISHR:
+		case JIT_OP_ISHR_UN:
+
+		/*
+		 * Branch opcodes.
+		 */
+		case JIT_OP_BR:
+		case JIT_OP_BR_IFALSE:
+		case JIT_OP_BR_ITRUE:
+		case JIT_OP_BR_IEQ:
+		case JIT_OP_BR_INE:
+		case JIT_OP_BR_ILT:
+		case JIT_OP_BR_ILT_UN:
+		case JIT_OP_BR_ILE:
+		case JIT_OP_BR_ILE_UN:
+		case JIT_OP_BR_IGT:
+		case JIT_OP_BR_IGT_UN:
+		case JIT_OP_BR_IGE:
+		case JIT_OP_BR_IGE_UN:			return 1;
+	}
+	return 0;
+}
+
 void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 {
 	unsigned char prolog[JIT_PROLOG_SIZE];
@@ -877,7 +930,9 @@ void _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 	offset = (int)(value->frame_offset);
 	if(reg < X86_REG_ST0)
 	{
-		/* Spill a word register */
+		/* Spill a word register.  If the value is smaller than a word,
+		   then we write the entire word.  The local stack frame is
+		   allocated such that the extra bytes will be simply ignored */
 		reg = _jit_reg_info[reg].cpu_reg;
 		x86_mov_membase_reg(inst, X86_EBP, offset, reg, 4);
 		if(other_reg != -1)
@@ -938,7 +993,174 @@ void _jit_gen_free_reg(jit_gencode_t gen, int reg,
 void _jit_gen_load_value
 	(jit_gencode_t gen, int reg, int other_reg, jit_value_t value)
 {
-	/* TODO */
+	void *ptr;
+	int offset;
+
+	/* Make sure that we have sufficient space */
+	jit_cache_setup_output(16);
+
+	if(value->is_constant)
+	{
+		/* Determine the type of constant to be loaded */
+		switch(jit_type_normalize(value->type)->kind)
+		{
+			case JIT_TYPE_SBYTE:
+			case JIT_TYPE_UBYTE:
+			case JIT_TYPE_SHORT:
+			case JIT_TYPE_USHORT:
+			case JIT_TYPE_INT:
+			case JIT_TYPE_UINT:
+			{
+				x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
+								(jit_nint)(value->address));
+			}
+			break;
+
+			case JIT_TYPE_LONG:
+			case JIT_TYPE_ULONG:
+			{
+				jit_long long_value;
+				long_value = jit_value_get_long_constant(value);
+			#ifdef JIT_NATIVE_INT64
+				x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
+								(jit_nint)long_value);
+			#else
+				x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
+								(jit_int)long_value);
+				x86_mov_reg_imm(inst, _jit_reg_info[other_reg].cpu_reg,
+								(jit_int)(long_value >> 32));
+			#endif
+			}
+			break;
+
+			case JIT_TYPE_FLOAT32:
+			{
+				jit_float32 float32_value;
+				float32_value = jit_value_get_float32_constant(value);
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float32));
+				jit_memcpy(ptr, &float32_value, sizeof(float32_value));
+				x86_fld(inst, ptr, 0);
+			}
+			break;
+
+			case JIT_TYPE_FLOAT64:
+			{
+				jit_float64 float64_value;
+				float64_value = jit_value_get_float64_constant(value);
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float64));
+				jit_memcpy(ptr, &float64_value, sizeof(float64_value));
+				x86_fld(inst, ptr, 1);
+			}
+			break;
+
+			case JIT_TYPE_NFLOAT:
+			{
+				jit_nfloat nfloat_value;
+				nfloat_value = jit_value_get_nfloat_constant(value);
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_nfloat));
+				jit_memcpy(ptr, &nfloat_value, sizeof(nfloat_value));
+				x86_fld80_mem(inst, ptr);
+			}
+			break;
+		}
+	}
+	else
+	{
+		/* Fix the position of the value in the stack frame */
+		_jit_gen_fix_value(value);
+		offset = (int)(value->frame_offset);
+
+		/* Load the value into the specified register */
+		switch(jit_type_normalize(value->type)->kind)
+		{
+			case JIT_TYPE_SBYTE:
+			{
+				x86_widen_membase(inst, _jit_reg_info[reg].cpu_reg,
+								  X86_EBP, offset, 1, 0);
+			}
+			break;
+
+			case JIT_TYPE_UBYTE:
+			{
+				x86_widen_membase(inst, _jit_reg_info[reg].cpu_reg,
+								  X86_EBP, offset, 0, 0);
+			}
+			break;
+
+			case JIT_TYPE_SHORT:
+			{
+				x86_widen_membase(inst, _jit_reg_info[reg].cpu_reg,
+								  X86_EBP, offset, 1, 1);
+			}
+			break;
+
+			case JIT_TYPE_USHORT:
+			{
+				x86_widen_membase(inst, _jit_reg_info[reg].cpu_reg,
+								  X86_EBP, offset, 0, 1);
+			}
+			break;
+
+			case JIT_TYPE_INT:
+			case JIT_TYPE_UINT:
+			{
+				x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
+									X86_EBP, offset, 4);
+			}
+			break;
+
+			case JIT_TYPE_LONG:
+			case JIT_TYPE_ULONG:
+			{
+			#ifdef JIT_NATIVE_INT64
+				x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
+									X86_EBP, offset, 8);
+			#else
+				x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
+									X86_EBP, offset, 4);
+				x86_mov_reg_membase(inst, _jit_reg_info[other_reg].cpu_reg,
+									X86_EBP, offset + 4, 4);
+			#endif
+			}
+			break;
+
+			case JIT_TYPE_FLOAT32:
+			{
+				x86_fld_membase(inst, X86_EBP, offset, 0);
+			}
+			break;
+
+			case JIT_TYPE_FLOAT64:
+			{
+				x86_fld_membase(inst, X86_EBP, offset, 1);
+			}
+			break;
+
+			case JIT_TYPE_NFLOAT:
+			{
+				x86_fld80_membase(inst, X86_EBP, offset);
+			}
+			break;
+		}
+	}
+
+	/* End the code output process */
+	jit_cache_end_output();
 }
 
 void _jit_gen_fix_value(jit_value_t value)
@@ -952,15 +1174,369 @@ void _jit_gen_fix_value(jit_value_t value)
 	}
 }
 
+/*
+ * Set up for a unary 32-bit integer operator.
+ */
+static int setup_for_int_unary(jit_gencode_t gen, jit_insn_t insn)
+{
+	return _jit_regs_load_value
+		(gen, insn->value1, 1,
+		 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+		 				 JIT_INSN_VALUE1_LIVE)));
+}
+
+/*
+ * Store the destination for a 32-bit integer operator.
+ */
+static void store_for_int(jit_gencode_t gen, jit_insn_t insn, int reg)
+{
+	if((insn->flags & JIT_INSN_DEST_NEXT_USE) != 0)
+	{
+		/* Record that the destination is in "reg" */
+		_jit_regs_set_value(gen, reg, insn->dest, 0);
+	}
+	else
+	{
+		/* No next use, so store to the destination */
+		_jit_gen_spill_reg(gen, reg, -1, insn->dest);
+		insn->dest->in_frame = 1;
+		_jit_regs_free_reg(gen, reg, 1);
+	}
+}
+
+/*
+ * Set up for a binary 32-bit integer operator.
+ */
+static int setup_for_int_binary(jit_gencode_t gen, jit_insn_t insn, int *reg2)
+{
+	int reg;
+	reg = _jit_regs_load_value
+		(gen, insn->value1, 1,
+		 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+		 				 JIT_INSN_VALUE1_LIVE)));
+	*reg2 = _jit_regs_load_value
+		(gen, insn->value2, 0,
+		 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+		 				 JIT_INSN_VALUE1_LIVE)));
+	return reg;
+}
+
+/*
+ * Set up for a binary 32-bit integer operator, where reg2 may be destroyed.
+ */
+static int setup_for_int_binary_destroy
+	(jit_gencode_t gen, jit_insn_t insn, int *reg2)
+{
+	int reg;
+	reg = _jit_regs_load_value
+		(gen, insn->value1, 1,
+		 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+		 				 JIT_INSN_VALUE1_LIVE)));
+	*reg2 = _jit_regs_load_value
+		(gen, insn->value2, 1,
+		 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+		 				 JIT_INSN_VALUE1_LIVE)));
+	return reg;
+}
+
+/*
+ * Widen a byte register.
+ */
+static unsigned char *widen_byte(unsigned char *inst, int reg, int isSigned)
+{
+	if(reg == X86_EAX || reg == X86_EBX || reg == X86_ECX || reg == X86_EDX)
+	{
+		x86_widen_reg(inst, reg, reg, isSigned, 0);
+	}
+	else
+	{
+		x86_push_reg(inst, X86_EAX);
+		x86_mov_reg_reg(inst, X86_EAX, reg, 4);
+		x86_widen_reg(inst, reg, X86_EAX, isSigned, 0);
+		x86_pop_reg(inst, X86_EAX);
+	}
+	return inst;
+}
+
+/*
+ * Shift the contents of a register.
+ */
+static unsigned char *shift_reg(unsigned char *inst, int opc, int reg, int reg2)
+{
+	if(reg2 == X86_ECX)
+	{
+		/* The shift value is already in ECX */
+		x86_shift_reg(inst, opc, reg1);
+	}
+	else if(reg1 == X86_ECX)
+	{
+		/* The value to be shifted is in ECX, so swap the order */
+		x86_xchg_reg_reg(inst, reg1, reg2, 4);
+		x86_shift_reg(inst, opc, reg2);
+		x86_mov_reg_reg(inst, reg1, reg2, 4);
+	}
+	else
+	{
+		/* Save ECX, perform the shift, and then restore ECX */
+		x86_push_reg(inst, X86_ECX);
+		x86_mov_reg_reg(inst, X86_ECX, reg2, 4);
+		x86_shift_reg(inst, opc, reg1);
+		x86_pop_reg(inst, X86_ECX);
+	}
+	return inst;
+}
+
 void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 				   jit_block_t block, jit_insn_t insn)
 {
-	/* TODO */
+	int reg, reg2;
+	switch(insn->opcode)
+	{
+		/* TODO: lots of optimizations to do here */
+
+		case JIT_OP_TRUNC_SBYTE:
+		{
+			/* Truncate a value to a signed 8-byte integer */
+			reg = setup_for_int_unary(gen, insn);
+			{
+				jit_cache_setup_output(16);
+				inst = widen_byte(inst, _jit_reg_info[reg].cpu_reg, 1);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_TRUNC_UBYTE:
+		{
+			/* Truncate a value to an unsigned 8-byte integer */
+			reg = setup_for_int_unary(gen, insn);
+			{
+				jit_cache_setup_output(16);
+				inst = widen_byte(inst, _jit_reg_info[reg].cpu_reg, 0);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_TRUNC_SHORT:
+		{
+			/* Truncate a value to a signed 16-byte integer */
+			reg = setup_for_int_unary(gen, insn);
+			{
+				jit_cache_setup_output(16);
+				x86_widen_reg(inst, _jit_reg_info[reg].cpu_reg,
+							  _jit_reg_info[reg].cpu_reg, 1, 1);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_TRUNC_USHORT:
+		{
+			/* Truncate a value to an unsigned 16-byte integer */
+			reg = setup_for_int_unary(gen, insn);
+			{
+				jit_cache_setup_output(16);
+				x86_widen_reg(inst, _jit_reg_info[reg].cpu_reg,
+							  _jit_reg_info[reg].cpu_reg, 0, 1);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_IADD:
+		{
+			/* Add two signed 32-bit integers */
+			reg = setup_for_int_binary(gen, insn, &reg2);
+			{
+				jit_cache_setup_output(16);
+				x86_alu_reg_reg(inst, X86_ADD, _jit_reg_info[reg].cpu_reg,
+							    _jit_reg_info[reg2].cpu_reg);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_ISUB:
+		{
+			/* Subtract two signed 32-bit integers */
+			reg = setup_for_int_binary(gen, insn, &reg2);
+			{
+				jit_cache_setup_output(16);
+				x86_alu_reg_reg(inst, X86_SUB, _jit_reg_info[reg].cpu_reg,
+							    _jit_reg_info[reg2].cpu_reg);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_IMUL:
+		{
+			/* Multiply two signed 32-bit integers.  We spill first
+			   so that the reload will hopefully end up in EAX and ECX,
+			   and EDX will be free for us to destroy */
+			_jit_regs_spill_all(gen);
+			reg = setup_for_int_binary(gen, insn, &reg2);
+			{
+				jit_cache_setup_output(16);
+				x86_mul_reg(inst, _jit_reg_info[reg2].cpu_reg, 1);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_INEG:
+		{
+			/* Negate a signed 32-bit integer */
+			reg = setup_for_int_unary(gen, insn);
+			{
+				jit_cache_setup_output(16);
+				x86_neg_reg(inst, _jit_reg_info[reg].cpu_reg);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_IAND:
+		{
+			/* Bitwise AND two 32-bit integer values */
+			reg = setup_for_int_binary(gen, insn, &reg2);
+			{
+				jit_cache_setup_output(16);
+				x86_alu_reg_reg(inst, X86_AND, _jit_reg_info[reg].cpu_reg,
+							    _jit_reg_info[reg2].cpu_reg);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_IOR:
+		{
+			/* Bitwise OR two 32-bit integer values */
+			reg = setup_for_int_binary(gen, insn, &reg2);
+			{
+				jit_cache_setup_output(16);
+				x86_alu_reg_reg(inst, X86_OR, _jit_reg_info[reg].cpu_reg,
+							    _jit_reg_info[reg2].cpu_reg);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_IXOR:
+		{
+			/* Bitwise XOR two 32-bit integer values */
+			reg = setup_for_int_binary(gen, insn, &reg2);
+			{
+				jit_cache_setup_output(16);
+				x86_alu_reg_reg(inst, X86_XOR, _jit_reg_info[reg].cpu_reg,
+							    _jit_reg_info[reg2].cpu_reg);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_INOT:
+		{
+			/* Bitwise NOT a 32-bit integer value */
+			reg = setup_for_int_unary(gen, insn);
+			{
+				jit_cache_setup_output(16);
+				x86_not_reg(inst, _jit_reg_info[reg].cpu_reg);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_ISHL:
+		{
+			/* Shift a 32-bit integer value left */
+			reg = setup_for_int_binary_destroy(gen, insn, &reg2);
+			{
+				jit_cache_setup_output(16);
+				inst = shift_reg(inst, X86_SHL, _jit_reg_info[reg].cpu_reg,
+						         _jit_reg_info[reg2].cpu_reg);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_ISHR:
+		{
+			/* Shift a 32-bit integer value right, with sign-extend */
+			reg = setup_for_int_binary_destroy(gen, insn, &reg2);
+			{
+				jit_cache_setup_output(16);
+				inst = shift_reg(inst, X86_SAR, _jit_reg_info[reg].cpu_reg,
+						         _jit_reg_info[reg2].cpu_reg);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_ISHR_UN:
+		{
+			/* Shift a 32-bit integer value right, with zero-extend */
+			reg = setup_for_int_binary_destroy(gen, insn, &reg2);
+			{
+				jit_cache_setup_output(16);
+				inst = shift_reg(inst, X86_SHR, _jit_reg_info[reg].cpu_reg,
+						         _jit_reg_info[reg2].cpu_reg);
+				jit_cache_end_output();
+			}
+			store_for_int(gen, insn, reg);
+		}
+		break;
+
+		case JIT_OP_BR:
+		case JIT_OP_BR_IFALSE:
+		case JIT_OP_BR_ITRUE:
+		case JIT_OP_BR_IEQ:
+		case JIT_OP_BR_INE:
+		case JIT_OP_BR_ILT:
+		case JIT_OP_BR_ILT_UN:
+		case JIT_OP_BR_ILE:
+		case JIT_OP_BR_ILE_UN:
+		case JIT_OP_BR_IGT:
+		case JIT_OP_BR_IGT_UN:
+		case JIT_OP_BR_IGE:
+		case JIT_OP_BR_IGE_UN:
+			/* TODO */
+	}
 }
 
 void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block)
 {
-	/* TODO: label fixups */
+	void **fixup;
+	void **next;
+
+	/* Set the address of this block */
+	block->address = (void *)(gen->posn.ptr);
+
+	/* If this block has pending fixups, then apply them now */
+	fixup = (void **)(block->fixup_list);
+	while(fixup != 0)
+	{
+		next = (void **)(fixup[0]);
+		fixup[0] = (void *)
+			(((jit_nint)(block->address)) - ((jit_nint)fixup) - 4);
+		fixup = next;
+	}
+	block->fixup_list = 0;
 }
 
 void _jit_gen_end_block(jit_gencode_t gen, jit_block_t block)
