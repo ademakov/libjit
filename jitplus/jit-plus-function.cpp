@@ -559,6 +559,7 @@ jit_value jit_function::get_struct_pointer()
 
 /*@
  * @deftypemethod jit_function void insn_label ({jit_label&} label)
+ * @deftypemethodx jit_function void insn_new_block ()
  * @deftypemethodx jit_function jit_value insn_load ({const jit_value&} value)
  * @deftypemethodx jit_function jit_value insn_dup ({const jit_value&} value)
  * @deftypemethodx jit_function jit_value insn_load_small ({const jit_value&} value)
@@ -675,6 +676,14 @@ jit_value jit_function::get_struct_pointer()
 void jit_function::insn_label(jit_label& label)
 {
 	if(!jit_insn_label(func, label.rawp()))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_new_block()
+{
+	if(!jit_insn_new_block(func))
 	{
 		out_of_memory();
 	}

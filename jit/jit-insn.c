@@ -1123,6 +1123,26 @@ int jit_insn_label(jit_function_t func, jit_label_t *label)
 	return 1;
 }
 
+/*@
+ * @deftypefun int jit_insn_new_block (jit_function_t func)
+ * Start a new basic block, without giving it an explicit label.
+ * @end deftypefun
+@*/
+int jit_insn_new_block(jit_function_t func)
+{
+	jit_block_t block = _jit_block_create(func, 0);
+	if(!block)
+	{
+		return 0;
+	}
+	if(!(func->builder->current_block->ends_in_dead))
+	{
+		block->entered_via_top = 1;
+	}
+	func->builder->current_block = block;
+	return 1;
+}
+
 int _jit_load_opcode(int base_opcode, jit_type_t type,
 					 jit_value_t value, int no_temps)
 {
@@ -3453,7 +3473,6 @@ jit_value_t jit_insn_sign(jit_function_t func, jit_value_t value1)
 int jit_insn_branch(jit_function_t func, jit_label_t *label)
 {
 	jit_insn_t insn;
-	jit_block_t block;
 	if(!label)
 	{
 		return 0;
@@ -3475,13 +3494,7 @@ int jit_insn_branch(jit_function_t func, jit_label_t *label)
 	insn->flags = JIT_INSN_DEST_IS_LABEL;
 	insn->dest = (jit_value_t)(*label);
 	func->builder->current_block->ends_in_dead = 1;
-	block = _jit_block_create(func, 0);
-	if(!block)
-	{
-		return 0;
-	}
-	func->builder->current_block = block;
-	return 1;
+	return jit_insn_new_block(func);
 }
 
 /*@
@@ -3675,14 +3688,7 @@ int jit_insn_branch_if
 
 add_block:
 	/* Add a new block for the fall-through case */
-	block = _jit_block_create(func, 0);
-	if(!block)
-	{
-		return 0;
-	}
-	block->entered_via_top = 1;
-	func->builder->current_block = block;
-	return 1;
+	return jit_insn_new_block(func);
 }
 
 /*@
@@ -3876,14 +3882,7 @@ int jit_insn_branch_if_not
 
 add_block:
 	/* Add a new block for the fall-through case */
-	block = _jit_block_create(func, 0);
-	if(!block)
-	{
-		return 0;
-	}
-	block->entered_via_top = 1;
-	func->builder->current_block = block;
-	return 1;
+	return jit_insn_new_block(func);
 }
 
 /*@
@@ -4861,7 +4860,6 @@ jit_value_t jit_insn_call
 	jit_function_t temp_func;
 	jit_value_t *new_args;
 	jit_value_t return_value;
-	jit_block_t block;
 	jit_insn_t insn;
 
 	/* Bail out if there is something wrong with the parameters */
@@ -4950,14 +4948,11 @@ jit_value_t jit_insn_call
 	func->builder->non_leaf = 1;
 
 	/* Start a new block and output the "call" instruction */
-	block = _jit_block_create(func, 0);
-	if(!block)
+	if(!jit_insn_new_block(func))
 	{
 		return 0;
 	}
-	block->entered_via_top = 1;
-	func->builder->current_block = block;
-	insn = _jit_block_add_insn(block);
+	insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
@@ -4973,7 +4968,7 @@ jit_value_t jit_insn_call
 	if((flags & JIT_CALL_NORETURN) != 0)
 	{
 		func->builder->current_block->ends_in_dead = 1;
-		if(!jit_insn_label(func, 0))
+		if(!jit_insn_new_block(func))
 		{
 			return 0;
 		}
@@ -5017,7 +5012,6 @@ jit_value_t jit_insn_call_indirect
 {
 	jit_value_t *new_args;
 	jit_value_t return_value;
-	jit_block_t block;
 	jit_insn_t insn;
 
 	/* Bail out if there is something wrong with the parameters */
@@ -5063,14 +5057,11 @@ jit_value_t jit_insn_call_indirect
 	func->builder->non_leaf = 1;
 
 	/* Start a new block and output the "call_indirect" instruction */
-	block = _jit_block_create(func, 0);
-	if(!block)
+	if(!jit_insn_new_block(func))
 	{
 		return 0;
 	}
-	block->entered_via_top = 1;
-	func->builder->current_block = block;
-	insn = _jit_block_add_insn(block);
+	insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
@@ -5087,7 +5078,7 @@ jit_value_t jit_insn_call_indirect
 	if((flags & JIT_CALL_NORETURN) != 0)
 	{
 		func->builder->current_block->ends_in_dead = 1;
-		if(!jit_insn_label(func, 0))
+		if(!jit_insn_new_block(func))
 		{
 			return 0;
 		}
@@ -5135,7 +5126,6 @@ jit_value_t jit_insn_call_indirect_vtable
 {
 	jit_value_t *new_args;
 	jit_value_t return_value;
-	jit_block_t block;
 	jit_insn_t insn;
 
 	/* Bail out if there is something wrong with the parameters */
@@ -5181,14 +5171,11 @@ jit_value_t jit_insn_call_indirect_vtable
 	func->builder->non_leaf = 1;
 
 	/* Start a new block and output the "call_vtable_ptr" instruction */
-	block = _jit_block_create(func, 0);
-	if(!block)
+	if(!jit_insn_new_block(func))
 	{
 		return 0;
 	}
-	block->entered_via_top = 1;
-	func->builder->current_block = block;
-	insn = _jit_block_add_insn(block);
+	insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
@@ -5203,7 +5190,7 @@ jit_value_t jit_insn_call_indirect_vtable
 	if((flags & JIT_CALL_NORETURN) != 0)
 	{
 		func->builder->current_block->ends_in_dead = 1;
-		if(!jit_insn_label(func, 0))
+		if(!jit_insn_new_block(func))
 		{
 			return 0;
 		}
@@ -5248,7 +5235,6 @@ jit_value_t jit_insn_call_native
 {
 	jit_value_t *new_args;
 	jit_value_t return_value;
-	jit_block_t block;
 	jit_insn_t insn;
 
 	/* Bail out if there is something wrong with the parameters */
@@ -5288,14 +5274,11 @@ jit_value_t jit_insn_call_native
 	func->builder->non_leaf = 1;
 
 	/* Start a new block and output the "call_external" instruction */
-	block = _jit_block_create(func, 0);
-	if(!block)
+	if(!jit_insn_new_block(func))
 	{
 		return 0;
 	}
-	block->entered_via_top = 1;
-	func->builder->current_block = block;
-	insn = _jit_block_add_insn(block);
+	insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
@@ -5315,7 +5298,7 @@ jit_value_t jit_insn_call_native
 	if((flags & JIT_CALL_NORETURN) != 0)
 	{
 		func->builder->current_block->ends_in_dead = 1;
-		if(!jit_insn_label(func, 0))
+		if(!jit_insn_new_block(func))
 		{
 			return 0;
 		}
@@ -5998,11 +5981,7 @@ int jit_insn_return(jit_function_t func, jit_value_t value)
 	func->builder->current_block->ends_in_dead = 1;
 
 	/* Start a new block just after the "return" instruction */
-	if(!_jit_block_create(func, 0))
-	{
-		return 0;
-	}
-	return 1;
+	return jit_insn_new_block(func);
 }
 
 /*@
@@ -6088,11 +6067,7 @@ int jit_insn_return_ptr
 	func->builder->current_block->ends_in_dead = 1;
 
 	/* Start a new block just after the "return" instruction */
-	if(!_jit_block_create(func, 0))
-	{
-		return 0;
-	}
-	return 1;
+	return jit_insn_new_block(func);
 }
 
 /*@
@@ -6110,7 +6085,6 @@ int jit_insn_return_ptr
 int jit_insn_default_return(jit_function_t func)
 {
 	jit_block_t current;
-	jit_insn_t last;
 
 	/* Ensure that we have a builder for this function */
 	if(!_jit_function_ensure_builder(func))
@@ -6121,24 +6095,26 @@ int jit_insn_default_return(jit_function_t func)
 	/* If the last block ends in an unconditional branch, or is dead,
 	   then we don't need to add a default return */
 	current = func->builder->current_block;
-	if(current->ends_in_dead)
-	{
-		/* The block ends in dead */
-		return 2;
-	}
-	last = _jit_block_get_last(current);
-	if(last)
+	while(current != 0)
 	{
 		if(current->ends_in_dead)
 		{
-			/* This block ends in an unconditional branch, return, etc */
 			return 2;
 		}
-	}
-	else if(!(current->entered_via_top) && !(current->entered_via_branch))
-	{
-		/* This block is never entered */
-		return 2;
+		else if(!(current->entered_via_top) &&
+				!(current->entered_via_branch))
+		{
+			return 2;
+		}
+		else if(current->entered_via_branch)
+		{
+			break;
+		}
+		else if(current->first_insn <= current->last_insn)
+		{
+			break;
+		}
+		current = current->prev;
 	}
 
 	/* Add a simple "void" return to terminate the function */
@@ -6154,7 +6130,6 @@ int jit_insn_default_return(jit_function_t func)
 @*/
 int jit_insn_throw(jit_function_t func, jit_value_t value)
 {
-	jit_block_t block;
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
@@ -6166,13 +6141,7 @@ int jit_insn_throw(jit_function_t func, jit_value_t value)
 		return 0;
 	}
 	func->builder->current_block->ends_in_dead = 1;
-	block = _jit_block_create(func, 0);
-	if(!block)
-	{
-		return 0;
-	}
-	func->builder->current_block = block;
-	return 1;
+	return jit_insn_new_block(func);
 }
 
 /*@
@@ -6547,7 +6516,6 @@ int jit_insn_branch_if_pc_not_in_range
 @*/
 int jit_insn_rethrow_unhandled(jit_function_t func)
 {
-	jit_block_t block;
 	jit_value_t value;
 #if !defined(JIT_BACKEND_INTERP)
 	jit_type_t type;
@@ -6610,13 +6578,7 @@ int jit_insn_rethrow_unhandled(jit_function_t func)
 
 	/* The current block ends in dead and we need to start a new block */
 	func->builder->current_block->ends_in_dead = 1;
-	block = _jit_block_create(func, 0);
-	if(!block)
-	{
-		return 0;
-	}
-	func->builder->current_block = block;
-	return 1;
+	return jit_insn_new_block(func);
 }
 
 /*@
@@ -6641,8 +6603,6 @@ int jit_insn_start_finally(jit_function_t func, jit_label_t *finally_label)
 @*/
 int jit_insn_return_from_finally(jit_function_t func)
 {
-	jit_block_t block;
-
 	/* Mark the end of the "finally" clause */
 	if(!create_noarg_note(func, JIT_OP_LEAVE_FINALLY))
 	{
@@ -6653,12 +6613,7 @@ int jit_insn_return_from_finally(jit_function_t func)
 	func->builder->current_block->ends_in_dead = 1;
 
 	/* Create a new block for the following code */
-	block = _jit_block_create(func, 0);
-	if(!block)
-	{
-		return 0;
-	}
-	return 1;
+	return jit_insn_new_block(func);
 }
 
 /*@
@@ -6710,8 +6665,6 @@ jit_value_t jit_insn_start_filter
 @*/
 int jit_insn_return_from_filter(jit_function_t func, jit_value_t value)
 {
-	jit_block_t block;
-
 	/* Mark the end of the "filter" clause */
 	if(!create_unary_note(func, JIT_OP_LEAVE_FILTER, value))
 	{
@@ -6722,12 +6675,7 @@ int jit_insn_return_from_filter(jit_function_t func, jit_value_t value)
 	func->builder->current_block->ends_in_dead = 1;
 
 	/* Create a new block for the following code */
-	block = _jit_block_create(func, 0);
-	if(!block)
-	{
-		return 0;
-	}
-	return 1;
+	return jit_insn_new_block(func);
 }
 
 /*@
@@ -6741,7 +6689,6 @@ jit_value_t jit_insn_call_filter
 	(jit_function_t func, jit_label_t *label,
 	 jit_value_t value, jit_type_t type)
 {
-	jit_block_t block;
 	jit_insn_t insn;
 
 	/* Ensure that we have a function builder */
@@ -6773,12 +6720,10 @@ jit_value_t jit_insn_call_filter
 	insn->value1 = value;
 
 	/* Create a new block, and add the filter return logic to it */
-	block = _jit_block_create(func, 0);
-	if(!block)
+	if(!jit_insn_new_block(func))
 	{
 		return 0;
 	}
-	block->entered_via_top = 1;
 	return create_dest_note(func, JIT_OP_CALL_FILTER_RETURN, type);
 }
 
@@ -6934,7 +6879,7 @@ int jit_insn_move_blocks_to_end
 	first_block->entered_via_top = 1;
 
 	/* Create a new block after the last one we moved, to start fresh */
-	return jit_insn_label(func, 0);
+	return jit_insn_new_block(func);
 }
 
 /*@
@@ -7010,7 +6955,7 @@ int jit_insn_move_blocks_to_start
 	if(move_current)
 	{
 		func->builder->current_block = func->builder->last_block;
-		return jit_insn_label(func, 0);
+		return jit_insn_new_block(func);
 	}
 
 	/* Done */
