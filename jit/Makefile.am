@@ -67,4 +67,10 @@ jit-rules-x86.slc: jit-rules-x86.sel $(top_builddir)/tools/gen-sel$(EXEEXT)
 	$(top_builddir)/tools/gen-sel$(EXEEXT) $(srcdir)/jit-rules-x86.sel \
 			>jit-rules-x86.slc
 
-CLEANFILES = jit-interp-labels.h jit-rules-x86.slc
+jit-rules-arm.lo: jit-rules-arm.slc
+
+jit-rules-arm.slc: jit-rules-arm.sel $(top_builddir)/tools/gen-sel$(EXEEXT)
+	$(top_builddir)/tools/gen-sel$(EXEEXT) $(srcdir)/jit-rules-arm.sel \
+			>jit-rules-arm.slc
+
+CLEANFILES = jit-interp-labels.h jit-rules-x86.slc jit-rules-arm.slc

@@ -202,8 +202,7 @@ extern arm_inst_ptr _arm_alu_reg_imm
 				if(__alu_imm >= 0 && __alu_imm < 256) \
 				{ \
 					arm_alu_reg_imm8 \
-						((inst), (opc), (dreg), (sreg), __alu_imm, \
-						 arm_execute); \
+						((inst), (opc), (dreg), (sreg), __alu_imm); \
 				} \
 				else \
 				{ \

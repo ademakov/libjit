@@ -20,6 +20,10 @@
 	* jit/jit-rules-x86.c, jit/jit-rules-x86.sel, tools/gen-sel-parser.y,
 	tools/gen-sel-scanner.l: more selection cases for the x86 back end.
 
+	* jit/Makefile.am, jit/jit-gen-arm.h, jit/jit-rules-arm.c,
+	jit/jit-rules-arm.sel: add the beginnings of the instruction
+	selector for ARM.
+
 2004-05-25  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* tools/.cvsignore, tools/Makefile.am, tools/gen-sel-parser.y,

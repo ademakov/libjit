@@ -25,6 +25,7 @@
 #if defined(JIT_BACKEND_ARM)
 
 #include "jit-gen-arm.h"
+#include "jit-reg-alloc.h"
 
 /*
  * Determine if we actually have floating-point registers.
@@ -491,6 +492,17 @@ int _jit_create_call_return_insns
 	return 1;
 }
 
+int _jit_opcode_is_supported(int opcode)
+{
+	switch(opcode)
+	{
+		#define JIT_INCLUDE_SUPPORTED
+		#include "jit-rules-arm.slc"
+		#undef JIT_INCLUDE_SUPPORTED
+	}
+	return 0;
+}
+
 void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 {
 	unsigned int prolog[JIT_PROLOG_SIZE / sizeof(int)];
@@ -639,15 +651,79 @@ void _jit_gen_fix_value(jit_value_t value)
 	}
 }
 
+/*
+ * Output a branch instruction.
+ */
+static arm_inst_ptr output_branch
+	(jit_function_t func, arm_inst_ptr inst, int cond, jit_insn_t insn)
+{
+	jit_block_t block;
+	int offset;
+	block = jit_block_from_label(func, (jit_label_t)(insn->dest));
+	if(!block)
+	{
+		return inst;
+	}
+	if(block->address)
+	{
+		/* We already know the address of the block */
+		arm_branch(inst, cond, block->address);
+	}
+	else
+	{
+		/* Output a placeholder and record on the block's fixup list */
+		if(block->fixup_list)
+		{
+			offset = (int)(((unsigned char *)inst) -
+						   ((unsigned char *)(block->fixup_list)));
+		}
+		else
+		{
+			offset = 0;
+		}
+		arm_branch_imm(inst, cond, offset);
+		block->fixup_list = (void *)(inst - 1);
+	}
+	return inst;
+}
+
 void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 				   jit_block_t block, jit_insn_t insn)
 {
-	/* TODO */
+	switch(insn->opcode)
+	{
+		#define JIT_INCLUDE_RULES
+		#include "jit-rules-arm.slc"
+		#undef JIT_INCLUDE_RULES
+	}
 }
 
 void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block)
 {
-	/* TODO: label fixups */
+	void **fixup;
+	void **next;
+	jit_nint offset;
+
+	/* Set the address of this block */
+	block->address = (void *)(gen->posn.ptr);
+
+	/* If this block has pending fixups, then apply them now */
+	fixup = (void **)(block->fixup_list);
+	while(fixup != 0)
+	{
+		offset = (((jit_nint)(fixup[0])) & 0x00FFFFFF) << 2;
+		if(!offset)
+		{
+			next = 0;
+		}
+		else
+		{
+			next = (void **)(((unsigned char *)fixup) - offset);
+		}
+		arm_patch(fixup, block->address);
+		fixup = next;
+	}
+	block->fixup_list = 0;
 }
 
 void _jit_gen_end_block(jit_gencode_t gen, jit_block_t block)

@@ -1,0 +1,428 @@
+/*
+ * jit-rules-arm.sel - Instruction selector for ARM.
+ *
+ * Copyright (C) 2004  Southern Storm Software, Pty Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+%inst_type arm_inst_ptr
+
+/*
+ * Conversion opcodes.
+ */
+
+JIT_OP_TRUNC_SBYTE: unary
+	[reg] -> {
+		arm_shift_reg_imm8(inst, ARM_SHL, $1, $1, 24);
+		arm_shift_reg_imm8(inst, ARM_SAR, $1, $1, 24);
+	}
+
+JIT_OP_TRUNC_UBYTE: unary
+	[reg] -> {
+		arm_alu_reg_imm8(inst, ARM_AND, $1, $1, 0xFF);
+	}
+
+JIT_OP_TRUNC_SHORT: unary
+	[reg] -> {
+		arm_shift_reg_imm8(inst, ARM_SHL, $1, $1, 16);
+		arm_shift_reg_imm8(inst, ARM_SAR, $1, $1, 16);
+	}
+
+JIT_OP_TRUNC_USHORT: unary
+	[reg] -> {
+		arm_shift_reg_imm8(inst, ARM_SHL, $1, $1, 16);
+		arm_shift_reg_imm8(inst, ARM_SHR, $1, $1, 16);
+	}
+
+/*
+ * Arithmetic opcodes.
+ */
+
+JIT_OP_IADD: binary
+	[reg, immu8] -> {
+		arm_alu_reg_imm8(inst, ARM_ADD, $1, $1, $2);
+	}
+	[reg, reg] -> {
+		arm_alu_reg_reg(inst, ARM_ADD, $1, $1, $2);
+	}
+
+JIT_OP_ISUB: binary
+	[reg, immu8] -> {
+		arm_alu_reg_imm8(inst, ARM_SUB, $1, $1, $2);
+	}
+	[reg, reg] -> {
+		arm_alu_reg_reg(inst, ARM_SUB, $1, $1, $2);
+	}
+
+JIT_OP_IMUL: binary
+	[reg, immu8] -> {
+		arm_mov_reg_imm8(inst, ARM_WORK, $2);
+		arm_mul_reg_reg(inst, $1, $1, ARM_WORK);
+	}
+	[reg, reg] -> {
+		if($1 != $2)
+		{
+			arm_mul_reg_reg(inst, $1, $1, $2);
+		}
+		else
+		{
+			/* Cannot use the same register for both arguments */
+			arm_mov_reg_reg(inst, ARM_WORK, $2);
+			arm_mul_reg_reg(inst, $1, $1, ARM_WORK);
+		}
+	}
+
+JIT_OP_INEG: unary
+	[reg] -> {
+		/* -x is the same as (0 - x) */
+		arm_alu_reg_imm8(inst, ARM_RSB, $1, $1, 0);
+	}
+
+/*
+ * Bitwise opcodes.
+ */
+
+JIT_OP_IAND: binary
+	[reg, immu8] -> {
+		arm_alu_reg_imm8(inst, ARM_AND, $1, $1, $2);
+	}
+	[reg, reg] -> {
+		arm_alu_reg_reg(inst, ARM_AND, $1, $1, $2);
+	}
+
+JIT_OP_IOR: binary
+	[reg, immu8] -> {
+		arm_alu_reg_imm8(inst, ARM_ORR, $1, $1, $2);
+	}
+	[reg, reg] -> {
+		arm_alu_reg_reg(inst, ARM_ORR, $1, $1, $2);
+	}
+
+JIT_OP_IXOR: binary
+	[reg, immu8] -> {
+		arm_alu_reg_imm8(inst, ARM_EOR, $1, $1, $2);
+	}
+	[reg, reg] -> {
+		arm_alu_reg_reg(inst, ARM_EOR, $1, $1, $2);
+	}
+
+JIT_OP_INOT: unary
+	[reg] -> {
+		/* MVN == "move not" */
+		arm_alu_reg(inst, ARM_MVN, $1, $1);
+	}
+
+JIT_OP_ISHL: binary
+	[reg, imm] -> {
+		arm_shift_reg_imm8(inst, ARM_SHL, $1, $1, ($2 & 0x1F));
+	}
+	[reg, reg] -> {
+		arm_alu_reg_imm8(inst, ARM_AND, ARM_WORK, $2, 0x1F);
+		arm_shift_reg_reg(inst, ARM_SHL, $1, $1, ARM_WORK);
+	}
+
+JIT_OP_ISHR: binary
+	[reg, imm] -> {
+		arm_shift_reg_imm8(inst, ARM_SAR, $1, $1, ($2 & 0x1F));
+	}
+	[reg, reg] -> {
+		arm_alu_reg_imm8(inst, ARM_AND, ARM_WORK, $2, 0x1F);
+		arm_shift_reg_reg(inst, ARM_SAR, $1, $1, ARM_WORK);
+	}
+
+JIT_OP_ISHR_UN: binary
+	[reg, imm] -> {
+		arm_shift_reg_imm8(inst, ARM_SHR, $1, $1, ($2 & 0x1F));
+	}
+	[reg, reg] -> {
+		arm_alu_reg_imm8(inst, ARM_AND, ARM_WORK, $2, 0x1F);
+		arm_shift_reg_reg(inst, ARM_SHR, $1, $1, ARM_WORK);
+	}
+
+/*
+ * Branch opcodes.
+ */
+
+JIT_OP_BR: spill_before
+	[] -> {
+		/* ARM_CC_AL == "always branch" */
+		inst = output_branch(func, inst, ARM_CC_AL, insn);
+	}
+
+JIT_OP_BR_IFALSE: unary_branch
+	[reg] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, 0);
+		inst = output_branch(func, inst, ARM_CC_EQ, insn);
+	}
+
+JIT_OP_BR_ITRUE: unary_branch
+	[reg] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, 0);
+		inst = output_branch(func, inst, ARM_CC_NE, insn);
+	}
+
+JIT_OP_BR_IEQ: binary_branch
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_EQ, insn);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_EQ, insn);
+	}
+
+JIT_OP_BR_INE: binary_branch
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_NE, insn);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_NE, insn);
+	}
+
+JIT_OP_BR_ILT: binary_branch
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_LT, insn);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_LT, insn);
+	}
+
+JIT_OP_BR_ILT_UN: binary_branch
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_LT_UN, insn);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_LT_UN, insn);
+	}
+
+JIT_OP_BR_ILE: binary_branch
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_LE, insn);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_LE, insn);
+	}
+
+JIT_OP_BR_ILE_UN: binary_branch
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_LE_UN, insn);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_LE_UN, insn);
+	}
+
+JIT_OP_BR_IGT: binary_branch
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_GT, insn);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_GT, insn);
+	}
+
+JIT_OP_BR_IGT_UN: binary_branch
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_GT_UN, insn);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_GT_UN, insn);
+	}
+
+JIT_OP_BR_IGE: binary_branch
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_GE, insn);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_GE, insn);
+	}
+
+JIT_OP_BR_IGE_UN: binary_branch
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_GE_UN, insn);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		inst = output_branch(func, inst, ARM_CC_GE_UN, insn);
+	}
+
+/*
+ * Comparison opcodes.
+ */
+
+JIT_OP_ICMP: binary
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GT);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LE);
+		arm_alu_reg_cond(inst, ARM_MVN, $1, $1, ARM_CC_LT);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GT);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LE);
+		arm_alu_reg_cond(inst, ARM_MVN, $1, $1, ARM_CC_LT);
+	}
+
+JIT_OP_ICMP_UN: binary
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GT_UN);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LE_UN);
+		arm_alu_reg_cond(inst, ARM_MVN, $1, $1, ARM_CC_LT_UN);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GT_UN);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LE_UN);
+		arm_alu_reg_cond(inst, ARM_MVN, $1, $1, ARM_CC_LT_UN);
+	}
+
+JIT_OP_IEQ: binary
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_EQ);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_NE);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_EQ);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_NE);
+	}
+
+JIT_OP_INE: binary
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_NE);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_EQ);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_NE);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_EQ);
+	}
+
+JIT_OP_ILT: binary
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_LT);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_GE);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_LT);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_GE);
+	}
+
+JIT_OP_ILT_UN: binary
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_LT_UN);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_GE_UN);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_LT_UN);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_GE_UN);
+	}
+
+JIT_OP_ILE: binary
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_LE);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_GT);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_LE);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_GT);
+	}
+
+JIT_OP_ILE_UN: binary
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_LE_UN);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_GT_UN);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_LE_UN);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_GT_UN);
+	}
+
+JIT_OP_IGT: binary
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GT);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LE);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GT);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LE);
+	}
+
+JIT_OP_IGT_UN: binary
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GT_UN);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LE_UN);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GT_UN);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LE_UN);
+	}
+
+JIT_OP_IGE: binary
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GE);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LT);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GE);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LT);
+	}
+
+JIT_OP_IGE_UN: binary
+	[reg, immu8] -> {
+		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GE_UN);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LT_UN);
+	}
+	[reg, reg] -> {
+		arm_test_reg_reg(inst, ARM_CMP, $1, $2);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GE_UN);
+		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LT_UN);
+	}
+
