@@ -103,6 +103,7 @@ WHITE					[ \t\v\r\f]
 "manual"				{ RETURNTOK(K_MANUAL); }
 "stack"					{ RETURNTOK(K_STACK); }
 "only"					{ RETURNTOK(K_ONLY); }
+"more_space"			{ RETURNTOK(K_MORE_SPACE); }
 "%inst_type"			{ RETURNTOK(K_INST_TYPE); }
 
 {IDALPHA}({DIGIT}|{IDALPHA})*	{

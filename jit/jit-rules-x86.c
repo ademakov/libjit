@@ -26,6 +26,7 @@
 
 #include "jit-gen-x86.h"
 #include "jit-reg-alloc.h"
+#include "jit-setjmp.h"
 #include <stdio.h>
 
 /*
@@ -1406,6 +1407,30 @@ static unsigned char *mov_membase_reg_byte
 		x86_mov_membase_reg(inst, basereg, offset, X86_EDX, 1);
 		x86_pop_reg(inst, X86_EDX);
 	}
+	return inst;
+}
+
+/*
+ * Throw a builtin exception.
+ */
+static unsigned char *throw_builtin
+		(unsigned char *inst, jit_function_t func, int type)
+{
+	/* We need to update "catch_pc" if we have a "try" block */
+	if(func->builder->setjmp_value != 0)
+	{
+		_jit_gen_fix_value(func->builder->setjmp_value);
+		x86_call_imm(inst, 0);
+		x86_pop_membase(inst, X86_EBP,
+						func->builder->setjmp_value->frame_offset +
+						jit_jmp_catch_pc_offset);
+	}
+
+	/* Push the exception type onto the stack */
+	x86_push_imm(inst, type);
+
+	/* Call the "jit_exception_builtin" function, which will never return */
+	x86_call_code(inst, jit_exception_builtin);
 	return inst;
 }
 

@@ -59,6 +59,7 @@ static char *gensel_inst_type = "unsigned char *";
  * Amount of space to reserve for the primary instruction output.
  */
 static int gensel_reserve_space = 32;
+static int gensel_reserve_more_space = 128;
 
 /*
  * First register in a stack arrangement.
@@ -79,6 +80,7 @@ static int gensel_first_stack_reg = 8;	/* st0 under x86 */
 #define	GENSEL_OPT_MANUAL				0x0100
 #define	GENSEL_OPT_UNARY_NOTE			0x0200
 #define	GENSEL_OPT_BINARY_NOTE			0x0400
+#define	GENSEL_OPT_MORE_SPACE			0x0800
 
 /*
  * Pattern values.
@@ -267,12 +269,13 @@ static void gensel_output_clause_code(gensel_clause_t clause)
 /*
  * Output a single clause for a rule.
  */
-static void gensel_output_clause(gensel_clause_t clause)
+static void gensel_output_clause(gensel_clause_t clause, int options)
 {
 	/* Cache the instruction pointer into "inst" */
 	printf("\t\tinst = (%s)(gen->posn.ptr);\n", gensel_inst_type);
 	printf("\t\tif(!jit_cache_check_for_n(&(gen->posn), %d))\n",
-		   gensel_reserve_space);
+		   (((options & GENSEL_OPT_MORE_SPACE) == 0)
+		   		? gensel_reserve_space : gensel_reserve_more_space));
 	printf("\t\t{\n");
 	printf("\t\t\tjit_cache_mark_full(&(gen->posn));\n");
 	printf("\t\t\treturn;\n");
@@ -587,7 +590,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 			/* Spill all other registers back to their original positions */
 			printf("\t\t_jit_regs_spill_all(gen);\n");
 		}
-		gensel_output_clause(clause);
+		gensel_output_clause(clause, options);
 		printf("\t}\n");
 		first = 0;
 		clause = clause->next;
@@ -681,6 +684,7 @@ static void gensel_output_supported(void)
 %token K_TERNARY			"`ternary'"
 %token K_STACK				"`stack'"
 %token K_ONLY				"`only'"
+%token K_MORE_SPACE			"`more_space'"
 %token K_MANUAL				"`manual'"
 %token K_INST_TYPE			"`%inst_type'"
 
@@ -764,6 +768,7 @@ Option
 	| K_TERNARY					{ $$ = GENSEL_OPT_TERNARY; }
 	| K_STACK					{ $$ = GENSEL_OPT_STACK; }
 	| K_ONLY					{ $$ = GENSEL_OPT_ONLY; }
+	| K_MORE_SPACE				{ $$ = GENSEL_OPT_MORE_SPACE; }
 	| K_MANUAL					{ $$ = GENSEL_OPT_MANUAL; }
 	;
 
