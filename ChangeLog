@@ -1,4 +1,9 @@
 
+2004-10-29  Peter Lund <firefly@diku.dk>
+
+	* libjit/doc/libjit.3: fix manpage formatting issues. (patch attached
+	to bug #10779, Gopal).
+
 2004-10-28  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* configure.in, jit/jit-debugger.c, jit/jit-thread.c,
