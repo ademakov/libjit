@@ -4,6 +4,9 @@
 	* jit/jit-rules-x86.c (output_branch): correct the offset
 	when outputting a long-form backward branch.
 
+	* tests/Makefile.am, tests/loop.pas: test case for the
+	long-form backward branch bug.
+
 2004-10-06  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* doc/Makefile.am, doc/libjit.texi, include/jit/Makefile.am,
