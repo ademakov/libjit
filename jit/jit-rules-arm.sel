@@ -149,77 +149,52 @@ JIT_OP_INEG: unary
 		arm_alu_reg_imm8(inst, ARM_RSB, $1, $1, 0);
 	}
 
-JIT_OP_FADD: binary
+JIT_OP_FADD (JIT_ARM_HAS_FLOAT_REGS): binary
 	[freg, freg] -> {
 		arm_alu_freg_freg_32(inst, ARM_ADF, $1, $1, $2);
 	}
 
-JIT_OP_FSUB: binary
+JIT_OP_FSUB (JIT_ARM_HAS_FLOAT_REGS): binary
 	[freg, freg] -> {
 		arm_alu_freg_freg_32(inst, ARM_SUF, $1, $1, $2);
 	}
 
-JIT_OP_FMUL: binary
+JIT_OP_FMUL (JIT_ARM_HAS_FLOAT_REGS): binary
 	[freg, freg] -> {
 		arm_alu_freg_freg_32(inst, ARM_MUF, $1, $1, $2);
 	}
 
-JIT_OP_FDIV: binary
+JIT_OP_FDIV (JIT_ARM_HAS_FLOAT_REGS): binary
 	[freg, freg] -> {
 		arm_alu_freg_freg_32(inst, ARM_DVF, $1, $1, $2);
 	}
 
-JIT_OP_FNEG: unary
+JIT_OP_FNEG (JIT_ARM_HAS_FLOAT_REGS): unary
 	[freg] -> {
 		arm_alu_freg_32(inst, ARM_MNF, $1, $1);
 	}
 
-JIT_OP_DADD: binary
+JIT_OP_DADD, JIT_OP_NFADD (JIT_ARM_HAS_FLOAT_REGS): binary
 	[freg, freg] -> {
 		arm_alu_freg_freg(inst, ARM_ADF, $1, $1, $2);
 	}
 
-JIT_OP_DSUB: binary
+JIT_OP_DSUB, JIT_OP_NFSUB (JIT_ARM_HAS_FLOAT_REGS): binary
 	[freg, freg] -> {
 		arm_alu_freg_freg(inst, ARM_SUF, $1, $1, $2);
 	}
 
-JIT_OP_DMUL: binary
+JIT_OP_DMUL, JIT_OP_NFMUL (JIT_ARM_HAS_FLOAT_REGS): binary
 	[freg, freg] -> {
 		arm_alu_freg_freg(inst, ARM_MUF, $1, $1, $2);
 	}
 
-JIT_OP_DDIV: binary
+JIT_OP_DDIV, JIT_OP_NFDIV (JIT_ARM_HAS_FLOAT_REGS): binary
 	[freg, freg] -> {
 		arm_alu_freg_freg(inst, ARM_DVF, $1, $1, $2);
 	}
 
-JIT_OP_DNEG: unary
-	[freg] -> {
-		arm_alu_freg(inst, ARM_MNF, $1, $1);
-	}
-
-JIT_OP_NFADD: binary
-	[freg, freg] -> {
-		arm_alu_freg_freg(inst, ARM_ADF, $1, $1, $2);
-	}
-
-JIT_OP_NFSUB: binary
-	[freg, freg] -> {
-		arm_alu_freg_freg(inst, ARM_SUF, $1, $1, $2);
-	}
-
-JIT_OP_NFMUL: binary
-	[freg, freg] -> {
-		arm_alu_freg_freg(inst, ARM_MUF, $1, $1, $2);
-	}
-
-JIT_OP_NFDIV: binary
-	[freg, freg] -> {
-		arm_alu_freg_freg(inst, ARM_DVF, $1, $1, $2);
-	}
-
-JIT_OP_NFNEG: unary
+JIT_OP_DNEG, JIT_OP_NFNEG (JIT_ARM_HAS_FLOAT_REGS): unary
 	[freg] -> {
 		arm_alu_freg(inst, ARM_MNF, $1, $1);
 	}
@@ -637,34 +612,142 @@ JIT_OP_RETURN_LONG: spill_before
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_FLOAT32: unary_note
+JIT_OP_RETURN_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary_branch
 	[freg] -> {
 		if($1 != 0)
 		{
 			arm_alu_freg_32(inst, ARM_MVF, ARM_F0, $1);
 		}
+		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_FLOAT64: unary_note
-	[freg] -> {
-		if($1 != 0)
-		{
-			arm_alu_freg(inst, ARM_MVF, ARM_F0, $1);
-		}
-	}
-
-JIT_OP_RETURN_NFLOAT: unary_note
-	[freg] -> {
-		if($1 != 0)
-		{
-			arm_alu_freg(inst, ARM_MVF, ARM_F0, $1);
-		}
-	}
-
-JIT_OP_RETURN_SMALL_STRUCT: spill_before
+JIT_OP_RETURN_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 	[] -> {
-		/* TODO: load the structure value into r0:r1 */
-		TODO();
+		arm_inst_ptr inst;
+		_jit_regs_spill_all(gen);
+		_jit_gen_fix_value(insn->value1);
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		if(insn->value1->is_constant)
+		{
+			arm_mov_reg_imm(inst, ARM_R0, ((int *)(insn->value1->address))[0]);
+		}
+		else
+		{
+			arm_load_membase(inst, ARM_R0, ARM_FP, insn->value1->frame_offset);
+		}
+		inst = jump_to_epilog(gen, inst, block);
+		gen->posn.ptr = (unsigned char *)inst;
+	}
+
+JIT_OP_RETURN_FLOAT64, JIT_OP_RETURN_NFLOAT
+		(JIT_ARM_HAS_FLOAT_REGS): unary_branch
+	[freg] -> {
+		if($1 != 0)
+		{
+			arm_alu_freg(inst, ARM_MVF, ARM_F0, $1);
+		}
+		inst = jump_to_epilog(gen, inst, block);
+	}
+
+JIT_OP_RETURN_FLOAT64, JIT_OP_RETURN_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
+	[] -> {
+		arm_inst_ptr inst;
+		_jit_regs_spill_all(gen);
+		_jit_gen_fix_value(insn->value1);
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		if(insn->value1->is_constant)
+		{
+			arm_mov_reg_imm(inst, ARM_R0, ((int *)(insn->value1->address))[0]);
+			arm_mov_reg_imm(inst, ARM_R1, ((int *)(insn->value1->address))[1]);
+		}
+		else
+		{
+			arm_load_membase(inst, ARM_R0, ARM_FP, insn->value1->frame_offset);
+			arm_load_membase(inst, ARM_R1, ARM_FP,
+							 insn->value1->frame_offset + 4);
+		}
+		inst = jump_to_epilog(gen, inst, block);
+		gen->posn.ptr = (unsigned char *)inst;
+	}
+
+JIT_OP_RETURN_SMALL_STRUCT: unary_branch
+	[reg] -> {
+		int temp_reg = $1;
+		if(temp_reg < 3)
+		{
+			arm_mov_reg_reg(inst, ARM_WORK, temp_reg);
+			temp_reg = ARM_WORK;
+		}
+		switch(insn->value2->address)
+		{
+			case 1:
+			{
+				arm_load_membase_byte(inst, ARM_R0, temp_reg, 0);
+			}
+			break;
+
+			case 2:
+			{
+				arm_load_membase_ushort(inst, ARM_R0, temp_reg, 0);
+			}
+			break;
+
+			case 3:
+			{
+				arm_load_membase_ushort(inst, ARM_R0, temp_reg, 0);
+				arm_load_membase_byte(inst, ARM_R1, temp_reg, 2);
+				arm_shift_reg_imm8(inst, ARM_SHL, ARM_R1, ARM_R1, 16);
+				arm_alu_reg_reg(inst, ARM_ORR, ARM_R0, ARM_R0, ARM_R1);
+			}
+			break;
+
+			case 4:
+			{
+				arm_load_membase(inst, ARM_R0, temp_reg, 0);
+			}
+			break;
+
+			case 5:
+			{
+				arm_load_membase(inst, ARM_R0, temp_reg, 0);
+				arm_load_membase_byte(inst, ARM_R1, temp_reg, 4);
+			}
+			break;
+
+			case 6:
+			{
+				arm_load_membase(inst, ARM_R0, temp_reg, 0);
+				arm_load_membase_ushort(inst, ARM_R1, temp_reg, 4);
+			}
+			break;
+
+			case 7:
+			{
+				arm_load_membase(inst, ARM_R0, temp_reg, 0);
+				arm_load_membase_ushort(inst, ARM_R1, temp_reg, 4);
+				arm_load_membase_byte(inst, ARM_R2, temp_reg, 6);
+				arm_shift_reg_imm8(inst, ARM_SHL, ARM_R2, ARM_R2, 16);
+				arm_alu_reg_reg(inst, ARM_ORR, ARM_R1, ARM_R1, ARM_R2);
+			}
+			break;
+
+			case 8:
+			{
+				arm_load_membase(inst, ARM_R0, temp_reg, 0);
+				arm_load_membase(inst, ARM_R1, temp_reg, 4);
+			}
+			break;
+		}
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
@@ -738,20 +821,114 @@ JIT_OP_COPY_LOAD_USHORT: unary
 JIT_OP_COPY_INT: unary
 	[reg] -> {}
 
-JIT_OP_COPY_LONG: spill_before
+JIT_OP_COPY_LONG: manual
 	[] -> {
-		/* TODO */
-		TODO();
+		arm_inst_ptr inst;
+		_jit_regs_force_out(gen, insn->value1, 0);
+		_jit_regs_force_out(gen, insn->dest, 1);
+		_jit_gen_fix_value(insn->value1);
+		_jit_gen_fix_value(insn->dest);
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		if(insn->value1->is_constant)
+		{
+			arm_mov_reg_imm(inst, ARM_WORK,
+							((int *)(insn->value1->address))[0]);
+			arm_store_membase(inst, ARM_WORK, ARM_FP,
+							  insn->dest->frame_offset);
+			arm_mov_reg_imm(inst, ARM_WORK,
+							((int *)(insn->value1->address))[1]);
+			arm_store_membase(inst, ARM_WORK, ARM_FP,
+							  insn->dest->frame_offset + 4);
+		}
+		else
+		{
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset);
+			arm_store_membase(inst, ARM_WORK, ARM_FP,
+							  insn->dest->frame_offset);
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset + 4);
+			arm_store_membase(inst, ARM_WORK, ARM_FP,
+							  insn->dest->frame_offset + 4);
+		}
+		gen->posn.ptr = (unsigned char *)inst;
 	}
 
-JIT_OP_COPY_FLOAT32: unary
+JIT_OP_COPY_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary
 	[freg] -> {}
 
-JIT_OP_COPY_FLOAT64: unary
+JIT_OP_COPY_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
+	[] -> {
+		arm_inst_ptr inst;
+		_jit_regs_force_out(gen, insn->value1, 0);
+		_jit_regs_force_out(gen, insn->dest, 1);
+		_jit_gen_fix_value(insn->value1);
+		_jit_gen_fix_value(insn->dest);
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		if(insn->value1->is_constant)
+		{
+			arm_mov_reg_imm(inst, ARM_WORK,
+							((int *)(insn->value1->address))[0]);
+		}
+		else
+		{
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset);
+		}
+		arm_store_membase(inst, ARM_WORK, ARM_FP, insn->dest->frame_offset);
+		gen->posn.ptr = (unsigned char *)inst;
+	}
+
+JIT_OP_COPY_FLOAT64, JIT_OP_COPY_NFLOAT (JIT_ARM_HAS_FLOAT_REGS): unary
 	[freg] -> {}
 
-JIT_OP_COPY_NFLOAT: unary
-	[freg] -> {}
+JIT_OP_COPY_FLOAT64, JIT_OP_COPY_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
+	[] -> {
+		arm_inst_ptr inst;
+		_jit_regs_force_out(gen, insn->value1, 0);
+		_jit_regs_force_out(gen, insn->dest, 1);
+		_jit_gen_fix_value(insn->value1);
+		_jit_gen_fix_value(insn->dest);
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		if(insn->value1->is_constant)
+		{
+			arm_mov_reg_imm(inst, ARM_WORK,
+							((int *)(insn->value1->address))[0]);
+			arm_store_membase(inst, ARM_WORK, ARM_FP,
+							  insn->dest->frame_offset);
+			arm_mov_reg_imm(inst, ARM_WORK,
+							((int *)(insn->value1->address))[1]);
+			arm_store_membase(inst, ARM_WORK, ARM_FP,
+							  insn->dest->frame_offset + 4);
+		}
+		else
+		{
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset);
+			arm_store_membase(inst, ARM_WORK, ARM_FP,
+							  insn->dest->frame_offset);
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset + 4);
+			arm_store_membase(inst, ARM_WORK, ARM_FP,
+							  insn->dest->frame_offset + 4);
+		}
+		gen->posn.ptr = (unsigned char *)inst;
+	}
 
 JIT_OP_COPY_STRUCT: manual
 	[] -> {
@@ -846,23 +1023,101 @@ JIT_OP_PUSH_INT: unary_note
 
 JIT_OP_PUSH_LONG: manual
 	[] -> {
-		/* TODO */
-		TODO();
+		arm_inst_ptr inst;
+		_jit_regs_force_out(gen, insn->value1, 0);
+		_jit_gen_fix_value(insn->value1);
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		if(insn->value1->is_constant)
+		{
+			arm_mov_reg_imm(inst, ARM_WORK,
+							((int *)(insn->value1->address))[1]);
+			arm_push_reg(inst, ARM_WORK);
+			arm_mov_reg_imm(inst, ARM_WORK,
+							((int *)(insn->value1->address))[0]);
+			arm_push_reg(inst, ARM_WORK);
+		}
+		else
+		{
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset + 4);
+			arm_push_reg(inst, ARM_WORK);
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset);
+			arm_push_reg(inst, ARM_WORK);
+		}
+		gen->posn.ptr = (unsigned char *)inst;
 	}
 
-JIT_OP_PUSH_FLOAT32: unary_note
+JIT_OP_PUSH_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary_note
 	[freg] -> {
 		arm_push_reg_float32(inst, $1);
 	}
 
-JIT_OP_PUSH_FLOAT64: unary_note
+JIT_OP_PUSH_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
+	[] -> {
+		arm_inst_ptr inst;
+		_jit_regs_force_out(gen, insn->value1, 0);
+		_jit_gen_fix_value(insn->value1);
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		if(insn->value1->is_constant)
+		{
+			arm_mov_reg_imm(inst, ARM_WORK,
+							((int *)(insn->value1->address))[0]);
+		}
+		else
+		{
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset);
+		}
+		arm_push_reg(inst, ARM_WORK);
+		gen->posn.ptr = (unsigned char *)inst;
+	}
+
+JIT_OP_PUSH_FLOAT64, JIT_OP_PUSH_NFLOAT (JIT_ARM_HAS_FLOAT_REGS): unary_note
 	[freg] -> {
 		arm_push_reg_float64(inst, $1);
 	}
 
-JIT_OP_PUSH_NFLOAT: unary_note
-	[freg] -> {
-		arm_push_reg_float64(inst, $1);
+JIT_OP_PUSH_FLOAT64, JIT_OP_PUSH_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
+	[] -> {
+		arm_inst_ptr inst;
+		_jit_regs_force_out(gen, insn->value1, 0);
+		_jit_gen_fix_value(insn->value1);
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		if(insn->value1->is_constant)
+		{
+			arm_mov_reg_imm(inst, ARM_WORK,
+							((int *)(insn->value1->address))[1]);
+			arm_push_reg(inst, ARM_WORK);
+			arm_mov_reg_imm(inst, ARM_WORK,
+							((int *)(insn->value1->address))[0]);
+			arm_push_reg(inst, ARM_WORK);
+		}
+		else
+		{
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset + 4);
+			arm_push_reg(inst, ARM_WORK);
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset);
+			arm_push_reg(inst, ARM_WORK);
+		}
+		gen->posn.ptr = (unsigned char *)inst;
 	}
 
 JIT_OP_PUSH_STRUCT: unary_note
@@ -1009,13 +1264,7 @@ JIT_OP_LOAD_RELATIVE_FLOAT32: manual
 		TODO();
 	}
 
-JIT_OP_LOAD_RELATIVE_FLOAT64: manual
-	[] -> {
-		/* TODO */
-		TODO();
-	}
-
-JIT_OP_LOAD_RELATIVE_NFLOAT: manual
+JIT_OP_LOAD_RELATIVE_FLOAT64, JIT_OP_LOAD_RELATIVE_NFLOAT: manual
 	[] -> {
 		/* TODO */
 		TODO();
@@ -1131,13 +1380,7 @@ JIT_OP_STORE_RELATIVE_FLOAT32: manual
 		TODO();
 	}
 
-JIT_OP_STORE_RELATIVE_FLOAT64: manual
-	[] -> {
-		/* TODO */
-		TODO();
-	}
-
-JIT_OP_STORE_RELATIVE_NFLOAT: manual
+JIT_OP_STORE_RELATIVE_FLOAT64, JIT_OP_STORE_RELATIVE_NFLOAT: manual
 	[] -> {
 		/* TODO */
 		TODO();

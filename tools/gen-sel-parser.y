@@ -21,6 +21,11 @@
 
 #include <config.h>
 #include <stdio.h>
+#ifdef HAVE_STRING_H
+	#include <string.h>
+#elif defined(HAVE_STRINGS_H)
+	#include <strings.h>
+#endif
 #ifdef HAVE_STDLIB_H
 	#include <stdlib.h>
 #endif
@@ -601,12 +606,13 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
  * List of opcodes that are supported by the input rules.
  */
 static char **supported = 0;
+static char **supported_options = 0;
 static int num_supported = 0;
 
 /*
  * Add an opcode to the supported list.
  */
-static void gensel_add_supported(char *name)
+static void gensel_add_supported(char *name, char *option)
 {
 	supported = (char **)realloc
 		(supported, (num_supported + 1) * sizeof(char *));
@@ -614,7 +620,14 @@ static void gensel_add_supported(char *name)
 	{
 		exit(1);
 	}
-	supported[num_supported++] = name;
+	supported[num_supported] = name;
+	supported_options = (char **)realloc
+		(supported_options, (num_supported + 1) * sizeof(char *));
+	if(!supported_options)
+	{
+		exit(1);
+	}
+	supported_options[num_supported++] = option;
 }
 
 /*
@@ -625,7 +638,23 @@ static void gensel_output_supported(void)
 	int index;
 	for(index = 0; index < num_supported; ++index)
 	{
-		printf("case %s:\n", supported[index]);
+		if(supported_options[index])
+		{
+			if(supported_options[index][0] == '!')
+			{
+				printf("#ifndef %s\n", supported_options[index] + 1);
+			}
+			else
+			{
+				printf("#ifdef %s\n", supported_options[index]);
+			}
+			printf("case %s:\n", supported[index]);
+			printf("#endif\n");
+		}
+		else
+		{
+			printf("case %s:\n", supported[index]);
+		}
 	}
 	printf("\treturn 1;\n\n");
 }
@@ -691,7 +720,7 @@ static void gensel_output_supported(void)
 /*
  * Define the yylval types of the various non-terminals.
  */
-%type <name>				IDENTIFIER
+%type <name>				IDENTIFIER IfClause IdentifierList
 %type <code>				CODE_BLOCK
 %type <options>				Options OptionList Option PatternElement
 %type <clauses>				Clauses Clause
@@ -713,19 +742,30 @@ Rules
 	;
 
 Rule
-	: IDENTIFIER ':' Options Clauses {
+	: IdentifierList IfClause ':' Options Clauses {
+				if($2)
+				{
+					if(($2)[0] == '!')
+					{
+						printf("#ifndef %s\n\n", $2 + 1);
+					}
+					else
+					{
+						printf("#ifdef %s\n\n", $2);
+					}
+				}
 				printf("case %s:\n{\n", $1);
-				if(($3 & GENSEL_OPT_MANUAL) == 0)
+				if(($4 & GENSEL_OPT_MANUAL) == 0)
 				{
 					printf("\t%s inst;\n", gensel_inst_type);
 				}
-				gensel_declare_regs($4.head, $3);
-				if(($3 & GENSEL_OPT_SPILL_BEFORE) != 0)
+				gensel_declare_regs($5.head, $4);
+				if(($4 & GENSEL_OPT_SPILL_BEFORE) != 0)
 				{
 					printf("\t_jit_regs_spill_all(gen);\n");
 				}
-				gensel_output_clauses($4.head, $3);
-				if(($3 & (GENSEL_OPT_BINARY | GENSEL_OPT_UNARY)) != 0)
+				gensel_output_clauses($5.head, $4);
+				if(($4 & (GENSEL_OPT_BINARY | GENSEL_OPT_UNARY)) != 0)
 				{
 					printf("\tif((insn->flags & JIT_INSN_DEST_NEXT_USE) != 0)\n");
 					printf("\t{\n");
@@ -742,12 +782,37 @@ Rule
 					printf("\t}\n");
 				}
 				printf("}\nbreak;\n\n");
-				gensel_free_clauses($4.head);
-				gensel_add_supported($1);
+				if($2)
+				{
+					printf("#endif /* %s */\n\n", $2);
+				}
+				gensel_free_clauses($5.head);
+				gensel_add_supported($1, $2);
 			}
 	| K_INST_TYPE IDENTIFIER	{
 				gensel_inst_type = $2;
 			}
+	;
+
+IdentifierList
+	: IDENTIFIER				{ $$ = $1; }
+	| IdentifierList ',' IDENTIFIER	{
+				char *result = (char *)malloc(strlen($1) + strlen($3) + 16);
+				if(!result)
+				{
+					exit(1);
+				}
+				strcpy(result, $1);
+				strcat(result, ":\ncase ");
+				strcat(result, $3);
+				free($1);
+				free($3);
+				$$ = result;
+			}
+
+IfClause
+	: /* empty */				{ $$ = 0; }
+	| '(' IDENTIFIER ')'		{ $$ = $2; }
 	;
 
 Options

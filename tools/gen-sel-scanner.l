@@ -106,7 +106,7 @@ WHITE					[ \t\v\r\f]
 "more_space"			{ RETURNTOK(K_MORE_SPACE); }
 "%inst_type"			{ RETURNTOK(K_INST_TYPE); }
 
-{IDALPHA}({DIGIT}|{IDALPHA})*	{
+"!"?{IDALPHA}({DIGIT}|{IDALPHA})*	{
 			yylval.name = gensel_strdup(yytext);
 			if(!(yylval.name))
 			{
