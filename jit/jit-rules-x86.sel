@@ -68,9 +68,286 @@ JIT_OP_ISUB: binary
 		x86_alu_reg_reg(inst, X86_SUB, $1, $2);
 	}
 
-JIT_OP_IMUL: binary, spill_before
+JIT_OP_IMUL: binary
+	[reg, imm] -> {
+		/* Handle special cases of immediate multiplies */
+		switch($2)
+		{
+			case 0:
+			{
+				x86_clear_reg(inst, $1);
+			}
+			break;
+
+			case 1: break;
+
+			case -1:
+			{
+				x86_neg_reg(inst, $1);
+			}
+			break;
+
+			case 2:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 1);
+			}
+			break;
+
+			case 3:
+			{
+				/* lea reg, [reg + reg * 2] */
+				x86_lea_memindex(inst, $1, $1, 0, $1, 1);
+			}
+			break;
+
+			case 4:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 2);
+			}
+			break;
+
+			case 5:
+			{
+				/* lea reg, [reg + reg * 4] */
+				x86_lea_memindex(inst, $1, $1, 0, $1, 2);
+			}
+			break;
+
+			case 6:
+			{
+				/* lea reg, [reg + reg * 2]; add reg, reg */
+				x86_lea_memindex(inst, $1, $1, 0, $1, 1);
+				x86_alu_reg_reg(inst, X86_ADD, $1, $1);
+			}
+			break;
+
+			case 8:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 3);
+			}
+			break;
+
+			case 9:
+			{
+				/* lea reg, [reg + reg * 8] */
+				x86_lea_memindex(inst, $1, $1, 0, $1, 3);
+			}
+			break;
+
+			case 10:
+			{
+				/* lea reg, [reg + reg * 4]; add reg, reg */
+				x86_lea_memindex(inst, $1, $1, 0, $1, 2);
+				x86_alu_reg_reg(inst, X86_ADD, $1, $1);
+			}
+			break;
+
+			case 12:
+			{
+				/* lea reg, [reg + reg * 2]; shl reg, 2 */
+				x86_lea_memindex(inst, $1, $1, 0, $1, 1);
+				x86_shift_reg_imm(inst, X86_SHL, $1, 2);
+			}
+			break;
+
+			case 16:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 4);
+			}
+			break;
+
+			case 25:
+			{
+				/* lea reg, [reg + reg * 4]; lea reg, [reg + reg * 4] */
+				x86_lea_memindex(inst, $1, $1, 0, $1, 2);
+				x86_lea_memindex(inst, $1, $1, 0, $1, 2);
+			}
+			break;
+
+			case 32:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 5);
+			}
+			break;
+
+			case 64:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 6);
+			}
+			break;
+
+			case 100:
+			{
+				/* lea reg, [reg + reg * 4]; shl reg, 2;
+				   lea reg, [reg + reg * 4] */
+				x86_lea_memindex(inst, $1, $1, 0, $1, 2);
+				x86_shift_reg_imm(inst, X86_SHL, $1, 2);
+				x86_lea_memindex(inst, $1, $1, 0, $1, 2);
+			}
+			break;
+
+			case 128:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 7);
+			}
+			break;
+
+			case 256:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 8);
+			}
+			break;
+
+			case 512:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 9);
+			}
+			break;
+
+			case 1024:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 10);
+			}
+			break;
+
+			case 2048:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 11);
+			}
+			break;
+
+			case 4096:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 12);
+			}
+			break;
+
+			case 8192:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 13);
+			}
+			break;
+
+			case 16384:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 14);
+			}
+			break;
+
+			case 32768:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 15);
+			}
+			break;
+
+			case 65536:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 16);
+			}
+			break;
+
+			case 0x00020000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 17);
+			}
+			break;
+
+			case 0x00040000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 18);
+			}
+			break;
+
+			case 0x00080000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 19);
+			}
+			break;
+
+			case 0x00100000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 20);
+			}
+			break;
+
+			case 0x00200000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 21);
+			}
+			break;
+
+			case 0x00400000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 22);
+			}
+			break;
+
+			case 0x00800000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 23);
+			}
+			break;
+
+			case 0x01000000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 24);
+			}
+			break;
+
+			case 0x02000000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 25);
+			}
+			break;
+
+			case 0x04000000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 26);
+			}
+			break;
+
+			case 0x08000000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 27);
+			}
+			break;
+
+			case 0x10000000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 28);
+			}
+			break;
+
+			case 0x20000000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 29);
+			}
+			break;
+
+			case 0x40000000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 30);
+			}
+			break;
+
+			case (jit_nint)0x80000000:
+			{
+				x86_shift_reg_imm(inst, X86_SHL, $1, 31);
+			}
+			break;
+
+			default:
+			{
+				x86_imul_reg_reg_imm(inst, $1, $1, $2);
+			}
+			break;
+		}
+	}
+	[reg, local] -> {
+		x86_imul_reg_membase(inst, $1, X86_EBP, $2);
+	}
 	[reg, reg] -> {
-		x86_mul_reg(inst, $2, 1);
+		x86_imul_reg_reg(inst, $1, $2);
 	}
 
 JIT_OP_INEG: unary
