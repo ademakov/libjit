@@ -747,8 +747,8 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 		unsigned int num_params;
 		unsigned int param;
 		signature = func->signature;
-		if(jit_type_abi(signature) == jit_type_stdcall ||
-		   jit_type_abi(signature) == jit_type_fastcall)
+		if(jit_type_get_abi(signature) == jit_abi_stdcall ||
+		   jit_type_get_abi(signature) == jit_abi_fastcall)
 		{
 			if(func->nested_parent)
 			{
@@ -766,7 +766,7 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 						(jit_type_get_size
 							(jit_type_get_param(signature, param)));
 			}
-			if(jit_type_abi(signature) == jit_type_fastcall)
+			if(jit_type_get_abi(signature) == jit_abi_fastcall)
 			{
 				/* The first two words are in fastcall registers */
 				if(pop_bytes > (2 * sizeof(void *)))

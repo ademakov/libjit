@@ -19,6 +19,9 @@
 	* jit/jit-gen-arm.h, jit/jit-rules-arm.c, jit/jit-rules-arm.h,
 	jit/jit-rules-arm.sel: expand floating-point instructions for ARM.
 
+	* jit/jit-rules-x86.c: fix misnaming of jit_type_get_abi,
+	jit_abi_stdcall, and jit_abi_fastcall.
+
 2004-06-06  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c (jit_flush_exec): flush cache lines properly
