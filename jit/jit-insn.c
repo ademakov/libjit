@@ -6081,7 +6081,7 @@ jit_value_t jit_insn_import(jit_function_t func, jit_value_t value)
 	   it to be marked as a non-local addressable by "jit_value_ref" */
 	return apply_binary
 		(func, JIT_OP_IMPORT, value,
-		 jit_value_create_nint_constant(func, jit_type_int, (jit_nint)value),
+		 jit_value_create_nint_constant(func, jit_type_int, (jit_nint)level),
 		 jit_type_void_ptr);
 }
 
@@ -7182,6 +7182,12 @@ int jit_insn_start_finally(jit_function_t func, jit_label_t *finally_label)
 @*/
 int jit_insn_return_from_finally(jit_function_t func)
 {
+	/* Flush any deferred stack pops before we return */
+	if(!jit_insn_flush_defer_pop(func, 0))
+	{
+		return 0;
+	}
+
 	/* Mark the end of the "finally" clause */
 	if(!create_noarg_note(func, JIT_OP_LEAVE_FINALLY))
 	{
@@ -7202,11 +7208,40 @@ int jit_insn_return_from_finally(jit_function_t func)
 @*/
 int jit_insn_call_finally(jit_function_t func, jit_label_t *finally_label)
 {
-	if(!jit_insn_label(func, finally_label))
+	jit_insn_t insn;
+
+	/* Ensure that we have a function builder */
+	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-	return create_noarg_note(func, JIT_OP_CALL_FINALLY);
+
+	/* Flush any stack pops that were deferred previously */
+	if(!jit_insn_flush_defer_pop(func, 0))
+	{
+		return 0;
+	}
+
+	/* Allocate the label number if necessary */
+	if(*finally_label == jit_label_undefined)
+	{
+		*finally_label = (func->builder->next_label)++;
+	}
+
+	/* Calling a finally handler makes the function not a leaf because
+	   we may need to do a native "call" to invoke the handler */
+	func->builder->non_leaf = 1;
+
+	/* Add a new branch instruction to branch to the finally handler */
+	insn = _jit_block_add_insn(func->builder->current_block);
+	if(!insn)
+	{
+		return 0;
+	}
+	insn->opcode = (short)JIT_OP_CALL_FINALLY;
+	insn->flags = JIT_INSN_DEST_IS_LABEL;
+	insn->dest = (jit_value_t)(*finally_label);
+	return 1;
 }
 
 /*@
@@ -7244,6 +7279,12 @@ jit_value_t jit_insn_start_filter
 @*/
 int jit_insn_return_from_filter(jit_function_t func, jit_value_t value)
 {
+	/* Flush any deferred stack pops before we return */
+	if(!jit_insn_flush_defer_pop(func, 0))
+	{
+		return 0;
+	}
+
 	/* Mark the end of the "filter" clause */
 	if(!create_unary_note(func, JIT_OP_LEAVE_FILTER, value))
 	{

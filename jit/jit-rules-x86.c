@@ -1280,7 +1280,15 @@ static unsigned char *output_branch
 {
 	jit_block_t block;
 	int offset;
-	block = jit_block_from_label(func, (jit_label_t)(insn->dest));
+	if((insn->flags & JIT_INSN_VALUE1_IS_LABEL) != 0)
+	{
+		/* "address_of_label" instruction */
+		block = jit_block_from_label(func, (jit_label_t)(insn->value1));
+	}
+	else
+	{
+		block = jit_block_from_label(func, (jit_label_t)(insn->dest));
+	}
 	if(!block)
 	{
 		return inst;

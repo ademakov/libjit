@@ -1,4 +1,9 @@
 
+2004-06-12  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-insn.c, jit/jit-rules-x86.c, jit/jit-rules-x86.sel:
+	implement or stub missing x86 instruction selection rules.
+
 2004-06-11  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* doc/libjit.texi, jit/jit-insn.c, jit/jit-internal.h,
