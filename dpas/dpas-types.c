@@ -1245,6 +1245,15 @@ int dpas_type_identical(jit_type_t type1, jit_type_t type2, int normalize)
 	}
 	if(jit_type_get_kind(type1) != jit_type_get_kind(type2))
 	{
+#ifdef JIT_NFLOAT_IS_DOUBLE
+		if((jit_type_get_kind(type1) == JIT_TYPE_FLOAT64 ||
+		    jit_type_get_kind(type1) == JIT_TYPE_NFLOAT) &&
+		   (jit_type_get_kind(type2) == JIT_TYPE_FLOAT64 ||
+		    jit_type_get_kind(type2) == JIT_TYPE_NFLOAT))
+		{
+			return 1;
+		}
+#endif
 		return 0;
 	}
 	switch(jit_type_get_kind(type1))
