@@ -726,7 +726,7 @@ extern int arm_is_complex_imm(int value);
 				if(__mb_offset >= 0 && __mb_offset < (1 << 10) && \
 				   (__mb_offset & 3) == 0) \
 				{ \
-					*(inst)++ = arm_prefix(0x0D100000 | (mask)) | \
+					*(inst)++ = arm_prefix(0x0D900100 | (mask)) | \
 							(((unsigned int)(basereg)) << 16) | \
 							(((unsigned int)(reg)) << 12) | \
 							 ((unsigned int)((__mb_offset / 4) & 0xFF)); \
@@ -734,7 +734,7 @@ extern int arm_is_complex_imm(int value);
 				else if(__mb_offset > -(1 << 10) && __mb_offset < 0 && \
 				        (__mb_offset & 3) == 0) \
 				{ \
-					*(inst)++ = arm_prefix(0x0D180000 | (mask)) | \
+					*(inst)++ = arm_prefix(0x0D180100 | (mask)) | \
 							(((unsigned int)(basereg)) << 16) | \
 							(((unsigned int)(reg)) << 12) | \
 							 ((unsigned int)(((-__mb_offset) / 4) & 0xFF));\
@@ -744,7 +744,7 @@ extern int arm_is_complex_imm(int value);
 					arm_mov_reg_imm((inst), ARM_WORK, __mb_offset); \
 					arm_alu_reg_reg((inst), ARM_ADD, ARM_WORK, \
 								    (basereg), ARM_WORK); \
-					*(inst)++ = arm_prefix(0x0D100000 | (mask)) | \
+					*(inst)++ = arm_prefix(0x0D900100 | (mask)) | \
 							(((unsigned int)ARM_WORK) << 16) | \
 							(((unsigned int)(reg)) << 12); \
 				} \
@@ -825,7 +825,7 @@ extern int arm_is_complex_imm(int value);
 				if(__mb_offset >= 0 && __mb_offset < (1 << 10) && \
 				   (__mb_offset & 3) == 0) \
 				{ \
-					*(inst)++ = arm_prefix(0x0D800000 | (mask)) | \
+					*(inst)++ = arm_prefix(0x0D800100 | (mask)) | \
 							(((unsigned int)(basereg)) << 16) | \
 							(((unsigned int)(reg)) << 12) | \
 							 ((unsigned int)((__mb_offset / 4) & 0xFF)); \
@@ -833,7 +833,7 @@ extern int arm_is_complex_imm(int value);
 				else if(__mb_offset > -(1 << 10) && __mb_offset < 0 && \
 				        (__mb_offset & 3) == 0) \
 				{ \
-					*(inst)++ = arm_prefix(0x0D880000 | (mask)) | \
+					*(inst)++ = arm_prefix(0x0D080100 | (mask)) | \
 							(((unsigned int)(basereg)) << 16) | \
 							(((unsigned int)(reg)) << 12) | \
 							 ((unsigned int)(((-__mb_offset) / 4) & 0xFF));\
@@ -843,7 +843,7 @@ extern int arm_is_complex_imm(int value);
 					arm_mov_reg_imm((inst), ARM_WORK, __mb_offset); \
 					arm_alu_reg_reg((inst), ARM_ADD, ARM_WORK, \
 								    (basereg), ARM_WORK); \
-					*(inst)++ = arm_prefix(0x0D800000 | (mask)) | \
+					*(inst)++ = arm_prefix(0x0D800100 | (mask)) | \
 							(((unsigned int)ARM_WORK) << 16) | \
 							(((unsigned int)(reg)) << 12); \
 				} \
