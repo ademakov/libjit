@@ -845,6 +845,7 @@ IdentifierList
 				free($3);
 				$$ = result;
 			}
+	;
 
 IfClause
 	: /* empty */				{ $$ = 0; }

@@ -1,4 +1,8 @@
 
+2004-06-16  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* tools/gen-sel-parser.y: add a missing semi-colon.
+
 2004-06-14  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* dpas/dpas-internal.h, dpas/dpas-parser.y, dpas/dpas-scanner.l,
