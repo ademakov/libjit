@@ -874,7 +874,7 @@ JIT_OP_PUSH_FLOAT32: unary_note, stack
 	[reg] -> {
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float32));
 		x86_fst_membase(inst, X86_ESP, 0, 0, 1);
-		_jit_regs_free_reg(gen, $1, 1);
+		_jit_regs_free_reg(gen, reg, 1);
 	}
 
 JIT_OP_PUSH_FLOAT64: unary_note, stack
@@ -890,7 +890,7 @@ JIT_OP_PUSH_FLOAT64: unary_note, stack
 	[reg] -> {
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float64));
 		x86_fst_membase(inst, X86_ESP, 0, 1, 1);
-		_jit_regs_free_reg(gen, $1, 1);
+		_jit_regs_free_reg(gen, reg, 1);
 	}
 
 JIT_OP_PUSH_NFLOAT: unary_note, stack
@@ -922,7 +922,7 @@ JIT_OP_PUSH_NFLOAT: unary_note, stack
 			x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float64));
 			x86_fst_membase(inst, X86_ESP, 0, 1, 1);
 		}
-		_jit_regs_free_reg(gen, $1, 1);
+		_jit_regs_free_reg(gen, reg, 1);
 	}
 
 JIT_OP_PUSH_STRUCT: unary_note
