@@ -2645,8 +2645,69 @@ Variable
 				/* TODO */
 			}
 	| Variable '.' Identifier			{
-				/* Fetch the effective address of a structure field */
-				/* TODO */
+				/* Fetch the effective address of a record field */
+				jit_type_t type = dpas_sem_get_type($1);
+				jit_type_t field_type;
+				jit_value_t address;
+				jit_nint offset;
+				if(dpas_sem_is_lvalue_ea($1))
+				{
+					address = dpas_sem_get_value($1);
+				}
+				else if(dpas_sem_is_lvalue($1))
+				{
+					address = jit_insn_address_of
+						(dpas_current_function(), dpas_sem_get_value($1));
+					if(!address)
+					{
+						dpas_out_of_memory();
+					}
+				}
+				else
+				{
+					if(!dpas_sem_is_error($1))
+					{
+						dpas_error("invalid left hand side for `.'");
+					}
+					type = 0;
+					address = 0;
+				}
+				if(type && dpas_type_is_record(type))
+				{
+					field_type = dpas_type_get_field(type, $3, &offset);
+					if(field_type)
+					{
+						if(offset != 0)
+						{
+							address = jit_insn_add_relative
+								(dpas_current_function(), address, offset);
+							if(!address)
+							{
+								dpas_out_of_memory();
+							}
+						}
+						dpas_sem_set_lvalue_ea($$, field_type, address);
+					}
+					else
+					{
+						char *name = dpas_type_name(type);
+						dpas_error("`%s' is not a member of `%s'", $3, name);
+						jit_free(name);
+						dpas_sem_set_error($$);
+					}
+				}
+				else if(type)
+				{
+					char *name = dpas_type_name(type);
+					dpas_error("`%s' is not a record type", name);
+					jit_free(name);
+					dpas_sem_set_error($$);
+				}
+				else
+				{
+					dpas_sem_set_error($$);
+				}
+				jit_free($3);
 			}
 	| Variable '^'						{
 				/* Dereference a pointer value */

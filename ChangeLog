@@ -5,6 +5,9 @@
 	interpreter code conversion for relative pointer and copy opcodes;
 	fix some bugs in stack-based register allocation.
 
+	* dpas/dpas-parser.y, dpas/dpas-types.c, dpas/dpas-types.h:
+	loading and storing record fields in Dynamic Pascal.
+
 2004-05-08  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-cache.c, jit/jit-cache.h, jit/jit-dump.c, jit/jit-interp.h,

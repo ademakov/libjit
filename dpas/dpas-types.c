@@ -220,6 +220,41 @@ unsigned int dpas_type_find_name(jit_type_t type, const char *name)
 	return JIT_INVALID_NAME;
 }
 
+jit_type_t dpas_type_get_field(jit_type_t type, const char *name,
+							   jit_nint *offset)
+{
+	unsigned int field;
+	const char *fname;
+	jit_type_t field_type;
+	type = jit_type_normalize(type);
+	field = jit_type_num_fields(type);
+	while(field > 0)
+	{
+		--field;
+		fname = jit_type_get_name(type, field);
+		field_type = jit_type_get_field(type, field);
+		if(fname && !jit_stricmp(fname, name))
+		{
+			*offset = jit_type_get_offset(type, field);
+			return field_type;
+		}
+		else if(!fname)
+		{
+			/* Probably a nested struct or union in a variant record */
+			if(dpas_type_is_record(field_type))
+			{
+				field_type = dpas_type_get_field(field_type, name, offset);
+				if(field_type != 0)
+				{
+					*offset += jit_type_get_offset(type, field);
+					return field_type;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
 /*
  * Concatenate two strings.
  */

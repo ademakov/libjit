@@ -102,6 +102,12 @@ void dpas_init_types(void);
 unsigned int dpas_type_find_name(jit_type_t type, const char *name);
 
 /*
+ * Get the type and offset of a field within a record type.
+ */
+jit_type_t dpas_type_get_field(jit_type_t type, const char *name,
+							   jit_nint *offset);
+
+/*
  * Get the name of a type, for printing in error messages.
  */
 char *dpas_type_name(jit_type_t type);
