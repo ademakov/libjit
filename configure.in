@@ -329,11 +329,11 @@ else
 	JITTHROWIDIOM=''
 fi
 
-dnl Determine if the C++ compiler understands the "-fno-gcse" option.
+dnl Determine if the C compiler understands the "-fno-gcse" option.
 dnl We will get better code in the interpreter if we use this option.
 AC_CACHE_CHECK(for -fno-gcse option, ac_cv_prog_no_gcse,
 [echo 'int main(int argc, char **argv){ return 0;}' > conftest.c
-if test -z "`${CXX-c++} -fno-gcse -o conftest conftest.c 2>&1`"; then
+if test -z "`${CC-cc} -fno-gcse -o conftest conftest.c 2>&1`"; then
   ac_cv_prog_no_gcse=yes
 else
   ac_cv_prog_no_gcse=no
@@ -341,7 +341,7 @@ fi
 rm -f conftest*
 ])
 if test "x$ac_cv_prog_no_gcse" = "xyes" ; then
-	CXXFLAGS="-fno-gcse $CXXFLAGS"
+	CFLAGS="-fno-gcse $CFLAGS"
 fi
 
 dnl Determine if the C++ compiler understands the "-lstdc++" option.

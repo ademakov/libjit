@@ -46,7 +46,7 @@ $(srcdir)/libjitext-dynlib.texi: $(top_srcdir)/jitdynamic/jit-dynlib.c
 $(srcdir)/libjitext-elf-read.texi: $(top_srcdir)/jit/jit-elf-read.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
-$(srcdir)/libjitext-except.texi: $(top_srcdir)/jit/jit-except.cpp
+$(srcdir)/libjitext-except.texi: $(top_srcdir)/jit/jit-except.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
 $(srcdir)/libjitext-function.texi: $(top_srcdir)/jit/jit-function.c

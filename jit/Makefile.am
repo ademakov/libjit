@@ -16,7 +16,7 @@ libjit_la_SOURCES = \
 		jit-elf-defs.h \
 		jit-elf-read.c \
 		jit-elf-write.c \
-		jit-except.cpp \
+		jit-except.c \
 		jit-function.c \
 		jit-gen-arm.h \
 		jit-gen-arm.c \
@@ -24,7 +24,7 @@ libjit_la_SOURCES = \
 		jit-insn.c \
 		jit-init.c \
 		jit-internal.h \
-		jit-interp.cpp \
+		jit-interp.c \
 		jit-intrinsic.c \
 		jit-live.c \
 		jit-memory.c \
@@ -50,6 +50,5 @@ libjit_la_SOURCES = \
 		jit-walk.c
 
 AM_CFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include -I. -I$(srcdir)
-AM_CXXFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include -I. -I$(srcdir)
 
-libjit_la_LDFLAGS = -version-info $(LIBJIT_VERSION) $(LIB_STDCPP)
+libjit_la_LDFLAGS = -version-info $(LIBJIT_VERSION)

@@ -1,5 +1,5 @@
 /*
- * jit-interp.cpp - Fallback interpreter implementation.
+ * jit-interp.c - Fallback interpreter implementation.
  *
  * Copyright (C) 2004  Southern Storm Software, Pty Ltd.
  *
@@ -226,7 +226,7 @@ static void apply_from_interpreter
 	jit_apply(signature, func, apply_args, num_fixed_args, return_area);
 }
 
-void _jit_run_function(jit_function_interp *func, jit_item *args,
+void _jit_run_function(jit_function_interp_t func, jit_item *args,
 					   jit_item *return_area)
 {
 	jit_item *frame;
@@ -4463,7 +4463,7 @@ handle_builtin: ;
 	jit_exception_builtin(builtin_exception);
 }
 
-extern "C" int jit_function_apply
+int jit_function_apply
 	(jit_function_t func, void **args, void *return_area)
 {
 	if(func)
@@ -4478,14 +4478,14 @@ extern "C" int jit_function_apply
 }
 
 /* Imported from "jit-rules-interp.c" */
-extern "C" unsigned int _jit_interp_calculate_arg_size
+unsigned int _jit_interp_calculate_arg_size
 		(jit_function_t func, jit_type_t signature);
 
-extern "C" int jit_function_apply_vararg
+int jit_function_apply_vararg
 	(jit_function_t func, jit_type_t signature, void **args, void *return_area)
 {
 	struct jit_backtrace call_trace;
-	jit_function_interp *entry;
+	jit_function_interp_t entry;
 	jit_item interp_return_area;
 	jit_item *arg_buffer;
 	jit_item *temp_arg;
@@ -4519,11 +4519,11 @@ extern "C" int jit_function_apply_vararg
 	/* Make sure that the function is compiled */
 	if(func->is_compiled)
 	{
-		entry = (jit_function_interp *)(func->entry_point);
+		entry = (jit_function_interp_t)(func->entry_point);
 	}
 	else
 	{
-		entry = (jit_function_interp *)
+		entry = (jit_function_interp_t)
 			_jit_function_compile_on_demand(func);
 	}
 

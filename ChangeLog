@@ -9,6 +9,12 @@
 	jit/jit-interp.h, jit/jit-setjmp.h: redesign the exception handling
 	mechanism to use "setjmp" rather than C++ exceptions.
 
+	* configure.in, doc/Makefile.am, doc/libjit.texi, dpas/Makefile.am,
+	jit/Makefile.am, jit/jit-except.c, jit/jit-except.cpp,
+	jit/jit-interp.c, jit/jit-interp.cpp, jitdynamic/Makefile.am:
+	remove the last remaining C++ code from libjit.so so that
+	it is now a pure C library.
+
 2004-05-20  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/jit-value.h, jit/jit-insn.c, jit/jit-value.c:

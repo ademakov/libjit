@@ -15,8 +15,6 @@ dpas_SOURCES = \
 
 AM_YFLAGS = -d
 
-CCLD = $(CXX)
-
 dpas_LDADD = $(top_builddir)/jit/libjit.la
 dpas_DEPENDENCIES = $(top_builddir)/jit/libjit.la
 

@@ -236,17 +236,8 @@ All of the header files are placed into the @code{jit} sub-directory,
 to separate them out from regular system headers.  When @code{libjit}
 is installed, you will typically find these headers in
 @code{/usr/local/include/jit} or @code{/usr/include/jit}, depending upon
-how your system is configured.
-
-You should also link with the @code{-ljit} option and use a C++ linker,
-not a C linker (because @code{libjit} contains a small amount of C++ code).
-If you are using Autotools, then you can force the use of a C++ linker
-by adding @code{AC_PROG_CXX} to @code{configure.in} and adding the
-following line to your @code{Makefile.am}:
-
-@example
-CCLD = $(CXX)
-@end example
+how your system is configured.  You should also link with the
+@code{-ljit} option.
 
 @noindent
 Every program that uses @code{libjit} needs to call @code{jit_context_create}:

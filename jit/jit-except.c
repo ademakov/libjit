@@ -1,5 +1,5 @@
 /*
- * jit-except.cpp - Exception handling functions.
+ * jit-except.c - Exception handling functions.
  *
  * Copyright (C) 2004  Southern Storm Software, Pty Ltd.
  *
@@ -17,14 +17,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-
-/*
-
-This file must be compiled with a C++ compiler, because it uses
-C++ exceptions to manage JIT exception throws.  It is otherwise
-straight vanilla ANSI C.
-
-*/
 
 #include "jit-internal.h"
 #include "jit-rules.h"
@@ -52,7 +44,7 @@ straight vanilla ANSI C.
  * data at the pointer is determined by the front end.
  * @end deftypefun
 @*/
-extern "C" void *jit_exception_get_last(void)
+void *jit_exception_get_last(void)
 {
 	jit_thread_control_t control = _jit_thread_get_control();
 	if(control)
@@ -72,7 +64,7 @@ extern "C" void *jit_exception_get_last(void)
  * both @code{jit_exception_get_last} and @code{jit_exception_clear_last}.
  * @end deftypefun
 @*/
-extern "C" void *jit_exception_get_last_and_clear(void)
+void *jit_exception_get_last_and_clear(void)
 {
 	jit_thread_control_t control = _jit_thread_get_control();
 	if(control)
@@ -95,7 +87,7 @@ extern "C" void *jit_exception_get_last_and_clear(void)
  * exception object before returning to regular code.
  * @end deftypefun
 @*/
-extern "C" void jit_exception_set_last(void *object)
+void jit_exception_set_last(void *object)
 {
 	jit_thread_control_t control = _jit_thread_get_control();
 	if(control)
@@ -111,7 +103,7 @@ extern "C" void jit_exception_set_last(void *object)
  * with a parameter of NULL.
  * @end deftypefun
 @*/
-extern "C" void jit_exception_clear_last(void)
+void jit_exception_clear_last(void)
 {
 	jit_exception_set_last(0);
 }
@@ -130,7 +122,7 @@ extern "C" void jit_exception_clear_last(void)
  * copied back into a location that is visible to the collector once more.
  * @end deftypefun
 @*/
-extern "C" void jit_exception_throw(void *object)
+void jit_exception_throw(void *object)
 {
 	jit_thread_control_t control = _jit_thread_get_control();
 	if(control)
@@ -204,7 +196,7 @@ extern "C" void jit_exception_throw(void *object)
  * @end table
  * @end deftypefun
 @*/
-extern "C" void jit_exception_builtin(int exception_type)
+void jit_exception_builtin(int exception_type)
 {
 	jit_exception_func handler;
 	void *object;
@@ -256,7 +248,7 @@ extern "C" void jit_exception_builtin(int exception_type)
  * Returns the previous exception handler.
  * @end deftypefun
 @*/
-extern "C" jit_exception_func jit_exception_set_handler
+jit_exception_func jit_exception_set_handler
 	(jit_exception_func handler)
 {
 	jit_exception_func previous;
@@ -278,7 +270,7 @@ extern "C" jit_exception_func jit_exception_set_handler
  * Get the builtin exception handler for the current thread.
  * @end deftypefun
 @*/
-extern "C" jit_exception_func jit_exception_get_handler(void)
+jit_exception_func jit_exception_get_handler(void)
 {
 	jit_thread_control_t control = _jit_thread_get_control();
 	if(control)
@@ -308,7 +300,7 @@ struct jit_stack_trace
  * insufficient memory to create it.
  * @end deftypefun
 @*/
-extern "C" jit_stack_trace_t jit_exception_get_stack_trace(void)
+jit_stack_trace_t jit_exception_get_stack_trace(void)
 {
 	jit_thread_control_t control;
 	jit_backtrace_t top;
@@ -358,7 +350,7 @@ extern "C" jit_stack_trace_t jit_exception_get_stack_trace(void)
  * Get the size of a stack trace.
  * @end deftypefun
 @*/
-extern "C" unsigned int jit_stack_trace_get_size(jit_stack_trace_t trace)
+unsigned int jit_stack_trace_get_size(jit_stack_trace_t trace)
 {
 	if(trace)
 	{
@@ -378,7 +370,7 @@ extern "C" unsigned int jit_stack_trace_get_size(jit_stack_trace_t trace)
  * @code{posn} within the stack trace.
  * @end deftypefun
 @*/
-extern "C" jit_function_t jit_stack_trace_get_function
+jit_function_t jit_stack_trace_get_function
 	(jit_context_t context, jit_stack_trace_t trace, unsigned int posn)
 {
 	if(trace && posn < trace->size)
@@ -400,7 +392,7 @@ extern "C" jit_function_t jit_stack_trace_get_function
  * where execution had reached at the time of the trace.
  * @end deftypefun
 @*/
-extern "C" void *jit_stack_trace_get_pc
+void *jit_stack_trace_get_pc
 	(jit_stack_trace_t trace, unsigned int posn)
 {
 	if(trace && posn < trace->size)
@@ -420,7 +412,7 @@ extern "C" void *jit_stack_trace_get_pc
  * is no bytecode offset associated with @code{posn}.
  * @end deftypefun
 @*/
-extern "C" unsigned int jit_stack_trace_get_offset
+unsigned int jit_stack_trace_get_offset
 	(jit_context_t context, jit_stack_trace_t trace, unsigned int posn)
 {
 	/* TODO */
@@ -432,7 +424,7 @@ extern "C" unsigned int jit_stack_trace_get_offset
  * Free the memory associated with a stack trace.
  * @end deftypefun
 @*/
-extern "C" void jit_stack_trace_free(jit_stack_trace_t trace)
+void jit_stack_trace_free(jit_stack_trace_t trace)
 {
 	if(trace)
 	{
@@ -440,7 +432,7 @@ extern "C" void jit_stack_trace_free(jit_stack_trace_t trace)
 	}
 }
 
-extern "C" void _jit_backtrace_push
+void _jit_backtrace_push
 	(jit_backtrace_t trace, void *pc, void *catch_pc, void *sp)
 {
 	jit_thread_control_t control = _jit_thread_get_control();
@@ -465,7 +457,7 @@ extern "C" void _jit_backtrace_push
 	}
 }
 
-extern "C" void _jit_backtrace_pop(void)
+void _jit_backtrace_pop(void)
 {
 	jit_thread_control_t control = _jit_thread_get_control();
 	jit_backtrace_t trace;
@@ -483,7 +475,7 @@ extern "C" void _jit_backtrace_pop(void)
 	}
 }
 
-extern "C" void _jit_backtrace_set(jit_backtrace_t trace)
+void _jit_backtrace_set(jit_backtrace_t trace)
 {
 	jit_thread_control_t control = _jit_thread_get_control();
 	if(control)
@@ -492,7 +484,7 @@ extern "C" void _jit_backtrace_set(jit_backtrace_t trace)
 	}
 }
 
-extern "C" void _jit_unwind_push_setjmp(jit_jmp_buf *jbuf)
+void _jit_unwind_push_setjmp(jit_jmp_buf *jbuf)
 {
 	jit_thread_control_t control = _jit_thread_get_control();
 	if(control)
@@ -503,21 +495,12 @@ extern "C" void _jit_unwind_push_setjmp(jit_jmp_buf *jbuf)
 	}
 }
 
-extern "C" void _jit_unwind_pop_setjmp(void)
+void _jit_unwind_pop_setjmp(void)
 {
 	jit_thread_control_t control = _jit_thread_get_control();
 	if(control && control->setjmp_head)
 	{
 		control->backtrace_head = control->setjmp_head->trace;
 		control->setjmp_head = control->setjmp_head->parent;
-	}
-}
-
-extern "C" void _jit_unwind_fix_setjmp(void)
-{
-	jit_thread_control_t control = _jit_thread_get_control();
-	if(control && control->setjmp_head)
-	{
-		control->backtrace_head = control->setjmp_head->trace;
 	}
 }

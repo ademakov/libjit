@@ -1,8 +1,6 @@
 
 noinst_PROGRAMS = t1 t2 t3 t4
 
-CCLD = $(CXX)
-
 t1_SOURCES = t1.c
 t1_LDADD = $(top_builddir)/jit/libjit.la
 t1_DEPENDENCIES = $(top_builddir)/jit/libjit.la

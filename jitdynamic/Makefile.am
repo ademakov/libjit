@@ -10,5 +10,5 @@ AM_CFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include \
 
 libjitdynamic_la_LDFLAGS = \
 		-version-info $(LIBJIT_VERSION) \
-		-L$(top_builddir)/jit -L$(top_builddir)/jit/.libs -ljit $(LIB_STDCPP)
+		-L$(top_builddir)/jit -L$(top_builddir)/jit/.libs -ljit
 libjitdynamic_la_DEPENDENCIES = $(top_builddir)/jit/libjit.la
