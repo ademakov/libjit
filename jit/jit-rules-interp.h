@@ -95,11 +95,13 @@ extern	"C" {
  */
 #define	jit_extra_gen_state	\
 			int working_area; \
-			int max_working_area
+			int max_working_area; \
+			int extra_working_space
 #define	jit_extra_gen_init(gen)	\
 			do { \
 				(gen)->working_area = 0; \
 				(gen)->max_working_area = 0; \
+				(gen)->extra_working_space = 0; \
 			} while (0)
 #define	jit_extra_gen_cleanup(gen)	do { ; } while (0)
 

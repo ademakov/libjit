@@ -614,11 +614,13 @@ void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 {
 	/* Output the jit_function_interp structure at the beginning */
 	jit_function_interp_t interp = (jit_function_interp_t)buf;
+	unsigned int max_working_area =
+		gen->max_working_area + gen->extra_working_space;
 	interp->func = func;
 	interp->args_size = _jit_interp_calculate_arg_size(func, func->signature);
 	interp->frame_size =
-		(func->builder->frame_size + gen->max_working_area) * sizeof(jit_item);
-	interp->working_area = gen->max_working_area;
+		(func->builder->frame_size + max_working_area) * sizeof(jit_item);
+	interp->working_area = max_working_area;
 	return buf;
 }
 
@@ -931,8 +933,6 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 
 	switch(insn->opcode)
 	{
-		/* TODO */
-
 		case JIT_OP_BR:
 		{
 			/* Unconditional branch */
@@ -968,6 +968,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		case JIT_OP_BR_ITRUE:
 		case JIT_OP_BR_LFALSE:
 		case JIT_OP_BR_LTRUE:
+		case JIT_OP_CALL_FILTER:
 		{
 			/* Unary branch */
 			label = get_branch_dest(block, insn);
@@ -1208,6 +1209,77 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 			}
 			reg = _jit_regs_new_top(gen, insn->dest, 0);
 			adjust_working(gen, 1);
+		}
+		break;
+
+		case JIT_OP_THROW:
+		{
+			/* Throw an exception */
+			reg = _jit_regs_load_to_top
+				(gen, insn->value1,
+				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+				 				 JIT_INSN_VALUE1_LIVE)), 0);
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			_jit_regs_free_reg(gen, reg, 1);
+		}
+		break;
+
+		case JIT_OP_LOAD_PC:
+		{
+			/* Load the current program counter onto the stack */
+			if(_jit_regs_num_used(gen, 0) >= JIT_NUM_REGS)
+			{
+				_jit_regs_spill_all(gen);
+			}
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			reg = _jit_regs_new_top(gen, insn->dest, 0);
+			adjust_working(gen, 1);
+		}
+		break;
+
+		case JIT_OP_ENTER_CATCH:
+		case JIT_OP_CALL_FILTER_RETURN:
+		{
+			/* The top of stack currently contains "dest" */
+			_jit_regs_set_value(gen, 0, insn->dest, 0);
+			adjust_working(gen, 1);
+		}
+		break;
+
+		case JIT_OP_ENTER_FINALLY:
+		{
+			/* Record that the finally return address is on the stack */
+			++(gen->extra_working_space);
+		}
+		break;
+
+		case JIT_OP_LEAVE_FINALLY:
+		{
+			/* Leave a finally clause */
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+		}
+		break;
+
+		case JIT_OP_ENTER_FILTER:
+		{
+			/* The top of stack contains "dest" and a return address */
+			++(gen->extra_working_space);
+			_jit_regs_set_value(gen, 0, insn->dest, 0);
+			adjust_working(gen, 1);
+		}
+		break;
+
+		case JIT_OP_LEAVE_FILTER:
+		{
+			/* Leave a filter clause, returning a particular value */
+			if(!_jit_regs_is_top(gen, insn->value1) ||
+			   _jit_regs_num_used(gen, 0) != 1)
+			{
+				_jit_regs_spill_all(gen);
+			}
+			reg = _jit_regs_load_to_top(gen, insn->value1, 0, 0);
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			_jit_regs_free_reg(gen, reg, 1);
 		}
 		break;
 
