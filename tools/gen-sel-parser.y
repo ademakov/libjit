@@ -75,6 +75,7 @@ static int gensel_first_stack_reg = 8;	/* st0 under x86 */
 #define	GENSEL_OPT_STACK				0x0010
 #define	GENSEL_OPT_UNARY_BRANCH			0x0020
 #define	GENSEL_OPT_BINARY_BRANCH		0x0040
+#define	GENSEL_OPT_ONLY					0x0080
 
 /*
  * Pattern values.
@@ -512,6 +513,15 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 		}
 		else
 		{
+			if((options & GENSEL_OPT_ONLY) != 0)
+			{
+				printf("\t\tif(!_jit_regs_is_top(gen, insn->value1) ||\n");
+				printf("\t\t   _jit_regs_num_used(gen, %d) != 1)\n",
+					   gensel_first_stack_reg);
+				printf("\t\t{\n");
+				printf("\t\t\t_jit_regs_spill_all(gen);\n");
+				printf("\t\t}\n");
+			}
 			if((options & GENSEL_OPT_TERNARY) != 0)
 			{
 				printf("\t\treg = _jit_regs_load_to_top_three\n");
@@ -525,7 +535,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 											   "%d);\n",
 					   gensel_first_stack_reg);
 			}
-			else if((options & GENSEL_OPT_BINARY) != 0)
+			else if((options & (GENSEL_OPT_BINARY |
+								GENSEL_OPT_BINARY_BRANCH)) != 0)
 			{
 				printf("\t\treg = _jit_regs_load_to_top_two\n");
 				printf("\t\t\t(gen, insn->value1, insn->value2,\n");
@@ -536,7 +547,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 											   "%d);\n",
 					   gensel_first_stack_reg);
 			}
-			else if((options & GENSEL_OPT_UNARY) != 0)
+			else if((options & (GENSEL_OPT_UNARY |
+								GENSEL_OPT_UNARY_BRANCH)) != 0)
 			{
 				printf("\t\treg = _jit_regs_load_to_top\n");
 				printf("\t\t\t(gen, insn->value1,\n");
@@ -643,6 +655,7 @@ static void gensel_output_supported(void)
 %token K_BINARY_BRANCH		"`binary_branch'"
 %token K_TERNARY			"`ternary'"
 %token K_STACK				"`stack'"
+%token K_ONLY				"`only'"
 %token K_INST_TYPE			"`%inst_type'"
 
 /*
@@ -719,6 +732,7 @@ Option
 	| K_BINARY_BRANCH			{ $$ = GENSEL_OPT_BINARY_BRANCH; }
 	| K_TERNARY					{ $$ = GENSEL_OPT_TERNARY; }
 	| K_STACK					{ $$ = GENSEL_OPT_STACK; }
+	| K_ONLY					{ $$ = GENSEL_OPT_ONLY; }
 	;
 
 Clauses

@@ -98,7 +98,10 @@ WHITE					[ \t\v\r\f]
 "ternary"				{ RETURNTOK(K_TERNARY); }
 "unary_branch"			{ RETURNTOK(K_UNARY_BRANCH); }
 "binary_branch"			{ RETURNTOK(K_BINARY_BRANCH); }
+"unary_note"			{ RETURNTOK(K_UNARY_BRANCH); }
+"binary_note"			{ RETURNTOK(K_BINARY_BRANCH); }
 "stack"					{ RETURNTOK(K_STACK); }
+"only"					{ RETURNTOK(K_ONLY); }
 "%inst_type"			{ RETURNTOK(K_INST_TYPE); }
 
 {IDALPHA}({DIGIT}|{IDALPHA})*	{

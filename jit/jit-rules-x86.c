@@ -1045,7 +1045,14 @@ void _jit_gen_load_value
 				}
 				ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_nfloat));
 				jit_memcpy(ptr, &nfloat_value, sizeof(nfloat_value));
-				x86_fld80_mem(inst, ptr);
+				if(sizeof(jit_nfloat) != sizeof(jit_float64))
+				{
+					x86_fld80_mem(inst, ptr);
+				}
+				else
+				{
+					x86_fld(inst, ptr, 1);
+				}
 			}
 			break;
 		}
