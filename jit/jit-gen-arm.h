@@ -718,7 +718,7 @@ extern arm_inst_ptr _arm_mov_reg_imm
 /*
  * Load a floating-point value from an address into a register.
  */
-#define	arm_load_membase_float_either(inst,reg,basereg,imm,mask)	\
+#define	arm_load_membase_float(inst,reg,basereg,imm,mask)	\
 			do { \
 				int __mb_offset = (int)(imm); \
 				if(__mb_offset >= 0 && __mb_offset < (1 << 10) && \
@@ -727,7 +727,7 @@ extern arm_inst_ptr _arm_mov_reg_imm
 					*(inst)++ = arm_prefix(0x0D100000 | (mask)) | \
 							(((unsigned int)(basereg)) << 16) | \
 							(((unsigned int)(reg)) << 12) | \
-							 ((unsigned int)((__mb_offset / 4) & 0xFF); \
+							 ((unsigned int)((__mb_offset / 4) & 0xFF)); \
 				} \
 				else if(__mb_offset > -(1 << 10) && __mb_offset < 0 && \
 				        (__mb_offset & 3) == 0) \
@@ -817,7 +817,7 @@ extern arm_inst_ptr _arm_mov_reg_imm
 /*
  * Store a floating-point value to a memory address.
  */
-#define	arm_store_membase_float_either(inst,reg,basereg,imm,mask)	\
+#define	arm_store_membase_float(inst,reg,basereg,imm,mask)	\
 			do { \
 				int __mb_offset = (int)(imm); \
 				if(__mb_offset >= 0 && __mb_offset < (1 << 10) && \
@@ -826,7 +826,7 @@ extern arm_inst_ptr _arm_mov_reg_imm
 					*(inst)++ = arm_prefix(0x0D800000 | (mask)) | \
 							(((unsigned int)(basereg)) << 16) | \
 							(((unsigned int)(reg)) << 12) | \
-							 ((unsigned int)((__mb_offset / 4) & 0xFF); \
+							 ((unsigned int)((__mb_offset / 4) & 0xFF)); \
 				} \
 				else if(__mb_offset > -(1 << 10) && __mb_offset < 0 && \
 				        (__mb_offset & 3) == 0) \

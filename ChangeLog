@@ -16,6 +16,9 @@
 
 	* jit-gen-arm.h: add floating-point instruction macros.
 
+	* jit/jit-gen-arm.h, jit/jit-rules-arm.c, jit/jit-rules-arm.h,
+	jit/jit-rules-arm.sel: expand floating-point instructions for ARM.
+
 2004-06-06  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c (jit_flush_exec): flush cache lines properly

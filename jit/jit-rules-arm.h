@@ -21,8 +21,17 @@
 #ifndef	_JIT_RULES_ARM_H
 #define	_JIT_RULES_ARM_H
 
+#include "jit-apply-rules.h"
+
 #ifdef	__cplusplus
 extern	"C" {
+#endif
+
+/*
+ * Determine if this ARM core has floating point registers available.
+ */
+#if JIT_APPLY_NUM_FLOAT_REGS != 0 || JIT_APPLY_RETURN_FLOATS_AFTER != 0
+	#define	JIT_ARM_HAS_FLOAT_REGS	1
 #endif
 
 /*
@@ -32,8 +41,12 @@ extern	"C" {
  * Of the floating-point registers, we only use f0-f3 at present,
  * so that we don't have to worry about saving the values of f4-f7.
  * The floating-point registers are only present on some ARM cores.
- * "_jit_init_backend" will disable the FP registers if they don't exist.
  */
+#ifdef JIT_ARM_HAS_FLOAT_REGS
+	#define	JIT_REG_ARM_FLOAT	JIT_REG_FLOAT | JIT_REG_CALL_USED
+#else
+	#define	JIT_REG_ARM_FLOAT	JIT_REG_FIXED
+#endif
 #define	JIT_REG_INFO	\
 	{"r0",   0,  1, JIT_REG_WORD | JIT_REG_CALL_USED}, \
 	{"r1",   1, -1, JIT_REG_WORD | JIT_REG_CALL_USED}, \
@@ -51,10 +64,10 @@ extern	"C" {
 	{"sp",  13, -1, JIT_REG_FIXED | JIT_REG_STACK_PTR}, \
 	{"lr",  14, -1, JIT_REG_FIXED}, \
 	{"pc",  15, -1, JIT_REG_FIXED}, \
-	{"f0",   0, -1, JIT_REG_FLOAT | JIT_REG_CALL_USED}, \
-	{"f1",   1, -1, JIT_REG_FLOAT | JIT_REG_CALL_USED}, \
-	{"f2",   2, -1, JIT_REG_FLOAT | JIT_REG_CALL_USED}, \
-	{"f3",   3, -1, JIT_REG_FLOAT | JIT_REG_CALL_USED},
+	{"f0",   0, -1, JIT_REG_ARM_FLOAT}, \
+	{"f1",   1, -1, JIT_REG_ARM_FLOAT}, \
+	{"f2",   2, -1, JIT_REG_ARM_FLOAT}, \
+	{"f3",   3, -1, JIT_REG_ARM_FLOAT},
 #define	JIT_NUM_REGS		20
 #define	JIT_NUM_GLOBAL_REGS	3
 

@@ -149,6 +149,81 @@ JIT_OP_INEG: unary
 		arm_alu_reg_imm8(inst, ARM_RSB, $1, $1, 0);
 	}
 
+JIT_OP_FADD: binary
+	[freg, freg] -> {
+		arm_alu_freg_freg_32(inst, ARM_ADF, $1, $1, $2);
+	}
+
+JIT_OP_FSUB: binary
+	[freg, freg] -> {
+		arm_alu_freg_freg_32(inst, ARM_SUF, $1, $1, $2);
+	}
+
+JIT_OP_FMUL: binary
+	[freg, freg] -> {
+		arm_alu_freg_freg_32(inst, ARM_MUF, $1, $1, $2);
+	}
+
+JIT_OP_FDIV: binary
+	[freg, freg] -> {
+		arm_alu_freg_freg_32(inst, ARM_DVF, $1, $1, $2);
+	}
+
+JIT_OP_FNEG: unary
+	[freg] -> {
+		arm_alu_freg_32(inst, ARM_MNF, $1, $1);
+	}
+
+JIT_OP_DADD: binary
+	[freg, freg] -> {
+		arm_alu_freg_freg(inst, ARM_ADF, $1, $1, $2);
+	}
+
+JIT_OP_DSUB: binary
+	[freg, freg] -> {
+		arm_alu_freg_freg(inst, ARM_SUF, $1, $1, $2);
+	}
+
+JIT_OP_DMUL: binary
+	[freg, freg] -> {
+		arm_alu_freg_freg(inst, ARM_MUF, $1, $1, $2);
+	}
+
+JIT_OP_DDIV: binary
+	[freg, freg] -> {
+		arm_alu_freg_freg(inst, ARM_DVF, $1, $1, $2);
+	}
+
+JIT_OP_DNEG: unary
+	[freg] -> {
+		arm_alu_freg(inst, ARM_MNF, $1, $1);
+	}
+
+JIT_OP_NFADD: binary
+	[freg, freg] -> {
+		arm_alu_freg_freg(inst, ARM_ADF, $1, $1, $2);
+	}
+
+JIT_OP_NFSUB: binary
+	[freg, freg] -> {
+		arm_alu_freg_freg(inst, ARM_SUF, $1, $1, $2);
+	}
+
+JIT_OP_NFMUL: binary
+	[freg, freg] -> {
+		arm_alu_freg_freg(inst, ARM_MUF, $1, $1, $2);
+	}
+
+JIT_OP_NFDIV: binary
+	[freg, freg] -> {
+		arm_alu_freg_freg(inst, ARM_DVF, $1, $1, $2);
+	}
+
+JIT_OP_NFNEG: unary
+	[freg] -> {
+		arm_alu_freg(inst, ARM_MNF, $1, $1);
+	}
+
 /*
  * Bitwise opcodes.
  */
@@ -562,22 +637,28 @@ JIT_OP_RETURN_LONG: spill_before
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_FLOAT32: manual
-	[] -> {
-		/* TODO */
-		TODO();
+JIT_OP_RETURN_FLOAT32: unary_note
+	[freg] -> {
+		if($1 != 0)
+		{
+			arm_alu_freg_32(inst, ARM_MVF, ARM_F0, $1);
+		}
 	}
 
-JIT_OP_RETURN_FLOAT64: manual
-	[] -> {
-		/* TODO */
-		TODO();
+JIT_OP_RETURN_FLOAT64: unary_note
+	[freg] -> {
+		if($1 != 0)
+		{
+			arm_alu_freg(inst, ARM_MVF, ARM_F0, $1);
+		}
 	}
 
-JIT_OP_RETURN_NFLOAT: manual
-	[] -> {
-		/* TODO */
-		TODO();
+JIT_OP_RETURN_NFLOAT: unary_note
+	[freg] -> {
+		if($1 != 0)
+		{
+			arm_alu_freg(inst, ARM_MVF, ARM_F0, $1);
+		}
 	}
 
 JIT_OP_RETURN_SMALL_STRUCT: spill_before
@@ -663,23 +744,14 @@ JIT_OP_COPY_LONG: spill_before
 		TODO();
 	}
 
-JIT_OP_COPY_FLOAT32: manual
-	[] -> {
-		/* TODO */
-		TODO();
-	}
+JIT_OP_COPY_FLOAT32: unary
+	[freg] -> {}
 
-JIT_OP_COPY_FLOAT64: manual
-	[] -> {
-		/* TODO */
-		TODO();
-	}
+JIT_OP_COPY_FLOAT64: unary
+	[freg] -> {}
 
-JIT_OP_COPY_NFLOAT: manual
-	[] -> {
-		/* TODO */
-		TODO();
-	}
+JIT_OP_COPY_NFLOAT: unary
+	[freg] -> {}
 
 JIT_OP_COPY_STRUCT: manual
 	[] -> {
@@ -778,22 +850,19 @@ JIT_OP_PUSH_LONG: manual
 		TODO();
 	}
 
-JIT_OP_PUSH_FLOAT32: manual
-	[] -> {
-		/* TODO */
-		TODO();
+JIT_OP_PUSH_FLOAT32: unary_note
+	[freg] -> {
+		arm_push_reg_float32(inst, $1);
 	}
 
-JIT_OP_PUSH_FLOAT64: manual
-	[] -> {
-		/* TODO */
-		TODO();
+JIT_OP_PUSH_FLOAT64: unary_note
+	[freg] -> {
+		arm_push_reg_float64(inst, $1);
 	}
 
-JIT_OP_PUSH_NFLOAT: manual
-	[] -> {
-		/* TODO */
-		TODO();
+JIT_OP_PUSH_NFLOAT: unary_note
+	[freg] -> {
+		arm_push_reg_float64(inst, $1);
 	}
 
 JIT_OP_PUSH_STRUCT: unary_note

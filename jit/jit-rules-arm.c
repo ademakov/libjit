@@ -30,13 +30,6 @@
 #include <stdio.h>
 
 /*
- * Determine if we actually have floating-point registers.
- */
-#if JIT_APPLY_NUM_FLOAT_REGS != 0 || JIT_APPLY_RETURN_FLOATS_AFTER != 0
-	#define	JIT_ARM_HAS_FLOAT_REGS	1
-#endif
-
-/*
  * Round a size up to a multiple of the stack word size.
  */
 #define	ROUND_STACK(size)	\
@@ -44,14 +37,7 @@
 
 void _jit_init_backend(void)
 {
-#ifndef JIT_ARM_HAS_FLOAT_REGS
-	/* Turn off floating-point registers, as this ARM core doesn't have them */
-	int reg;
-	for(reg = 16; reg < JIT_NUM_REGS; ++reg)
-	{
-		_jit_reg_info[reg].flags = JIT_REG_FIXED;
-	}
-#endif
+	/* Nothing to do here */
 }
 
 void _jit_gen_get_elf_info(jit_elf_info_t *info)
@@ -482,9 +468,20 @@ int _jit_create_call_return_insns
 			return 0;
 		}
 	}
+#ifdef JIT_ARM_HAS_FLOAT_REGS
+	else if(return_type->kind == JIT_TYPE_FLOAT32 ||
+			return_type->kind == JIT_TYPE_FLOAT64 ||
+			return_type->kind == JIT_TYPE_NFLOAT)
+	{
+		if(!jit_insn_return_reg(func, return_value, 16 /* f0 */))
+		{
+			return 0;
+		}
+	}
+#endif
 	else if(return_type->kind != JIT_TYPE_VOID)
 	{
-		if(!jit_insn_return_reg(func, return_value, ARM_R0))
+		if(!jit_insn_return_reg(func, return_value, 0 /* r0 */))
 		{
 			return 0;
 		}
@@ -639,12 +636,23 @@ void _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 
 	/* Output an appropriate instruction to spill the value */
 	offset = (int)(value->frame_offset);
-	arm_store_membase(inst, ARM_FP, offset, reg);
-	if(other_reg != -1)
+	if(reg < 16)
 	{
-		/* Spill the other word register in a pair */
-		offset += sizeof(void *);
-		arm_store_membase(inst, ARM_FP, offset, reg);
+		arm_store_membase(inst, reg, ARM_FP, offset);
+		if(other_reg != -1)
+		{
+			/* Spill the other word register in a pair */
+			offset += sizeof(void *);
+			arm_store_membase(inst, other_reg, ARM_FP, offset);
+		}
+	}
+	else if(jit_type_normalize(value->type)->kind == JIT_TYPE_FLOAT32)
+	{
+		arm_store_membase_float32(inst, reg - 16, ARM_FP, offset);
+	}
+	else
+	{
+		arm_store_membase_float64(inst, reg - 16, ARM_FP, offset);
 	}
 
 	/* End the code output process */
@@ -660,7 +668,6 @@ void _jit_gen_free_reg(jit_gencode_t gen, int reg,
 void _jit_gen_load_value
 	(jit_gencode_t gen, int reg, int other_reg, jit_value_t value)
 {
-	void *ptr;
 	int offset;
 
 	/* Make sure that we have sufficient space */
@@ -704,10 +711,18 @@ void _jit_gen_load_value
 					jit_cache_mark_full(&(gen->posn));
 					return;
 				}
-				ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float32));
-				jit_memcpy(ptr, &float32_value, sizeof(float32_value));
-				/* TODO */
-				/*x86_fld(inst, ptr, 0);*/
+				if(reg < 16)
+				{
+					arm_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
+									*((int *)&float32_value));
+				}
+				else
+				{
+					arm_load_membase_float32
+						(inst, _jit_reg_info[reg].cpu_reg, ARM_PC, 0);
+					arm_jump_imm(inst, 0);
+					*(inst)++ = *((int *)&float32_value);
+				}
 			}
 			break;
 
@@ -721,10 +736,30 @@ void _jit_gen_load_value
 					jit_cache_mark_full(&(gen->posn));
 					return;
 				}
-				ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float64));
-				jit_memcpy(ptr, &float64_value, sizeof(float64_value));
-				/* TODO */
-				/*x86_fld(inst, ptr, 1);*/
+				if(reg < 16)
+				{
+					arm_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
+									((int *)&float64_value)[0]);
+					arm_mov_reg_imm(inst, _jit_reg_info[other_reg].cpu_reg,
+									((int *)&float64_value)[1]);
+				}
+				else if((((int)inst) & 7) == 0)
+				{
+					arm_load_membase_float64
+						(inst, _jit_reg_info[reg].cpu_reg, ARM_PC, 0);
+					arm_jump_imm(inst, 4);
+					*(inst)++ = ((int *)&float64_value)[0];
+					*(inst)++ = ((int *)&float64_value)[1];
+				}
+				else
+				{
+					arm_load_membase_float64
+						(inst, _jit_reg_info[reg].cpu_reg, ARM_PC, 4);
+					arm_jump_imm(inst, 8);
+					*(inst)++ = 0;
+					*(inst)++ = ((int *)&float64_value)[0];
+					*(inst)++ = ((int *)&float64_value)[1];
+				}
 			}
 			break;
 		}
@@ -792,16 +827,34 @@ void _jit_gen_load_value
 
 			case JIT_TYPE_FLOAT32:
 			{
-				/* TODO */
-				/*x86_fld_membase(inst, X86_EBP, offset, 0);*/
+				if(reg < 16)
+				{
+					arm_load_membase(inst, _jit_reg_info[reg].cpu_reg,
+									 ARM_FP, offset);
+				}
+				else
+				{
+					arm_load_membase_float32
+						(inst, _jit_reg_info[reg].cpu_reg, ARM_FP, offset);
+				}
 			}
 			break;
 
 			case JIT_TYPE_FLOAT64:
 			case JIT_TYPE_NFLOAT:
 			{
-				/* TODO */
-				/*x86_fld_membase(inst, X86_EBP, offset, 1);*/
+				if(reg < 16)
+				{
+					arm_load_membase(inst, _jit_reg_info[reg].cpu_reg,
+									 ARM_FP, offset);
+					arm_load_membase(inst, _jit_reg_info[other_reg].cpu_reg,
+									 ARM_FP, offset + 4);
+				}
+				else
+				{
+					arm_load_membase_float64
+						(inst, _jit_reg_info[reg].cpu_reg, ARM_FP, offset);
+				}
 			}
 			break;
 		}
