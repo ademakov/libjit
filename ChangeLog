@@ -12,6 +12,9 @@
 
 	* jit/jit-gen-arm.c: optimize the use of rotated immediate values.
 
+	* jit/jit-rules-arm.c (_jit_gen_load_value): use ARM register pairs
+	properly for "long" and "float64" values.
+
 2004-06-08  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/Makefile.am, jit/jit-cpuid-x86.c, jit/jit-cpuid-x86.h:

@@ -983,7 +983,7 @@ void _jit_gen_load_value
 				long_value = jit_value_get_long_constant(value);
 				inst = mov_reg_imm(gen, inst, _jit_reg_info[reg].cpu_reg,
 								   (jit_int)long_value);
-				inst = mov_reg_imm(gen, inst, _jit_reg_info[other_reg].cpu_reg,
+				inst = mov_reg_imm(gen, inst, _jit_reg_info[reg].cpu_reg + 1,
 								    (jit_int)(long_value >> 32));
 			}
 			break;
@@ -1027,7 +1027,7 @@ void _jit_gen_load_value
 						(gen, inst, _jit_reg_info[reg].cpu_reg,
 						 ((int *)&float64_value)[0]);
 					inst = mov_reg_imm
-						(gen, inst, _jit_reg_info[other_reg].cpu_reg,
+						(gen, inst, _jit_reg_info[reg].cpu_reg + 1,
 						 ((int *)&float64_value)[1]);
 				}
 				else
@@ -1097,7 +1097,7 @@ void _jit_gen_load_value
 			{
 				arm_load_membase(inst, _jit_reg_info[reg].cpu_reg,
 								 ARM_FP, offset);
-				arm_load_membase(inst, _jit_reg_info[other_reg].cpu_reg,
+				arm_load_membase(inst, _jit_reg_info[reg].cpu_reg + 1,
 								 ARM_FP, offset + 4);
 			}
 			break;
@@ -1124,7 +1124,7 @@ void _jit_gen_load_value
 				{
 					arm_load_membase(inst, _jit_reg_info[reg].cpu_reg,
 									 ARM_FP, offset);
-					arm_load_membase(inst, _jit_reg_info[other_reg].cpu_reg,
+					arm_load_membase(inst, _jit_reg_info[reg].cpu_reg + 1,
 									 ARM_FP, offset + 4);
 				}
 				else
