@@ -47,6 +47,7 @@ Copyright @copyright{} 2004 Southern Storm Software, Pty Ltd
 * Exceptions::              Handling exceptions
 * ELF Binaries::            Manipulating ELF binaries
 * Utility Routines::        Miscellaneous utility routines
+* Debugging Routines::      Debugging routines
 * C++ Interface::           Using libjit from C++
 * Porting::                 Porting libjit to new architectures
 * Why GPL?::                Why we use GPL and not LGPL for libjit
@@ -1029,7 +1030,7 @@ field with a @code{pointer to procedure/function} type.
 
 @c -----------------------------------------------------------------------
 
-@node Utility Routines, C++ Interface, ELF Binaries, Top
+@node Utility Routines, Debugging Routines, ELF Binaries, Top
 @chapter Miscellaneous utility routines
 @cindex Utility routines
 @cindex jit-util.h
@@ -1048,7 +1049,15 @@ that it itself uses internally, but which may also be useful to front ends.
 
 @c -----------------------------------------------------------------------
 
-@node C++ Interface, C++ Contexts, Utility Routines, Top
+@node Debugging Routines, C++ Interface, Utility Routines, Top
+@chapter Debugging routines
+@cindex Debugging routines
+
+@include libjitext-dump.texi
+
+@c -----------------------------------------------------------------------
+
+@node C++ Interface, C++ Contexts, Debugging Routines, Top
 @chapter Using libjit from C++
 @cindex Using libjit from C++
 

@@ -1421,7 +1421,9 @@ jit_value_t jit_insn_load_small(jit_function_t func, jit_value_t value)
 /*@
  * @deftypefun void jit_insn_store (jit_function_t func, jit_value_t dest, jit_value_t value)
  * Store the contents of @code{value} at the location referred to by
- * @code{dest}.
+ * @code{dest}.  The @code{dest} should be a @code{jit_value_t} representing a
+ * local variable or temporary.  Use @code{jit_insn_store_relative} to store
+ * to a location referred to by a pointer.
  * @end deftypefun
 @*/
 int jit_insn_store(jit_function_t func, jit_value_t dest, jit_value_t value)

@@ -1,0 +1,17 @@
+
+To generate HTML documentation, use the following command in the
+"libjit/doc" directory:
+
+	mkdir outdir
+	./mkhtml.sh outdir
+
+where "outdir" is the name of the directory to place the generated
+HTML files in.
+
+To generate PDF documentation, use the following command in the
+"libjit/doc" directory:
+
+	./mkpdf.sh
+
+This will generate "libjit.pdf".  You will need to have PDFTeX installed
+to do this.

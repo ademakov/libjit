@@ -34,6 +34,12 @@
 #endif
 
 /*@
+
+@cindex jit-dump.h
+
+@*/
+
+/*@
  * @deftypefun void jit_dump_type ({FILE *} stream, jit_type_t type)
  * Dump the name of a type to a stdio stream.
  * @end deftypefun
