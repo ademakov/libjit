@@ -1647,14 +1647,35 @@ JIT_OP_CALL_INDIRECT:
 		x86_call_reg(inst, X86_EAX);
 	}
 
+JIT_OP_CALL_INDIRECT_TAIL:
+	[] -> {
+		x86_mov_reg_reg(inst, X86_ESP, X86_EBP, sizeof(void *));
+		x86_pop_reg(inst, X86_EBP);
+		x86_jump_reg(inst, X86_EAX);
+	}
+
 JIT_OP_CALL_VTABLE_PTR:
 	[] -> {
 		x86_call_reg(inst, X86_EAX);
 	}
 
+JIT_OP_CALL_VTABLE_PTR_TAIL:
+	[] -> {
+		x86_mov_reg_reg(inst, X86_ESP, X86_EBP, sizeof(void *));
+		x86_pop_reg(inst, X86_EBP);
+		x86_jump_reg(inst, X86_EAX);
+	}
+
 JIT_OP_CALL_EXTERNAL:
 	[] -> {
 		x86_call_code(inst, (void *)(insn->dest));
+	}
+
+JIT_OP_CALL_EXTERNAL_TAIL:
+	[] -> {
+		x86_mov_reg_reg(inst, X86_ESP, X86_EBP, sizeof(void *));
+		x86_pop_reg(inst, X86_EBP);
+		x86_jump_code(inst, (void *)(insn->dest));
 	}
 
 JIT_OP_RETURN:

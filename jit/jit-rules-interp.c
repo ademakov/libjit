@@ -1145,6 +1145,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		break;
 
 		case JIT_OP_CALL_INDIRECT:
+		case JIT_OP_CALL_INDIRECT_TAIL:
 		{
 			/* Call a function, whose pointer is supplied on the stack */
 			jit_cache_opcode(&(gen->posn), insn->opcode);
@@ -1156,6 +1157,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		break;
 
 		case JIT_OP_CALL_VTABLE_PTR:
+		case JIT_OP_CALL_VTABLE_PTR_TAIL:
 		{
 			/* Call a function, whose vtable pointer is supplied on the stack */
 			jit_cache_opcode(&(gen->posn), insn->opcode);
@@ -1164,6 +1166,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		break;
 
 		case JIT_OP_CALL_EXTERNAL:
+		case JIT_OP_CALL_EXTERNAL_TAIL:
 		{
 			/* Call a native function, whose pointer is supplied explicitly */
 			jit_cache_opcode(&(gen->posn), insn->opcode);

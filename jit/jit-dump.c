@@ -386,19 +386,19 @@ void jit_dump_insn(FILE *stream, jit_function_t func, jit_insn_t insn)
 	else if((flags & JIT_OPCODE_IS_CALL) != 0)
 	{
 		if(insn->value1)
-			fprintf(stream, "call %s", (const char *)(insn->value1));
+			fprintf(stream, "%s %s", name, (const char *)(insn->value1));
 		else
-			fprintf(stream, "call 0x08%lx", (long)(jit_nuint)(insn->dest));
+			fprintf(stream, "%s 0x08%lx", name, (long)(jit_nuint)(insn->dest));
 		return;
 	}
 	else if((flags & JIT_OPCODE_IS_CALL_EXTERNAL) != 0)
 	{
 		if(insn->value1)
-			fprintf(stream, "call_external %s (0x%08lx)",
+			fprintf(stream, "%s %s (0x%08lx)", name,
 					(const char *)(insn->value1),
 					(long)(jit_nuint)(insn->dest));
 		else
-			fprintf(stream, "call_external 0x08%lx",
+			fprintf(stream, "%s 0x08%lx", name,
 					(long)(jit_nuint)(insn->dest));
 		return;
 	}

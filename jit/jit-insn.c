@@ -5381,6 +5381,9 @@ jit_value_t jit_insn_call_indirect
 	}
 
 	/* Verify that tail calls are possible to the destination */
+#if defined(JIT_BACKEND_INTERP)
+	flags &= ~JIT_CALL_TAIL;
+#else
 	if((flags & JIT_CALL_TAIL) != 0)
 	{
 		if(func->nested_parent)
@@ -5392,6 +5395,7 @@ jit_value_t jit_insn_call_indirect
 			flags &= ~JIT_CALL_TAIL;
 		}
 	}
+#endif
 
 	/* We are making a native call */
 	flags |= JIT_CALL_NATIVE;
@@ -5443,7 +5447,15 @@ jit_value_t jit_insn_call_indirect
 		return 0;
 	}
 	jit_value_ref(func, value);
-	insn->opcode = JIT_OP_CALL_INDIRECT;
+	if((flags & JIT_CALL_TAIL) != 0)
+	{
+		func->builder->has_tail_call = 1;
+		insn->opcode = JIT_OP_CALL_INDIRECT_TAIL;
+	}
+	else
+	{
+		insn->opcode = JIT_OP_CALL_INDIRECT;
+	}
 	insn->flags = JIT_INSN_VALUE2_IS_SIGNATURE;
 	insn->value1 = value;
 	insn->value2 = (jit_value_t)jit_type_copy(signature);
@@ -5573,7 +5585,15 @@ jit_value_t jit_insn_call_indirect_vtable
 		return 0;
 	}
 	jit_value_ref(func, value);
-	insn->opcode = JIT_OP_CALL_VTABLE_PTR;
+	if((flags & JIT_CALL_TAIL) != 0)
+	{
+		func->builder->has_tail_call = 1;
+		insn->opcode = JIT_OP_CALL_VTABLE_PTR_TAIL;
+	}
+	else
+	{
+		insn->opcode = JIT_OP_CALL_VTABLE_PTR;
+	}
 	insn->value1 = value;
 
 	/* If the function does not return, then end the current block.
@@ -5639,6 +5659,9 @@ jit_value_t jit_insn_call_native
 	}
 
 	/* Verify that tail calls are possible to the destination */
+#if defined(JIT_BACKEND_INTERP)
+	flags &= ~JIT_CALL_TAIL;
+#else
 	if((flags & JIT_CALL_TAIL) != 0)
 	{
 		if(func->nested_parent)
@@ -5650,6 +5673,7 @@ jit_value_t jit_insn_call_native
 			flags &= ~JIT_CALL_TAIL;
 		}
 	}
+#endif
 
 	/* We are making a native call */
 	flags |= JIT_CALL_NATIVE;
@@ -5694,7 +5718,15 @@ jit_value_t jit_insn_call_native
 	{
 		return 0;
 	}
-	insn->opcode = JIT_OP_CALL_EXTERNAL;
+	if((flags & JIT_CALL_TAIL) != 0)
+	{
+		func->builder->has_tail_call = 1;
+		insn->opcode = JIT_OP_CALL_EXTERNAL_TAIL;
+	}
+	else
+	{
+		insn->opcode = JIT_OP_CALL_EXTERNAL;
+	}
 	insn->flags = JIT_INSN_DEST_IS_NATIVE | JIT_INSN_VALUE1_IS_NAME;
 	insn->dest = (jit_value_t)native_func;
 	insn->value1 = (jit_value_t)name;

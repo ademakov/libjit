@@ -155,6 +155,26 @@ straight vanilla ANSI C.
 			} while (0)
 
 /*
+ * Perform a tail call to a new function.
+ */
+#define	VM_PERFORM_TAIL(newfunc)	\
+			{ \
+				if(jbuf) \
+				{ \
+					_jit_unwind_pop_setjmp(); \
+				} \
+				func = (newfunc); \
+				if(func->frame_size > current_frame_size) \
+				{ \
+					current_frame_size = func->frame_size; \
+					frame_base = (jit_item *)alloca(current_frame_size); \
+				} \
+				stacktop = frame_base + func->working_area; \
+				frame = stacktop; \
+				goto restart_tail; \
+			}
+
+/*
  * Call "jit_apply" from the interpreter, to invoke a native function.
  */
 static void apply_from_interpreter
@@ -230,6 +250,7 @@ static void apply_from_interpreter
 void _jit_run_function(jit_function_interp_t func, jit_item *args,
 					   jit_item *return_area)
 {
+	jit_item *frame_base;
 	jit_item *frame;
 	jit_item *stacktop;
 	void **pc;
@@ -244,16 +265,19 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 	void *exception_pc = 0;
 	void *handler;
 	jit_jmp_buf *jbuf;
+	jit_nint current_frame_size;
 
 	/* Define the label table for computed goto dispatch */
 	#include "jit-interp-labels.h"
 
 	/* Set up the stack frame for this function */
-	frame = (jit_item *)alloca(func->frame_size);
-	stacktop = frame + func->working_area;
+	current_frame_size = func->frame_size;
+	frame_base = (jit_item *)alloca(current_frame_size);
+	stacktop = frame_base + func->working_area;
 	frame = stacktop;
 
 	/* Get the initial program counter */
+restart_tail:
 	pc = jit_function_interp_entry_pc(func);
 
 	/* Create a "setjmp" point if this function has a "try" block.
@@ -3319,7 +3343,6 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 		 ******************************************************************/
 
 		VMCASE(JIT_OP_CALL):
-		VMCASE(JIT_OP_CALL_TAIL):
 		{
 			/* Call a function that is under the control of the JIT */
 			call_func = (jit_function_t)VM_NINT_ARG;
@@ -3336,7 +3359,21 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 		}
 		VMBREAK;
 
+		VMCASE(JIT_OP_CALL_TAIL):
+		{
+			/* Tail call a function that is under the control of the JIT */
+			call_func = (jit_function_t)VM_NINT_ARG;
+			entry = call_func->entry_point;
+			if(!entry)
+			{
+				entry = _jit_function_compile_on_demand(call_func);
+			}
+			VM_PERFORM_TAIL((jit_function_interp_t)entry);
+		}
+		/* Not reached */
+
 		VMCASE(JIT_OP_CALL_INDIRECT):
+		VMCASE(JIT_OP_CALL_INDIRECT_TAIL):	/* Indirect tail not possible */
 		{
 			/* Call a native function via an indirect pointer */
 			tempptr = (void *)VM_NINT_ARG;
@@ -3373,7 +3410,25 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 		}
 		VMBREAK;
 
+		VMCASE(JIT_OP_CALL_VTABLE_PTR_TAIL):
+		{
+			/* Tail call a JIT-managed function via indirect vtable pointer */
+			call_func = (jit_function_t)(VM_STK_PTR0);
+			if(!call_func)
+			{
+				VM_BUILTIN(JIT_RESULT_NULL_FUNCTION);
+			}
+			entry = call_func->entry_point;
+			if(!entry)
+			{
+				entry = _jit_function_compile_on_demand(call_func);
+			}
+			VM_PERFORM_TAIL((jit_function_interp_t)entry);
+		}
+		/* Not reached */
+
 		VMCASE(JIT_OP_CALL_EXTERNAL):
+		VMCASE(JIT_OP_CALL_EXTERNAL_TAIL):	/* External tail not possible */
 		{
 			/* Call an external native function */
 			tempptr = (void *)VM_NINT_ARG;

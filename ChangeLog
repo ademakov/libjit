@@ -1,4 +1,10 @@
 
+2004-11-18  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* include/jit/jit-opcode.h, jit/jit-dump.c, jit/jit-insn.c,
+	jit/jit-interp.c, jit/jit-opcode.c, jit/jit-rules-interp.c,
+	jit/jit-rules-x86.sel: implement tail calls properly.
+
 2004-11-05  Evin Robertson  <evin@users.sourceforge.net>
 
 	* jit/jit-insn.c (jit_insn_store): use the destination type
