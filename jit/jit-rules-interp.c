@@ -439,6 +439,15 @@ int _jit_create_call_setup_insns
 				return 0;
 			}
 		}
+		else if((flags & JIT_CALL_NATIVE) != 0)
+		{
+			/* Native calls always return a return area pointer */
+			if(!jit_insn_push_return_area_ptr(func))
+			{
+				return 0;
+			}
+			*struct_return = 0;
+		}
 		else
 		{
 			*struct_return = 0;
@@ -1138,12 +1147,6 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		case JIT_OP_CALL_INDIRECT:
 		{
 			/* Call a function, whose pointer is supplied on the stack */
-			if(!jit_type_return_via_pointer
-					(jit_type_get_return((jit_type_t)(insn->value2))))
-			{
-				jit_cache_opcode(&(gen->posn), JIT_OP_PUSH_RETURN_AREA_PTR);
-				++(gen->max_working_area);	/* Account for extra value */
-			}
 			reg = _jit_regs_load_to_top(gen, insn->value1, 0, 0);
 			jit_cache_opcode(&(gen->posn), insn->opcode);
 			jit_cache_native(&(gen->posn), (jit_nint)(insn->value2));
@@ -1167,12 +1170,6 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		case JIT_OP_CALL_EXTERNAL:
 		{
 			/* Call a native function, whose pointer is supplied explicitly */
-			if(!jit_type_return_via_pointer
-					(jit_type_get_return((jit_type_t)(insn->value2))))
-			{
-				jit_cache_opcode(&(gen->posn), JIT_OP_PUSH_RETURN_AREA_PTR);
-				++(gen->max_working_area);	/* Account for extra value */
-			}
 			jit_cache_opcode(&(gen->posn), insn->opcode);
 			jit_cache_native(&(gen->posn), (jit_nint)(insn->value2));
 			jit_cache_native(&(gen->posn), (jit_nint)(insn->dest));
@@ -1474,6 +1471,15 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 			jit_cache_opcode(&(gen->posn), insn->opcode);
 			jit_cache_native(&(gen->posn), size);
 			adjust_working(gen, JIT_NUM_ITEMS_IN_STRUCT(size) - 1);
+		}
+		break;
+
+		case JIT_OP_PUSH_RETURN_AREA_PTR:
+		{
+			/* Push the address of the interpreter's return area */
+			_jit_regs_spill_all(gen);
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			adjust_working(gen, 1);
 		}
 		break;
 

@@ -470,6 +470,7 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	{"set_param_float64",			F_(EMPTY, FLOAT64, PTR)},
 	{"set_param_nfloat",			F_(EMPTY, NFLOAT, PTR)},
 	{"set_param_struct",			F_(PTR, PTR, PTR)},
+	{"push_return_area_ptr",		F_(EMPTY, EMPTY, EMPTY)},
 
 	/*
 	 * Pointer-relative loads and stores.
@@ -595,7 +596,6 @@ jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES] = {
 	{"push_return_float64",			0},
 	{"push_return_nfloat",			0},
 	{"push_return_small_struct",	JIT_OPCODE_NINT_ARG},
-	{"push_return_area_ptr",		0},
 
 	/*
 	 * Nested function call handling.

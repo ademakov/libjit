@@ -648,6 +648,7 @@ jit_value jit_function::get_struct_pointer()
  * @deftypemethodx jit_function void insn_push_ptr ({const jit_value&} value, jit_type_t type)
  * @deftypemethodx jit_function void insn_set_param ({const jit_value&} value, jit_nint offset)
  * @deftypemethodx jit_function void insn_set_param_ptr ({const jit_value&} value, jit_type_t type, jit_nint offset)
+ * @deftypemethodx jit_function void insn_push_return_area_ptr ()
  * @deftypemethodx jit_function void insn_return ({const jit_value&} value)
  * @deftypemethodx jit_function void insn_return ()
  * @deftypemethodx jit_function void insn_return_ptr ({const jit_value&} value, jit_type_t type)
@@ -1237,6 +1238,14 @@ void jit_function::insn_set_param_ptr
 	(const jit_value& value, jit_type_t type, jit_nint offset)
 {
 	if(!jit_insn_set_param_ptr(func, value.raw(), type, offset))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_push_return_area_ptr()
+{
+	if(!jit_insn_push_return_area_ptr(func))
 	{
 		out_of_memory();
 	}

@@ -5393,6 +5393,9 @@ jit_value_t jit_insn_call_indirect
 		}
 	}
 
+	/* We are making a native call */
+	flags |= JIT_CALL_NATIVE;
+
 	/* Convert the arguments to the actual parameter types */
 	if(num_args > 0)
 	{
@@ -5647,6 +5650,9 @@ jit_value_t jit_insn_call_native
 			flags &= ~JIT_CALL_TAIL;
 		}
 	}
+
+	/* We are making a native call */
+	flags |= JIT_CALL_NATIVE;
 
 	/* Convert the arguments to the actual parameter types */
 	if(num_args > 0)
@@ -6373,6 +6379,18 @@ int jit_insn_set_param_ptr
 		}
 		/* Not reached */
 	}
+}
+
+/*@
+ * @deftypefun int jit_insn_push_return_area_ptr (jit_function_t func)
+ * Push the interpreter's return area pointer onto the stack.
+ * You normally wouldn't call this yourself - it is used internally
+ * by the CPU back ends to set up the stack for a subroutine call.
+ * @end deftypefun
+@*/
+int jit_insn_push_return_area_ptr(jit_function_t func)
+{
+	return create_noarg_note(func, JIT_OP_PUSH_RETURN_AREA_PTR);
 }
 
 /*@

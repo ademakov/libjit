@@ -620,6 +620,11 @@ extern struct _jit_type const _jit_type_float64_def;
 extern struct _jit_type const _jit_type_nfloat_def;
 extern struct _jit_type const _jit_type_void_ptr_def;
 
+/*
+ * Extra call flags for internal use.
+ */
+#define	JIT_CALL_NATIVE		(1 << 14)
+
 #ifdef	__cplusplus
 };
 #endif

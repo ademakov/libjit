@@ -1,4 +1,13 @@
 
+2004-08-13  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* include/jit/jit-insn.h, include/jit/jit-opcode.h,
+	include/jit/jit-plus.h, jit/jit-insn.c, jit/jit-internal.h,
+	jit/jit-interp.h, jit/jit-opcode.c, jit/jit-rules-interp.c,
+	jitplus/jit-plus-function.cpp: re-implement the "push_return_area_ptr"
+	patch so as to avoid wasting stack space in functions with more
+	than one native function call.
+
 2004-08-12  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-rules-interp.c: account for the extra value that is

@@ -258,6 +258,7 @@ int jit_insn_set_param
 int jit_insn_set_param_ptr
 	(jit_function_t func, jit_value_t value, jit_type_t type,
 	 jit_nint offset) JIT_NOTHROW;
+int jit_insn_push_return_area_ptr(jit_function_t func) JIT_NOTHROW;
 int jit_insn_pop_stack(jit_function_t func, jit_nint num_items) JIT_NOTHROW;
 int jit_insn_defer_pop_stack
 	(jit_function_t func, jit_nint num_items) JIT_NOTHROW;

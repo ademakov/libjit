@@ -150,27 +150,26 @@ struct jit_function_interp
 #define	JIT_OP_PUSH_RETURN_FLOAT64			(JIT_OP_NUM_OPCODES + 0x002D)
 #define	JIT_OP_PUSH_RETURN_NFLOAT			(JIT_OP_NUM_OPCODES + 0x002E)
 #define	JIT_OP_PUSH_RETURN_SMALL_STRUCT		(JIT_OP_NUM_OPCODES + 0x002F)
-#define	JIT_OP_PUSH_RETURN_AREA_PTR			(JIT_OP_NUM_OPCODES + 0x0030)
 
 /*
  * Nested function call handling.
  */
-#define	JIT_OP_IMPORT_LOCAL					(JIT_OP_NUM_OPCODES + 0x0031)
-#define	JIT_OP_IMPORT_ARG					(JIT_OP_NUM_OPCODES + 0x0032)
+#define	JIT_OP_IMPORT_LOCAL					(JIT_OP_NUM_OPCODES + 0x0030)
+#define	JIT_OP_IMPORT_ARG					(JIT_OP_NUM_OPCODES + 0x0031)
 
 /*
  * Push constant values onto the stack.
  */
-#define	JIT_OP_PUSH_CONST_INT				(JIT_OP_NUM_OPCODES + 0x0033)
-#define	JIT_OP_PUSH_CONST_LONG				(JIT_OP_NUM_OPCODES + 0x0034)
-#define	JIT_OP_PUSH_CONST_FLOAT32			(JIT_OP_NUM_OPCODES + 0x0035)
-#define	JIT_OP_PUSH_CONST_FLOAT64			(JIT_OP_NUM_OPCODES + 0x0036)
-#define	JIT_OP_PUSH_CONST_NFLOAT			(JIT_OP_NUM_OPCODES + 0x0037)
+#define	JIT_OP_PUSH_CONST_INT				(JIT_OP_NUM_OPCODES + 0x0032)
+#define	JIT_OP_PUSH_CONST_LONG				(JIT_OP_NUM_OPCODES + 0x0033)
+#define	JIT_OP_PUSH_CONST_FLOAT32			(JIT_OP_NUM_OPCODES + 0x0034)
+#define	JIT_OP_PUSH_CONST_FLOAT64			(JIT_OP_NUM_OPCODES + 0x0035)
+#define	JIT_OP_PUSH_CONST_NFLOAT			(JIT_OP_NUM_OPCODES + 0x0036)
 
 /*
  * Marker opcode for the end of the interpreter-specific opcodes.
  */
-#define	JIT_OP_END_MARKER					(JIT_OP_NUM_OPCODES + 0x003B)
+#define	JIT_OP_END_MARKER					(JIT_OP_NUM_OPCODES + 0x0037)
 
 /*
  * Number of interpreter-specific opcodes.
