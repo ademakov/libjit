@@ -2620,8 +2620,24 @@ JIT_OP_STORE_RELATIVE_NFLOAT: manual
 
 JIT_OP_STORE_RELATIVE_STRUCT: manual
 	[] -> {
-		/* TODO */
-		TODO();
+		unsigned char *inst;
+		int reg = _jit_regs_load_value
+			(gen, insn->dest, 0,
+			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
+			 				 JIT_INSN_DEST_LIVE)));
+		_jit_regs_spill_all(gen);
+		_jit_gen_fix_value(insn->value1);
+		inst = gen->posn.ptr;
+		if(!jit_cache_check_for_n(&(gen->posn), 128))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		reg = _jit_reg_info[reg].cpu_reg;
+		inst = memory_copy(gen, inst, reg, (int)(insn->value2->address),
+						   X86_EBP, insn->value1->frame_offset,
+						   jit_type_get_size(jit_value_get_type(insn->value1)));
+		gen->posn.ptr = inst;
 	}
 
 JIT_OP_ADD_RELATIVE: unary

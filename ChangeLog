@@ -1,4 +1,9 @@
 
+2004-09-10  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-rules-x86.sel: pointer-relative loads and stores
+	for structures in the x86 back end.
+
 2004-09-09  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-rules-x86.c, jit/jit-rules-x86.sel: add some support
