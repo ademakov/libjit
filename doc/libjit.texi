@@ -93,7 +93,7 @@ is not a virtual machine in its own right.  It is the foundation upon which a
 number of different virtual machines, dynamic scripting languages,
 or customized rendering routines can be built.
 
-The LLVM project (@uref{http://llvm.cs.uiuc.edu/}) has some similar
+The LLVM project (@uref{http://www.llvm.org/}) has some similar
 characteristics to @code{libjit} in that its intermediate format is
 generic across front-end languages.  It is written in C++ and provides
 a large set of compiler development and optimization components;
