@@ -55,6 +55,10 @@ static char *dpas_parse_string(const char *text)
 			*temp++ = (char)quote;
 			text += 2;
 		}
+		else if(text[0] == quote)
+		{
+			break;
+		}
 		else
 		{
 			*temp++ = *text++;

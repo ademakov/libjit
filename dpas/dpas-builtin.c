@@ -20,6 +20,7 @@
 
 #include "dpas-internal.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 /*
  * Functions for writing values to stdout.
@@ -120,6 +121,7 @@ static dpas_semvalue dpas_write_inner
 	jit_function_t func = dpas_current_function();
 	dpas_semvalue result;
 	jit_type_t type;
+	jit_type_t orig_type;
 	const char *name;
 	void *native_func;
 	int index;
@@ -132,12 +134,20 @@ static dpas_semvalue dpas_write_inner
 		}
 		else
 		{
-			type = jit_type_normalize(dpas_sem_get_type(result));
-			if(type == jit_type_sbyte ||
-			   type == jit_type_ubyte ||
-			   type == jit_type_short ||
-			   type == jit_type_ushort ||
-			   type == jit_type_int)
+			orig_type = dpas_sem_get_type(result);
+			type = jit_type_normalize(orig_type);
+			if(jit_type_is_pointer(orig_type) &&
+			   jit_type_get_ref(orig_type) == dpas_type_char)
+			{
+				type = jit_type_void_ptr;
+				name = "dpas_write_string";
+				native_func = (void *)dpas_write_string;
+			}
+			else if(type == jit_type_sbyte ||
+			        type == jit_type_ubyte ||
+			        type == jit_type_short ||
+			        type == jit_type_ushort ||
+			        type == jit_type_int)
 			{
 				type = jit_type_int;
 				name = "dpas_write_int";
@@ -169,13 +179,6 @@ static dpas_semvalue dpas_write_inner
 				name = "dpas_write_nfloat";
 				native_func = (void *)dpas_write_nfloat;
 			}
-			else if(jit_type_is_pointer(type) &&
-					jit_type_get_ref(type) == dpas_type_char)
-			{
-				type = jit_type_void_ptr;
-				name = "dpas_write_string";
-				native_func = (void *)dpas_write_string;
-			}
 			else
 			{
 				dpas_error("unprintable value for parameter %d", index + 1);
@@ -206,10 +209,46 @@ static dpas_semvalue dpas_writeln(dpas_semvalue *args, int num_args)
 }
 
 /*
+ * Flush stdout.
+ */
+static void dpas_flush_stdout(void)
+{
+	fflush(stdout);
+}
+static dpas_semvalue dpas_flush(dpas_semvalue *args, int num_args)
+{
+	dpas_semvalue result;
+	call_write(dpas_current_function(), "dpas_flush_stdout",
+			   (void *)dpas_flush_stdout, 0, 0);
+	dpas_sem_set_void(result);
+	return result;
+}
+
+/*
+ * Terminate program execution with an exit status code.
+ */
+static void dpas_terminate_program(jit_int value)
+{
+	exit((int)value);
+}
+static dpas_semvalue dpas_terminate(dpas_semvalue *args, int num_args)
+{
+	dpas_semvalue result;
+	result = dpas_lvalue_to_rvalue(args[0]);
+	call_write(dpas_current_function(), "dpas_terminate_program",
+			   (void *)dpas_terminate_program, jit_type_int,
+			   dpas_sem_get_value(result));
+	dpas_sem_set_void(result);
+	return result;
+}
+
+/*
  * Builtins that we currently recognize.
  */
 #define	DPAS_BUILTIN_WRITE			1
 #define	DPAS_BUILTIN_WRITELN		2
+#define	DPAS_BUILTIN_FLUSH			3
+#define	DPAS_BUILTIN_TERMINATE		4
 
 /*
  * Table that defines the builtins.
@@ -225,6 +264,8 @@ typedef struct
 static dpas_builtin const builtins[] = {
 	{"Write",		DPAS_BUILTIN_WRITE,		dpas_write,		-1},
 	{"WriteLn",		DPAS_BUILTIN_WRITELN,	dpas_writeln,	-1},
+	{"Flush",		DPAS_BUILTIN_FLUSH,		dpas_flush,		 0},
+	{"Terminate",	DPAS_BUILTIN_TERMINATE,	dpas_terminate,	 1},
 };
 #define	num_builtins	(sizeof(builtins) / sizeof(dpas_builtin))
 
