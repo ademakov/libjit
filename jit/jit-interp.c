@@ -4460,10 +4460,21 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 		 * Debugging support.
 		 ******************************************************************/
 
-		VMCASE(JIT_OP_MARK_DEBUG):
+		VMCASE(JIT_OP_MARK_BREAKPOINT):
 		{
 			/* Process a breakpoint within the current function */
-			/* TODO */
+			if(func->func->breakpoints_enabled ||
+			   func->func->context->breakpoints_enabled)
+			{
+				jit_debug_hook_func hook;
+				hook = (jit_debug_hook_func)
+					jit_context_get_meta(func->func->context,
+										 JIT_OPTION_DEBUG_HOOK);
+				if(hook)
+				{
+					(*hook)(func->func, VM_NINT_ARG, VM_NINT_ARG2);
+				}
+			}
 			VM_MODIFY_PC_AND_STACK(3, 0);
 		}
 		VMBREAK;

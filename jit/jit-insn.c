@@ -7694,23 +7694,15 @@ int jit_insn_mark_offset(jit_function_t func, jit_int offset)
 					   			(func, jit_type_int, offset));
 }
 
-/*@
- * @deftypefun int jit_insn_mark_debug (jit_function_t func, jit_nint data1, jit_nint data2)
- * Mark the current position in @code{func} as corresponding to a breakpoint
- * location.  When a break occurs, the global debug hook is called with
- * @code{func}, @code{data1}, and @code{data2} as arguments.  See the
- * description for @code{jit_function_enable_breakpoints} for more
- * information on breakpoint support.
- * @end deftypefun
-@*/
-int jit_insn_mark_debug
+/* Documentation is in jit-debug.c */
+int jit_insn_mark_breakpoint
 	(jit_function_t func, jit_nint data1, jit_nint data2)
 {
 	if(!jit_insn_new_block(func))
 	{
 		return 0;
 	}
-	return create_note(func, JIT_OP_MARK_DEBUG,
+	return create_note(func, JIT_OP_MARK_BREAKPOINT,
 				       jit_value_create_nint_constant
 							(func, jit_type_nint, data1),
 				       jit_value_create_nint_constant

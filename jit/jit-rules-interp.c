@@ -1631,7 +1631,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		}
 		break;
 
-		case JIT_OP_MARK_DEBUG:
+		case JIT_OP_MARK_BREAKPOINT:
 		{
 			/* Mark the current location as a potential breakpoint */
 			jit_cache_opcode(&(gen->posn), insn->opcode);

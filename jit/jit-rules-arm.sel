@@ -1404,7 +1404,7 @@ JIT_OP_ADD_RELATIVE: unary
  * Debugging support.
  */
 
-JIT_OP_MARK_DEBUG: manual
+JIT_OP_MARK_BREAKPOINT: manual
 	[] -> {
 		/* TODO */
 		TODO();

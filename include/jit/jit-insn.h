@@ -312,7 +312,7 @@ int jit_insn_move_blocks_to_start
 
 int jit_insn_mark_offset
 	(jit_function_t func, jit_int offset) JIT_NOTHROW;
-int jit_insn_mark_debug
+int jit_insn_mark_breakpoint
 	(jit_function_t func, jit_nint data1, jit_nint data2) JIT_NOTHROW;
 
 void jit_insn_iter_init(jit_insn_iter_t *iter, jit_block_t block) JIT_NOTHROW;

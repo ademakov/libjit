@@ -673,7 +673,7 @@ jit_value jit_function::get_struct_pointer()
  * @deftypemethodx jit_function void insn_move_blocks_to_end ({const jit_label&} from_label, {const jit_label&} to_label)
  * @deftypemethodx jit_function void insn_move_blocks_to_start ({const jit_label&} from_label, {const jit_label&} to_label)
  * @deftypemethodx jit_function void insn_mark_offset (jit_int offset)
- * @deftypemethodx jit_function void insn_mark_debug (jit_nint data1, jit_nint data2)
+ * @deftypemethodx jit_function void insn_mark_breakpoint (jit_nint data1, jit_nint data2)
  * Create instructions of various kinds.  @xref{Instructions}, for more
  * information on the individual instructions and their arguments.
  * @end deftypemethod
@@ -1436,9 +1436,9 @@ void jit_function::insn_mark_offset(jit_int offset)
 	}
 }
 
-void jit_function::insn_mark_debug(jit_nint data1, jit_nint data2)
+void jit_function::insn_mark_breakpoint(jit_nint data1, jit_nint data2)
 {
-	if(!jit_insn_mark_debug(func, data1, data2))
+	if(!jit_insn_mark_breakpoint(func, data1, data2))
 	{
 		out_of_memory();
 	}

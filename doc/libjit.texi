@@ -45,9 +45,10 @@ Copyright @copyright{} 2004 Southern Storm Software, Pty Ltd
 * Basic Blocks::            Working with basic blocks in the JIT
 * Intrinsics::              Intrinsic functions available to libjit users
 * Exceptions::              Handling exceptions
+* Breakpoint Debugging::    Hooking a breakpoint debugger into libjit
 * ELF Binaries::            Manipulating ELF binaries
 * Utility Routines::        Miscellaneous utility routines
-* Debugging Routines::      Debugging routines
+* Diagnostic Routines::     Diagnostic routines
 * C++ Interface::           Using libjit from C++
 * Porting::                 Porting libjit to new architectures
 * Why GPL?::                Why we use GPL and not LGPL for libjit
@@ -1014,7 +1015,7 @@ field with a @code{pointer to procedure/function} type.
 
 @c -----------------------------------------------------------------------
 
-@node Exceptions, ELF Binaries, Intrinsics, Top
+@node Exceptions, Breakpoint Debugging, Intrinsics, Top
 @chapter Handling exceptions
 @cindex Handling exceptions
 
@@ -1022,7 +1023,15 @@ field with a @code{pointer to procedure/function} type.
 
 @c -----------------------------------------------------------------------
 
-@node ELF Binaries, Utility Routines, Exceptions, Top
+@node Breakpoint Debugging, ELF Binaries, Exceptions, Top
+@chapter Hooking a breakpoint debugger into libjit
+@cindex Breakpoint debugging
+
+@include libjitext-debug.texi
+
+@c -----------------------------------------------------------------------
+
+@node ELF Binaries, Utility Routines, Breakpoint Debugging, Top
 @chapter Manipulating ELF binaries
 @cindex ELF binaries
 
@@ -1030,7 +1039,7 @@ field with a @code{pointer to procedure/function} type.
 
 @c -----------------------------------------------------------------------
 
-@node Utility Routines, Debugging Routines, ELF Binaries, Top
+@node Utility Routines, Diagnostic Routines, ELF Binaries, Top
 @chapter Miscellaneous utility routines
 @cindex Utility routines
 @cindex jit-util.h
@@ -1049,15 +1058,15 @@ that it itself uses internally, but which may also be useful to front ends.
 
 @c -----------------------------------------------------------------------
 
-@node Debugging Routines, C++ Interface, Utility Routines, Top
-@chapter Debugging routines
-@cindex Debugging routines
+@node Diagnostic Routines, C++ Interface, Utility Routines, Top
+@chapter Diagnostic routines
+@cindex Diagnostic routines
 
 @include libjitext-dump.texi
 
 @c -----------------------------------------------------------------------
 
-@node C++ Interface, C++ Contexts, Debugging Routines, Top
+@node C++ Interface, C++ Contexts, Diagnostic Routines, Top
 @chapter Using libjit from C++
 @cindex Using libjit from C++
 

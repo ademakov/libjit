@@ -9,6 +9,15 @@
 	add instructions and function API's for supporting debug line
 	numbers and breakpoints.
 
+	* doc/Makefile.am, doc/libjit.texi, include/jit/jit-context.h,
+	include/jit/jit-insn.h, include/jit/jit-opcode.h,
+	include/jit/jit-plus.h, jit/Makefile.am, jit/jit-context.c,
+	jit/jit-debug.c, jit/jit-function.c, jit/jit-insn.c,
+	jit/jit-internal.h, jit/jit-interp.c, jit/jit-opcode.c,
+	jit/jit-rules-arm.sel, jit/jit-rules-interp.c, jit/jit-rules-x86.sel,
+	jitplus/jit-plus-function.cpp: clean up the breakpoint API and
+	implement debug hooks for the interpreter.
+
 2004-09-10  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-rules-x86.sel: pointer-relative loads and stores

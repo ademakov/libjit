@@ -530,8 +530,8 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	/*
 	 * Debugging support.
 	 */
-	{"mark_offset",						F_(EMPTY, INT, EMPTY)},
-	{"mark_debug",						F_(EMPTY, PTR, PTR)},
+	{"mark_offset",					F_(EMPTY, INT, EMPTY)},
+	{"mark_breakpoint",				F_(EMPTY, PTR, PTR)},
 
 };
 

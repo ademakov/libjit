@@ -458,6 +458,9 @@ struct _jit_context
 	/* Table of symbols that have been registered with this context */
 	jit_regsym_t	   *registered_symbols;
 	int					num_registered_symbols;
+
+	/* Flag that is set if all breakpoints in the system are enabled */
+	int volatile		breakpoints_enabled;
 };
 
 /*
