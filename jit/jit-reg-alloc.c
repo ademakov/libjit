@@ -747,8 +747,14 @@ void _jit_regs_set_incoming(jit_gencode_t gen, int reg, jit_value_t value)
 void _jit_regs_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value)
 {
 	int other_reg;
+	int need_pair;
 
+	need_pair = _jit_regs_needs_long_pair(value->type);
+#ifdef JIT_BACKEND_X86
+	if(value->in_register && value->reg == reg && !need_pair)
+#else
 	if(value->in_register && value->reg == reg)
+#endif
 	{
 		/* The value is already in the register, but we may need to spill
 		   if the frame copy is not up to date with the register */
@@ -770,10 +776,18 @@ void _jit_regs_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value)
 		_jit_regs_force_out(gen, value, 0);
 
 		/* Reload the value into the specified register */
-		if(_jit_regs_needs_long_pair(value->type))
+		if(need_pair)
 		{
+		#ifdef JIT_BACKEND_X86
+			/* Long values in outgoing registers must be in ECX:EDX,
+			   not in the ordinary register pairing of ECX:EBX */
+			_jit_regs_want_reg(gen, reg, 0);
+			other_reg = 2;
+			_jit_regs_want_reg(gen, other_reg, 0);
+		#else
 			_jit_regs_want_reg(gen, reg, 1);
 			other_reg = _jit_reg_info[reg].other_reg;
+		#endif
 			_jit_gen_load_value(gen, reg, other_reg, value);
 		}
 		else
