@@ -1706,107 +1706,9 @@ JIT_OP_RETURN_NFLOAT: unary_branch, stack, only
 
 JIT_OP_RETURN_SMALL_STRUCT: unary_branch
 	[reg] -> {
-		int reg = $1;
-		switch(jit_value_get_nint_constant(insn->value2))
-		{
-			case 1:
-			{
-				x86_widen_membase(inst, X86_EAX, reg, 0, 0, 0);
-			}
-			break;
-
-			case 2:
-			{
-				x86_widen_membase(inst, X86_EAX, reg, 0, 0, 1);
-				x86_mov_reg_membase(inst, X86_EAX, reg, 0, 2);
-			}
-			break;
-
-			case 3:
-			{
-				if(reg != X86_EAX)
-				{
-					x86_widen_membase(inst, X86_EAX, reg, 0, 0, 1);
-					x86_widen_membase(inst, reg, reg, 2, 0, 0);
-					x86_shift_reg_imm(inst, X86_SHL, reg, 16);
-					x86_alu_reg_reg(inst, X86_OR, X86_EAX, reg);
-				}
-				else
-				{
-					x86_widen_membase(inst, X86_ECX, reg, 0, 0, 1);
-					x86_widen_membase(inst, X86_EAX, reg, 2, 0, 0);
-					x86_shift_reg_imm(inst, X86_SHL, X86_EAX, 16);
-					x86_alu_reg_reg(inst, X86_OR, X86_EAX, X86_ECX);
-				}
-			}
-			break;
-
-			case 4:
-			{
-				x86_mov_reg_membase(inst, X86_EAX, reg, 0, 4);
-			}
-			break;
-
-			case 5:
-			{
-				if(reg != X86_EAX)
-				{
-					x86_mov_reg_membase(inst, X86_EAX, reg, 0, 4);
-					x86_widen_membase(inst, X86_EDX, reg, 4, 0, 0);
-				}
-				else
-				{
-					x86_widen_membase(inst, X86_EDX, reg, 4, 0, 0);
-					x86_mov_reg_membase(inst, X86_EAX, reg, 0, 4);
-				}
-			}
-			break;
-
-			case 6:
-			{
-				if(reg != X86_EAX)
-				{
-					x86_mov_reg_membase(inst, X86_EAX, reg, 0, 4);
-					x86_widen_membase(inst, X86_EDX, reg, 4, 0, 1);
-				}
-				else
-				{
-					x86_widen_membase(inst, X86_EDX, reg, 4, 0, 1);
-					x86_mov_reg_membase(inst, X86_EAX, reg, 0, 4);
-				}
-			}
-			break;
-
-			case 7:
-			{
-				if(reg == X86_EAX || reg == X86_EDX)
-				{
-					x86_mov_reg_reg(inst, X86_ECX, reg, 4);
-					reg = X86_ECX;
-				}
-				x86_mov_reg_membase(inst, X86_EAX, reg, 0, 4);
-				x86_widen_membase(inst, X86_EDX, reg, 4, 0, 1);
-				x86_widen_membase(inst, X86_ECX, reg, 6, 0, 0);
-				x86_shift_reg_imm(inst, X86_SHL, X86_ECX, 16);
-				x86_alu_reg_reg(inst, X86_OR, X86_EAX, X86_ECX);
-			}
-			break;
-
-			case 8:
-			{
-				if(reg != X86_EAX)
-				{
-					x86_mov_reg_membase(inst, X86_EAX, reg, 0, 4);
-					x86_mov_reg_membase(inst, X86_EDX, reg, 4, 4);
-				}
-				else
-				{
-					x86_mov_reg_membase(inst, X86_EDX, reg, 4, 4);
-					x86_mov_reg_membase(inst, X86_EAX, reg, 0, 4);
-				}
-			}
-			break;
-		}
+		inst = load_small_struct
+			(inst, X86_EAX, X86_EDX, $1, 0,
+			 jit_value_get_nint_constant(insn->value2), 0);
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
@@ -2256,64 +2158,8 @@ JIT_OP_FLUSH_SMALL_STRUCT:
 		_jit_gen_fix_value(insn->value1);
 		size = jit_type_get_size(jit_value_get_type(insn->value1));
 		offset = insn->value1->frame_offset;
-		switch(size)
-		{
-			case 1:
-			{
-				x86_mov_membase_reg(inst, X86_EBP, offset, X86_EAX, 1);
-			}
-			break;
-
-			case 2:
-			{
-				x86_mov_membase_reg(inst, X86_EBP, offset, X86_EAX, 2);
-			}
-			break;
-
-			case 3:
-			{
-				x86_mov_membase_reg(inst, X86_EBP, offset, X86_EAX, 2);
-				x86_shift_reg_imm(inst, X86_EAX, X86_SHR, 16);
-				x86_mov_membase_reg(inst, X86_EBP, offset + 2, X86_EAX, 1);
-			}
-			break;
-
-			case 4:
-			{
-				x86_mov_membase_reg(inst, X86_EBP, offset, X86_EAX, 4);
-			}
-			break;
-
-			case 5:
-			{
-				x86_mov_membase_reg(inst, X86_EBP, offset, X86_EAX, 4);
-				x86_mov_membase_reg(inst, X86_EBP, offset + 4, X86_EDX, 1);
-			}
-			break;
-
-			case 6:
-			{
-				x86_mov_membase_reg(inst, X86_EBP, offset, X86_EAX, 4);
-				x86_mov_membase_reg(inst, X86_EBP, offset + 4, X86_EDX, 2);
-			}
-			break;
-
-			case 7:
-			{
-				x86_mov_membase_reg(inst, X86_EBP, offset, X86_EAX, 4);
-				x86_mov_membase_reg(inst, X86_EBP, offset + 4, X86_EDX, 2);
-				x86_shift_reg_imm(inst, X86_EDX, X86_SHR, 16);
-				x86_mov_membase_reg(inst, X86_EBP, offset + 6, X86_EDX, 1);
-			}
-			break;
-
-			case 8:
-			{
-				x86_mov_membase_reg(inst, X86_EBP, offset, X86_EAX, 4);
-				x86_mov_membase_reg(inst, X86_EBP, offset + 4, X86_EDX, 4);
-			}
-			break;
-		}
+		inst = store_small_struct
+			(inst, X86_EAX, X86_EDX, X86_EBP, offset, (jit_nint)size, 0);
 	}
 
 /*

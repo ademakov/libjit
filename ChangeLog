@@ -1,4 +1,9 @@
 
+2004-06-21  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-rules-x86.c, jit/jit-rules-x86.sel: move the code
+	for loading/storing small structures into a central location.
+
 2004-06-18  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-dump.c, jit/jit-reg-alloc.c, jit/jit-rules-arm.c,

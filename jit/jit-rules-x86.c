@@ -400,6 +400,281 @@ void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func)
 #define	jit_cache_end_output()	\
 	gen->posn.ptr = inst
 
+/*
+ * Get a temporary register that isn't one of the specified registers.
+ */
+static int get_temp_reg(int reg1, int reg2, int reg3)
+{
+	if(reg1 != X86_EAX && reg2 != X86_EAX && reg3 != X86_EAX)
+	{
+		return X86_EAX;
+	}
+	if(reg1 != X86_EDX && reg2 != X86_EDX && reg3 != X86_EDX)
+	{
+		return X86_EDX;
+	}
+	if(reg1 != X86_ECX && reg2 != X86_ECX && reg3 != X86_ECX)
+	{
+		return X86_ECX;
+	}
+	if(reg1 != X86_EBX && reg2 != X86_EBX && reg3 != X86_EBX)
+	{
+		return X86_EBX;
+	}
+	if(reg1 != X86_ESI && reg2 != X86_ESI && reg3 != X86_ESI)
+	{
+		return X86_ESI;
+	}
+	return X86_EDI;
+}
+
+/*
+ * Load a small structure from a pointer into registers.
+ */
+static unsigned char *load_small_struct
+	(unsigned char *inst, int reg, int other_reg,
+	 int base_reg, jit_nint offset, jit_nint size, int save_temp)
+{
+	int temp_reg;
+	switch(size)
+	{
+		case 1:
+		{
+			x86_widen_membase(inst, reg, base_reg, offset, 0, 0);
+		}
+		break;
+
+		case 2:
+		{
+			x86_widen_membase(inst, reg, base_reg, offset, 0, 1);
+		}
+		break;
+
+		case 3:
+		{
+			temp_reg = get_temp_reg(reg, -1, base_reg);
+			if(save_temp || temp_reg >= X86_EBX)
+			{
+				x86_push_reg(inst, temp_reg);
+			}
+			x86_widen_membase(inst, temp_reg, base_reg, offset, 0, 1);
+			x86_widen_membase(inst, reg, base_reg, offset + 2, 0, 0);
+			x86_shift_reg_imm(inst, X86_SHL, reg, 16);
+			x86_alu_reg_reg(inst, X86_OR, reg, temp_reg);
+			if(save_temp || temp_reg >= X86_EBX)
+			{
+				x86_pop_reg(inst, temp_reg);
+			}
+		}
+		break;
+
+		case 4:
+		{
+			x86_mov_reg_membase(inst, reg, base_reg, offset, 4);
+		}
+		break;
+
+		case 5:
+		{
+			if(reg != base_reg)
+			{
+				x86_mov_reg_membase(inst, reg, base_reg, offset, 4);
+				x86_widen_membase(inst, other_reg, base_reg, offset + 4, 0, 0);
+			}
+			else
+			{
+				x86_widen_membase(inst, other_reg, base_reg, offset + 4, 0, 0);
+				x86_mov_reg_membase(inst, reg, base_reg, offset, 4);
+			}
+		}
+		break;
+
+		case 6:
+		{
+			if(reg != base_reg)
+			{
+				x86_mov_reg_membase(inst, reg, base_reg, offset, 4);
+				x86_widen_membase(inst, other_reg, base_reg, offset + 4, 0, 1);
+			}
+			else
+			{
+				x86_widen_membase(inst, other_reg, base_reg, offset + 4, 0, 1);
+				x86_mov_reg_membase(inst, reg, base_reg, offset, 4);
+			}
+		}
+		break;
+
+		case 7:
+		{
+			temp_reg = get_temp_reg(reg, other_reg, base_reg);
+			if(save_temp || temp_reg >= X86_EBX)
+			{
+				x86_push_reg(inst, temp_reg);
+			}
+			if(reg != base_reg && other_reg != base_reg)
+			{
+				x86_mov_reg_membase(inst, reg, base_reg, offset, 4);
+				x86_widen_membase(inst, other_reg, base_reg, offset + 4, 0, 1);
+				x86_widen_membase(inst, temp_reg, base_reg, offset + 6, 0, 0);
+				x86_shift_reg_imm(inst, X86_SHL, temp_reg, 16);
+				x86_alu_reg_reg(inst, X86_OR, other_reg, temp_reg);
+			}
+			else if(reg != base_reg)
+			{
+				/* other_reg == base_reg */
+				x86_mov_reg_membase(inst, reg, base_reg, offset, 4);
+				x86_widen_membase(inst, temp_reg, base_reg, offset + 6, 0, 0);
+				x86_widen_membase(inst, other_reg, base_reg, offset + 4, 0, 1);
+				x86_shift_reg_imm(inst, X86_SHL, temp_reg, 16);
+				x86_alu_reg_reg(inst, X86_OR, other_reg, temp_reg);
+			}
+			else
+			{
+				/* reg == base_reg */
+				x86_widen_membase(inst, other_reg, base_reg, offset + 4, 0, 1);
+				x86_widen_membase(inst, temp_reg, base_reg, offset + 6, 0, 0);
+				x86_shift_reg_imm(inst, X86_SHL, temp_reg, 16);
+				x86_alu_reg_reg(inst, X86_OR, other_reg, temp_reg);
+				x86_mov_reg_membase(inst, reg, base_reg, offset, 4);
+			}
+			if(save_temp || temp_reg >= X86_EBX)
+			{
+				x86_pop_reg(inst, temp_reg);
+			}
+		}
+		break;
+
+		case 8:
+		{
+			if(reg != base_reg)
+			{
+				x86_mov_reg_membase(inst, reg, base_reg, offset, 4);
+				x86_mov_reg_membase(inst, other_reg, base_reg, offset + 4, 4);
+			}
+			else
+			{
+				x86_mov_reg_membase(inst, other_reg, base_reg, offset + 4, 4);
+				x86_mov_reg_membase(inst, reg, base_reg, offset, 4);
+			}
+		}
+		break;
+	}
+	return inst;
+}
+
+/*
+ * Store a byte value to a membase address.
+ */
+static unsigned char *mov_membase_reg_byte
+			(unsigned char *inst, int basereg, int offset, int srcreg)
+{
+	if(srcreg == X86_EAX || srcreg == X86_EBX ||
+	   srcreg == X86_ECX || srcreg == X86_EDX)
+	{
+		x86_mov_membase_reg(inst, basereg, offset, srcreg, 1);
+	}
+	else if(basereg != X86_EAX)
+	{
+		x86_push_reg(inst, X86_EAX);
+		x86_mov_reg_reg(inst, X86_EAX, srcreg, 4);
+		x86_mov_membase_reg(inst, basereg, offset, X86_EAX, 1);
+		x86_pop_reg(inst, X86_EAX);
+	}
+	else
+	{
+		x86_push_reg(inst, X86_EDX);
+		x86_mov_reg_reg(inst, X86_EDX, srcreg, 4);
+		x86_mov_membase_reg(inst, basereg, offset, X86_EDX, 1);
+		x86_pop_reg(inst, X86_EDX);
+	}
+	return inst;
+}
+
+/*
+ * Store a small structure from registers to a pointer.  The base
+ * register must not be either "reg" or "other_reg".
+ */
+static unsigned char *store_small_struct
+	(unsigned char *inst, int reg, int other_reg,
+	 int base_reg, jit_nint offset, jit_nint size, int preserve)
+{
+	switch(size)
+	{
+		case 1:
+		{
+			inst = mov_membase_reg_byte(inst, base_reg, offset, reg);
+		}
+		break;
+
+		case 2:
+		{
+			x86_mov_membase_reg(inst, base_reg, offset, reg, 2);
+		}
+		break;
+
+		case 3:
+		{
+			if(preserve)
+			{
+				x86_push_reg(inst, reg);
+			}
+			x86_mov_membase_reg(inst, base_reg, offset, reg, 2);
+			x86_shift_reg_imm(inst, reg, X86_SHR, 16);
+			inst = mov_membase_reg_byte(inst, base_reg, offset + 2, reg);
+			if(preserve)
+			{
+				x86_pop_reg(inst, reg);
+			}
+		}
+		break;
+
+		case 4:
+		{
+			x86_mov_membase_reg(inst, base_reg, offset, reg, 4);
+		}
+		break;
+
+		case 5:
+		{
+			x86_mov_membase_reg(inst, base_reg, offset, reg, 4);
+			inst = mov_membase_reg_byte(inst, base_reg, offset + 4, other_reg);
+		}
+		break;
+
+		case 6:
+		{
+			x86_mov_membase_reg(inst, base_reg, offset, reg, 4);
+			x86_mov_membase_reg(inst, base_reg, offset + 4, other_reg, 2);
+		}
+		break;
+
+		case 7:
+		{
+			if(preserve)
+			{
+				x86_push_reg(inst, other_reg);
+			}
+			x86_mov_membase_reg(inst, base_reg, offset, reg, 4);
+			x86_mov_membase_reg(inst, base_reg, offset + 4, other_reg, 2);
+			x86_shift_reg_imm(inst, other_reg, X86_SHR, 16);
+			inst = mov_membase_reg_byte(inst, base_reg, offset + 6, other_reg);
+			if(preserve)
+			{
+				x86_pop_reg(inst, other_reg);
+			}
+		}
+		break;
+
+		case 8:
+		{
+			x86_mov_membase_reg(inst, base_reg, offset, reg, 4);
+			x86_mov_membase_reg(inst, base_reg, offset + 4, other_reg, 4);
+		}
+		break;
+	}
+	return inst;
+}
+
 void _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 						int other_reg, jit_value_t value)
 {
@@ -932,34 +1207,6 @@ static unsigned char *jump_to_epilog
 	*inst++ = (unsigned char)0xE9;
 	x86_imm_emit32(inst, (int)(gen->epilog_fixup));
 	gen->epilog_fixup = (void *)(inst - 4);
-	return inst;
-}
-
-/*
- * Store a byte value to a membase address.
- */
-static unsigned char *mov_membase_reg_byte
-			(unsigned char *inst, int basereg, int offset, int srcreg)
-{
-	if(srcreg == X86_EAX || srcreg == X86_EBX ||
-	   srcreg == X86_ECX || srcreg == X86_EDX)
-	{
-		x86_mov_membase_reg(inst, basereg, offset, srcreg, 1);
-	}
-	else if(basereg != X86_EAX)
-	{
-		x86_push_reg(inst, X86_EAX);
-		x86_mov_reg_reg(inst, X86_EAX, srcreg, 4);
-		x86_mov_membase_reg(inst, basereg, offset, X86_EAX, 1);
-		x86_pop_reg(inst, X86_EAX);
-	}
-	else
-	{
-		x86_push_reg(inst, X86_EDX);
-		x86_mov_reg_reg(inst, X86_EDX, srcreg, 4);
-		x86_mov_membase_reg(inst, basereg, offset, X86_EDX, 1);
-		x86_pop_reg(inst, X86_EDX);
-	}
 	return inst;
 }
 
