@@ -83,7 +83,13 @@ This register can hold an integer word value.
 This register can hold a 64-bit long value without needing a
 second register.  Normally only used on 64-bit platforms.
 
-@item JIT_REG_FLOAT
+@item JIT_REG_FLOAT32
+This register can hold a 32-bit floating-point value.
+
+@item JIT_REG_FLOAT64
+This register can hold a 64-bit floating-point value.
+
+@item JIT_REG_NFLOAT
 This register can hold a native floating-point value.
 
 @item JIT_REG_FRAME

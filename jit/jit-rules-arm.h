@@ -43,7 +43,8 @@ extern	"C" {
  * The floating-point registers are only present on some ARM cores.
  */
 #ifdef JIT_ARM_HAS_FLOAT_REGS
-	#define	JIT_REG_ARM_FLOAT	JIT_REG_FLOAT | JIT_REG_CALL_USED
+	#define	JIT_REG_ARM_FLOAT	\
+	  (JIT_REG_FLOAT32 | JIT_REG_FLOAT64 | JIT_REG_NFLOAT | JIT_REG_CALL_USED)
 #else
 	#define	JIT_REG_ARM_FLOAT	JIT_REG_FIXED
 #endif

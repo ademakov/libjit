@@ -1,4 +1,12 @@
 
+2004-06-24  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-reg-alloc.c, jit/jit-rules-arm.h, jit/jit-rules-interp.c,
+	jit/jit-rules-interp.h, jit/jit-rules-x86.h, jit/jit-rules.h:
+	use separate JIT_REG_xxx flags for float32, float64, and nfloat
+	because some platforms need to put these values in different
+	types of registers (e.g. x86-64).
+
 2004-06-22  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-insn.c: properly set the "may_throw" flag for opcodes

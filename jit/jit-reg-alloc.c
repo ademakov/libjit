@@ -955,10 +955,20 @@ static int free_register_for_value
 		break;
 
 		case JIT_TYPE_FLOAT32:
+		{
+			type = JIT_REG_FLOAT32;
+		}
+		break;
+
 		case JIT_TYPE_FLOAT64:
+		{
+			type = JIT_REG_FLOAT64;
+		}
+		break;
+
 		case JIT_TYPE_NFLOAT:
 		{
-			type = JIT_REG_FLOAT;
+			type = JIT_REG_NFLOAT;
 		}
 		break;
 

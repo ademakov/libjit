@@ -60,15 +60,19 @@ typedef struct
  */
 #define	JIT_REG_WORD		(1 << 0)	/* Can be used for word values */
 #define	JIT_REG_LONG		(1 << 1)	/* Can be used for long values */
-#define	JIT_REG_FLOAT		(1 << 2)	/* Can be used for float values */
-#define	JIT_REG_FRAME		(1 << 3)	/* Contains frame pointer */
-#define	JIT_REG_STACK_PTR	(1 << 4)	/* Contains CPU stack pointer */
-#define	JIT_REG_FIXED		(1 << 5)	/* Fixed use; not for allocation */
-#define	JIT_REG_CALL_USED	(1 << 6)	/* Destroyed by a call */
-#define	JIT_REG_START_STACK	(1 << 7)	/* Stack of stack-like allocation */
-#define	JIT_REG_END_STACK	(1 << 8)	/* End of stack-like allocation */
-#define	JIT_REG_IN_STACK	(1 << 9)	/* Middle of stack-like allocation */
-#define	JIT_REG_GLOBAL		(1 << 10)	/* Candidate for global allocation */
+#define	JIT_REG_FLOAT32		(1 << 2)	/* Can be used for float32 values */
+#define	JIT_REG_FLOAT64		(1 << 3)	/* Can be used for float64 values */
+#define	JIT_REG_NFLOAT		(1 << 4)	/* Can be used for nfloat values */
+#define	JIT_REG_FRAME		(1 << 5)	/* Contains frame pointer */
+#define	JIT_REG_STACK_PTR	(1 << 6)	/* Contains CPU stack pointer */
+#define	JIT_REG_FIXED		(1 << 7)	/* Fixed use; not for allocation */
+#define	JIT_REG_CALL_USED	(1 << 8)	/* Destroyed by a call */
+#define	JIT_REG_START_STACK	(1 << 9)	/* Stack of stack-like allocation */
+#define	JIT_REG_END_STACK	(1 << 10)	/* End of stack-like allocation */
+#define	JIT_REG_IN_STACK	(1 << 11)	/* Middle of stack-like allocation */
+#define	JIT_REG_GLOBAL		(1 << 12)	/* Candidate for global allocation */
+#define	JIT_REG_ALL	(JIT_REG_WORD | JIT_REG_LONG | JIT_REG_FLOAT32 | \
+					 JIT_REG_FLOAT64 | JIT_REG_NFLOAT)
 
 /*
  * Include definitions that are specific to the backend.
