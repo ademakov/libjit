@@ -376,6 +376,7 @@ extern arm_inst_ptr _arm_alu_reg_imm
 			} while (0)
 extern arm_inst_ptr _arm_mov_reg_imm
 	(arm_inst_ptr inst, int reg, int value, int execute_prefix);
+extern int arm_is_complex_imm(int value);
 #define	arm_mov_reg_imm(inst,reg,imm)	\
 			do { \
 				int __imm = (int)(imm); \

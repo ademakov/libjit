@@ -48,6 +48,324 @@ void _jit_gen_get_elf_info(jit_elf_info_t *info)
 }
 
 /*
+ * Flush the contents of the constant pool.
+ */
+#define	check_for_word()	\
+	do { \
+		if(inst >= limit) \
+		{ \
+			jit_cache_mark_full(&(gen->posn)); \
+			gen->num_constants = 0; \
+			gen->align_constants = 0; \
+			gen->first_constant_use = 0; \
+			return; \
+		} \
+	} while (0)
+static void flush_constants(jit_gencode_t gen, int after_epilog)
+{
+	arm_inst_ptr inst;
+	arm_inst_ptr limit;
+	arm_inst_ptr patch;
+	arm_inst_ptr current;
+	arm_inst_ptr fixup;
+	int index, value, offset;
+
+	/* Bail out if there are no constants to flush */
+	if(!(gen->num_constants))
+	{
+		return;
+	}
+
+	/* Initialize the cache output pointer */
+	inst = (arm_inst_ptr)(gen->posn.ptr);
+	limit = (arm_inst_ptr)(gen->posn.limit);
+
+	/* Jump over the constant pool if it is being output inline */
+	if(!after_epilog)
+	{
+		patch = inst;
+		check_for_word();
+		arm_jump_imm(inst, 0);
+	}
+	else
+	{
+		patch = 0;
+	}
+
+	/* Align the constant pool, if requested */
+	if(gen->align_constants && (((int)inst) & 7) != 0)
+	{
+		check_for_word();
+		*inst++ = 0;
+	}
+
+	/* Output the constant values and apply the necessary fixups */
+	for(index = 0; index < gen->num_constants; ++index)
+	{
+		current = inst;
+		check_for_word();
+		*inst++ = gen->constants[index];
+		fixup = gen->fixup_constants[index];
+		while(fixup != 0)
+		{
+			if((*fixup & 0x0F000000) == 0x05000000)
+			{
+				/* Word constant fixup */
+				value = *fixup & 0x0FFF;
+				offset = ((inst - 1 - fixup) * 4) - 8;
+				*fixup = ((*fixup & ~0x0FFF) | offset);
+			}
+			else
+			{
+				/* Floating-point constant fixup */
+				value = (*fixup & 0x00FF) * 4;
+				offset = ((inst - 1 - fixup) * 4) - 8;
+				*fixup = ((*fixup & ~0x00FF) | (offset / 4));
+			}
+			if(value)
+			{
+				fixup -= value;
+			}
+			else
+			{
+				fixup = 0;
+			}
+		}
+	}
+
+	/* Backpatch the jump if necessary */
+	if(!after_epilog)
+	{
+		arm_patch(patch, inst);
+	}
+
+	/* Flush the pool state and restart */
+	gen->num_constants = 0;
+	gen->align_constants = 0;
+	gen->first_constant_use = 0;
+}
+
+/*
+ * Perform a constant pool flush if we are too far from the starting point.
+ */
+static int flush_if_too_far(jit_gencode_t gen)
+{
+	if(gen->first_constant_use &&
+	   (((arm_inst_ptr)(gen->posn.ptr)) -
+	   		((arm_inst_ptr)(gen->first_constant_use))) >= 100)
+	{
+		flush_constants(gen, 0);
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+/*
+ * Add a fixup for a particular constant pool entry.
+ */
+static void add_constant_fixup
+	(jit_gencode_t gen, int index, arm_inst_ptr fixup)
+{
+	arm_inst_ptr prev;
+	int value;
+	prev = gen->fixup_constants[index];
+	if(prev)
+	{
+		value = fixup - prev;
+	}
+	else
+	{
+		value = 0;
+	}
+	if((*fixup & 0x0F000000) == 0x05000000)
+	{
+		*fixup = ((*fixup & ~0x0FFF) | value);
+	}
+	else
+	{
+		*fixup = ((*fixup & ~0x00FF) | (value / 4));
+	}
+	gen->fixup_constants[index] = fixup;
+	if(!(gen->first_constant_use))
+	{
+		gen->first_constant_use = fixup;
+	}
+}
+
+/*
+ * Add an immediate value to the constant pool.  The constant
+ * is loaded from the instruction at "fixup".
+ */
+static void add_constant(jit_gencode_t gen, int value, arm_inst_ptr fixup)
+{
+	int index;
+
+	/* Search the constant pool for an existing copy of the value */
+	for(index = 0; index < gen->num_constants; ++index)
+	{
+		if(gen->constants[index] == value)
+		{
+			add_constant_fixup(gen, index, fixup);
+			return;
+		}
+	}
+
+	/* Flush the constant pool if there is insufficient space */
+	if(gen->num_constants >= JIT_ARM_MAX_CONSTANTS)
+	{
+		flush_constants(gen, 0);
+	}
+
+	/* Add the constant value to the pool */
+	gen->constants[gen->num_constants] = value;
+	gen->fixup_constants[gen->num_constants] = 0;
+	++(gen->num_constants);
+	add_constant_fixup(gen, gen->num_constants - 1, fixup);
+}
+
+/*
+ * Add a double-word immedite value to the constant pool.
+ */
+static void add_constant_dword
+	(jit_gencode_t gen, int value1, int value2, arm_inst_ptr fixup, int align)
+{
+	int index;
+
+	/* Make sure that the constant pool is properly aligned when output */
+	if(align)
+	{
+		gen->align_constants = 1;
+	}
+
+	/* Search the constant pool for an existing copy of the value */
+	for(index = 0; index < (gen->num_constants - 1); ++index)
+	{
+		if(gen->constants[index] == value1 &&
+		   gen->constants[index + 1] == value2)
+		{
+			if(!align || (index % 2) == 0)
+			{
+				add_constant_fixup(gen, index, fixup);
+				return;
+			}
+		}
+	}
+
+	/* Flush the constant pool if there is insufficient space */
+	if(gen->num_constants >= (JIT_ARM_MAX_CONSTANTS - 1))
+	{
+		flush_constants(gen, 0);
+	}
+
+	/* Align the constant pool on a 64-bit boundary if necessary */
+	if(align && (gen->num_constants % 2) != 0)
+	{
+		gen->constants[gen->num_constants] = 0;
+		gen->fixup_constants[gen->num_constants] = 0;
+		++(gen->num_constants);
+	}
+
+	/* Add the double word constant value to the pool */
+	gen->constants[gen->num_constants] = value1;
+	gen->fixup_constants[gen->num_constants] = 0;
+	gen->constants[gen->num_constants] = value2;
+	gen->fixup_constants[gen->num_constants] = 0;
+	gen->num_constants += 2;
+	add_constant_fixup(gen, gen->num_constants - 2, fixup);
+}
+
+/*
+ * Load an immediate value into a word register.  If the value is
+ * complicated, then add an entry to the constant pool.
+ */
+static arm_inst_ptr mov_reg_imm
+	(jit_gencode_t gen, arm_inst_ptr inst, int reg, int value)
+{
+	arm_inst_ptr fixup;
+
+	/* Bail out if the buffer is full */
+	if(inst >= (arm_inst_ptr)(gen->posn.limit))
+	{
+		return inst;
+	}
+
+	/* Bail out if the value is not complex enough to need a pool entry */
+	if(!arm_is_complex_imm(value))
+	{
+		arm_mov_reg_imm(inst, reg, value);
+		return inst;
+	}
+
+	/* Output a placeholder to load the value later */
+	fixup = inst;
+	arm_load_membase(inst, reg, ARM_PC, 0);
+
+	/* Add the constant to the pool, which may cause a flush */
+	gen->posn.ptr = (unsigned char *)inst;
+	add_constant(gen, value, fixup);
+
+	/* Return the new program counter location */
+	return (arm_inst_ptr)(gen->posn.ptr);
+}
+
+/*
+ * Load a float32 immediate value into a float register.  If the value is
+ * complicated, then add an entry to the constant pool.
+ */
+static arm_inst_ptr mov_freg_imm_32
+	(jit_gencode_t gen, arm_inst_ptr inst, int reg, int value)
+{
+	arm_inst_ptr fixup;
+
+	/* Bail out if the buffer is full */
+	if(inst >= (arm_inst_ptr)(gen->posn.limit))
+	{
+		return inst;
+	}
+
+	/* Output a placeholder to load the value later */
+	fixup = inst;
+	arm_load_membase_float32(inst, reg, ARM_PC, 0);
+
+	/* Add the constant to the pool, which may cause a flush */
+	gen->posn.ptr = (unsigned char *)inst;
+	add_constant(gen, value, fixup);
+
+	/* Return the new program counter location */
+	return (arm_inst_ptr)(gen->posn.ptr);
+}
+
+/*
+ * Load a float64 immediate value into a float register.  If the value is
+ * complicated, then add an entry to the constant pool.
+ */
+static arm_inst_ptr mov_freg_imm_64
+	(jit_gencode_t gen, arm_inst_ptr inst, int reg, int value1, int value2)
+{
+	arm_inst_ptr fixup;
+
+	/* Bail out if the buffer is full */
+	if(inst >= (arm_inst_ptr)(gen->posn.limit))
+	{
+		return inst;
+	}
+
+	/* Output a placeholder to load the value later */
+	fixup = inst;
+	arm_load_membase_float64(inst, reg, ARM_PC, 0);
+
+	/* Add the constant to the pool, which may cause a flush */
+	gen->posn.ptr = (unsigned char *)inst;
+	add_constant_dword(gen, value1, value2, fixup, 1);
+
+	/* Return the new program counter location */
+	return (arm_inst_ptr)(gen->posn.ptr);
+}
+
+/*
  * Force values out of parameter registers that cannot be easily
  * accessed in register form (i.e. long, float, and struct values).
  */
@@ -539,6 +857,9 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	inst = (arm_inst_ptr)(gen->posn.ptr);
 	arm_pop_frame(inst, regset);
 	gen->posn.ptr = (unsigned char *)inst;
+
+	/* Flush the remainder of the constant pool */
+	flush_constants(gen, 1);
 }
 
 void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func)
@@ -579,7 +900,11 @@ void _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 	int offset;
 
 	/* Make sure that we have sufficient space */
-	jit_cache_setup_output(20);
+	jit_cache_setup_output(32);
+	if(flush_if_too_far(gen))
+	{
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+	}
 
 	/* Output an appropriate instruction to spill the value */
 	if(value->has_global_register)
@@ -627,7 +952,11 @@ void _jit_gen_load_value
 	int offset;
 
 	/* Make sure that we have sufficient space */
-	jit_cache_setup_output(16);
+	jit_cache_setup_output(32);
+	if(flush_if_too_far(gen))
+	{
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+	}
 
 	if(value->is_constant)
 	{
@@ -641,8 +970,8 @@ void _jit_gen_load_value
 			case JIT_TYPE_INT:
 			case JIT_TYPE_UINT:
 			{
-				arm_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
-								(jit_nint)(value->address));
+				inst = mov_reg_imm(gen, inst, _jit_reg_info[reg].cpu_reg,
+							       (jit_nint)(value->address));
 			}
 			break;
 
@@ -651,10 +980,10 @@ void _jit_gen_load_value
 			{
 				jit_long long_value;
 				long_value = jit_value_get_long_constant(value);
-				arm_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
-								(jit_int)long_value);
-				arm_mov_reg_imm(inst, _jit_reg_info[other_reg].cpu_reg,
-								(jit_int)(long_value >> 32));
+				inst = mov_reg_imm(gen, inst, _jit_reg_info[reg].cpu_reg,
+								   (jit_int)long_value);
+				inst = mov_reg_imm(gen, inst, _jit_reg_info[other_reg].cpu_reg,
+								    (jit_int)(long_value >> 32));
 			}
 			break;
 
@@ -669,15 +998,14 @@ void _jit_gen_load_value
 				}
 				if(reg < 16)
 				{
-					arm_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
-									*((int *)&float32_value));
+					inst = mov_reg_imm(gen, inst, _jit_reg_info[reg].cpu_reg,
+									   *((int *)&float32_value));
 				}
 				else
 				{
-					arm_load_membase_float32
-						(inst, _jit_reg_info[reg].cpu_reg, ARM_PC, 0);
-					arm_jump_imm(inst, 0);
-					*(inst)++ = *((int *)&float32_value);
+					inst = mov_freg_imm_32
+						(gen, inst, _jit_reg_info[reg].cpu_reg,
+					     *((int *)&float32_value));
 				}
 			}
 			break;
@@ -694,27 +1022,19 @@ void _jit_gen_load_value
 				}
 				if(reg < 16)
 				{
-					arm_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
-									((int *)&float64_value)[0]);
-					arm_mov_reg_imm(inst, _jit_reg_info[other_reg].cpu_reg,
-									((int *)&float64_value)[1]);
-				}
-				else if((((int)inst) & 7) == 0)
-				{
-					arm_load_membase_float64
-						(inst, _jit_reg_info[reg].cpu_reg, ARM_PC, 0);
-					arm_jump_imm(inst, 4);
-					*(inst)++ = ((int *)&float64_value)[0];
-					*(inst)++ = ((int *)&float64_value)[1];
+					inst = mov_reg_imm
+						(gen, inst, _jit_reg_info[reg].cpu_reg,
+						 ((int *)&float64_value)[0]);
+					inst = mov_reg_imm
+						(gen, inst, _jit_reg_info[other_reg].cpu_reg,
+						 ((int *)&float64_value)[1]);
 				}
 				else
 				{
-					arm_load_membase_float64
-						(inst, _jit_reg_info[reg].cpu_reg, ARM_PC, 4);
-					arm_jump_imm(inst, 8);
-					*(inst)++ = 0;
-					*(inst)++ = ((int *)&float64_value)[0];
-					*(inst)++ = ((int *)&float64_value)[1];
+					inst = mov_freg_imm_64
+						(gen, inst, _jit_reg_info[reg].cpu_reg,
+					     ((int *)&float64_value)[0],
+					     ((int *)&float64_value)[1]);
 				}
 			}
 			break;
@@ -944,6 +1264,7 @@ static arm_inst_ptr jump_to_epilog
 void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 				   jit_block_t block, jit_insn_t insn)
 {
+	flush_if_too_far(gen);
 	switch(insn->opcode)
 	{
 		#define JIT_INCLUDE_RULES

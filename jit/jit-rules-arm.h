@@ -96,6 +96,24 @@ extern	"C" {
  */
 #define	JIT_ALIGN_OVERRIDES		0
 
+/*
+ * Extra state information that is added to the "jit_gencode" structure.
+ */
+#define	JIT_ARM_MAX_CONSTANTS		32
+#define	jit_extra_gen_state	\
+			int constants[JIT_ARM_MAX_CONSTANTS]; \
+			int *fixup_constants[JIT_ARM_MAX_CONSTANTS]; \
+			int num_constants; \
+			int align_constants; \
+			int *first_constant_use
+#define	jit_extra_gen_init(gen)	\
+			do { \
+				(gen)->num_constants = 0; \
+				(gen)->align_constants = 0; \
+				(gen)->first_constant_use = 0; \
+			} while (0)
+#define	jit_extra_gen_cleanup(gen)	do { ; } while (0)
+
 #ifdef	__cplusplus
 };
 #endif

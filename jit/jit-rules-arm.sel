@@ -74,7 +74,7 @@ JIT_OP_IMUL: binary
 		{
 			case 0:
 			{
-				arm_mov_reg_imm(inst, $1, 0);
+				arm_mov_reg_imm8(inst, $1, 0);
 			}
 			break;
 
@@ -596,10 +596,10 @@ JIT_OP_RETURN_LONG: spill_before
 	[] -> {
 		if(jit_value_is_constant(insn->value1))
 		{
-			arm_mov_reg_imm(inst, ARM_R0,
-							((jit_int *)(insn->value1->address))[0]);
-			arm_mov_reg_imm(inst, ARM_R1,
-							((jit_int *)(insn->value1->address))[1]);
+			inst = mov_reg_imm
+				(gen, inst, ARM_R0, ((jit_int *)(insn->value1->address))[0]);
+			inst = mov_reg_imm
+				(gen, inst, ARM_R1, ((jit_int *)(insn->value1->address))[1]);
 		}
 		else
 		{
@@ -634,7 +634,8 @@ JIT_OP_RETURN_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 		}
 		if(insn->value1->is_constant)
 		{
-			arm_mov_reg_imm(inst, ARM_R0, ((int *)(insn->value1->address))[0]);
+			inst = mov_reg_imm
+				(gen, inst, ARM_R0, ((int *)(insn->value1->address))[0]);
 		}
 		else
 		{
@@ -667,8 +668,10 @@ JIT_OP_RETURN_FLOAT64, JIT_OP_RETURN_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
 		}
 		if(insn->value1->is_constant)
 		{
-			arm_mov_reg_imm(inst, ARM_R0, ((int *)(insn->value1->address))[0]);
-			arm_mov_reg_imm(inst, ARM_R1, ((int *)(insn->value1->address))[1]);
+			inst = mov_reg_imm
+				(gen, inst, ARM_R0, ((int *)(insn->value1->address))[0]);
+			inst= mov_reg_imm
+				(gen, inst, ARM_R1, ((int *)(insn->value1->address))[1]);
 		}
 		else
 		{
@@ -836,12 +839,12 @@ JIT_OP_COPY_LONG: manual
 		}
 		if(insn->value1->is_constant)
 		{
-			arm_mov_reg_imm(inst, ARM_WORK,
-							((int *)(insn->value1->address))[0]);
+			inst = mov_reg_imm
+				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
 			arm_store_membase(inst, ARM_WORK, ARM_FP,
 							  insn->dest->frame_offset);
-			arm_mov_reg_imm(inst, ARM_WORK,
-							((int *)(insn->value1->address))[1]);
+			inst = mov_reg_imm
+				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
 			arm_store_membase(inst, ARM_WORK, ARM_FP,
 							  insn->dest->frame_offset + 4);
 		}
@@ -877,8 +880,8 @@ JIT_OP_COPY_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 		}
 		if(insn->value1->is_constant)
 		{
-			arm_mov_reg_imm(inst, ARM_WORK,
-							((int *)(insn->value1->address))[0]);
+			inst = mov_reg_imm
+				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
 		}
 		else
 		{
@@ -907,12 +910,12 @@ JIT_OP_COPY_FLOAT64, JIT_OP_COPY_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
 		}
 		if(insn->value1->is_constant)
 		{
-			arm_mov_reg_imm(inst, ARM_WORK,
-							((int *)(insn->value1->address))[0]);
+			inst = mov_reg_imm
+				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
 			arm_store_membase(inst, ARM_WORK, ARM_FP,
 							  insn->dest->frame_offset);
-			arm_mov_reg_imm(inst, ARM_WORK,
-							((int *)(insn->value1->address))[1]);
+			inst = mov_reg_imm
+				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
 			arm_store_membase(inst, ARM_WORK, ARM_FP,
 							  insn->dest->frame_offset + 4);
 		}
@@ -1034,11 +1037,11 @@ JIT_OP_PUSH_LONG: manual
 		}
 		if(insn->value1->is_constant)
 		{
-			arm_mov_reg_imm(inst, ARM_WORK,
-							((int *)(insn->value1->address))[1]);
+			inst = mov_reg_imm
+				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
 			arm_push_reg(inst, ARM_WORK);
-			arm_mov_reg_imm(inst, ARM_WORK,
-							((int *)(insn->value1->address))[0]);
+			inst = mov_reg_imm
+				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
 			arm_push_reg(inst, ARM_WORK);
 		}
 		else
@@ -1071,8 +1074,8 @@ JIT_OP_PUSH_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 		}
 		if(insn->value1->is_constant)
 		{
-			arm_mov_reg_imm(inst, ARM_WORK,
-							((int *)(insn->value1->address))[0]);
+			inst = mov_reg_imm
+				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
 		}
 		else
 		{
@@ -1101,11 +1104,11 @@ JIT_OP_PUSH_FLOAT64, JIT_OP_PUSH_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
 		}
 		if(insn->value1->is_constant)
 		{
-			arm_mov_reg_imm(inst, ARM_WORK,
-							((int *)(insn->value1->address))[1]);
+			inst = mov_reg_imm
+				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
 			arm_push_reg(inst, ARM_WORK);
-			arm_mov_reg_imm(inst, ARM_WORK,
-							((int *)(insn->value1->address))[0]);
+			inst = mov_reg_imm
+				(gen, inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
 			arm_push_reg(inst, ARM_WORK);
 		}
 		else

@@ -30,6 +30,11 @@
 	* jit/jit-rules-arm.c: ARM parameters cannot be split between
 	registers and the stack.
 
+	* jit/jit-gen-arm.c, jit/jit-gen-arm.h, jit/jit-rules-arm.c,
+	jit/jit-rules-arm.h, jit/jit-rules-arm.sel: implement a
+	constant pool for ARM, which gets complicated constants out
+	of the main stream of execution.
+
 2004-06-08  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c: fix ROUND_END_PTR so that it adds the size

@@ -128,6 +128,48 @@ arm_inst_ptr _arm_mov_reg_imm
 	return inst;
 }
 
+int arm_is_complex_imm(int value)
+{
+	if(value > -256 && value < 256)
+	{
+		return 0;
+	}
+	else if((value & 0x000000FF) == value)
+	{
+		return 0;
+	}
+	else if((value & 0x0000FF00) == value)
+	{
+		return 0;
+	}
+	else if((value & 0x00FF0000) == value)
+	{
+		return 0;
+	}
+	else if((value & 0xFF000000) == value)
+	{
+		return 0;
+	}
+	value = ~value;
+	if((value & 0x000000FF) == value)
+	{
+		return 0;
+	}
+	else if((value & 0x0000FF00) == value)
+	{
+		return 0;
+	}
+	else if((value & 0x00FF0000) == value)
+	{
+		return 0;
+	}
+	else if((value & 0xFF000000) == value)
+	{
+		return 0;
+	}
+	return 1;
+}
+
 arm_inst_ptr _arm_alu_reg_imm
 	(arm_inst_ptr inst, int opc, int dreg,
 	 int sreg, int imm, int saveWork, int execute_prefix)
