@@ -4994,7 +4994,9 @@ jit_value_t jit_insn_call_indirect
 	}
 	jit_value_ref(func, value);
 	insn->opcode = JIT_OP_CALL_INDIRECT;
+	insn->flags = JIT_INSN_VALUE2_IS_SIGNATURE;
 	insn->value1 = value;
+	insn->value2 = (jit_value_t)jit_type_copy(signature);
 
 	/* If the function does not return, then end the current block.
 	   The next block does not have "entered_via_top" set so that
@@ -5593,7 +5595,6 @@ int jit_insn_flush_struct(jit_function_t func, jit_value_t value)
  * @deftypefun jit_value_t jit_insn_import (jit_function_t func, jit_value_t value)
  * Import @code{value} from an outer nested scope into @code{func}.  Returns
  * the effective address of the value for local access via a pointer.
- * If @code{value} is local to @code{func}, then it is returned as-is.
  * Returns NULL if out of memory or the value is not accessible via a
  * parent, grandparent, or other ancestor of @code{func}.
  * @end deftypefun
@@ -5610,11 +5611,11 @@ jit_value_t jit_insn_import(jit_function_t func, jit_value_t value)
 		return 0;
 	}
 
-	/* If the value is already local, then there is nothing to do */
+	/* If the value is already local, then return the local address */
 	value_func = jit_value_get_function(value);
 	if(value_func == func)
 	{
-		return value;
+		return jit_insn_address_of(func, value);
 	}
 
 	/* Find the nesting level of the value, where 1 is our parent */
@@ -5695,11 +5696,61 @@ int jit_insn_push(jit_function_t func, jit_value_t value)
 		case JIT_TYPE_STRUCT:
 		case JIT_TYPE_UNION:
 		{
-			return create_unary_note(func, JIT_OP_PUSH_STRUCT, value);
+			/* We need the address of the value for "push_struct" */
+			value = jit_insn_address_of(func, value);
+			if(!value)
+			{
+				return 0;
+			}
+			return create_note
+				(func, JIT_OP_PUSH_STRUCT, value,
+				 jit_value_create_nint_constant
+				 	(func, jit_type_nint, (jit_nint)jit_type_get_size(type)));
 		}
 		/* Not reached */
 	}
 	return 1;
+}
+
+/*@
+ * @deftypefun int jit_insn_push_ptr (jit_function_t func, jit_value_t value, jit_type_t type)
+ * Push @code{*value} onto the function call stack, in preparation for a call.
+ * This is normally used for returning @code{struct} and @code{union}
+ * values where you have the effective address of the structure, rather
+ * than the structure's contents, in @code{value}.
+ *
+ * You normally wouldn't call this yourself - it is used internally
+ * by the CPU back ends to set up the stack for a subroutine call.
+ * @end deftypefun
+@*/
+int jit_insn_push_ptr
+	(jit_function_t func, jit_value_t value, jit_type_t type)
+{
+	if(!value || !type)
+	{
+		return 0;
+	}
+	switch(jit_type_normalize(type)->kind)
+	{
+		case JIT_TYPE_STRUCT:
+		case JIT_TYPE_UNION:
+		{
+			/* Push the structure onto the stack by address */
+			return create_note
+				(func, JIT_OP_PUSH_STRUCT, value,
+				 jit_value_create_nint_constant
+				 	(func, jit_type_nint, (jit_nint)jit_type_get_size(type)));
+		}
+		/* Not reached */
+
+		default:
+		{
+			/* Load the value from the address and push it normally */
+			return jit_insn_push
+				(func, jit_insn_load_relative(func, value, 0, type));
+		}
+		/* Not reached */
+	}
 }
 
 /*@

@@ -375,12 +375,27 @@ int _jit_create_call_setup_insns
 	 int is_nested, int nested_level, jit_value_t *struct_return)
 {
 	jit_type_t type;
+	jit_type_t vtype;
 	jit_value_t value;
 
 	/* Push all of the arguments in reverse order */
 	while(num_args > 0)
 	{
 		--num_args;
+		type = jit_type_normalize(jit_type_get_param(signature, num_args));
+		if(type->kind == JIT_TYPE_STRUCT || type->kind == JIT_TYPE_UNION)
+		{
+			/* If the value is a pointer, then we are pushing a structure
+			   argument by pointer rather than by local variable */
+			vtype = jit_type_normalize(jit_value_get_type(args[num_args]));
+			if(vtype->kind <= JIT_TYPE_MAX_PRIMITIVE)
+			{
+				if(!jit_insn_push_ptr(func, args[num_args], type))
+				{
+					return 0;
+				}
+			}
+		}
 		if(!jit_insn_push(func, args[num_args]))
 		{
 			return 0;
@@ -1056,10 +1071,39 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		/* Not reached */
 
 		case JIT_OP_CALL:
+		case JIT_OP_CALL_TAIL:
 		{
 			/* Call a function, whose pointer is supplied explicitly */
 			jit_cache_opcode(&(gen->posn), insn->opcode);
 			jit_cache_native(&(gen->posn), (jit_nint)(insn->dest));
+		}
+		break;
+
+		case JIT_OP_CALL_INDIRECT:
+		{
+			/* Call a function, whose pointer is supplied on the stack */
+			if(!jit_type_return_via_pointer
+					(jit_type_get_return((jit_type_t)(insn->value2))))
+			{
+				jit_cache_opcode(&(gen->posn), JIT_OP_PUSH_RETURN_AREA_PTR);
+			}
+			reg = _jit_regs_load_to_top(gen, insn->value1, 0, 0);
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			jit_cache_native(&(gen->posn), (jit_nint)(insn->value2));
+			jit_cache_native(&(gen->posn), (jit_nint)
+					(jit_type_num_params((jit_type_t)(insn->value2))));
+			_jit_regs_free_reg(gen, reg, 1);
+			adjust_working(gen, -1);
+		}
+		break;
+
+		case JIT_OP_CALL_VTABLE_PTR:
+		{
+			/* Call a function, whose vtable pointer is supplied on the stack */
+			reg = _jit_regs_load_to_top(gen, insn->value1, 0, 0);
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			_jit_regs_free_reg(gen, reg, 1);
+			adjust_working(gen, -1);
 		}
 		break;
 
@@ -1076,16 +1120,6 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 			jit_cache_native(&(gen->posn), (jit_nint)(insn->dest));
 			jit_cache_native(&(gen->posn), (jit_nint)
 					(jit_type_num_params((jit_type_t)(insn->value2))));
-		}
-		break;
-
-		case JIT_OP_CALL_INDIRECT:
-		case JIT_OP_CALL_VTABLE_PTR:
-		{
-			/* Call a function, whose pointer is supplied on the stack */
-			_jit_regs_load_to_top(gen, insn->value1, 0, 0);
-			jit_cache_opcode(&(gen->posn), insn->opcode);
-			adjust_working(gen, -1);
 		}
 		break;
 
@@ -1112,6 +1146,68 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 			reg = _jit_regs_load_to_top(gen, insn->value1, 0, 0);
 			jit_cache_opcode(&(gen->posn), insn->opcode);
 			_jit_regs_free_reg(gen, reg, 1);
+		}
+		break;
+
+		case JIT_OP_RETURN_SMALL_STRUCT:
+		{
+			/* Return from current function with a small structure result */
+			if(!_jit_regs_is_top(gen, insn->value1) ||
+			   _jit_regs_num_used(gen, 0) != 1)
+			{
+				_jit_regs_spill_all(gen);
+			}
+			reg = _jit_regs_load_to_top(gen, insn->value1, 0, 0);
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			jit_cache_native(&(gen->posn),
+							 jit_value_get_nint_constant(insn->value2));
+			_jit_regs_free_reg(gen, reg, 1);
+		}
+		break;
+
+		case JIT_OP_SETUP_FOR_NESTED:
+		{
+			/* Set up to call a nested child */
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			adjust_working(gen, 2);
+		}
+		break;
+
+		case JIT_OP_SETUP_FOR_SIBLING:
+		{
+			/* Set up to call a nested sibling */
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			jit_cache_native(&(gen->posn),
+							 jit_value_get_nint_constant(insn->value1));
+			adjust_working(gen, 2);
+		}
+		break;
+
+		case JIT_OP_IMPORT:
+		{
+			/* Import a local variable from an outer nested scope */
+			if(_jit_regs_num_used(gen, 0) >= JIT_NUM_REGS)
+			{
+				_jit_regs_spill_all(gen);
+			}
+			_jit_gen_fix_value(insn->value1);
+			if(insn->value1->frame_offset >= 0)
+			{
+				jit_cache_opcode(&(gen->posn), JIT_OP_IMPORT_LOCAL);
+				jit_cache_native(&(gen->posn), insn->value1->frame_offset);
+				jit_cache_native(&(gen->posn),
+								 jit_value_get_nint_constant(insn->value2));
+			}
+			else
+			{
+				jit_cache_opcode(&(gen->posn), JIT_OP_IMPORT_ARG);
+				jit_cache_native
+					(&(gen->posn), -(insn->value1->frame_offset + 1));
+				jit_cache_native(&(gen->posn),
+								 jit_value_get_nint_constant(insn->value2));
+			}
+			reg = _jit_regs_new_top(gen, insn->dest, 0);
+			adjust_working(gen, 1);
 		}
 		break;
 
@@ -1232,14 +1328,30 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 
 		case JIT_OP_PUSH_STRUCT:
 		{
-			/* TODO */
+			/* Load the pointer value to the top of the stack */
+			if(!_jit_regs_is_top(gen, insn->value1) ||
+			   _jit_regs_num_used(gen, 0) != 1)
+			{
+				_jit_regs_spill_all(gen);
+			}
+			reg = _jit_regs_load_to_top
+				(gen, insn->value1,
+				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+				 				 JIT_INSN_VALUE1_LIVE)), 0);
+			_jit_regs_free_reg(gen, reg, 1);
+
+			/* Push the structure at the designated pointer */
+			size = jit_value_get_nint_constant(insn->value2);
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			jit_cache_native(&(gen->posn), size);
+			adjust_working(gen, JIT_NUM_ITEMS_IN_STRUCT(size) - 1);
 		}
 		break;
 
 		case JIT_OP_POP_STACK:
 		{
 			/* Pop parameter values from the stack after a function returns */
-			jit_nint size = jit_value_get_nint_constant(insn->value1);
+			size = jit_value_get_nint_constant(insn->value1);
 			if(size == 1)
 			{
 				jit_cache_opcode(&(gen->posn), JIT_OP_POP);

@@ -246,6 +246,8 @@ int jit_insn_flush_struct(jit_function_t func, jit_value_t value) JIT_NOTHROW;
 jit_value_t jit_insn_import
 	(jit_function_t func, jit_value_t value) JIT_NOTHROW;
 int jit_insn_push(jit_function_t func, jit_value_t value) JIT_NOTHROW;
+int jit_insn_push_ptr
+	(jit_function_t func, jit_value_t value, jit_type_t type) JIT_NOTHROW;
 int jit_insn_pop_stack(jit_function_t func, jit_nint num_items) JIT_NOTHROW;
 int jit_insn_return(jit_function_t func, jit_value_t value) JIT_NOTHROW;
 int jit_insn_return_ptr

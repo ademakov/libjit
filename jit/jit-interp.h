@@ -171,8 +171,8 @@ public:
 /*
  * Nested function call handling.
  */
-#define	JIT_OP_PUSH_PARENT_LOCALS			(JIT_OP_NUM_OPCODES + 0x0031)
-#define	JIT_OP_PUSH_PARENT_ARGS				(JIT_OP_NUM_OPCODES + 0x0032)
+#define	JIT_OP_IMPORT_LOCAL					(JIT_OP_NUM_OPCODES + 0x0031)
+#define	JIT_OP_IMPORT_ARG					(JIT_OP_NUM_OPCODES + 0x0032)
 
 /*
  * Push constant values onto the stack.
@@ -191,7 +191,7 @@ public:
 /*
  * Marker opcode for the end of the interpreter-specific opcodes.
  */
-#define	JIT_OP_END_MARKER					(JIT_OP_NUM_OPCODES + 0x0039)
+#define	JIT_OP_END_MARKER					(JIT_OP_NUM_OPCODES + 0x003B)
 
 /*
  * Number of interpreter-specific opcodes.

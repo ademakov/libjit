@@ -459,7 +459,7 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	{"push_float32",				F_(EMPTY, FLOAT32, EMPTY)},
 	{"push_float64",				F_(EMPTY, FLOAT64, EMPTY)},
 	{"push_nfloat",					F_(EMPTY, NFLOAT, EMPTY)},
-	{"push_struct",					F_(EMPTY, ANY, EMPTY)},
+	{"push_struct",					F_(EMPTY, ANY, PTR) | NINT_ARG},
 	{"pop_stack",					F_(EMPTY, INT, EMPTY) | NINT_ARG},
 	{"flush_small_struct",			F_(EMPTY, ANY, EMPTY)},
 
@@ -588,8 +588,8 @@ jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES] = {
 	/*
 	 * Nested function call handling.
 	 */
-	{"push_parent_locals",			0},
-	{"push_parent_args",			0},
+	{"import_local",				JIT_OPCODE_NINT_ARG_TWO},
+	{"import_arg",					JIT_OPCODE_NINT_ARG_TWO},
 
 	/*
 	 * Push constant values onto the stack.

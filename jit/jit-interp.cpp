@@ -3294,6 +3294,7 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 		 ******************************************************************/
 
 		VMCASE(JIT_OP_CALL):
+		VMCASE(JIT_OP_CALL_TAIL):
 		{
 			/* Call a function that is under the control of the JIT */
 			call_func = (jit_function_t)VM_NINT_ARG;
@@ -3455,8 +3456,8 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 		{
 			/* Return from the current function, with a small structure */
 		#if JIT_APPLY_MAX_STRUCT_IN_REG != 0
-			jit_memcpy(return_area->struct_value, VM_STK_PTR1,
-					   (unsigned int)VM_STK_NINT0);
+			jit_memcpy(return_area->struct_value, VM_STK_PTR0,
+					   (unsigned int)VM_NINT_ARG);
 		#endif
 			return;
 		}
@@ -3488,19 +3489,46 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_PUSH_PARENT_LOCALS):
+		VMCASE(JIT_OP_IMPORT_LOCAL):
 		{
-			/* Push the pointer to the parent's local variables */
-			VM_STK_PTRP = args[0].ptr_value;
-			VM_MODIFY_PC_AND_STACK(1, -1);
+			/* Import the address of a local variable from an outer scope */
+			temparg = VM_NINT_ARG2;
+			tempptr = args[0].ptr_value;
+			tempptr2 = args[1].ptr_value;
+			while(temparg > 1)
+			{
+				tempptr = ((jit_item *)tempptr2)[0].ptr_value;
+				tempptr2 = ((jit_item *)tempptr2)[1].ptr_value;
+				--temparg;
+			}
+			VM_STK_PTRP = ((jit_item *)tempptr) + VM_NINT_ARG;
+			VM_MODIFY_PC_AND_STACK(3, -1);
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_PUSH_PARENT_ARGS):
+		VMCASE(JIT_OP_IMPORT_ARG):
 		{
-			/* Push the pointer to the parent's argument variables */
-			VM_STK_PTRP = args[1].ptr_value;
-			VM_MODIFY_PC_AND_STACK(1, -1);
+			/* Import the address of an argument from an outer scope */
+			temparg = VM_NINT_ARG2;
+			tempptr = args[1].ptr_value;
+			while(temparg > 1)
+			{
+				tempptr = ((jit_item *)tempptr)[1].ptr_value;
+				--temparg;
+			}
+			VM_STK_PTRP = ((jit_item *)tempptr) + VM_NINT_ARG;
+			VM_MODIFY_PC_AND_STACK(3, -1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_PUSH_STRUCT):
+		{
+			/* Push a structure value onto the stack, given a pointer to it */
+			tempptr = VM_STK_PTR0;
+			temparg = VM_NINT_ARG;
+			stacktop -= (JIT_NUM_ITEMS_IN_STRUCT(temparg) - 1);
+			jit_memcpy(stacktop, tempptr, (unsigned int)temparg);
+			VM_MODIFY_PC_AND_STACK(2, 0);
 		}
 		VMBREAK;
 
@@ -4405,7 +4433,6 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 		VMCASE(JIT_OP_PUSH_FLOAT32):
 		VMCASE(JIT_OP_PUSH_FLOAT64):
 		VMCASE(JIT_OP_PUSH_NFLOAT):
-		VMCASE(JIT_OP_PUSH_STRUCT):
 		VMCASE(JIT_OP_FLUSH_SMALL_STRUCT):
 		VMCASE(JIT_OP_END_MARKER):
 		VMCASE(JIT_OP_ENTER_CATCH):
