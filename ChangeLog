@@ -8,6 +8,10 @@
 	* jit/jit-rules-interp.c, jit/jit-rules-interp.h: implement
 	the exception-handling opcodes for the interpreter.
 
+	* dpas/dpas-parser.y, dpas/dpas-scope.c, dpas/dpas-scope.h:
+	fix a bug that caused global variables in Dynamic Pascal
+	to be incorrectly allocated as locals.
+
 2004-05-10  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-reg-alloc.c, jit/jit-reg-alloc.h, jit/jit-rules-interp.c:

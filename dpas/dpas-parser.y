@@ -1125,7 +1125,7 @@ VariableDeclaration
 					}
 					else
 					{
-						if(dpas_current_function())
+						if(!dpas_scope_is_module())
 						{
 							jit_value_t value;
 							value = jit_value_create

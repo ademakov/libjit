@@ -149,6 +149,11 @@ dpas_scope_t dpas_scope_push(void);
  */
 void dpas_scope_pop(void);
 
+/*
+ * Determine if the current scope is the module-global scope.
+ */
+int dpas_scope_is_module(void);
+
 #ifdef	__cplusplus
 };
 #endif

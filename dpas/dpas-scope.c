@@ -360,3 +360,8 @@ void dpas_scope_pop(void)
 		dpas_scope_destroy(scope);
 	}
 }
+
+int dpas_scope_is_module(void)
+{
+	return (dpas_scope_current()->parent == dpas_scope_global());
+}
