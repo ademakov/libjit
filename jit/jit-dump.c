@@ -21,6 +21,13 @@
 #include "jit-internal.h"
 #include "jit-rules.h"
 #include <jit/jit-dump.h>
+#include <config.h>
+#ifdef HAVE_STDLIB_H
+	#include <stdlib.h>
+#endif
+#ifdef HAVE_UNISTD_H
+	#include <unistd.h>
+#endif
 
 #if defined(JIT_BACKEND_INTERP)
 	#include "jit-interp.h"
@@ -617,7 +624,39 @@ static void dump_interp_code(FILE *stream, void **pc, void **end)
 	}
 }
 
-#endif /* JIT_BACKEND_INTERP */
+#else /* !JIT_BACKEND_INTERP */
+
+/*
+ * Dump the native object code representation of a function.
+ * Can only dump to stdout or stderr at the moment.
+ */
+static void dump_object_code(FILE *stream, void *start, void *end)
+{
+	char cmdline[BUFSIZ];
+	FILE *file = fopen("/tmp/libjit-dump.s", "w");
+	unsigned char *pc = (unsigned char *)start;
+	if(!file)
+	{
+		return;
+	}
+	fflush(stream);
+	while(pc < (unsigned char *)end)
+	{
+		fprintf(file, ".byte %d\n", (int)(*pc));
+		++pc;
+	}
+	fclose(file);
+	sprintf(cmdline, "as /tmp/libjit-dump.s -o /tmp/libjit-dump.o;"
+					 "objdump --adjust-vma=%ld -d /tmp/libjit-dump.o%s",
+			(long)(jit_nint)start, (stream == stderr ? " 1>&2" : ""));
+	system(cmdline);
+	unlink("/tmp/libjit-dump.s");
+	unlink("/tmp/libjit-dump.o");
+	putc('\n', stream);
+	fflush(stream);
+}
+
+#endif /* !JIT_BACKEND_INTERP */
 
 /*@
  * @deftypefun void jit_dump_function ({FILE *} stream, jit_function_t func, {const char *} name)
@@ -765,7 +804,7 @@ void jit_dump_function(FILE *stream, jit_function_t func, const char *name)
 				(int)(interp->working_area));
 		dump_interp_code(stream, (void **)(interp + 1), (void **)end);
 #else
-		/* TODO: use objdump to dump native code */
+		dump_object_code(stream, func->entry_point, end);
 #endif
 	}
 
