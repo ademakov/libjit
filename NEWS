@@ -1,0 +1,14 @@
+
+0.0.2 (13 May 2004)
+
+	* Function and instruction building API basics in place, in C and C++.
+	* Operations include arithmetic, overflow checking, conversion,
+	  mathematical (sin, sqrt, etc), branching, exception handling,
+	  function calls, structure types, and arrays.
+	* Up-front or on-demand compilation and re-compilation.
+	* Interpreter at par with instruction building requirements.
+	* x86 and ARM in early stages (not enabled yet).
+	* Register allocation for register-based and stack-based architectures.
+	* Nested functions.
+	* Dynamic Pascal language is usable, suitable for writing test cases.
+	* Beginnings of ELF support for eventual ahead-of-time compilation.
