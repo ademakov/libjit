@@ -22,6 +22,7 @@
 #define	_JIT_RULES_H
 
 #include "jit-cache.h"
+#include <config.h>
 
 #ifdef	__cplusplus
 extern	"C" {
@@ -30,9 +31,17 @@ extern	"C" {
 /*
  * Determine which backend to use.
  */
-#define	JIT_BACKEND_INTERP		1
-/*#define	JIT_BACKEND_X86		1*/
+#if defined(USE_LIBJIT_INTERPRETER)
+	#define	JIT_BACKEND_INTERP		1
+	#define	JIT_HAVE_BACKEND		1
+#elif defined(__i386) || defined(__i386__) || defined(_M_IX86)
+	#define JIT_BACKEND_X86			1
+	#define	JIT_HAVE_BACKEND		1
+#endif
 /*#define	JIT_BACKEND_ARM		1*/
+#if !defined(JIT_HAVE_BACKEND)
+	#define	JIT_BACKEND_INTERP		1
+#endif
 
 /*
  * Information about a register.

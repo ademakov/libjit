@@ -7,6 +7,10 @@
 	* jit/jit-rules-arm.c, jit/jit-rules-arm.sel: more instruction
 	selection rules for ARM.
 
+	* configure.in, jit/jit-rules.h: enable the x86 back end by
+	default on platforms where it makes sense, and add the option
+	"--enable-interpreter" to "configure".
+
 2004-05-31  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-rules-x86.sel: optimize multiplications for x86.

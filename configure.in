@@ -51,6 +51,18 @@ case "$host" in
 esac
 AC_MSG_RESULT($platform_win32)
 
+dnl The "--enable-interpreter" option forces the use of the interpreter.
+AC_ARG_ENABLE(interpreter,
+[  --enable-interpreter    Enable the libjit interpreter],
+[case "${enableval}" in
+  yes) interp=true ;;
+  no)  interp=false ;;
+  *) AC_MSG_ERROR(bad value ${enableval} for --enable-interpreter) ;;
+esac],[interp=false])
+if test x$interp = xtrue; then
+	AC_DEFINE(USE_LIBJIT_INTERPRETER, 1, [Define if you want to use the libjit interpreter])
+fi
+
 dnl Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC
