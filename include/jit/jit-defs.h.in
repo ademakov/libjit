@@ -56,10 +56,10 @@ typedef void *jit_ptr;
 #define	JIT_NOTHROW
 #endif
 
-#define	jit_min_int		(((jit_int)1) << (sizeof(jit_int) - 1))
+#define	jit_min_int		(((jit_int)1) << (sizeof(jit_int) * 8 - 1))
 #define	jit_max_int		((jit_int)(~jit_min_int))
 #define	jit_max_uint	((jit_uint)(~((jit_uint)0)))
-#define	jit_min_long	(((jit_long)1) << (sizeof(jit_long) - 1))
+#define	jit_min_long	(((jit_long)1) << (sizeof(jit_long) * 8 - 1))
 #define	jit_max_long	((jit_long)(~jit_min_long))
 #define	jit_max_ulong	((jit_ulong)(~((jit_ulong)0)))
 

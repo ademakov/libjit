@@ -14,6 +14,9 @@
 
 	* dpas/dpas-parser.y: resolve ea-based lvalues in operators.
 
+	* include/jit/jit-defs.h.in: incorrect values for jit_max_int
+	and jit_max_long.
+
 2004-05-11  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/jit-insn.h, jit/jit-insn.c, jit/jit-interp.cpp,
