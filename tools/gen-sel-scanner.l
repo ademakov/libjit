@@ -86,6 +86,7 @@ WHITE					[ \t\v\r\f]
 "lreg"					{ RETURNTOK(K_LREG); }
 "freg"					{ RETURNTOK(K_FREG); }
 "imm"					{ RETURNTOK(K_IMM); }
+"immzero"				{ RETURNTOK(K_IMMZERO); }
 "imms8"					{ RETURNTOK(K_IMMS8); }
 "immu8"					{ RETURNTOK(K_IMMU8); }
 "imms16"				{ RETURNTOK(K_IMMS16); }
@@ -95,6 +96,8 @@ WHITE					[ \t\v\r\f]
 "binary"				{ RETURNTOK(K_BINARY); }
 "unary"					{ RETURNTOK(K_UNARY); }
 "ternary"				{ RETURNTOK(K_TERNARY); }
+"unary_branch"			{ RETURNTOK(K_UNARY_BRANCH); }
+"binary_branch"			{ RETURNTOK(K_BINARY_BRANCH); }
 "stack"					{ RETURNTOK(K_STACK); }
 "%inst_type"			{ RETURNTOK(K_INST_TYPE); }
 

@@ -148,13 +148,180 @@ JIT_OP_ISHR_UN: binary
  * Branch opcodes.
  */
 
-/* TODO */
+JIT_OP_BR: spill_before
+	[] -> {
+		inst = output_branch(inst, 0xE9, insn);
+	}
+
+JIT_OP_BR_IFALSE: unary_branch
+	[reg] -> {
+		x86_alu_reg_reg(inst, X86_OR, $1, $1);
+		inst = output_branch(inst, 0x74 /* eq */, insn);
+	}
+
+JIT_OP_BR_ITRUE: unary_branch
+	[reg] -> {
+		x86_alu_reg_reg(inst, X86_OR, $1, $1);
+		inst = output_branch(inst, 0x75 /* ne */, insn);
+	}
+
+JIT_OP_BR_IEQ: binary_branch
+	[reg, immzero] -> {
+		x86_alu_reg_reg(inst, X86_OR, $1, $1);
+		inst = output_branch(inst, 0x74 /* eq */, insn);
+	}
+	[reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x74 /* eq */, insn);
+	}
+	[reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+		inst = output_branch(inst, 0x74 /* eq */, insn);
+	}
+	[reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x74 /* eq */, insn);
+	}
+
+JIT_OP_BR_INE: binary_branch
+	[reg, immzero] -> {
+		x86_alu_reg_reg(inst, X86_OR, $1, $1);
+		inst = output_branch(inst, 0x75 /* ne */, insn);
+	}
+	[reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x75 /* ne */, insn);
+	}
+	[reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+		inst = output_branch(inst, 0x75 /* ne */, insn);
+	}
+	[reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x75 /* ne */, insn);
+	}
+
+JIT_OP_BR_ILT: binary_branch
+	[reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x7C /* lt */, insn);
+	}
+	[reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+		inst = output_branch(inst, 0x7C /* lt */, insn);
+	}
+	[reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x7C /* lt */, insn);
+	}
+
+JIT_OP_BR_ILT_UN: binary_branch
+	[reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x72 /* lt_un */, insn);
+	}
+	[reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+		inst = output_branch(inst, 0x72 /* lt_un */, insn);
+	}
+	[reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x72 /* lt_un */, insn);
+	}
+
+JIT_OP_BR_ILE: binary_branch
+	[reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x7E /* le */, insn);
+	}
+	[reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+		inst = output_branch(inst, 0x7E /* le */, insn);
+	}
+	[reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x7E /* le */, insn);
+	}
+
+JIT_OP_BR_ILE_UN: binary_branch
+	[reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x76 /* le_un */, insn);
+	}
+	[reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+		inst = output_branch(inst, 0x76 /* le_un */, insn);
+	}
+	[reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x76 /* le_un */, insn);
+	}
+
+JIT_OP_BR_IGT: binary_branch
+	[reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x7F /* gt */, insn);
+	}
+	[reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+		inst = output_branch(inst, 0x7F /* gt */, insn);
+	}
+	[reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x7F /* gt */, insn);
+	}
+
+JIT_OP_BR_IGT_UN: binary_branch
+	[reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x77 /* gt_un */, insn);
+	}
+	[reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+		inst = output_branch(inst, 0x77 /* gt_un */, insn);
+	}
+	[reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x77 /* gt_un */, insn);
+	}
+
+JIT_OP_BR_IGE: binary_branch
+	[reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x7D /* ge */, insn);
+	}
+	[reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+		inst = output_branch(inst, 0x7D /* ge */, insn);
+	}
+	[reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x7D /* ge */, insn);
+	}
+
+JIT_OP_BR_IGE_UN: binary_branch
+	[reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x73 /* ge_un */, insn);
+	}
+	[reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+		inst = output_branch(inst, 0x73 /* ge_un */, insn);
+	}
+	[reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+		inst = output_branch(inst, 0x73 /* ge_un */, insn);
+	}
 
 /*
  * Comparison opcodes.
  */
 
 JIT_OP_IEQ: binary
+	[reg, immzero] -> {
+		x86_alu_reg_reg(inst, X86_OR, $1, $1);
+		inst = setcc_reg(inst, $1, X86_CC_EQ, 0);
+	}
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
 		inst = setcc_reg(inst, $1, X86_CC_EQ, 0);
@@ -169,6 +336,10 @@ JIT_OP_IEQ: binary
 	}
 
 JIT_OP_INE: binary
+	[reg, immzero] -> {
+		x86_alu_reg_reg(inst, X86_OR, $1, $1);
+		inst = setcc_reg(inst, $1, X86_CC_NE, 0);
+	}
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
 		inst = setcc_reg(inst, $1, X86_CC_NE, 0);

@@ -73,6 +73,8 @@ static int gensel_first_stack_reg = 8;	/* st0 under x86 */
 #define	GENSEL_OPT_UNARY				0x0004
 #define	GENSEL_OPT_TERNARY				0x0008
 #define	GENSEL_OPT_STACK				0x0010
+#define	GENSEL_OPT_UNARY_BRANCH			0x0020
+#define	GENSEL_OPT_BINARY_BRANCH		0x0040
 
 /*
  * Pattern values.
@@ -82,11 +84,12 @@ static int gensel_first_stack_reg = 8;	/* st0 under x86 */
 #define	GENSEL_PATT_LREG				2
 #define	GENSEL_PATT_FREG				3
 #define	GENSEL_PATT_IMM					4
-#define	GENSEL_PATT_IMMS8				5
-#define	GENSEL_PATT_IMMU8				6
-#define	GENSEL_PATT_IMMS16				7
-#define	GENSEL_PATT_IMMU16				8
-#define	GENSEL_PATT_LOCAL				9
+#define	GENSEL_PATT_IMMZERO				5
+#define	GENSEL_PATT_IMMS8				6
+#define	GENSEL_PATT_IMMU8				7
+#define	GENSEL_PATT_IMMS16				8
+#define	GENSEL_PATT_IMMU16				9
+#define	GENSEL_PATT_LOCAL				10
 
 /*
  * Information about clauses.
@@ -145,6 +148,8 @@ static void gensel_declare_regs(gensel_clause_t clauses, int options)
 						have_reg3 = 1;
 				}
 				break;
+
+				case GENSEL_PATT_IMMZERO: break;
 
 				case GENSEL_PATT_IMM:
 				case GENSEL_PATT_IMMS8:
@@ -231,6 +236,7 @@ static void gensel_output_clause(gensel_clause_t clause)
 				break;
 
 				case GENSEL_PATT_IMM:
+				case GENSEL_PATT_IMMZERO:
 				case GENSEL_PATT_IMMS8:
 				case GENSEL_PATT_IMMU8:
 				case GENSEL_PATT_IMMS16:
@@ -309,7 +315,15 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 		flag1 = "VALUE1";
 		flag2 = "VALUE2";
 		flag3 = "??";
-		destroy1 = 1;
+		if((options & (GENSEL_OPT_BINARY_BRANCH |
+					   GENSEL_OPT_UNARY_BRANCH)) != 0)
+		{
+			destroy1 = 0;
+		}
+		else
+		{
+			destroy1 = 1;
+		}
 		destroy2 = 0;
 		destroy3 = 0;
 	}
@@ -317,7 +331,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 	/* If all of the clauses start with a register, then load the first
 	   value into a register before we start checking cases */
 	check_index = 0;
-	if((options & (GENSEL_OPT_BINARY | GENSEL_OPT_UNARY)) != 0 &&
+	if((options & (GENSEL_OPT_BINARY | GENSEL_OPT_UNARY |
+				   GENSEL_OPT_BINARY_BRANCH | GENSEL_OPT_UNARY_BRANCH)) != 0 &&
 	   (options & GENSEL_OPT_STACK) == 0)
 	{
 		clause = clauses;
@@ -333,7 +348,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 		}
 		if(!clause)
 		{
-			printf("\treg = _jit_regs_load_value(gen, %s, 1, ", arg1);
+			printf("\treg = _jit_regs_load_value(gen, %s, %d, ",
+				   arg1, destroy1);
 			printf("(insn->flags & (JIT_INSN_%s_NEXT_USE | "
 								   "JIT_INSN_%s_LIVE)));\n", flag1, flag1);
 			check_index = 1;
@@ -372,6 +388,13 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 					case GENSEL_PATT_IMM:
 					{
 						printf("%s->is_nint_constant", arg);
+					}
+					break;
+
+					case GENSEL_PATT_IMMZERO:
+					{
+						printf("%s->is_nint_constant && ", arg);
+						printf("%s->address == 0", arg);
 					}
 					break;
 
@@ -467,6 +490,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 					}
 					break;
 	
+					case GENSEL_PATT_IMMZERO: break;
+
 					case GENSEL_PATT_IMM:
 					case GENSEL_PATT_IMMS8:
 					case GENSEL_PATT_IMMU8:
@@ -520,6 +545,12 @@ static void gensel_output_clauses(gensel_clause_t clauses, int options)
 											   "%d);\n",
 					   gensel_first_stack_reg);
 			}
+		}
+		if((options & (GENSEL_OPT_BINARY_BRANCH |
+					   GENSEL_OPT_UNARY_BRANCH)) != 0)
+		{
+			/* Spill all registers back to their original positions */
+			printf("\t\t_jit_gen_spill_all(gen);\n");
 		}
 		gensel_output_clause(clause);
 		printf("\t}\n");
@@ -599,6 +630,7 @@ static void gensel_output_supported(void)
 %token K_LREG				"long register"
 %token K_FREG				"float register"
 %token K_IMM				"immediate value"
+%token K_IMMZERO			"immediate zero value"
 %token K_IMMS8				"immediate signed 8-bit value"
 %token K_IMMU8				"immediate unsigned 8-bit value"
 %token K_IMMS16				"immediate signed 16-bit value"
@@ -607,6 +639,8 @@ static void gensel_output_supported(void)
 %token K_SPILL_BEFORE		"`spill_before'"
 %token K_BINARY				"`binary'"
 %token K_UNARY				"`unary'"
+%token K_UNARY_BRANCH		"`unary_branch'"
+%token K_BINARY_BRANCH		"`binary_branch'"
 %token K_TERNARY			"`ternary'"
 %token K_STACK				"`stack'"
 %token K_INST_TYPE			"`%inst_type'"
@@ -618,7 +652,7 @@ static void gensel_output_supported(void)
 %type <code>				CODE_BLOCK
 %type <options>				Options OptionList Option PatternElement
 %type <clauses>				Clauses Clause
-%type <pattern>				Pattern
+%type <pattern>				Pattern Pattern2
 
 %expect 0
 
@@ -681,6 +715,8 @@ Option
 	: K_SPILL_BEFORE			{ $$ = GENSEL_OPT_SPILL_BEFORE; }
 	| K_BINARY					{ $$ = GENSEL_OPT_BINARY; }
 	| K_UNARY					{ $$ = GENSEL_OPT_UNARY; }
+	| K_UNARY_BRANCH			{ $$ = GENSEL_OPT_UNARY_BRANCH; }
+	| K_BINARY_BRANCH			{ $$ = GENSEL_OPT_BINARY_BRANCH; }
 	| K_TERNARY					{ $$ = GENSEL_OPT_TERNARY; }
 	| K_STACK					{ $$ = GENSEL_OPT_STACK; }
 	;
@@ -717,12 +753,20 @@ Clause
 	;
 
 Pattern
+	: /* empty */		{
+				$$.elem[0] = GENSEL_PATT_END;
+				$$.size = 0;
+			}
+	| Pattern2			{ $$ = $1; }
+	;
+
+Pattern2
 	: PatternElement				{
 				$$.elem[0] = $1;
 				$$.elem[1] = GENSEL_PATT_END;
 				$$.size = 1;
 			}
-	| Pattern ',' PatternElement	{
+	| Pattern2 ',' PatternElement	{
 				$$.elem[$1.size] = $3;
 				$$.elem[$1.size + 1] = GENSEL_PATT_END;
 				$$.size = $1.size + 1;
@@ -734,6 +778,7 @@ PatternElement
 	| K_LREG					{ $$ = GENSEL_PATT_LREG; }
 	| K_FREG					{ $$ = GENSEL_PATT_FREG; }
 	| K_IMM						{ $$ = GENSEL_PATT_IMM; }
+	| K_IMMZERO					{ $$ = GENSEL_PATT_IMMZERO; }
 	| K_IMMS8					{ $$ = GENSEL_PATT_IMMS8; }
 	| K_IMMU8					{ $$ = GENSEL_PATT_IMMU8; }
 	| K_IMMS16					{ $$ = GENSEL_PATT_IMMS16; }
