@@ -6084,8 +6084,6 @@ int jit_insn_return_ptr
 @*/
 int jit_insn_default_return(jit_function_t func)
 {
-	jit_block_t current;
-
 	/* Ensure that we have a builder for this function */
 	if(!_jit_function_ensure_builder(func))
 	{
@@ -6094,27 +6092,9 @@ int jit_insn_default_return(jit_function_t func)
 
 	/* If the last block ends in an unconditional branch, or is dead,
 	   then we don't need to add a default return */
-	current = func->builder->current_block;
-	while(current != 0)
+	if(jit_block_current_is_dead(func))
 	{
-		if(current->ends_in_dead)
-		{
-			return 2;
-		}
-		else if(!(current->entered_via_top) &&
-				!(current->entered_via_branch))
-		{
-			return 2;
-		}
-		else if(current->entered_via_branch)
-		{
-			break;
-		}
-		else if(current->first_insn <= current->last_insn)
-		{
-			break;
-		}
-		current = current->prev;
+		return 2;
 	}
 
 	/* Add a simple "void" return to terminate the function */

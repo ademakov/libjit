@@ -42,6 +42,7 @@ void *jit_block_get_meta(jit_block_t block, int type) JIT_NOTHROW;
 void jit_block_free_meta(jit_block_t block, int type) JIT_NOTHROW;
 int jit_block_is_reachable(jit_block_t block) JIT_NOTHROW;
 int jit_block_ends_in_dead(jit_block_t block) JIT_NOTHROW;
+int jit_block_current_is_dead(jit_function_t func) JIT_NOTHROW;
 
 #ifdef	__cplusplus
 };

@@ -369,6 +369,42 @@ int jit_block_ends_in_dead(jit_block_t block)
 	return block->ends_in_dead;
 }
 
+/*@
+ * @deftypefun int jit_block_current_is_dead (jit_function_t func)
+ * Determine if the current point in the function is dead.  That is,
+ * there are no existing branches or fall-throughs to this point.
+ * This differs slightly from @code{jit_block_ends_in_dead} in that
+ * this can skip past zero-length blocks that may not appear to be
+ * dead to find the dead block at the head of a chain of empty blocks.
+ * @end deftypefun
+@*/
+int jit_block_current_is_dead(jit_function_t func)
+{
+	jit_block_t block = jit_block_previous(func, 0);
+	while(block != 0)
+	{
+		if(block->ends_in_dead)
+		{
+			return 1;
+		}
+		else if(!(block->entered_via_top) &&
+				!(block->entered_via_branch))
+		{
+			return 1;
+		}
+		else if(block->entered_via_branch)
+		{
+			break;
+		}
+		else if(block->first_insn <= block->last_insn)
+		{
+			break;
+		}
+		block = block->prev;
+	}
+	return 0;
+}
+
 /*
  * Determine if a block is empty or is never entered.
  */

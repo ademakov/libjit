@@ -12,6 +12,11 @@
 	jitplus/jit-plus-function.cpp: add "jit_insn_new_block" to simplify
 	creating a new block that doesn't have an explicit label.
 
+	* dpas/dpas-parser.y, include/jit/jit-block.h, jit/jit-block.c,
+	jit/jit-insn.c: add "jit_block_current_is_dead" to simplify
+	testing if the last block is reachable or not, taking empty
+	trailing blocks into account.
+
 2004-05-25  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* tools/.cvsignore, tools/Makefile.am, tools/gen-sel-parser.y,
