@@ -16,6 +16,9 @@
 	jit/jit-rules-interp.c, jitplus/jit-plus-function.cpp:
 	add array access instructions.
 
+	* tools/gen-apply.c: clean up the builder/parser macros and
+	detect padding of the floating-point registers.
+
 2004-04-30  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/jit-function.h, include/jit/jit-insn.h,

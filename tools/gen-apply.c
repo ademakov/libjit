@@ -83,6 +83,7 @@ int return_address_offset = 0;
 int broken_frame_builtins = 0;
 int max_struct_in_reg = 0;
 int x86_pop_struct_return = 0;
+int pad_float_regs = 0;
 
 void *mem_copy(void *dest, const void *src, unsigned int len)
 {
@@ -332,7 +333,29 @@ void detect_float_reg_size_regs(double x, double y)
 	}
 	else
 	{
-		pass_reg_double_as_nfloat = 1;
+		mem_copy(&temp, args + 1 + struct_return_special_reg +
+						num_word_regs + 1,
+				 sizeof(temp));
+		if(!mem_cmp(&temp, &x, sizeof(double)))
+		{
+			pass_reg_nfloat_as_double = 1;
+			pad_float_regs = 1;
+		}
+		else
+		{
+			mem_copy(&temp, args + 1 + struct_return_special_reg +
+							num_word_regs + 2,
+					 sizeof(temp));
+			if(!mem_cmp(&temp, &x, sizeof(double)))
+			{
+				pass_reg_nfloat_as_double = 1;
+				pad_float_regs = 2;
+			}
+			else
+			{
+				pass_reg_double_as_nfloat = 1;
+			}
+		}
 	}
 }
 void detect_float_reg_size_stack(jit_nfloat x, jit_nfloat y)
@@ -909,6 +932,10 @@ void detect_max_sizes(void)
 	{
 		max_apply_size += num_float_regs * sizeof(jit_nfloat);
 	}
+	if(pad_float_regs)
+	{
+		max_apply_size += pad_float_regs * sizeof(jit_nint);
+	}
 	if(x86_fastcall && max_apply_size < 12)
 	{
 		max_apply_size = 12;
@@ -1115,32 +1142,69 @@ void dump_return_union(void)
 }
 
 /*
+ * Dump the details of the "apply" structure.
+ */
+void dump_apply_structure(void)
+{
+	const char *name;
+	if(pass_reg_nfloat_as_double)
+		name = "jit_float64";
+	else
+		name = "jit_nfloat";
+	if(num_float_regs > 0)
+	{
+		printf("typedef %s jit_reg_float;\n\n", name);
+	}
+	printf("typedef struct\n{\n");
+	printf("\tunsigned char *stack_args;\n");
+	if(struct_return_special_reg)
+	{
+		printf("\tvoid *struct_ptr;\n");
+	}
+	if(num_word_regs > 0)
+	{
+		printf("\tjit_nint word_regs[%d];\n", num_word_regs);
+	}
+	else if(x86_fastcall)
+	{
+		printf("\tjit_nint word_regs[2];\n");
+	}
+	if(pad_float_regs)
+	{
+		printf("\tjit_nint pad[%d];\n", pad_float_regs);
+	}
+	if(num_float_regs > 0)
+	{
+		printf("\tjit_reg_float float_regs[%d];\n", num_float_regs);
+	}
+	printf("\n} jit_apply_struct;\n\n");
+}
+
+/*
  * Dump macro definitions that are used to build the apply parameter block.
  */
 void dump_apply_macros(void)
 {
 	int apply_size;
-	int reg_offset;
 	const char *name;
+	const char *word_reg_limit;
+	char buf[32];
 
 	/* Declare the "jit_apply_builder" structure */
 	printf("typedef struct\n{\n");
-	printf("\tunsigned char *apply_args;\n");
-	printf("\tunsigned char *stack_args;\n");
+	printf("\tjit_apply_struct *apply_args;\n");
 	printf("\tunsigned int stack_used;\n");
 	if(num_word_regs > 0 || x86_fastcall)
 	{
-		printf("\tunsigned char *word_regs;\n");
-		printf("\tunsigned int word_left;\n");
-		if(align_long_regs)
+		printf("\tunsigned int word_used;\n");
+		if(x86_fastcall)
 		{
 			printf("\tunsigned int word_max;\n");
 		}
 	}
 	if(num_float_regs > 0)
 	{
-		printf("\tunsigned char *float_regs;\n");
-		printf("\tunsigned int float_left;\n");
+		printf("\tunsigned int float_used;\n");
 	}
 	printf("\tvoid *struct_return;\n");
 	printf("\n} jit_apply_builder;\n\n");
@@ -1149,45 +1213,35 @@ void dump_apply_macros(void)
 	printf("#define jit_apply_builder_init(builder,type)\t\\\n");
 	printf("\tdo { \\\n");
 	apply_size = max_apply_size;
-	printf("\t\t(builder)->apply_args = (unsigned char *)alloca(%d); \\\n", apply_size);
+	printf("\t\t(builder)->apply_args = (jit_apply_struct *)alloca(sizeof(jit_apply_struct)); \\\n");
 	if(apply_size > sizeof(void *))
 	{
 		printf("\t\tjit_memset((builder)->apply_args, 0, %d); \\\n", apply_size);
 	}
-	printf("\t\t(builder)->stack_args = (unsigned char *)alloca(jit_type_get_max_arg_size((type))); \\\n");
-	printf("\t\t((void **)((builder)->apply_args))[0] = (builder)->stack_args; \\\n");
+	printf("\t\t(builder)->apply_args->stack_args = (unsigned char *)alloca(jit_type_get_max_arg_size((type))); \\\n");
 	printf("\t\t(builder)->stack_used = 0; \\\n");
-	reg_offset = sizeof(void *);
-	if(struct_return_special_reg)
-	{
-		reg_offset += sizeof(void *);
-	}
 	if(x86_fastcall)
 	{
-		printf("\t\t(builder)->word_regs = (builder)->apply_args + %d; \\\n",
-			   reg_offset);
+		printf("\t\t(builder)->word_used = 0; \\\n");
 		printf("\t\tif(jit_type_get_abi((type)) == jit_abi_fastcall) \\\n");
-		printf("\t\t\t(builder)->word_left = 2; \\\n");
+		printf("\t\t\t(builder)->word_max = 2; \\\n");
 		printf("\t\telse; \\\n");
-		printf("\t\t\t(builder)->word_left = 0; \\\n");
-		reg_offset += 2 * sizeof(void *);
+		printf("\t\t\t(builder)->word_max = 0; \\\n");
+		word_reg_limit = "(builder)->word_max";
 	}
 	else if(num_word_regs > 0)
 	{
-		printf("\t\t(builder)->word_regs = (builder)->apply_args + %d; \\\n",
-			   reg_offset);
-		printf("\t\t(builder)->word_left = %d; \\\n", num_word_regs);
-		reg_offset += num_word_regs * sizeof(void *);
+		printf("\t\t(builder)->word_used = 0; \\\n");
+		sprintf(buf, "%d", num_word_regs);
+		word_reg_limit = buf;
 	}
-	if(align_long_regs)
+	else
 	{
-		printf("\t\t(builder)->word_max = (builder)->word_left; \\\n");
+		word_reg_limit = "???";
 	}
 	if(num_float_regs > 0)
 	{
-		printf("\t\t(builder)->float_regs = (builder)->apply_args + %d; \\\n",
-			   reg_offset);
-		printf("\t\t(builder)->float_left = %d; \\\n", num_float_regs);
+		printf("\t\t(builder)->float_used = 0; \\\n");
 	}
 	printf("\t\t(builder)->struct_return = 0; \\\n");
 	printf("\t} while (0)\n\n");
@@ -1196,40 +1250,23 @@ void dump_apply_macros(void)
 	   The "args" parameter is the result of calling "__builtin_apply_args" */
 	printf("#define jit_apply_parser_init(builder,type,args)\t\\\n");
 	printf("\tdo { \\\n");
-	printf("\t\t(builder)->apply_args = (unsigned char *)(args); \\\n");
-	printf("\t\t(builder)->stack_args = (unsigned char *)(((void **)((builder)->apply_args))[0]); \\\n");
+	printf("\t\t(builder)->apply_args = (jit_apply_struct *)(args); \\\n");
 	printf("\t\t(builder)->stack_used = 0; \\\n");
-	reg_offset = sizeof(void *);
-	if(struct_return_special_reg)
-	{
-		reg_offset += sizeof(void *);
-	}
 	if(x86_fastcall)
 	{
-		printf("\t\t(builder)->word_regs = (builder)->apply_args + %d; \\\n",
-			   reg_offset);
+		printf("\t\t(builder)->word_used = 0; \\\n");
 		printf("\t\tif(jit_type_get_abi((type)) == jit_abi_fastcall) \\\n");
-		printf("\t\t\t(builder)->word_left = 2; \\\n");
+		printf("\t\t\t(builder)->word_max = 2; \\\n");
 		printf("\t\telse; \\\n");
-		printf("\t\t\t(builder)->word_left = 0; \\\n");
-		reg_offset += 2 * sizeof(void *);
+		printf("\t\t\t(builder)->word_max = 0; \\\n");
 	}
 	else if(num_word_regs > 0)
 	{
-		printf("\t\t(builder)->word_regs = (builder)->apply_args + %d; \\\n",
-			   reg_offset);
-		printf("\t\t(builder)->word_left = %d; \\\n", num_word_regs);
-		reg_offset += num_word_regs * sizeof(void *);
-	}
-	if(align_long_regs)
-	{
-		printf("\t\t(builder)->word_max = (builder)->word_left; \\\n");
+		printf("\t\t(builder)->word_used = 0; \\\n");
 	}
 	if(num_float_regs > 0)
 	{
-		printf("\t\t(builder)->float_regs = (builder)->apply_args + %d; \\\n",
-			   reg_offset);
-		printf("\t\t(builder)->float_left = %d; \\\n", num_float_regs);
+		printf("\t\t(builder)->float_used = 0; \\\n");
 	}
 	printf("\t\t(builder)->struct_return = 0; \\\n");
 	printf("\t} while (0)\n\n");
@@ -1239,29 +1276,28 @@ void dump_apply_macros(void)
 	printf("\tdo { \\\n");
 	if(num_word_regs > 0 || x86_fastcall)
 	{
-		printf("\t\tif((builder)->word_left > 0) \\\n");
+		printf("\t\tif((builder)->word_used < %s) \\\n", word_reg_limit);
 		printf("\t\t{ \\\n");
-		printf("\t\t\t*((jit_nint *)((builder)->word_regs)) = (jit_nint)(value); \\\n");
-		printf("\t\t\t(builder)->word_regs += sizeof(jit_nint); \\\n");
+		printf("\t\t\t(builder)->apply_args->word_regs[(builder)->word_used] = (jit_nint)(value); \\\n");
+		printf("\t\t\t++((builder)->word_used); \\\n");
 		if(struct_reg_overlaps_word_reg)
 		{
 			/* We need to set the struct register slot as well */
-			printf("\t\t\tif((builder)->word_left == %d) \\\n", num_word_regs);
+			printf("\t\t\tif((builder)->word_used == 1) \\\n");
 			printf("\t\t\t{ \\\n");
-			printf("\t\t\t\t((jit_nint *)((builder)->apply_args))[1] = (jit_nint)(value); \\\n");
+			printf("\t\t\t\t(builder)->apply_args->struct_ptr = (void *)(jit_nint)(value); \\\n");
 			printf("\t\t\t} \\\n");
 		}
-		printf("\t\t\t--((builder)->word_left); \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
 		printf("\t\t{ \\\n");
-		printf("\t\t\t*((jit_nint*)((builder)->stack_args + (builder)->stack_used)) = (jit_nint)(value); \\\n");
+		printf("\t\t\t*((jit_nint*)((builder)->apply_args->stack_args + (builder)->stack_used)) = (jit_nint)(value); \\\n");
 		printf("\t\t\t(builder)->stack_used += sizeof(jit_nint); \\\n");
 		printf("\t\t} \\\n");
 	}
 	else
 	{
-		printf("\t\t*((jit_nint*)((builder)->stack_args + (builder)->stack_used)) = (jit_nint)(value); \\\n");
+		printf("\t\t*((jit_nint*)((builder)->apply_args->stack_args + (builder)->stack_used)) = (jit_nint)(value); \\\n");
 		printf("\t\t(builder)->stack_used += sizeof(jit_nint); \\\n");
 	}
 	printf("\t} while (0)\n\n");
@@ -1271,21 +1307,20 @@ void dump_apply_macros(void)
 	printf("\tdo { \\\n");
 	if(num_word_regs > 0 || x86_fastcall)
 	{
-		printf("\t\tif((builder)->word_left > 0) \\\n");
+		printf("\t\tif((builder)->word_used < %s) \\\n", word_reg_limit);
 		printf("\t\t{ \\\n");
-		printf("\t\t\t(value) = (type)(*((jit_nint *)((builder)->word_regs))); \\\n");
-		printf("\t\t\t(builder)->word_regs += sizeof(jit_nint); \\\n");
-		printf("\t\t\t--((builder)->word_left); \\\n");
+		printf("\t\t\t(value) = (type)((builder)->apply_args->word_regs[(builder)->word_used]); \\\n");
+		printf("\t\t\t++((builder)->word_used); \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
 		printf("\t\t{ \\\n");
-		printf("\t\t\t(value) = (type)(*((jit_nint*)((builder)->stack_args + (builder)->stack_used))); \\\n");
+		printf("\t\t\t(value) = (type)(*((jit_nint*)((builder)->apply_args->stack_args + (builder)->stack_used))); \\\n");
 		printf("\t\t\t(builder)->stack_used += sizeof(jit_nint); \\\n");
 		printf("\t\t} \\\n");
 	}
 	else
 	{
-		printf("\t\t(value) = (type)(*((jit_nint*)((builder)->stack_args + (builder)->stack_used))); \\\n");
+		printf("\t\t(value) = (type)(*((jit_nint*)((builder)->apply_args->stack_args + (builder)->stack_used))); \\\n");
 		printf("\t\t(builder)->stack_used += sizeof(jit_nint); \\\n");
 	}
 	printf("\t} while (0)\n\n");
@@ -1297,45 +1332,21 @@ void dump_apply_macros(void)
 	printf("\t\tunsigned int __num_words = (sizeof(__temp) + sizeof(jit_nint) - 1) / sizeof(jit_nint); \\\n");
 	if(num_word_regs > 0 || x86_fastcall)
 	{
-		if(align_long_regs)
-		{
-			printf("\t\tif((builder)->word_left > 0 && \\\n");
-			printf("\t\t   (((builder)->word_max - (builder)->word_left) %% 2) == 1) \\\n");
-			printf("\t\t{ \\\n");
-			printf("\t\t\t(builder)->word_regs += sizeof(jit_nint); \\\n");
-			printf("\t\t\t--((builder)->word_left); \\\n");
-			printf("\t\t} \\\n");
-		}
-		printf("\t\tif((builder)->word_left >= __num_words) \\\n");
+		printf("\t\tif((%s - (builder)->word_used) >= __num_words) \\\n", word_reg_limit);
 		printf("\t\t{ \\\n");
-		printf("\t\t\tjit_memcpy((builder)->word_regs, &__temp, sizeof(__temp)); \\\n");
-		printf("\t\t\t(builder)->word_regs += __num_words * sizeof(jit_nint); \\\n");
-		printf("\t\t\t(builder)->word_left -= __num_words; \\\n");
+		printf("\t\t\tjit_memcpy((builder)->apply_args->word_regs + (builder)->word_used, &__temp, sizeof(__temp)); \\\n");
+		printf("\t\t\t(builder)->word_used += __num_words; \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
 		printf("\t\t{ \\\n");
-		if(align_long_stack)
-		{
-			printf("\t\t\tif(((builder)->stack_used %% sizeof(jit_long)) != 0) \\\n");
-			printf("\t\t\t{ \\\n");
-			printf("\t\t\t\t(builder)->stack_used += sizeof(jit_long) - ((builder)->stack_used %% sizeof(jit_long)); \\\n");
-			printf("\t\t\t} \\\n");
-		}
-		printf("\t\t\tjit_memcpy((builder)->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
+		printf("\t\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
 		printf("\t\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
-		printf("\t\t\t(builder)->word_left = 0; \\\n");
+		printf("\t\t\t(builder)->word_used = %s; \\\n", word_reg_limit);
 		printf("\t\t} \\\n");
 	}
 	else
 	{
-		if(align_long_stack)
-		{
-			printf("\t\tif(((builder)->stack_used %% sizeof(jit_long)) != 0) \\\n");
-			printf("\t\t{ \\\n");
-			printf("\t\t\t(builder)->stack_used += sizeof(jit_long) - ((builder)->stack_used %% sizeof(jit_long)); \\\n");
-			printf("\t\t} \\\n");
-		}
-		printf("\t\tjit_memcpy((builder)->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
+		printf("\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
 		printf("\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
 	}
 	printf("\t} while (0)\n\n");
@@ -1347,45 +1358,21 @@ void dump_apply_macros(void)
 	printf("\t\tunsigned int __num_words = (sizeof(__temp) + sizeof(jit_nint) - 1) / sizeof(jit_nint); \\\n");
 	if(num_word_regs > 0 || x86_fastcall)
 	{
-		if(align_long_regs)
-		{
-			printf("\t\tif((builder)->word_left > 0 && \\\n");
-			printf("\t\t   (((builder)->word_max - (builder)->word_left) %% 2) == 1) \\\n");
-			printf("\t\t{ \\\n");
-			printf("\t\t\t(builder)->word_regs += sizeof(jit_nint); \\\n");
-			printf("\t\t\t--((builder)->word_left); \\\n");
-			printf("\t\t} \\\n");
-		}
-		printf("\t\tif((builder)->word_left >= __num_words) \\\n");
+		printf("\t\tif((%s - (builder)->word_used) >= __num_words) \\\n", word_reg_limit);
 		printf("\t\t{ \\\n");
-		printf("\t\t\tjit_memcpy(&__temp, (builder)->word_regs, sizeof(__temp)); \\\n");
-		printf("\t\t\t(builder)->word_regs += __num_words * sizeof(jit_nint); \\\n");
-		printf("\t\t\t(builder)->word_left -= __num_words; \\\n");
+		printf("\t\t\tjit_memcpy(&__temp, (builder)->apply_args->word_regs + (builder)->word_used, sizeof(__temp)); \\\n");
+		printf("\t\t\t(builder)->word_used += __num_words; \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
 		printf("\t\t{ \\\n");
-		if(align_long_stack)
-		{
-			printf("\t\t\tif(((builder)->stack_used %% sizeof(jit_long)) != 0) \\\n");
-			printf("\t\t\t{ \\\n");
-			printf("\t\t\t\t(builder)->stack_used += sizeof(jit_long) - ((builder)->stack_used %% sizeof(jit_long)); \\\n");
-			printf("\t\t\t} \\\n");
-		}
-		printf("\t\t\tjit_memcpy(&__temp, (builder)->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
+		printf("\t\t\tjit_memcpy(&__temp, (builder)->apply_args->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
 		printf("\t\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
-		printf("\t\t\t(builder)->word_left = 0; \\\n");
+		printf("\t\t\t(builder)->word_used = %s; \\\n", word_reg_limit);
 		printf("\t\t} \\\n");
 	}
 	else
 	{
-		if(align_long_stack)
-		{
-			printf("\t\tif(((builder)->stack_used %% sizeof(jit_long)) != 0) \\\n");
-			printf("\t\t{ \\\n");
-			printf("\t\t\t(builder)->stack_used += sizeof(jit_long) - ((builder)->stack_used %% sizeof(jit_long)); \\\n");
-			printf("\t\t} \\\n");
-		}
-		printf("\t\tjit_memcpy(&__temp, (builder)->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
+		printf("\t\tjit_memcpy(&__temp, (builder)->apply_args->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
 		printf("\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
 	}
 	printf("\t\t(value) = (finaltype)(__temp); \\\n");
@@ -1397,14 +1384,7 @@ void dump_apply_macros(void)
 	printf("\tdo { \\\n");
 	printf("\t\ttype __temp = (type)(value); \\\n");
 	printf("\t\tunsigned int __num_words = (sizeof(__temp) + sizeof(jit_nint) - 1) / sizeof(jit_nint); \\\n");
-	if(align_long_stack)
-	{
-		printf("\t\tif(((builder)->stack_used %% sizeof(jit_long)) != 0) \\\n");
-		printf("\t\t{ \\\n");
-		printf("\t\t\t(builder)->stack_used += sizeof(jit_long) - ((builder)->stack_used %% sizeof(jit_long)); \\\n");
-		printf("\t\t} \\\n");
-	}
-	printf("\t\tjit_memcpy((builder)->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
+	printf("\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
 	printf("\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
 	printf("\t} while (0)\n\n");
 
@@ -1414,43 +1394,9 @@ void dump_apply_macros(void)
 	printf("\tdo { \\\n");
 	printf("\t\ttype __temp; \\\n");
 	printf("\t\tunsigned int __num_words = (sizeof(__temp) + sizeof(jit_nint) - 1) / sizeof(jit_nint); \\\n");
-	if(align_long_stack)
-	{
-		printf("\t\tif(((builder)->stack_used %% sizeof(jit_long)) != 0) \\\n");
-		printf("\t\t{ \\\n");
-		printf("\t\t\t(builder)->stack_used += sizeof(jit_long) - ((builder)->stack_used %% sizeof(jit_long)); \\\n");
-		printf("\t\t} \\\n");
-	}
-	printf("\t\tjit_memcpy(&__temp, (builder)->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
+	printf("\t\tjit_memcpy(&__temp, (builder)->apply_args->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
 	printf("\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
 	printf("\t\t(value) = (finaltype)(__temp); \\\n");
-	printf("\t} while (0)\n\n");
-
-	/* Macro to add a large argument to the apply parameters with no alignment */
-	printf("#define jit_apply_builder_add_large_noalign(builder,type,value) \\\n");
-	printf("\tdo { \\\n");
-	printf("\t\ttype __temp = (type)(value); \\\n");
-	printf("\t\tunsigned int __num_words = (sizeof(__temp) + sizeof(jit_nint) - 1) / sizeof(jit_nint); \\\n");
-	if(num_word_regs > 0 || x86_fastcall)
-	{
-		printf("\t\tif((builder)->word_left >= __num_words) \\\n");
-		printf("\t\t{ \\\n");
-		printf("\t\t\tjit_memcpy((builder)->word_regs, &__temp, sizeof(__temp)); \\\n");
-		printf("\t\t\t(builder)->word_regs += __num_words * sizeof(jit_nint); \\\n");
-		printf("\t\t\t(builder)->word_left -= __num_words; \\\n");
-		printf("\t\t} \\\n");
-		printf("\t\telse \\\n");
-		printf("\t\t{ \\\n");
-		printf("\t\t\tjit_memcpy((builder)->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
-		printf("\t\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
-		printf("\t\t\t(builder)->word_left = 0; \\\n");
-		printf("\t\t} \\\n");
-	}
-	else
-	{
-		printf("\t\tjit_memcpy((builder)->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
-		printf("\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
-	}
 	printf("\t} while (0)\n\n");
 
 	/* Macro to set the structure return area */
@@ -1471,7 +1417,7 @@ void dump_apply_macros(void)
 	printf("\t\t\t\t(builder)->struct_return = alloca(__struct_size); \\\n");
 	if(struct_return_special_reg && !struct_reg_overlaps_word_reg)
 	{
-		printf("\t\t\t((void **)((builder)->apply_args))[1] = (builder)->struct_return; \\\n");
+		printf("\t\t\t(builder)->apply_args->struct_ptr = (builder)->struct_return; \\\n");
 	}
 	else
 	{
@@ -1500,11 +1446,11 @@ void dump_apply_macros(void)
 	{
 		if(num_word_regs > 0 || x86_fastcall)
 		{
-			printf("\t\t(builder)->word_left = 0; \\\n");
+			printf("\t\t(builder)->word_used = %s; \\\n", word_reg_limit);
 		}
 		if(num_float_regs > 0)
 		{
-			printf("\t\t(builder)->float_left = 0; \\\n");
+			printf("\t\t(builder)->float_used = %d; \\\n", num_float_regs);
 		}
 	}
 	printf("\t} while (0)\n\n");
@@ -1516,11 +1462,11 @@ void dump_apply_macros(void)
 	{
 		if(num_word_regs > 0 || x86_fastcall)
 		{
-			printf("\t\t(builder)->word_left = 0; \\\n");
+			printf("\t\t(builder)->word_used = %s; \\\n", word_reg_limit);
 		}
 		if(num_float_regs > 0)
 		{
-			printf("\t\t(builder)->float_left = 0; \\\n");
+			printf("\t\t(builder)->float_used = %d; \\\n", num_float_regs);
 		}
 	}
 	printf("\t} while (0)\n\n");
@@ -1558,17 +1504,10 @@ void dump_apply_macros(void)
 		/* Pass floating point values in registers, if possible */
 		printf("#define jit_apply_builder_add_float32(builder,value) \\\n");
 		printf("\tdo { \\\n");
-		printf("\t\tif((builder)->float_left > 0) \\\n");
+		printf("\t\tif((builder)->float_used < %d) \\\n", num_float_regs);
 		printf("\t\t{ \\\n");
-		if(pass_reg_float_as_double)
-			name = "jit_float64";
-		else if(pass_reg_float_as_nfloat)
-			name = "jit_nfloat";
-		else
-			name = "jit_float32";
-		printf("\t\t\t*((%s *)((builder)->float_regs)) = (%s)(value); \\\n",
-			   name, name);
-		printf("\t\t\t(builder)->float_regs += sizeof(%s); \\\n", name);
+		printf("\t\t\t(builder)->apply_args->float_regs[(builder)->float_used] = (jit_reg_float)(value); \\\n");
+		printf("\t\t\t++((builder)->float_used); \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
 		printf("\t\t{ \\\n");
@@ -1579,22 +1518,17 @@ void dump_apply_macros(void)
 		else
 			name = "jit_float32";
 		printf("\t\t\t%s __temp = (%s)(value); \\\n", name, name);
-		printf("\t\t\tjit_memcpy((builder)->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
+		printf("\t\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
 		printf("\t\t\t(builder)->stack_used += (sizeof(%s) + sizeof(jit_nint) - 1) & ~(sizeof(jit_nint) - 1); \\\n", name);
 		printf("\t\t} \\\n");
 		printf("\t} while (0)\n");
 
 		printf("#define jit_apply_builder_add_float64(builder,value) \\\n");
 		printf("\tdo { \\\n");
-		printf("\t\tif((builder)->float_left > 0) \\\n");
+		printf("\t\tif((builder)->float_used < %d) \\\n", num_float_regs);
 		printf("\t\t{ \\\n");
-		if(pass_reg_double_as_nfloat)
-			name = "jit_nfloat";
-		else
-			name = "jit_float64";
-		printf("\t\t\t*((%s *)((builder)->float_regs)) = (%s)(value); \\\n",
-			   name, name);
-		printf("\t\t\t(builder)->float_regs += sizeof(%s); \\\n", name);
+		printf("\t\t\t(builder)->apply_args->float_regs[(builder)->float_used] = (jit_reg_float)(value); \\\n");
+		printf("\t\t\t++((builder)->float_used); \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
 		if(pass_stack_double_as_nfloat)
@@ -1603,22 +1537,17 @@ void dump_apply_macros(void)
 			name = "jit_float64";
 		printf("\t\t{ \\\n");
 		printf("\t\t\t%s __temp = (%s)(value); \\\n", name, name);
-		printf("\t\t\tjit_memcpy((builder)->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
+		printf("\t\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
 		printf("\t\t\t(builder)->stack_used += (sizeof(%s) + sizeof(jit_nint) - 1) & ~(sizeof(jit_nint) - 1); \\\n", name);
 		printf("\t\t} \\\n");
 		printf("\t} while (0)\n");
 
 		printf("#define jit_apply_builder_add_nfloat(builder,value) \\\n");
 		printf("\tdo { \\\n");
-		printf("\t\tif((builder)->float_left > 0) \\\n");
+		printf("\t\tif((builder)->float_used < %d) \\\n", num_float_regs);
 		printf("\t\t{ \\\n");
-		if(pass_reg_nfloat_as_double)
-			name = "jit_float64";
-		else
-			name = "jit_nfloat";
-		printf("\t\t\t*((%s *)((builder)->float_regs)) = (%s)(value); \\\n",
-			   name, name);
-		printf("\t\t\t(builder)->float_regs += sizeof(%s); \\\n", name);
+		printf("\t\t\t(builder)->apply_args->float_regs[(builder)->float_used] = (jit_reg_float)(value); \\\n");
+		printf("\t\t\t++((builder)->float_used); \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
 		if(pass_stack_nfloat_as_double)
@@ -1627,7 +1556,7 @@ void dump_apply_macros(void)
 			name = "jit_nfloat";
 		printf("\t\t{ \\\n");
 		printf("\t\t\t%s __temp = (%s)(value); \\\n", name, name);
-		printf("\t\t\tjit_memcpy((builder)->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
+		printf("\t\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
 		printf("\t\t\t(builder)->stack_used += (sizeof(%s) + sizeof(jit_nint) - 1) & ~(sizeof(jit_nint) - 1); \\\n", name);
 		printf("\t\t} \\\n");
 		printf("\t} while (0)\n");
@@ -1694,48 +1623,21 @@ void dump_apply_macros(void)
 	printf("\t\tunsigned int __num_words = (__size + sizeof(jit_nint) - 1) / sizeof(jit_nint); \\\n");
 	if(num_word_regs > 0 || x86_fastcall)
 	{
-		if(align_long_regs)
-		{
-			printf("\t\tif(__align >= sizeof(jit_long) && \\\n");
-			printf("\t\t   (builder)->word_left > 0 && \\\n");
-			printf("\t\t   (((builder)->word_max - (builder)->word_left) %% 2) == 1) \\\n");
-			printf("\t\t{ \\\n");
-			printf("\t\t\t(builder)->word_regs += sizeof(jit_nint); \\\n");
-			printf("\t\t\t--((builder)->word_left); \\\n");
-			printf("\t\t} \\\n");
-		}
-		printf("\t\tif((builder)->word_left >= __num_words) \\\n");
+		printf("\t\tif((builder)->word_used < %s) \\\n", word_reg_limit);
 		printf("\t\t{ \\\n");
-		printf("\t\t\tjit_memcpy((builder)->word_regs, (value), __size); \\\n");
-		printf("\t\t\t(builder)->word_regs += __num_words * sizeof(jit_nint); \\\n");
-		printf("\t\t\t(builder)->word_left -= __num_words; \\\n");
+		printf("\t\t\tjit_memcpy((builder)->apply_args->word_regs + (builder)->word_used, (value), __size); \\\n");
+		printf("\t\t\t(builder)->word_used += __num_words; \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
 		printf("\t\t{ \\\n");
-		if(align_long_stack)
-		{
-			printf("\t\t\tif(__align >= sizeof(jit_long) && \\\n");
-			printf("\t\t\t   ((builder)->stack_used %% sizeof(jit_long)) != 0) \\\n");
-			printf("\t\t\t{ \\\n");
-			printf("\t\t\t\t(builder)->stack_used += sizeof(jit_long) - ((builder)->stack_used %% sizeof(jit_long)); \\\n");
-			printf("\t\t\t} \\\n");
-		}
-		printf("\t\t\tjit_memcpy((builder)->stack_args + (builder)->stack_used, (value), __size); \\\n");
+		printf("\t\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, (value), __size); \\\n");
 		printf("\t\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
-		printf("\t\t\t(builder)->word_left = 0; \\\n");
+		printf("\t\t\t(builder)->word_used = %s; \\\n", word_reg_limit);
 		printf("\t\t} \\\n");
 	}
 	else
 	{
-		if(align_long_stack)
-		{
-			printf("\t\tif(__align >= sizeof(jit_long) && \\\n");
-			printf("\t\t   ((builder)->stack_used %% sizeof(jit_long)) != 0) \\\n");
-			printf("\t\t{ \\\n");
-			printf("\t\t\t(builder)->stack_used += sizeof(jit_long) - ((builder)->stack_used %% sizeof(jit_long)); \\\n");
-			printf("\t\t} \\\n");
-		}
-		printf("\t\tjit_memcpy((builder)->stack_args + (builder)->stack_used, (value), __size); \\\n");
+		printf("\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, (value), __size); \\\n");
 		printf("\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
 	}
 	printf("\t} while (0)\n\n");
@@ -1775,17 +1677,10 @@ void dump_apply_macros(void)
 		/* Pass floating point values in registers, if possible */
 		printf("#define jit_apply_parser_get_float32(builder,value) \\\n");
 		printf("\tdo { \\\n");
-		printf("\t\tif((builder)->float_left > 0) \\\n");
+		printf("\t\tif((builder)->float_used < %d) \\\n", num_float_regs);
 		printf("\t\t{ \\\n");
-		if(pass_reg_float_as_double)
-			name = "jit_float64";
-		else if(pass_reg_float_as_nfloat)
-			name = "jit_nfloat";
-		else
-			name = "jit_float32";
-		printf("\t\t\t(value) = (jit_float32)(*((%s *)((builder)->float_regs))); \\\n",
-			   name);
-		printf("\t\t\t(builder)->float_regs += sizeof(%s); \\\n", name);
+		printf("\t\t\t(value) = (jit_float32)((builder)->apply_args->float_regs[(builder)->float_used]); \\\n");
+		printf("\t\t\t++((builder)->float_used); \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
 		printf("\t\t{ \\\n");
@@ -1796,7 +1691,7 @@ void dump_apply_macros(void)
 		else
 			name = "jit_float32";
 		printf("\t\t\t%s __temp; \\\n", name);
-		printf("\t\t\tjit_memcpy(&__temp, (builder)->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
+		printf("\t\t\tjit_memcpy(&__temp, (builder)->apply_args->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
 		printf("\t\t\t(builder)->stack_used += (sizeof(%s) + sizeof(jit_nint) - 1) & ~(sizeof(jit_nint) - 1); \\\n", name);
 		printf("\t\t\t(value) = (jit_float32)__temp; \\\n");
 		printf("\t\t} \\\n");
@@ -1804,15 +1699,10 @@ void dump_apply_macros(void)
 
 		printf("#define jit_apply_parser_get_float64(builder,value) \\\n");
 		printf("\tdo { \\\n");
-		printf("\t\tif((builder)->float_left > 0) \\\n");
+		printf("\t\tif((builder)->float_used < %d) \\\n", num_float_regs);
 		printf("\t\t{ \\\n");
-		if(pass_reg_double_as_nfloat)
-			name = "jit_nfloat";
-		else
-			name = "jit_float64";
-		printf("\t\t\t(value) = (jit_float64)(*((%s *)((builder)->float_regs))); \\\n",
-			   name);
-		printf("\t\t\t(builder)->float_regs += sizeof(%s); \\\n", name);
+		printf("\t\t\t(value) = (jit_float64)((builder)->apply_args->float_regs[(builder)->float_used]); \\\n");
+		printf("\t\t\t++((builder)->float_used); \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
 		if(pass_stack_double_as_nfloat)
@@ -1821,7 +1711,7 @@ void dump_apply_macros(void)
 			name = "jit_float64";
 		printf("\t\t{ \\\n");
 		printf("\t\t\t%s __temp; \\\n", name);
-		printf("\t\t\tjit_memcpy(&__temp, (builder)->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
+		printf("\t\t\tjit_memcpy(&__temp, (builder)->apply_args->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
 		printf("\t\t\t(builder)->stack_used += (sizeof(%s) + sizeof(jit_nint) - 1) & ~(sizeof(jit_nint) - 1); \\\n", name);
 		printf("\t\t\t(value) = (jit_float64)__temp; \\\n");
 		printf("\t\t} \\\n");
@@ -1829,15 +1719,10 @@ void dump_apply_macros(void)
 
 		printf("#define jit_apply_parser_get_nfloat(builder,value) \\\n");
 		printf("\tdo { \\\n");
-		printf("\t\tif((builder)->float_left > 0) \\\n");
+		printf("\t\tif((builder)->float_used < %d) \\\n", num_float_regs);
 		printf("\t\t{ \\\n");
-		if(pass_reg_nfloat_as_double)
-			name = "jit_float64";
-		else
-			name = "jit_nfloat";
-		printf("\t\t\t(value) = (jit_nfloat)(*((%s *)((builder)->float_regs))); \\\n",
-			   name);
-		printf("\t\t\t(builder)->float_regs += sizeof(%s); \\\n", name);
+		printf("\t\t\t(value) = (jit_nfloat)((builder)->apply_args->float_regs[(builder)->float_used]); \\\n");
+		printf("\t\t\t++((builder)->float_used); \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
 		if(pass_stack_nfloat_as_double)
@@ -1846,7 +1731,7 @@ void dump_apply_macros(void)
 			name = "jit_nfloat";
 		printf("\t\t{ \\\n");
 		printf("\t\t\t%s __temp; \\\n", name);
-		printf("\t\t\tjit_memcpy(&__temp, (builder)->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
+		printf("\t\t\tjit_memcpy(&__temp, (builder)->apply_args->stack_args + (builder)->stack_used, sizeof(__temp)); \\\n");
 		printf("\t\t\t(builder)->stack_used += (sizeof(%s) + sizeof(jit_nint) - 1) & ~(sizeof(jit_nint) - 1); \\\n", name);
 		printf("\t\t\t(value) = (jit_nfloat)__temp; \\\n");
 		printf("\t\t} \\\n");
@@ -1908,7 +1793,7 @@ void dump_apply_macros(void)
 	if(struct_return_special_reg && !struct_reg_overlaps_word_reg)
 	{
 		printf("\tdo { \\\n");
-		printf("\t\t(value) = ((void **)((builder)->apply_args))[1]; \\\n");
+		printf("\t\t(value) = (builder)->apply_args->struct_ptr; \\\n");
 		printf("\t} while (0)\n");
 	}
 	else
@@ -1918,55 +1803,24 @@ void dump_apply_macros(void)
 	printf("#define jit_apply_parser_get_struct(builder,size,align,value) \\\n");
 	printf("\tdo { \\\n");
 	printf("\t\tunsigned int __size = (size); \\\n");
-	if(align_long_regs || align_long_stack)
-	{
-		printf("\t\tunsigned int __align = (align); \\\n");
-	}
 	printf("\t\tunsigned int __num_words = (__size + sizeof(jit_nint) - 1) / sizeof(jit_nint); \\\n");
 	if(num_word_regs > 0 || x86_fastcall)
 	{
-		if(align_long_regs)
-		{
-			printf("\t\tif(__align >= sizeof(jit_long) && \\\n");
-			printf("\t\t   (builder)->word_left > 0 && \\\n");
-			printf("\t\t   (((builder)->word_max - (builder)->word_left) %% 2) == 1) \\\n");
-			printf("\t\t{ \\\n");
-			printf("\t\t\t(builder)->word_regs += sizeof(jit_nint); \\\n");
-			printf("\t\t\t--((builder)->word_left); \\\n");
-			printf("\t\t} \\\n");
-		}
-		printf("\t\tif((builder)->word_left >= __num_words) \\\n");
+		printf("\t\tif((%s - (builder)->word_used) >= __num_words) \\\n", word_reg_limit);
 		printf("\t\t{ \\\n");
-		printf("\t\t\tjit_memcpy((value), (builder)->word_regs, __size); \\\n");
-		printf("\t\t\t(builder)->word_regs += __num_words * sizeof(jit_nint); \\\n");
-		printf("\t\t\t(builder)->word_left -= __num_words; \\\n");
+		printf("\t\t\tjit_memcpy((value), (builder)->apply_args->word_regs + (builder)->word_used, __size); \\\n");
+		printf("\t\t\t(builder)->word_used += __num_words; \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
 		printf("\t\t{ \\\n");
-		if(align_long_stack)
-		{
-			printf("\t\t\tif(__align >= sizeof(jit_long) && \\\n");
-			printf("\t\t\t   ((builder)->stack_used %% sizeof(jit_long)) != 0) \\\n");
-			printf("\t\t\t{ \\\n");
-			printf("\t\t\t\t(builder)->stack_used += sizeof(jit_long) - ((builder)->stack_used %% sizeof(jit_long)); \\\n");
-			printf("\t\t\t} \\\n");
-		}
-		printf("\t\t\tjit_memcpy((value), (builder)->stack_args + (builder)->stack_used, __size); \\\n");
+		printf("\t\t\tjit_memcpy((value), (builder)->apply_args->stack_args + (builder)->stack_used, __size); \\\n");
 		printf("\t\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
-		printf("\t\t\t(builder)->word_left = 0; \\\n");
+		printf("\t\t\t(builder)->word_used = %s; \\\n", word_reg_limit);
 		printf("\t\t} \\\n");
 	}
 	else
 	{
-		if(align_long_stack)
-		{
-			printf("\t\tif(__align >= sizeof(jit_long) && \\\n");
-			printf("\t\t   ((builder)->stack_used %% sizeof(jit_long)) != 0) \\\n");
-			printf("\t\t{ \\\n");
-			printf("\t\t\t(builder)->stack_used += sizeof(jit_long) - ((builder)->stack_used %% sizeof(jit_long)); \\\n");
-			printf("\t\t} \\\n");
-		}
-		printf("\t\tjit_memcpy((value), (builder)->stack_args + (builder)->stack_used, __size); \\\n");
+		printf("\t\tjit_memcpy((value), (builder)->apply_args->stack_args + (builder)->stack_used, __size); \\\n");
 		printf("\t\t(builder)->stack_used += __num_words * sizeof(jit_nint); \\\n");
 	}
 	printf("\t} while (0)\n");
@@ -2185,10 +2039,14 @@ int main(int argc, char *argv[])
 		   broken_frame_builtins);
 	printf("#define JIT_APPLY_X86_POP_STRUCT_RETURN %d\n",
 		   x86_pop_struct_return);
+	printf("#define JIT_APPLY_PAD_FLOAT_REGS %d\n", pad_float_regs);
 	printf("\n");
 
 	/* Dump the definition of the "jit_apply_return" union */
 	dump_return_union();
+
+	/* Dump the definition of the apply structure */
+	dump_apply_structure();
 
 	/* Dump the macros that are used to perform function application */
 	dump_apply_macros();
