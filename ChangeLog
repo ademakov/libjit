@@ -4,6 +4,9 @@
 	* jit/Makefile.am, jit/jit-cpuid-x86.c, jit/jit-cpuid-x86.h:
 	add an API for querying the x86 "cpuid" information.
 
+	* include/jit/jit-opcode.h, jit/jit-interp.c, jit/jit-opcode.c:
+	remove obsolete opcodes which violate "_jit_load_opcode"'s rules.
+
 2004-06-08  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c: fix ROUND_END_PTR so that it adds the size

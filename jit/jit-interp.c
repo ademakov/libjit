@@ -3846,26 +3846,10 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LOAD_ELEMENT_UINT):
-		{
-			/* Load an unsigned 32-bit integer value from an array */
-			VM_STK_UINT1 = VM_LOAD_ELEM(jit_uint);
-			VM_MODIFY_PC_AND_STACK(1, 1);
-		}
-		VMBREAK;
-
 		VMCASE(JIT_OP_LOAD_ELEMENT_LONG):
 		{
 			/* Load a signed 64-bit integer value from an array */
 			VM_STK_LONG1 = VM_LOAD_ELEM(jit_long);
-			VM_MODIFY_PC_AND_STACK(1, 1);
-		}
-		VMBREAK;
-
-		VMCASE(JIT_OP_LOAD_ELEMENT_ULONG):
-		{
-			/* Load an unsigned 64-bit integer value from an array */
-			VM_STK_ULONG1 = VM_LOAD_ELEM(jit_ulong);
 			VM_MODIFY_PC_AND_STACK(1, 1);
 		}
 		VMBREAK;
