@@ -4,6 +4,9 @@
 	* jit/jit-cache.c, jit/jit-elf-read.c, tools/gen-apply.c:
 	fix some gcc 3.x compile warnings.
 
+	* jit/jit-rules-arm.c, jit/jit-rules-arm.sel: more instruction
+	selection rules for ARM.
+
 2004-05-31  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-rules-x86.sel: optimize multiplications for x86.

@@ -26,6 +26,7 @@
 
 #include "jit-gen-arm.h"
 #include "jit-reg-alloc.h"
+#include <stdio.h>
 
 /*
  * Determine if we actually have floating-point registers.
@@ -546,6 +547,9 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 {
 	int reg, regset;
 	arm_inst_ptr inst;
+	void **fixup;
+	void **next;
+	jit_nint offset;
 
 	/* Bail out if there is insufficient space for the epilog */
 	if(!jit_cache_check_for_n(&(gen->posn), 4))
@@ -564,6 +568,24 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 			regset |= (1 << reg);
 		}
 	}
+
+	/* Apply fixups for blocks that jump to the epilog */
+	fixup = (void **)(gen->epilog_fixup);
+	while(fixup != 0)
+	{
+		offset = (((jit_nint)(fixup[0])) & 0x00FFFFFF) << 2;
+		if(!offset)
+		{
+			next = 0;
+		}
+		else
+		{
+			next = (void **)(((unsigned char *)fixup) - offset);
+		}
+		arm_patch(fixup, gen->posn.ptr);
+		fixup = next;
+	}
+	gen->epilog_fixup = 0;
 
 	/* Pop the local stack frame and return */
 	inst = (arm_inst_ptr)(gen->posn.ptr);
@@ -687,6 +709,73 @@ static arm_inst_ptr output_branch
 	return inst;
 }
 
+/*
+ * Throw a builtin exception.
+ */
+static arm_inst_ptr throw_builtin
+		(arm_inst_ptr inst, jit_function_t func, int cond, int type)
+{
+#if 0
+	/* TODO: port to ARM */
+	/* We need to update "catch_pc" if we have a "try" block */
+	if(func->builder->setjmp_value != 0)
+	{
+		_jit_gen_fix_value(func->builder->setjmp_value);
+		x86_call_imm(inst, 0);
+		x86_pop_membase(inst, X86_EBP,
+						func->builder->setjmp_value->frame_offset +
+						jit_jmp_catch_pc_offset);
+	}
+
+	/* Push the exception type onto the stack */
+	x86_push_imm(inst, type);
+
+	/* Call the "jit_exception_builtin" function, which will never return */
+	x86_call_code(inst, jit_exception_builtin);
+#endif
+	return inst;
+}
+
+/*
+ * Jump to the current function's epilog.
+ */
+static arm_inst_ptr jump_to_epilog
+	(jit_gencode_t gen, arm_inst_ptr inst, jit_block_t block)
+{
+	int offset;
+
+	/* If the epilog is the next thing that we will output,
+	   then fall through to the epilog directly */
+	block = block->next;
+	while(block != 0 && block->first_insn > block->last_insn)
+	{
+		block = block->next;
+	}
+	if(!block)
+	{
+		return inst;
+	}
+
+	/* Output a placeholder for the jump and add it to the fixup list */
+	if(gen->epilog_fixup)
+	{
+		offset = (int)(((unsigned char *)inst) -
+					   ((unsigned char *)(gen->epilog_fixup)));
+	}
+	else
+	{
+		offset = 0;
+	}
+	arm_branch_imm(inst, ARM_CC_AL, offset);
+	gen->epilog_fixup = (void *)(inst - 1);
+	return inst;
+}
+
+#define	TODO()		\
+	do { \
+		fprintf(stderr, "TODO at %s, %d\n", __FILE__, (int)__LINE__); \
+	} while (0)
+
 void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 				   jit_block_t block, jit_insn_t insn)
 {
@@ -695,6 +784,13 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		#define JIT_INCLUDE_RULES
 		#include "jit-rules-arm.slc"
 		#undef JIT_INCLUDE_RULES
+
+		default:
+		{
+			fprintf(stderr, "TODO(%x) at %s, %d\n",
+					(int)(insn->opcode), __FILE__, (int)__LINE__);
+		}
+		break;
 	}
 }
 
