@@ -12,6 +12,8 @@
 	* jit/jit-rules-x86.sel, tools/gen-sel-parser.y,
 	tools/gen-sel-scanner.l: selectors for branch instructions.
 
+	* jit/jit-rules-x86.sel: selectors for call instructions.
+
 2004-05-24  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/jit-insn.h, include/jit/jit-opcode.h, jit/jit-block.c,

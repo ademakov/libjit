@@ -464,3 +464,142 @@ JIT_OP_IGE_UN: binary
 		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
 		inst = setcc_reg(inst, $1, X86_CC_GE, 0);
 	}
+
+/*
+ * Pointer check opcodes.
+ */
+
+JIT_OP_CHECK_NULL: unary_branch
+	[reg] -> {
+		/* TODO: won't work in a function with a "try" block */
+		unsigned char *patch;
+		x86_alu_reg_reg(inst, X86_OR, $1, $1);
+		patch = inst;
+		x86_branch8(inst, X86_CC_NE, 0, 0);
+		x86_push_imm(inst, JIT_RESULT_NULL_REFERENCE);
+		x86_call_code(inst, (void *)jit_exception_builtin);
+		x86_patch(patch, inst);
+	}
+
+/*
+ * Function calls.
+ */
+
+JIT_OP_CALL:
+	[] -> {
+		jit_function_t func = (jit_function_t)(insn->dest);
+		x86_call_code(inst, func->closure_entry);
+	}
+
+JIT_OP_CALL_TAIL:
+	[] -> {
+		jit_function_t func = (jit_function_t)(insn->dest);
+		x86_jump_code(inst, func->closure_entry);
+	}
+
+JIT_OP_CALL_INDIRECT:
+	[] -> {
+		x86_call_reg(inst, X86_EAX);
+	}
+
+JIT_OP_CALL_VTABLE_PTR:
+	[] -> {
+		x86_call_reg(inst, X86_EAX);
+	}
+
+JIT_OP_CALL_EXTERNAL:
+	[] -> {
+		x86_call_code(inst, (void *)(insn->dest));
+	}
+
+JIT_OP_RETURN:
+	[] -> {
+		inst = jump_to_epilog(gen, inst, insn);
+	}
+
+JIT_OP_RETURN_INT: unary_branch
+	[reg] -> {
+		int cpu_reg = $1;
+		if(cpu_reg != X86_EAX)
+		{
+			x86_mov_reg_reg(inst, X86_EAX, cpu_reg, 4);
+		}
+		inst = jump_to_epilog(gen, inst, insn);
+	}
+
+JIT_OP_RETURN_LONG: spill_before
+	[] -> {
+		/* TODO: load the return value into EAX:EDX */
+		inst = jump_to_epilog(gen, inst, insn);
+	}
+
+JIT_OP_RETURN_FLOAT32: unary_branch, stack /*, only*/
+	[freg] -> {
+		inst = jump_to_epilog(gen, inst, insn);
+	}
+
+JIT_OP_RETURN_FLOAT64: unary_branch, stack /*, only*/
+	[freg] -> {
+		inst = jump_to_epilog(gen, inst, insn);
+	}
+
+JIT_OP_RETURN_NFLOAT: unary_branch, stack /*, only*/
+	[freg] -> {
+		inst = jump_to_epilog(gen, inst, insn);
+	}
+
+JIT_OP_RETURN_SMALL_STRUCT: spill_before
+	[] -> {
+		/* TODO: load the structure value into EAX:EDX */
+		inst = jump_to_epilog(gen, inst, insn);
+	}
+
+JIT_OP_SETUP_FOR_NESTED: spill_before
+	[] -> {
+		jit_nint nest_reg = jit_value_get_nint_constant(insn->value1);
+		if(nest_reg == -1)
+		{
+			x86_push_reg(inst, X86_EBP);
+		}
+		else
+		{
+			x86_mov_reg_reg(inst, _jit_reg_info[nest_reg].cpu_reg,
+							X86_EBP, sizeof(void *));
+		}
+	}
+
+JIT_OP_SETUP_FOR_SIBLING: spill_before
+	[] -> {
+		jit_nint level = jit_value_get_nint_constant(insn->value1);
+		jit_nint nest_reg = jit_value_get_nint_constant(insn->value2);
+		int cpu_reg;
+		if(nest_reg == -1)
+		{
+			cpu_reg = X86_EAX;
+		}
+		else
+		{
+			cpu_reg = _jit_reg_info[nest_reg].cpu_reg;
+		}
+		x86_mov_reg_membase(inst, cpu_reg, X86_EBP, 0, sizeof(void *));
+		while(level > 0)
+		{
+			gen->posn.ptr = inst;
+			if(!jit_cache_check_for_n(&(gen->posn), 16))
+			{
+				jit_cache_mark_full(&(gen->posn));
+				return;
+			}
+			x86_mov_reg_membase(inst, cpu_reg, cpu_reg, 0, sizeof(void *));
+			--level;
+		}
+		if(nest_reg == -1)
+		{
+			x86_push_reg(inst, cpu_reg);
+		}
+	}
+
+JIT_OP_IMPORT:
+	[] -> {
+		/* TODO */
+	}
