@@ -1162,6 +1162,7 @@ static unsigned char *output_branch
 			{
 				*inst++ = (unsigned char)(opcode >> 8);
 				*inst++ = (unsigned char)opcode;
+				--offset;
 			}
 			x86_imm_emit32(inst, offset);
 		}
