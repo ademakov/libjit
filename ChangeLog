@@ -1,4 +1,10 @@
 
+2004-11-02  Evin Robertson  <evin@users.sourceforge.net>
+
+	* jit/jit-function.c (jit_function_compile): clear block addresses
+	and fixup lists if we need to restart on a new cache page (minor
+	alterations by Rhys).
+
 2004-10-31  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-rules-x86.sel: handle the special case of constant

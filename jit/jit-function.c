@@ -700,6 +700,19 @@ int jit_function_compile(jit_function_t func)
 
 		/* End the function's output process */
 		result = _jit_cache_end_method(&(gen.posn));
+
+		/* If we need to restart on a different cache page, then clear
+		   the block addresses and fixup lists */
+		if(result == JIT_CACHE_END_RESTART)
+		{
+			block = 0;
+			while((block = jit_block_next(func, block)) != 0)
+			{
+				block->address = 0;
+				block->fixup_list = 0;
+			}
+		}
+
 	}
 	while(result == JIT_CACHE_END_RESTART);
 
