@@ -131,6 +131,18 @@ int dpas_is_builtin(const char *name);
 dpas_semvalue dpas_expand_builtin
 	(int identifier, dpas_semvalue *args, int num_args);
 
+/*
+ * Add the current function to the execution list.  Used for
+ * "main" functions within each compiled module.
+ */
+void dpas_add_main_function(jit_function_t func);
+
+/*
+ * Run the "main" functions in the order in which they were compiled.
+ * Returns zero on an exception.
+ */
+int dpas_run_main_functions(void);
+
 #ifdef	__cplusplus
 };
 #endif

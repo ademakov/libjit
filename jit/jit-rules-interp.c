@@ -1037,6 +1037,11 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		case JIT_OP_CALL_EXTERNAL:
 		{
 			/* Call a native function, whose pointer is supplied explicitly */
+			if(!jit_type_return_via_pointer
+					(jit_type_get_return((jit_type_t)(insn->value2))))
+			{
+				jit_cache_opcode(&(gen->posn), JIT_OP_PUSH_RETURN_AREA_PTR);
+			}
 			jit_cache_opcode(&(gen->posn), insn->opcode);
 			jit_cache_native(&(gen->posn), (jit_nint)(insn->value2));
 			jit_cache_native(&(gen->posn), (jit_nint)(insn->dest));

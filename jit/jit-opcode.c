@@ -583,6 +583,7 @@ jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES] = {
 	{"push_return_float64",			0},
 	{"push_return_nfloat",			0},
 	{"push_return_small_struct",	JIT_OPCODE_NINT_ARG},
+	{"push_return_area_ptr",		0},
 
 	/*
 	 * Nested function call handling.

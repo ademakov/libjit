@@ -128,7 +128,14 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	/* TODO: JIT and execute the program */
+	/* Execute the program that we just compiled */
+	if(!dpas_dump_functions)
+	{
+		if(!dpas_run_main_functions())
+		{
+			return 1;
+		}
+	}
 
 	/* Done */
 	return 0;

@@ -23,6 +23,8 @@
 static jit_context_t current_context;
 static jit_function_t *function_stack = 0;
 static int function_stack_size = 0;
+static jit_function_t *main_list = 0;
+static int main_list_size = 0;
 
 jit_context_t dpas_current_context(void)
 {
@@ -102,4 +104,30 @@ dpas_semvalue dpas_lvalue_to_rvalue(dpas_semvalue value)
 		dpas_sem_set_rvalue(value, type, rvalue);
 	}
 	return value;
+}
+
+void dpas_add_main_function(jit_function_t func)
+{
+	main_list = (jit_function_t *)jit_realloc
+		(main_list, sizeof(jit_function_t) * (main_list_size + 1));
+	if(!main_list)
+	{
+		dpas_out_of_memory();
+	}
+	main_list[main_list_size++] = func;
+}
+
+int dpas_run_main_functions(void)
+{
+	int index;
+	for(index = 0; index < main_list_size; ++index)
+	{
+		if(!jit_function_apply(main_list[index], 0, 0))
+		{
+			fprintf(stderr, "Exception 0x%lx thrown past top level\n",
+					(long)(jit_nint)(jit_exception_get_last()));
+			return 0;
+		}
+	}
+	return 1;
 }

@@ -4316,6 +4316,14 @@ void _jit_run_function(jit_function_interp *func, jit_item *args,
 		}
 		VMBREAK;
 
+		VMCASE(JIT_OP_PUSH_RETURN_AREA_PTR):
+		{
+			/* Push the address of "return_area" for an external call */
+			VM_STK_PTRP = return_area;
+			VM_MODIFY_PC_AND_STACK(1, -1);
+		}
+		VMBREAK;
+
 		/******************************************************************
 		 * Stack management
 		 ******************************************************************/

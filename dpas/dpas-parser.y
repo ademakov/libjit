@@ -929,7 +929,7 @@ ImportDeclarations
 	;
 
 ProgramBlock
-	: ProgramBlock2		{
+	: Block		{
 				/* Get the "main" function for this module */
 				jit_function_t func = dpas_current_function();
 
@@ -957,14 +957,12 @@ ProgramBlock
 					jit_dump_function(stdout, func, "main");
 				}
 
+				/* Add the function to the "main" list, for later execution */
+				dpas_add_main_function(func);
+
 				/* Pop the "main" function */
 				dpas_pop_function();
 			}
-	;
-
-ProgramBlock2
-	: Block
-	| K_END
 	;
 
 /*
@@ -1173,6 +1171,7 @@ ProcedureOrFunctionList
 StatementPart
 	: K_BEGIN StatementSequence OptSemi K_END
 	| K_BEGIN OptSemi K_END
+	| K_END
 	| K_BEGIN error K_END
 	;
 

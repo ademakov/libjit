@@ -1,4 +1,12 @@
 
+2004-05-07  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* dpas/dpas-function.c, dpas/dpas-internal.h, dpas/dpas-main.c,
+	dpas/dpas-parser.y, jit/jit-interp.cpp, jit/jit-interp.h,
+	jit/jit-opcode.c, jit/jit-rules-interp.c: execute the "main"
+	method once a Dynamic Pascal program has been compiled;
+	fix some calling convention problems with "call_external".
+
 2004-05-06  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* dpas/Makefile.am, dpas/dpas-builtin.c, dpas/dpas-function.c,
