@@ -6482,8 +6482,16 @@ static int initialize_setjmp_block(jit_function_t func)
 		return 0;
 	}
 	args[0] = jit_insn_address_of(func, func->builder->setjmp_value);
+
+#if defined(HAVE__SETJMP)
+	value = jit_insn_call_native
+		(func, "_setjmp", (void *)_setjmp, type, args, 1, JIT_CALL_NOTHROW);
+
+#else
 	value = jit_insn_call_native
 		(func, "setjmp", (void *)setjmp, type, args, 1, JIT_CALL_NOTHROW);
+#endif
+
 	jit_type_free(type);
 	if(!value)
 	{
