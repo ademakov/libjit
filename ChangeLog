@@ -1,4 +1,8 @@
 
+2004-08-08  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* configure.in, NEWS: update version for the "0.0.4" release.
+
 2004-08-05  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* doc/Makefile.am, doc/README, doc/libjit.texi,

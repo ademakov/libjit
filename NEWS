@@ -1,4 +1,37 @@
 
+0.0.4 (8 August 2004)
+
+	* Pluggable object models.
+	* Problems with "gen-apply" on Win32 systems.
+	* Optimize "if true goto" into "goto".
+	* Peephole optimization on branches.
+	* Adjust ARM codegen macros to support branch elimination instructions.
+	* Redesign exception handling to use "setjmp" everywhere.
+	* Remove C++ code from "libjit.so" so that it is a pure C library.
+	* Use computed goto's in the interpreter if the compiler supports them.
+	* Don't allow conditional branches to jump out of exception contexts.
+	* Block movement to allow initialization code to be moved to the start
+	  of a function, or loop condition code to be moved to the end.
+	* Rewrite the exception region routines to make them easier to use.
+	* Add the "gen-sel" program, for creating instruction selectors.
+	* Write instruction selectors for x86 and ARM (only x86 is enabled).
+	* Portability fixes for ARM, PPC, Alpha, IA64, and amd64.
+	* Clarify the description of LLVM, at the request of LLVM's author.
+	* Deferred argument popping after function calls.
+	* Add "--enable-interpreter" to force the interpreter to be used.
+	* Implement a simple global register allocator based on usage counts.
+	* Recognise increment and decrement idioms.
+	* Align cache flushes properly (Miroslaw Dobrzanski-Neumann).
+	* Querying of x86 cpuid where necessary.
+	* Add a constant pool for ARM, to make constant loads more efficient.
+	* Handle register pairs for 64-bit values properly.
+	* Support for parameter areas on the stack, to reduce push/pop overhead.
+	* Avoid unnecessary register spills if a value won't be used again.
+	* Implement tail calls from a function to itself.
+	* Optimize x86 prologs and epilogs to avoid doing unnecessry work.
+	* Centralise the code that handles parameter passing.
+	* Support for parallel builds.
+
 0.0.2 (13 May 2004)
 
 	* Function and instruction building API basics in place, in C and C++.
