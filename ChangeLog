@@ -1,4 +1,9 @@
 
+2004-08-12  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-rules-interp.c: account for the extra value that is
+	added to the stack by the "push_return_area_ptr" instruction.
+
 2004-08-08  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* configure.in, NEWS: update version for the "0.0.4" release.

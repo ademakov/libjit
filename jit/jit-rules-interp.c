@@ -1142,6 +1142,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 					(jit_type_get_return((jit_type_t)(insn->value2))))
 			{
 				jit_cache_opcode(&(gen->posn), JIT_OP_PUSH_RETURN_AREA_PTR);
+				++(gen->max_working_area);	/* Account for extra value */
 			}
 			reg = _jit_regs_load_to_top(gen, insn->value1, 0, 0);
 			jit_cache_opcode(&(gen->posn), insn->opcode);
@@ -1170,6 +1171,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 					(jit_type_get_return((jit_type_t)(insn->value2))))
 			{
 				jit_cache_opcode(&(gen->posn), JIT_OP_PUSH_RETURN_AREA_PTR);
+				++(gen->max_working_area);	/* Account for extra value */
 			}
 			jit_cache_opcode(&(gen->posn), insn->opcode);
 			jit_cache_native(&(gen->posn), (jit_nint)(insn->value2));
