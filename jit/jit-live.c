@@ -199,6 +199,7 @@ void _jit_function_compute_liveness(jit_function_t func)
 	jit_block_t block = func->builder->first_block;
 	while(block != 0)
 	{
+		_jit_block_peephole_branch(block);
 		compute_liveness_for_block(block);
 		block = block->next;
 	}

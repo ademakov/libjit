@@ -525,6 +525,13 @@ jit_insn_t _jit_block_add_insn(jit_block_t block);
 jit_insn_t _jit_block_get_last(jit_block_t block);
 
 /*
+ * Perform peephole optimization on the branch instruction at the
+ * end of a block (if there is a branch).  This will resolve branches
+ * to branches, and remove branches to the following block.
+ */
+void _jit_block_peephole_branch(jit_block_t block);
+
+/*
  * Free one element in a metadata list.
  */
 void _jit_meta_free_one(void *meta);

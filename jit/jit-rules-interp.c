@@ -840,54 +840,6 @@ void _jit_gen_fix_value(jit_value_t value)
 }
 
 /*
- * Get the destination of a branch instruction, and thread through
- * unconditional branches that this one points to.  Returns
- * "jit_label_undefined" if we are branching to the next block
- * (i.e. the branch instruction can be quietly eliminated).
- */
-static jit_label_t get_branch_dest(jit_block_t block, jit_insn_t insn)
-{
-	jit_label_t label;
-	jit_block_t new_block;
-	int max_thread;
-	jit_insn_iter_t iter;
-
-	/* Get the starting label */
-	label = (jit_label_t)(insn->dest);
-
-	/* Bail out now if we are within an exception block, because we
-	   don't want to thread to jumps outside the "finally" context */
-	if(block->block_eh && insn->opcode == JIT_OP_BR)
-	{
-		return label;
-	}
-
-	/* Thread unconditional jumps at the destination */
-	max_thread = 20;
-	while(max_thread > 0 &&
-	      (new_block = jit_block_from_label(block->func, label)) != 0)
-	{
-		jit_insn_iter_init(&iter, new_block);
-		insn = jit_insn_iter_next(&iter);
-		if(!insn || insn->opcode != JIT_OP_BR)
-		{
-			break;
-		}
-		label = (jit_label_t)(insn->dest);
-		--max_thread;
-	}
-
-	/* Determine if we are branching to the next block */
-	if(block->next && block->next->label == label)
-	{
-		return jit_label_undefined;
-	}
-
-	/* Return the destination label to the caller */
-	return label;
-}
-
-/*
  * Record that a destination is now in a particular register.
  */
 static void record_dest(jit_gencode_t gen, jit_insn_t insn, int reg)
@@ -937,29 +889,26 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		{
 			/* Unconditional branch */
 			_jit_regs_spill_all(gen);
-			label = get_branch_dest(block, insn);
-			if(label != jit_label_undefined)
+			label = (jit_label_t)(insn->dest);
+		branch:
+			pc = (void **)(gen->posn.ptr);
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			block = jit_block_from_label(func, label);
+			if(!block)
 			{
-			branch:
-				pc = (void **)(gen->posn.ptr);
-				jit_cache_opcode(&(gen->posn), insn->opcode);
-				block = jit_block_from_label(func, label);
-				if(!block)
-				{
-					break;
-				}
-				if(block->address)
-				{
-					/* We already know the address of the block */
-					jit_cache_native
-						(&(gen->posn), ((void **)(block->address)) - pc);
-				}
-				else
-				{
-					/* Record this position on the block's fixup list */
-					jit_cache_native(&(gen->posn), block->fixup_list);
-					block->fixup_list = (void *)pc;
-				}
+				break;
+			}
+			if(block->address)
+			{
+				/* We already know the address of the block */
+				jit_cache_native
+					(&(gen->posn), ((void **)(block->address)) - pc);
+			}
+			else
+			{
+				/* Record this position on the block's fixup list */
+				jit_cache_native(&(gen->posn), block->fixup_list);
+				block->fixup_list = (void *)pc;
 			}
 		}
 		break;
@@ -971,14 +920,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		case JIT_OP_CALL_FILTER:
 		{
 			/* Unary branch */
-			label = get_branch_dest(block, insn);
-			if(label == jit_label_undefined)
-			{
-				/* We are falling through, no matter what the test
-				   says, so optimize the entire instruction away */
-				_jit_regs_spill_all(gen);
-				break;
-			}
+			label = (jit_label_t)(insn->dest);
 			if(!_jit_regs_is_top(gen, insn->value1) ||
 			   _jit_regs_num_used(gen, 0) != 1)
 			{
@@ -1049,14 +991,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		case JIT_OP_BR_NFGE_INV:
 		{
 			/* Binary branch */
-			label = get_branch_dest(block, insn);
-			if(label == jit_label_undefined)
-			{
-				/* We are falling through, no matter what the test
-				   says, so optimize the entire instruction away */
-				_jit_regs_spill_all(gen);
-				break;
-			}
+			label = (jit_label_t)(insn->dest);
 			if(!_jit_regs_is_top_two(gen, insn->value1, insn->value2) ||
 			   _jit_regs_num_used(gen, 0) != 2)
 			{

@@ -382,3 +382,107 @@ int jit_block_ends_in_dead(jit_block_t block)
 {
 	return block->ends_in_dead;
 }
+
+/*
+ * Determine if the next block after "block" has "label".
+ */
+static int block_branches_to_next(jit_block_t block, jit_label_t label)
+{
+	jit_insn_t insn;
+	block = block->next;
+	while(block != 0)
+	{
+		if(block->label == label)
+		{
+			return 1;
+		}
+		if(block->first_insn < block->last_insn)
+		{
+			/* This block contains more than one instruction, so the
+			   first cannot be an unconditional branch */
+			break;
+		}
+		else if(block->first_insn == block->last_insn)
+		{
+			insn = block->func->builder->insns[block->first_insn];
+			if(insn->opcode == JIT_OP_BR)
+			{
+				/* If the instruction branches to its next block,
+				   then it is equivalent to an empty block.  If it
+				   does not, then we have to stop scanning here */
+				if(!block_branches_to_next(block, (jit_label_t)(insn->dest)))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				/* The block does not contain an unconditional branch */
+				break;
+			}
+		}
+		block = block->next;
+	}
+	return 0;
+}
+
+void _jit_block_peephole_branch(jit_block_t block)
+{
+	jit_insn_t insn;
+	jit_insn_t new_insn;
+	jit_label_t label;
+	jit_block_t new_block;
+	int count;
+
+	/* Bail out if the last instruction is not actually a branch */
+	insn = _jit_block_get_last(block);
+	if(!insn || insn->opcode < JIT_OP_BR || insn->opcode > JIT_OP_BR_NFGE_INV)
+	{
+		return;
+	}
+
+	/* Thread unconditional branches.  We stop if we jump back to the
+	   starting block, or follow more than 32 links.  This is to prevent
+	   infinite loops in situations like "while true do nothing" */
+	label = (jit_label_t)(insn->dest);
+	count = 32;
+	while(label != block->label && count > 0)
+	{
+		new_block = jit_block_from_label(block->func, label);
+		while(new_block != 0 && new_block->first_insn > new_block->last_insn)
+		{
+			/* Skip past empty blocks */
+			new_block = new_block->next;
+		}
+		if(!new_block)
+		{
+			break;
+		}
+		if(new_block->first_insn < new_block->last_insn)
+		{
+			/* There is more than one instruction in this block,
+			   so the first instruction cannot be a branch */
+			break;
+		}
+		new_insn = new_block->func->builder->insns[new_block->first_insn];
+		if(new_insn->opcode != JIT_OP_BR)
+		{
+			/* The target block does not contain an unconditional branch */
+			break;
+		}
+		label = (jit_label_t)(new_insn->dest);
+		--count;
+	}
+	insn->dest = (jit_value_t)label;
+
+	/* Determine if we are branching to the immediately following block */
+	if(block_branches_to_next(block, label))
+	{
+		/* Remove the branch instruction, because it has no effect.
+		   It doesn't matter if the branch is unconditional or
+		   conditional.  Any side-effects in a conditional expression
+		   would have already been computed by now.  Expressions without
+		   side-effects will be optimized away by liveness analysis */
+		--(block->last_insn);
+	}
+}
