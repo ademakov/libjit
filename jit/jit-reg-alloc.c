@@ -1460,7 +1460,8 @@ void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func)
 			value = (jit_value_t)(block->data + posn *
 								  sizeof(struct _jit_value));
 			if(value->global_candidate && value->usage_count >= JIT_MIN_USED &&
-			   !(value->is_addressable) && !(value->is_volatile))
+			   !(value->is_addressable) && !(value->is_volatile) &&
+			   (!(value->is_parameter) || value->is_reg_parameter))
 			{
 				/* Insert this candidate into the list, ordered on count */
 				index = 0;

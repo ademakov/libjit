@@ -75,6 +75,7 @@ jit_value_t jit_value_get_struct_pointer(jit_function_t func) JIT_NOTHROW;
 int jit_value_is_temporary(jit_value_t value) JIT_NOTHROW;
 int jit_value_is_local(jit_value_t value) JIT_NOTHROW;
 int jit_value_is_constant(jit_value_t value) JIT_NOTHROW;
+int jit_value_is_parameter(jit_value_t value) JIT_NOTHROW;
 void jit_value_ref(jit_function_t func, jit_value_t value) JIT_NOTHROW;
 void jit_value_set_volatile(jit_value_t value) JIT_NOTHROW;
 int jit_value_is_volatile(jit_value_t value) JIT_NOTHROW;

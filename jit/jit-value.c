@@ -505,6 +505,7 @@ jit_value_t jit_value_get_param(jit_function_t func, unsigned int param)
 			/* The value belongs to the entry block, no matter
 			   where it happens to be created */
 			values[current]->block = func->builder->entry;
+			values[current]->is_parameter = 1;
 		}
 	}
 
@@ -546,6 +547,7 @@ jit_value_t jit_value_get_struct_pointer(jit_function_t func)
 					/* The value belongs to the entry block, no matter
 					   where it happens to be created */
 					value->block = func->builder->entry;
+					value->is_parameter = 1;
 				}
 				jit_type_free(type);
 			}
@@ -585,6 +587,16 @@ int jit_value_is_local(jit_value_t value)
 int jit_value_is_constant(jit_value_t value)
 {
 	return value->is_constant;
+}
+
+/*@
+ * @deftypefun int jit_value_is_parameter (jit_value_t value)
+ * Determine if a value is a function parameter.
+ * @end deftypefun
+@*/
+int jit_value_is_parameter(jit_value_t value)
+{
+	return value->is_parameter;
 }
 
 /*@

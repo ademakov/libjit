@@ -201,6 +201,8 @@ struct _jit_value
 	int					is_addressable : 1;
 	int					is_constant : 1;
 	int					is_nint_constant : 1;
+	int					is_parameter : 1;
+	int					is_reg_parameter : 1;
 	int					has_address : 1;
 	int					free_address : 1;
 	int					in_register : 1;

@@ -21,6 +21,13 @@
 	the overhead of function calls that involve stacked arguments
 	on non-x86 platforms; use parameter areas in the ARM back end.
 
+	* include/jit/jit-plus.h, include/jit/jit-value.h, jit/jit-insn.c,
+	jit/jit-internal.h, jit/jit-reg-alloc.c, jit/jit-rules-x86.c,
+	jit/jit-value.c: don't over-allocate x86 stack frames if
+	EBX, ESI, and EDI don't need to be saved; don't perform global
+	register allocation on stacked parameters because it confuses
+	the register spill logic.
+
 2004-06-09  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-rules-arm.c (flush_constants): update the instruction

@@ -5685,6 +5685,10 @@ jit_value_t jit_insn_call_intrinsic
 @*/
 int jit_insn_incoming_reg(jit_function_t func, jit_value_t value, int reg)
 {
+	if(value && value->is_parameter)
+	{
+		value->is_reg_parameter = 1;
+	}
 	return create_note(func, JIT_OP_INCOMING_REG, value,
 					   jit_value_create_nint_constant
 					   		(func, jit_type_int, (jit_nint)reg));

@@ -42,6 +42,7 @@ public:
 	int is_temporary() const { return jit_value_is_temporary(value); }
 	int is_local() const { return jit_value_is_local(value); }
 	int is_constant() const { return jit_value_is_constant(value); }
+	int is_parameter() const { return jit_value_is_parameter(value); }
 
 	void set_volatile() { jit_value_set_volatile(value); }
 	int is_volatile() const { return jit_value_is_volatile(value); }

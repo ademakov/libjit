@@ -163,9 +163,8 @@ int _jit_create_entry_insns(jit_function_t func)
 	unsigned int size;
 	unsigned int num_stack_words;
 
-	/* Reset the frame size for this function.  We start by assuming
-	   that ESI, EDI, and EBX need to be saved in the local frame */
-	func->builder->frame_size = 3 * sizeof(void *);
+	/* Reset the local variable frame size for this function */
+	func->builder->frame_size = 0;
 
 	/* Determine the number of registers to allocate to parameters */
 #if JIT_APPLY_X86_FASTCALL == 1
@@ -690,7 +689,6 @@ void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 	unsigned char prolog[JIT_PROLOG_SIZE];
 	unsigned char *inst = prolog;
 	int reg;
-	unsigned int saved;
 
 	/* Push ebp onto the stack */
 	x86_push_reg(inst, X86_EBP);
@@ -698,24 +696,21 @@ void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 	/* Initialize EBP for the current frame */
 	x86_mov_reg_reg(inst, X86_EBP, X86_ESP, sizeof(void *));
 
+	/* Allocate space for the local variable frame */
+	if(func->builder->frame_size > 0)
+	{
+		x86_alu_reg_imm(inst, X86_SUB, X86_ESP,
+			 			(int)(func->builder->frame_size));
+	}
+
 	/* Save registers that we need to preserve */
-	saved = 0;
 	for(reg = 0; reg <= 7; ++reg)
 	{
 		if(jit_reg_is_used(gen->touched, reg) &&
 		   (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0)
 		{
 			x86_push_reg(inst, _jit_reg_info[reg].cpu_reg);
-			saved += sizeof(void *);
 		}
-	}
-
-	/* Allocate space for the local variable frame.  Subtract off
-	   the space for the registers that we just saved */
-	if((func->builder->frame_size - saved) > 0)
-	{
-		x86_alu_reg_imm(inst, X86_SUB, X86_ESP,
-			 			(int)(func->builder->frame_size - saved));
 	}
 
 	/* Copy the prolog into place and return the adjusted entry position */
@@ -727,14 +722,14 @@ void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 {
 	jit_nint pop_bytes = 0;
-	int num_regs, reg;
+	int reg, offset;
 	unsigned char *inst;
 	int struct_return_offset = 0;
 	void **fixup;
 	void **next;
 
 	/* Bail out if there is insufficient space for the epilog */
-	if(!jit_cache_check_for_n(&(gen->posn), 32))
+	if(!jit_cache_check_for_n(&(gen->posn), 48))
 	{
 		jit_cache_mark_full(&(gen->posn));
 		return;
@@ -823,38 +818,21 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 		x86_mov_reg_membase(inst, X86_EAX, X86_EBP, struct_return_offset, 4);
 	}
 
-	/* Determine the number of callee save registers on the stack */
-	num_regs = 0;
-	for(reg = 7; reg >= 0; --reg)
+	/* Restore the callee save registers that we used */
+	offset = -(func->builder->frame_size);
+	for(reg = 0; reg <= 7; ++reg)
 	{
 		if(jit_reg_is_used(gen->touched, reg) &&
 		   (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0)
 		{
-			++num_regs;
+			offset -= sizeof(void *);
+			x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
+								X86_EBP, offset, sizeof(void *));
 		}
 	}
 
-	/* Pop the local stack frame, and get back to the callee save regs */
-	if(num_regs == 0)
-	{
-		x86_mov_reg_reg(inst, X86_ESP, X86_EBP, sizeof(void *));
-	}
-	else
-	{
-		x86_lea_membase(inst, X86_ESP, X86_EBP, -(sizeof(void *) * num_regs));
-	}
-
-	/* Pop the callee save registers that we used */
-	for(reg = 7; reg >= 0; --reg)
-	{
-		if(jit_reg_is_used(gen->touched, reg) &&
-		   (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0)
-		{
-			x86_pop_reg(inst, _jit_reg_info[reg].cpu_reg);
-		}
-	}
-
-	/* Pop the saved copy of ebp */
+	/* Pop the stack frame and restore the saved copy of ebp */
+	x86_mov_reg_reg(inst, X86_ESP, X86_EBP, sizeof(void *));
 	x86_pop_reg(inst, X86_EBP);
 
 	/* Return from the current function */
