@@ -2314,6 +2314,7 @@ int main(int argc, char *argv[])
 	/* Detect support for x86 FASTCALL handling code */
 #if defined(PLATFORM_IS_X86)
 	x86_fastcall = 1;
+	floats_in_word_regs = 1;
 #endif
 
 	/* Detect whether x86 platforms pop the structure return pointer */

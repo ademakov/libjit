@@ -4,6 +4,9 @@
 	* jit/jit-reg-alloc.c (_jit_regs_set_outgoing): pass 64-bit "fastcall"
 	parameters in ECX:EDX, not in ECX:EBX.
 
+	* tools/gen-apply.c: allow floating-point values to be passed
+	in "fastcall" registers.
+
 2004-06-16  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* tools/gen-sel-parser.y: add a missing semi-colon.
