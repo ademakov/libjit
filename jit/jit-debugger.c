@@ -154,6 +154,7 @@ typedef struct jit_debugger_thread
 {
 	struct jit_debugger_thread *next;
 	jit_debugger_thread_id_t	id;
+	jit_thread_id_t				native_id;
 	int				   volatile	run_type;
 	jit_function_t				find_func;
 	jit_nint					last_data1;
@@ -167,6 +168,8 @@ typedef struct jit_debugger_thread
  */
 struct jit_debugger
 {
+	jit_monitor_t				  queue_lock;
+	jit_monitor_t				  run_lock;
 	jit_context_t				  context;
 	jit_debugger_linked_event_t * volatile events;
 	jit_debugger_linked_event_t * volatile last_event;
@@ -175,18 +178,12 @@ struct jit_debugger
 /*
  * Lock the debugger object.
  */
-static void lock_debugger(jit_debugger_t dbg)
-{
-	/* TODO */
-}
+#define	lock_debugger(dbg)		jit_monitor_lock(&((dbg)->run_lock))
 
 /*
  * Unlock the debugger object.
  */
-static void unlock_debugger(jit_debugger_t dbg)
-{
-	/* TODO */
-}
+#define	unlock_debugger(dbg)	jit_monitor_unlock(&((dbg)->run_lock))
 
 /*
  * Suspend the current thread until it is marked as running again.
@@ -194,16 +191,16 @@ static void unlock_debugger(jit_debugger_t dbg)
  */
 static void suspend_thread(jit_debugger_t dbg, jit_debugger_thread_t thread)
 {
-	/* TODO */
+	while(thread->run_type == JIT_RUN_TYPE_STOPPED)
+	{
+		jit_monitor_wait(&(dbg->run_lock), -1);
+	}
 }
 
 /*
  * Wake all threads that are waiting on the debugger's monitor.
  */
-static void wakeup_all(jit_debugger_t dbg)
-{
-	/* TODO */
-}
+#define	wakeup_all(dbg)		jit_monitor_signal_all(&((dbg)->run_lock))
 
 /*
  * Get the information block for the current thread.
@@ -238,6 +235,7 @@ static void add_event(jit_debugger_t dbg, jit_debugger_event_t *_event)
 {
 	jit_debugger_linked_event_t *event = (jit_debugger_linked_event_t *)_event;
 	event->next = 0;
+	jit_monitor_lock(&(dbg->queue_lock));
 	if(dbg->last_event)
 	{
 		dbg->last_event->next = event;
@@ -247,7 +245,8 @@ static void add_event(jit_debugger_t dbg, jit_debugger_event_t *_event)
 		dbg->events = event;
 	}
 	dbg->last_event = event;
-	wakeup_all(dbg);
+	jit_monitor_signal(&(dbg->queue_lock));
+	jit_monitor_unlock(&(dbg->queue_lock));
 }
 
 /*@
@@ -258,8 +257,7 @@ static void add_event(jit_debugger_t dbg, jit_debugger_event_t *_event)
 @*/
 int jit_debugging_possible(void)
 {
-	/* TODO */
-	return 1;
+	return JIT_THREADS_SUPPORTED;
 }
 
 /*@
@@ -285,6 +283,8 @@ jit_debugger_t jit_debugger_create(jit_context_t context)
 		}
 		dbg->context = context;
 		context->debugger = dbg;
+		jit_monitor_create(&(dbg->queue_lock));
+		jit_monitor_create(&(dbg->run_lock));
 		return dbg;
 	}
 	else
@@ -348,8 +348,11 @@ jit_debugger_t jit_debugger_from_context(jit_context_t context)
 @*/
 jit_debugger_thread_id_t jit_debugger_get_self(jit_debugger_t dbg)
 {
-	/* TODO */
-	return 0;
+	jit_thread_id_t id = jit_thread_self();
+	jit_debugger_thread_id_t thread;
+	thread = jit_debugger_get_thread(dbg, &id);
+	jit_thread_release_self(id);
+	return thread;
 }
 
 /*@
@@ -380,8 +383,20 @@ int jit_debugger_get_native_thread
 		(jit_debugger_t dbg, jit_debugger_thread_id_t thread,
 		 void *native_thread)
 {
-	/* TODO */
-	return 0;
+	jit_debugger_thread_t th;
+	lock_debugger(dbg);
+	th = get_specific_thread(dbg, thread);
+	if(th)
+	{
+		jit_memcpy(native_thread, &(th->native_id), sizeof(th->native_id));
+		unlock_debugger(dbg);
+		return 1;
+	}
+	else
+	{
+		unlock_debugger(dbg);
+		return 0;
+	}
 }
 
 /*@
@@ -398,7 +413,16 @@ int jit_debugger_get_native_thread
 void jit_debugger_set_breakable
 		(jit_debugger_t dbg, const void *native_thread, int flag)
 {
-	/* TODO */
+	jit_debugger_thread_t th;
+	jit_debugger_thread_id_t id;
+	id = jit_debugger_get_thread(dbg, native_thread);
+	lock_debugger(dbg);
+	th = get_specific_thread(dbg, id);
+	if(th)
+	{
+		th->breakable = flag;
+	}
+	unlock_debugger(dbg);
 }
 
 /*@
@@ -479,8 +503,26 @@ void jit_debugger_detach_self(jit_debugger_t dbg)
 int jit_debugger_wait_event
 		(jit_debugger_t dbg, jit_debugger_event_t *event, jit_int timeout)
 {
-	/* TODO */
-	return 0;
+	jit_debugger_linked_event_t *levent;
+	jit_monitor_lock(&(dbg->queue_lock));
+	if((levent = dbg->events) == 0)
+	{
+		if(!jit_monitor_wait(&(dbg->queue_lock), timeout))
+		{
+			jit_monitor_unlock(&(dbg->queue_lock));
+			return 0;
+		}
+		levent = dbg->events;
+	}
+	*event = levent->event;
+	dbg->events = levent->next;
+	if(!(levent->next))
+	{
+		dbg->last_event = 0;
+	}
+	jit_free(levent);
+	jit_monitor_unlock(&(dbg->queue_lock));
+	return 1;
 }
 
 /*@

@@ -19,6 +19,20 @@
  */
 
 #include "jit-internal.h"
+#if TIME_WITH_SYS_TIME
+	#include <sys/time.h>
+    #include <time.h>
+#else
+    #if HAVE_SYS_TIME_H
+		#include <sys/time.h>
+    #elif !defined(__palmos__)
+        #include <time.h>
+    #endif
+#endif
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#include <errno.h>
 
 #if defined(JIT_THREADS_PTHREAD)
 
@@ -51,6 +65,15 @@ static DWORD control_key;
 static void init_win32_thread(void)
 {
 	control_key = TlsAlloc();
+}
+
+jit_thread_id_t _jit_thread_self(void)
+{
+	HANDLE new_handle;
+	DuplicateHandle(GetCurrentProcess(), GetCurrentThread(),
+					GetCurrentProcess(), &new_handle,
+					0, 0, DUPLICATE_SAME_ACCESS);
+	return new_handle;
 }
 
 #else /* No thread package */
@@ -124,5 +147,55 @@ jit_thread_id_t _jit_thread_current_id(void)
 #else
 	/* There is only one thread, so lets give it an identifier of 1 */
 	return 1;
+#endif
+}
+
+int _jit_monitor_wait(jit_monitor_t *mon, jit_int timeout)
+{
+#if defined(JIT_THREADS_PTHREAD)
+	if(timeout < 0)
+	{
+		pthread_cond_wait(&(mon->_cond), &(mon->_mutex));
+		return 1;
+	}
+	else
+	{
+		struct timeval tv;
+		struct timespec ts;
+		int result;
+
+		gettimeofday(&tv, 0);
+		ts.tv_sec = tv.tv_sec + (long)(timeout / 1000);
+		ts.tv_nsec = (tv.tv_usec + (long)((timeout % 1000) * 1000)) * 1000L;
+		if(ts.tv_nsec >= 1000000000L)
+		{
+			++(ts.tv_sec);
+			ts.tv_nsec -= 1000000000L;
+		}
+
+		/* Wait until we are signalled or the timeout expires */
+		do
+		{
+			result = pthread_cond_timedwait(&(mon->_cond), &(mon->_mutex), &ts);
+		}
+		while(result == EINTR);
+		return ((result == 0) ? 1 : 0);
+	}
+#elif defined(JIT_THREADS_WIN32)
+	DWORD result;
+	++(mon->_waiting);
+	if(timeout >= 0)
+	{
+		result = SignalObjectAndWait(mon->_mutex, mon->_cond,
+									 (DWORD)timeout, FALSE);
+	}
+	else
+	{
+		result = SignalObjectAndWait(mon->_mutex, mon->_cond, INFINITE, FALSE);
+	}
+	WaitForSingleObject(mon->_mutex, INFINITE);
+	return (result == WAIT_OBJECT_0);
+#else
+	return 0;
 #endif
 }
