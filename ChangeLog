@@ -6,6 +6,9 @@
 	* jit/jit-interp.c: alignment problem with "push_const_float32"
 	on 64-bit platforms.
 
+	* jit/jit-intrinsic.c: work around a SIGFPE for sqrt(-1) on Alpha;
+	it should return NaN instead.
+
 2004-06-06  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c (jit_flush_exec): flush cache lines properly

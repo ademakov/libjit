@@ -1670,8 +1670,13 @@ jit_float32 jit_float32_sinh(jit_float32 value1)
 
 jit_float32 jit_float32_sqrt(jit_float32 value1)
 {
+	/* Some platforms give a SIGFPE for negative arguments (e.g. Alpha) */
+	if(value1 < (jit_float32)0.0)
+	{
+		return jit_float32_nan;
+	}
 #if defined(HAVE_SQRTF)
-	return (jit_float32)(sqrtf(value1));
+	return (jit_float32)(sqrt(value1));
 #elif defined(HAVE_SQRT)
 	return (jit_float32)(sqrt(value1));
 #else
@@ -2249,6 +2254,11 @@ jit_float64 jit_float64_sinh(jit_float64 value1)
 
 jit_float64 jit_float64_sqrt(jit_float64 value1)
 {
+	/* Some platforms give a SIGFPE for negative arguments (e.g. Alpha) */
+	if(value1 < (jit_float64)0.0)
+	{
+		return jit_float64_nan;
+	}
 #if defined(HAVE_SQRT)
 	return (jit_float64)(sqrt(value1));
 #else
@@ -2889,6 +2899,11 @@ jit_nfloat jit_nfloat_sinh(jit_nfloat value1)
 
 jit_nfloat jit_nfloat_sqrt(jit_nfloat value1)
 {
+	/* Some platforms give a SIGFPE for negative arguments (e.g. Alpha) */
+	if(value1 < (jit_nfloat)0.0)
+	{
+		return jit_nfloat_nan;
+	}
 #if defined(HAVE_SQRTL) && !defined(JIT_NFLOAT_IS_DOUBLE)
 	return (jit_nfloat)(sqrtl(value1));
 #elif defined(HAVE_SQRT)
