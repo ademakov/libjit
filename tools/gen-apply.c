@@ -1287,7 +1287,7 @@ void detect_max_sizes(void)
 void find_frame_offset_inner(void *looking_for, void **frame)
 {
 	int offset;
-	if(looking_for == (void *)frame)
+	if(looking_for == (void *)frame || !frame)
 	{
 		/* Can happen on Alpha platforms */
 		broken_frame_builtins = 1;

@@ -31,6 +31,8 @@
 	auto-detection logic in gen-apply under MacOSX because
 	it doesn't work with Apple's version of gcc.
 
+	* tools/gen-apply.c: gen-apply fix for ia64.
+
 2004-06-06  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c (jit_flush_exec): flush cache lines properly
