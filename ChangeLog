@@ -3,6 +3,9 @@
 
 	* tools/gen-apply.c: gen-apply fixes for Alpha platforms.
 
+	* jit/jit-interp.c: alignment problem with "push_const_float32"
+	on 64-bit platforms.
+
 2004-06-06  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c (jit_flush_exec): flush cache lines properly

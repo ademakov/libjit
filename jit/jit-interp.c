@@ -4420,6 +4420,9 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 		 * Stack management
 		 ******************************************************************/
 
+		#define	JIT_WORDS_PER_TYPE(type)	\
+			((sizeof(type) + sizeof(void *) - 1) / sizeof(void *))
+
 		VMCASE(JIT_OP_PUSH_CONST_INT):
 		{
 			/* Push an integer constant onto the stack */
@@ -4437,7 +4440,7 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 		#else
 			jit_memcpy(stacktop - 1, pc + 1, sizeof(jit_long));
 			VM_MODIFY_PC_AND_STACK
-				(1 + (sizeof(jit_long) / sizeof(void *)), -1);
+				(1 + JIT_WORDS_PER_TYPE(jit_long), -1);
 		#endif
 		}
 		VMBREAK;
@@ -4447,7 +4450,7 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 			/* Push a 32-bit float constant onto the stack */
 			jit_memcpy(stacktop - 1, pc + 1, sizeof(jit_float32));
 			VM_MODIFY_PC_AND_STACK
-				(1 + (sizeof(jit_float32) / sizeof(void *)), -1);
+				(1 + JIT_WORDS_PER_TYPE(jit_float32), -1);
 		}
 		VMBREAK;
 
@@ -4456,7 +4459,7 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 			/* Push a 64-bit float constant onto the stack */
 			jit_memcpy(stacktop - 1, pc + 1, sizeof(jit_float64));
 			VM_MODIFY_PC_AND_STACK
-				(1 + (sizeof(jit_float64) / sizeof(void *)), -1);
+				(1 + JIT_WORDS_PER_TYPE(jit_float64), -1);
 		}
 		VMBREAK;
 
@@ -4465,7 +4468,7 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 			/* Push a native float constant onto the stack */
 			jit_memcpy(stacktop - 1, pc + 1, sizeof(jit_nfloat));
 			VM_MODIFY_PC_AND_STACK
-				(1 + (sizeof(jit_nfloat) / sizeof(void *)), -1);
+				(1 + JIT_WORDS_PER_TYPE(jit_nfloat), -1);
 		}
 		VMBREAK;
 
