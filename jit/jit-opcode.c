@@ -463,6 +463,12 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	{"push_struct",					F_(EMPTY, ANY, PTR) | NINT_ARG},
 	{"pop_stack",					F_(EMPTY, INT, EMPTY) | NINT_ARG},
 	{"flush_small_struct",			F_(EMPTY, ANY, EMPTY)},
+	{"set_param_int",				F_(EMPTY, INT, PTR)},
+	{"set_param_long",				F_(EMPTY, LONG, PTR)},
+	{"set_param_float32",			F_(EMPTY, FLOAT32, PTR)},
+	{"set_param_float64",			F_(EMPTY, FLOAT64, PTR)},
+	{"set_param_nfloat",			F_(EMPTY, NFLOAT, PTR)},
+	{"set_param_struct",			F_(PTR, PTR, PTR)},
 
 	/*
 	 * Pointer-relative loads and stores.

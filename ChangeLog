@@ -1,4 +1,26 @@
 
+2004-06-10  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-apply-arm.c, jit/jit-gen-arm.c, jit/jit-gen-arm.h,
+	jit/jit-rules-arm.c, jit/jit-rules-arm.h, jit/jit-rules-arm.sel,
+	tools/gen-sel-parser.y: redesign the ARM code generation macros
+	so that they have stronger protection against buffer overruns.
+
+	* jit/jit-rules-arm.sel: flush the constant pool after unconditional
+	branches, to try to minimize the probability that the pool will
+	be flushed in the middle of a loop body.
+
+	* jit/jit-dump.c: dump the hex address of external functions,
+	to aid with debugging native disassembly dumps.
+
+	* include/jit/jit-insn.h, include/jit/jit-opcode.h,
+	include/jit/jit-plus.h, jit/jit-insn.c, jit/jit-internal.h,
+	jit/jit-interp.c, jit/jit-opcode.c, jit/jit-rules-arm.c,
+	jit/jit-rules-arm.sel, jitplus/jit-plus-function.cpp:
+	add support for outgoing parameter areas, which should reduce
+	the overhead of function calls that involve stacked arguments
+	on non-x86 platforms; use parameter areas in the ARM back end.
+
 2004-06-09  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-rules-arm.c (flush_constants): update the instruction
@@ -14,18 +36,6 @@
 
 	* jit/jit-rules-arm.c (_jit_gen_load_value): use ARM register pairs
 	properly for "long" and "float64" values.
-
-	* jit/jit-apply-arm.c, jit/jit-gen-arm.c, jit/jit-gen-arm.h,
-	jit/jit-rules-arm.c, jit/jit-rules-arm.h, jit/jit-rules-arm.sel,
-	tools/gen-sel-parser.y: redesign the ARM code generation macros
-	so that they have stronger protection against buffer overruns.
-
-	* jit/jit-rules-arm.sel: flush the constant pool after unconditional
-	branches, to try to minimize the probability that the pool will
-	be flushed in the middle of a loop body.
-
-	* jit/jit-dump.c: dump the hex address of external functions,
-	to aid with debugging native disassembly dumps.
 
 2004-06-08  Rhys Weatherley  <rweather@southern-storm.com.au>
 

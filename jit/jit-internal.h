@@ -331,6 +331,9 @@ struct _jit_builder
 	/* Number of stack items that are queued for a deferred pop */
 	jit_nint			deferred_items;
 
+	/* Size of the outgoing parameter area in the frame */
+	jit_nint			param_area_size;
+
 };
 
 /*

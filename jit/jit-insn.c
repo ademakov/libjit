@@ -5956,6 +5956,133 @@ int jit_insn_push_ptr
 }
 
 /*@
+ * @deftypefun int jit_insn_set_param (jit_function_t func, jit_value_t value, jit_nint offset)
+ * Set the parameter slot at @code{offset} in the outgoing parameter area
+ * to @code{value}.  This may be used instead of @code{jit_insn_push}
+ * if it is more efficient to store directly to the stack than to push.
+ * The outgoing parameter area is allocated within the frame when
+ * the function is first entered.
+ *
+ * You normally wouldn't call this yourself - it is used internally
+ * by the CPU back ends to set up the stack for a subroutine call.
+ * @end deftypefun
+@*/
+int jit_insn_set_param(jit_function_t func, jit_value_t value, jit_nint offset)
+{
+	jit_type_t type;
+	if(!value)
+	{
+		return 0;
+	}
+	type = jit_type_promote_int(jit_type_normalize(jit_value_get_type(value)));
+	switch(type->kind)
+	{
+		case JIT_TYPE_SBYTE:
+		case JIT_TYPE_UBYTE:
+		case JIT_TYPE_SHORT:
+		case JIT_TYPE_USHORT:
+		case JIT_TYPE_INT:
+		case JIT_TYPE_UINT:
+		{
+			return create_note(func, JIT_OP_SET_PARAM_INT, value,
+							   jit_value_create_nint_constant
+							   		(func, jit_type_nint, offset));
+		}
+		/* Not reached */
+
+		case JIT_TYPE_LONG:
+		case JIT_TYPE_ULONG:
+		{
+			return create_note(func, JIT_OP_SET_PARAM_LONG, value,
+							   jit_value_create_nint_constant
+							   		(func, jit_type_nint, offset));
+		}
+		/* Not reached */
+
+		case JIT_TYPE_FLOAT32:
+		{
+			return create_note(func, JIT_OP_SET_PARAM_FLOAT32, value,
+							   jit_value_create_nint_constant
+							   		(func, jit_type_nint, offset));
+		}
+		/* Not reached */
+
+		case JIT_TYPE_FLOAT64:
+		{
+			return create_note(func, JIT_OP_SET_PARAM_FLOAT64, value,
+							   jit_value_create_nint_constant
+							   		(func, jit_type_nint, offset));
+		}
+		/* Not reached */
+
+		case JIT_TYPE_NFLOAT:
+		{
+			return create_note(func, JIT_OP_SET_PARAM_NFLOAT, value,
+							   jit_value_create_nint_constant
+							   		(func, jit_type_nint, offset));
+		}
+		/* Not reached */
+
+		case JIT_TYPE_STRUCT:
+		case JIT_TYPE_UNION:
+		{
+			/* We need the address of the value for "push_struct" */
+			value = jit_insn_address_of(func, value);
+			if(!value)
+			{
+				return 0;
+			}
+			return apply_ternary
+				(func, JIT_OP_SET_PARAM_STRUCT,
+				 jit_value_create_nint_constant(func, jit_type_nint, offset),
+				 value,
+				 jit_value_create_nint_constant
+				 	(func, jit_type_nint, (jit_nint)jit_type_get_size(type)));
+		}
+		/* Not reached */
+	}
+	return 1;
+}
+
+/*@
+ * @deftypefun int jit_insn_set_param_ptr (jit_function_t func, jit_value_t value, jit_type_t type, jit_nint offset)
+ * Same as @code{jit_insn_set_param_ptr}, except that the parameter is
+ * at @code{*value}.
+ * @end deftypefun
+@*/
+int jit_insn_set_param_ptr
+	(jit_function_t func, jit_value_t value, jit_type_t type, jit_nint offset)
+{
+	if(!value || !type)
+	{
+		return 0;
+	}
+	switch(jit_type_normalize(type)->kind)
+	{
+		case JIT_TYPE_STRUCT:
+		case JIT_TYPE_UNION:
+		{
+			/* Set the structure into the parameter area by address */
+			return apply_ternary
+				(func, JIT_OP_SET_PARAM_STRUCT,
+				 jit_value_create_nint_constant(func, jit_type_nint, offset),
+				 value,
+				 jit_value_create_nint_constant
+				 	(func, jit_type_nint, (jit_nint)jit_type_get_size(type)));
+		}
+		/* Not reached */
+
+		default:
+		{
+			/* Load the value from the address and set it normally */
+			return jit_insn_set_param
+				(func, jit_insn_load_relative(func, value, 0, type), offset);
+		}
+		/* Not reached */
+	}
+}
+
+/*@
  * @deftypefun int jit_insn_pop_stack (jit_function_t func, jit_nint num_items)
  * Pop @code{num_items} items from the function call stack.  You normally
  * wouldn't call this yourself - it is used by CPU back ends to clean up

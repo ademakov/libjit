@@ -645,6 +645,8 @@ jit_value jit_function::get_struct_pointer()
  * @deftypemethodx jit_function jit_value insn_import (jit_value value)
  * @deftypemethodx jit_function void insn_push ({const jit_value&} value)
  * @deftypemethodx jit_function void insn_push_ptr ({const jit_value&} value, jit_type_t type)
+ * @deftypemethodx jit_function void insn_set_param ({const jit_value&} value, jit_nint offset)
+ * @deftypemethodx jit_function void insn_set_param_ptr ({const jit_value&} value, jit_type_t type, jit_nint offset)
  * @deftypemethodx jit_function void insn_return ({const jit_value&} value)
  * @deftypemethodx jit_function void insn_return ()
  * @deftypemethodx jit_function void insn_return_ptr ({const jit_value&} value, jit_type_t type)
@@ -1208,6 +1210,23 @@ void jit_function::insn_push(const jit_value& value)
 void jit_function::insn_push_ptr(const jit_value& value, jit_type_t type)
 {
 	if(!jit_insn_push_ptr(func, value.raw(), type))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_set_param(const jit_value& value, jit_nint offset)
+{
+	if(!jit_insn_set_param(func, value.raw(), offset))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_set_param_ptr
+	(const jit_value& value, jit_type_t type, jit_nint offset)
+{
+	if(!jit_insn_set_param_ptr(func, value.raw(), type, offset))
 	{
 		out_of_memory();
 	}

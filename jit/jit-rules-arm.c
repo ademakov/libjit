@@ -559,6 +559,7 @@ int _jit_create_call_setup_insns
 	unsigned int index;
 	unsigned int num_stack_args;
 	unsigned int word_regs;
+	unsigned int param_offset;
 
 	/* Determine which values are going to end up in registers */
 	word_regs = 0;
@@ -589,12 +590,29 @@ int _jit_create_call_setup_insns
 	}
 	num_stack_args = num_args - index;
 
-	/* Push all of the stacked arguments in reverse order */
+	/* Determine the highest parameter offset */
+	param_offset = 0;
+	for(index = 0; index < num_stack_args; ++index)
+	{
+		size = jit_type_get_size
+			(jit_value_get_type(args[num_args - 1 - index]));
+		param_offset += ROUND_STACK(size);
+	}
+	if(param_offset > (unsigned int)(func->builder->param_area_size))
+	{
+		func->builder->param_area_size = (jit_nint)param_offset;
+	}
+
+	/* Set all of the stacked arguments in reverse order.  We set them
+	   into the outgoing parameter area, which allows us to avoid constantly
+	   updating the stack pointer when pushing stacked arguments */
 	while(num_stack_args > 0)
 	{
 		--num_stack_args;
 		--num_args;
-		if(!jit_insn_push(func, args[num_args]))
+		size = jit_type_get_size(jit_value_get_type(args[num_args]));
+		param_offset -= ROUND_STACK(size);
+		if(!jit_insn_set_param(func, args[num_args], (jit_nint)param_offset))
 		{
 			return 0;
 		}
@@ -662,48 +680,12 @@ int _jit_create_call_return_insns
 	 jit_value_t *args, unsigned int num_args,
 	 jit_value_t return_value, int is_nested)
 {
-	jit_nint pop_bytes;
-	unsigned int size;
 	jit_type_t return_type;
 	int ptr_return;
 
-	/* Calculate the number of bytes that we need to pop */
+	/* Bail out now if we don't need to worry about return values */
 	return_type = jit_type_normalize(jit_type_get_return(signature));
 	ptr_return = jit_type_return_via_pointer(return_type);
-	pop_bytes = 0;
-	while(num_args > 0)
-	{
-		--num_args;
-		size = jit_type_get_size(jit_value_get_type(args[num_args]));
-		pop_bytes += ROUND_STACK(size);
-	}
-	if(ptr_return)
-	{
-		pop_bytes += sizeof(void *);
-	}
-	if(is_nested)
-	{
-		pop_bytes += sizeof(void *);
-	}
-	if(pop_bytes > (ARM_NUM_PARAM_REGS * sizeof(void *)))
-	{
-		pop_bytes -= (ARM_NUM_PARAM_REGS * sizeof(void *));
-	}
-	else
-	{
-		pop_bytes = 0;
-	}
-
-	/* Pop the bytes from the system stack */
-	if(pop_bytes > 0)
-	{
-		if(!jit_insn_pop_stack(func, pop_bytes))
-		{
-			return 0;
-		}
-	}
-
-	/* Bail out now if we don't need to worry about return values */
 	if(!return_value || ptr_return)
 	{
 		return 0;
@@ -783,6 +765,7 @@ void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 	   the space for the registers that we just saved.  The pc, lr,
 	   and fp registers are always saved, so account for them too */
 	frame_size = func->builder->frame_size - (saved + 3 * sizeof(void *));
+	frame_size += (unsigned int)(func->builder->param_area_size);
 	if(frame_size > 0)
 	{
 		arm_alu_reg_imm(inst, ARM_SUB, ARM_SP, ARM_SP, frame_size);

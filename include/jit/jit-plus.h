@@ -313,6 +313,9 @@ public:
 	jit_value insn_import(jit_value value);
 	void insn_push(const jit_value& value);
 	void insn_push_ptr(const jit_value& value, jit_type_t type);
+	void insn_set_param(const jit_value& value, jit_nint offset);
+	void insn_set_param_ptr
+		(const jit_value& value, jit_type_t type, jit_nint offset);
 	void insn_return(const jit_value& value);
 	void insn_return();
 	void insn_return_ptr(const jit_value& value, jit_type_t type);

@@ -1148,6 +1148,114 @@ JIT_OP_FLUSH_SMALL_STRUCT:
 		}
 	}
 
+JIT_OP_SET_PARAM_INT: unary_note
+	[reg] -> {
+		arm_store_membase(inst, $1, ARM_SP, insn->value2->address);
+	}
+
+JIT_OP_SET_PARAM_LONG: manual
+	[] -> {
+		arm_inst_buf inst;
+		_jit_regs_force_out(gen, insn->value1, 0);
+		_jit_gen_fix_value(insn->value1);
+		jit_gen_load_inst_ptr(gen, inst);
+		if(insn->value1->is_constant)
+		{
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
+			arm_store_membase
+				(inst, ARM_WORK, ARM_SP, insn->value2->address);
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
+			arm_store_membase
+				(inst, ARM_WORK, ARM_SP, insn->value2->address + 4);
+		}
+		else
+		{
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset);
+			arm_store_membase
+				(inst, ARM_WORK, ARM_SP, insn->value2->address);
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset + 4);
+			arm_store_membase
+				(inst, ARM_WORK, ARM_SP, insn->value2->address + 4);
+		}
+		jit_gen_save_inst_ptr(gen, inst);
+	}
+
+JIT_OP_SET_PARAM_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary_note
+	[freg] -> {
+		arm_store_membase_float32(inst, $1, ARM_SP, insn->value2->address);
+	}
+
+JIT_OP_SET_PARAM_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
+	[] -> {
+		arm_inst_buf inst;
+		_jit_regs_force_out(gen, insn->value1, 0);
+		_jit_gen_fix_value(insn->value1);
+		jit_gen_load_inst_ptr(gen, inst);
+		if(insn->value1->is_constant)
+		{
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
+			arm_store_membase
+				(inst, ARM_WORK, ARM_SP, insn->value2->address);
+		}
+		else
+		{
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset);
+			arm_store_membase
+				(inst, ARM_WORK, ARM_SP, insn->value2->address);
+		}
+		jit_gen_save_inst_ptr(gen, inst);
+	}
+
+JIT_OP_SET_PARAM_FLOAT64, JIT_OP_SET_PARAM_NFLOAT
+		(JIT_ARM_HAS_FLOAT_REGS): unary_note
+	[freg] -> {
+		arm_store_membase_float64(inst, $1, ARM_SP, insn->value2->address);
+	}
+
+JIT_OP_SET_PARAM_FLOAT64, JIT_OP_SET_PARAM_NFLOAT
+		(!JIT_ARM_HAS_FLOAT_REGS): manual
+	[] -> {
+		arm_inst_buf inst;
+		_jit_regs_force_out(gen, insn->value1, 0);
+		_jit_gen_fix_value(insn->value1);
+		jit_gen_load_inst_ptr(gen, inst);
+		if(insn->value1->is_constant)
+		{
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[0]);
+			arm_store_membase
+				(inst, ARM_WORK, ARM_SP, insn->value2->address);
+			mov_reg_imm
+				(gen, &inst, ARM_WORK, ((int *)(insn->value1->address))[1]);
+			arm_store_membase
+				(inst, ARM_WORK, ARM_SP, insn->value2->address + 4);
+		}
+		else
+		{
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset);
+			arm_store_membase
+				(inst, ARM_WORK, ARM_SP, insn->value2->address);
+			arm_load_membase(inst, ARM_WORK, ARM_FP,
+							 insn->value1->frame_offset + 4);
+			arm_store_membase
+				(inst, ARM_WORK, ARM_SP, insn->value2->address + 4);
+		}
+		jit_gen_save_inst_ptr(gen, inst);
+	}
+
+JIT_OP_SET_PARAM_STRUCT: unary_note
+	[reg] -> {
+		/* TODO */
+		TODO();
+	}
+
 /*
  * Pointer-relative loads and stores.
  */
