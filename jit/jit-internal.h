@@ -377,6 +377,7 @@ struct _jit_function
 	int					has_try : 1;
 	int					optimization_level : 8;
 	int volatile		is_compiled;
+	int volatile		breakpoints_enabled;
 
 	/* The entry point for the function's compiled code */
 	void * volatile		entry_point;

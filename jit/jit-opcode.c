@@ -527,6 +527,12 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	 */
 	{"alloca",						F_(PTR, PTR, EMPTY)},
 
+	/*
+	 * Debugging support.
+	 */
+	{"mark_offset",						F_(EMPTY, INT, EMPTY)},
+	{"mark_debug",						F_(EMPTY, PTR, PTR)},
+
 };
 
 #if defined(JIT_BACKEND_INTERP)

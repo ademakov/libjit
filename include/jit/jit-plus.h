@@ -350,6 +350,8 @@ public:
 		(const jit_label& from_label, const jit_label& to_label);
 	void insn_move_blocks_to_start
 		(const jit_label& from_label, const jit_label& to_label);
+	void insn_mark_offset(jit_int offset);
+	void insn_mark_debug(jit_nint data1, jit_nint data2);
 
 private:
 	jit_function_t func;

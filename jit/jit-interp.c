@@ -4457,6 +4457,18 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 		VMBREAK;
 
 		/******************************************************************
+		 * Debugging support.
+		 ******************************************************************/
+
+		VMCASE(JIT_OP_MARK_DEBUG):
+		{
+			/* Process a breakpoint within the current function */
+			/* TODO */
+			VM_MODIFY_PC_AND_STACK(3, 0);
+		}
+		VMBREAK;
+
+		/******************************************************************
 		 * Opcodes that aren't used by the interpreter.  These are replaced
 		 * by more specific instructions during function compilation.
 		 ******************************************************************/
@@ -4495,6 +4507,7 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 		VMCASE(JIT_OP_ENTER_FINALLY):
 		VMCASE(JIT_OP_ENTER_FILTER):
 		VMCASE(JIT_OP_CALL_FILTER_RETURN):
+		VMCASE(JIT_OP_MARK_OFFSET):
 		{
 			/* Shouldn't happen, but skip the instruction anyway */
 			VM_MODIFY_PC_AND_STACK(1, 0);

@@ -518,6 +518,16 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 			}
 			break;
 
+			case JIT_OP_MARK_OFFSET:
+			{
+				/* Mark the current code position as corresponding
+				   to a particular bytecode offset */
+				_jit_cache_mark_bytecode
+					(&(gen->posn), (unsigned long)(long)
+							jit_value_get_nint_constant(insn->value1));
+			}
+			break;
+
 			default:
 			{
 				/* Generate code for the instruction with the back end */
@@ -1277,4 +1287,46 @@ unsigned int jit_function_get_max_optimization_level(void)
 {
 	/* TODO - implement more than basic optimization */
 	return 0;
+}
+
+/*@
+ * @deftypefun void jit_function_enable_breakpoints (jit_function_t func)
+ * Enable or disable all breakpoints in the specified function.  Breakpoints
+ * occur at locations marked by @code{jit_insn_mark_debug}.
+ *
+ * The @code{libjit} library provides a very simple breakpoint mechanism.
+ * Upon reaching each breakpoint in the function, the global debug hook
+ * is called.  It is up to the debug hook to decide whether to stop execution
+ * or to ignore the breakpoint.
+ *
+ * Typically, the debug hook will inspect a table to determine which
+ * breakpoints were actually selected by the user in a debugger's user
+ * interface.  The debug hook may even evaluate a complicated expression,
+ * taking the function, current thread, and the value of local variables
+ * into account, to make the decision.
+ * @end deftypefun
+@*/
+void jit_function_enable_breakpoints(jit_function_t func, int flag)
+{
+	if(func)
+	{
+		func->breakpoints_enabled = flag;
+	}
+}
+
+/*@
+ * @deftypefun int jit_function_breakpoints_enabled (jit_function_t func)
+ * Determine if breakpoints are enabled on the specified function.
+ * @end deftypefun
+@*/
+int jit_function_breakpoints_enabled(jit_function_t func)
+{
+	if(func)
+	{
+		return func->breakpoints_enabled;
+	}
+	else
+	{
+		return 0;
+	}
 }

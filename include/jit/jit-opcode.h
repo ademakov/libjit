@@ -512,9 +512,15 @@ extern	"C" {
 #define	JIT_OP_ALLOCA						0x019F
 
 /*
+ * Debugging support.
+ */
+#define	JIT_OP_MARK_OFFSET					0x01A0
+#define	JIT_OP_MARK_DEBUG					0x01A1
+
+/*
  * The number of opcodes in the above list.
  */
-#define	JIT_OP_NUM_OPCODES					0x01A0
+#define	JIT_OP_NUM_OPCODES					0x01A2
 
 /*
  * Opcode information.

@@ -304,9 +304,16 @@ jit_value_t jit_insn_alloca
 	(jit_function_t func, jit_value_t size) JIT_NOTHROW;
 
 int jit_insn_move_blocks_to_end
-	(jit_function_t func, jit_label_t from_label, jit_label_t to_label);
+	(jit_function_t func, jit_label_t from_label, jit_label_t to_label)
+		JIT_NOTHROW;
 int jit_insn_move_blocks_to_start
-	(jit_function_t func, jit_label_t from_label, jit_label_t to_label);
+	(jit_function_t func, jit_label_t from_label, jit_label_t to_label)
+		JIT_NOTHROW;
+
+int jit_insn_mark_offset
+	(jit_function_t func, jit_int offset) JIT_NOTHROW;
+int jit_insn_mark_debug
+	(jit_function_t func, jit_nint data1, jit_nint data2) JIT_NOTHROW;
 
 void jit_insn_iter_init(jit_insn_iter_t *iter, jit_block_t block) JIT_NOTHROW;
 void jit_insn_iter_init_last

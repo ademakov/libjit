@@ -1399,3 +1399,13 @@ JIT_OP_ADD_RELATIVE: unary
 			arm_alu_reg_imm(inst, ARM_ADD, $1, $1, insn->value2->address);
 		}
 	}
+
+/*
+ * Debugging support.
+ */
+
+JIT_OP_MARK_DEBUG: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}

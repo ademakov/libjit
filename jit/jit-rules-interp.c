@@ -1631,6 +1631,15 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		}
 		break;
 
+		case JIT_OP_MARK_DEBUG:
+		{
+			/* Mark the current location as a potential breakpoint */
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			jit_cache_native(&(gen->posn), insn->value1->address);
+			jit_cache_native(&(gen->posn), insn->value2->address);
+		}
+		break;
+
 		default:
 		{
 			/* Whatever opcodes are left are ordinary operators,

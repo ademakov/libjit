@@ -1,4 +1,14 @@
 
+2004-10-04  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* include/jit/jit-function.h, include/jit/jit-insn.h,
+	include/jit/jit-opcode.h, include/jit/jit-plus.h, jit/jit-function.c,
+	jit/jit-insn.c, jit/jit-internal.h, jit/jit-interp.c,
+	jit/jit-opcode.c, jit/jit-rules-interp.c, jit/jit-rules-arm.sel,
+	jit/jit-rules-x86.sel, jitplus/jit-plus-function.cpp:
+	add instructions and function API's for supporting debug line
+	numbers and breakpoints.
+
 2004-09-10  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-rules-x86.sel: pointer-relative loads and stores

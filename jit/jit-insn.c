@@ -7676,6 +7676,48 @@ int jit_insn_move_blocks_to_start
 }
 
 /*@
+ * @deftypefun int jit_insn_mark_offset (jit_function_t func, jit_int offset)
+ * Mark the current position in @code{func} as corresponding to the
+ * specified bytecode @code{offset}.  This value will be returned
+ * by @code{jit_stack_trace_get_offset}, and is useful for associating
+ * code positions with source line numbers.
+ * @end deftypefun
+@*/
+int jit_insn_mark_offset(jit_function_t func, jit_int offset)
+{
+	if(!jit_insn_new_block(func))
+	{
+		return 0;
+	}
+	return create_unary_note(func, JIT_OP_MARK_OFFSET,
+					   	     jit_value_create_nint_constant
+					   			(func, jit_type_int, offset));
+}
+
+/*@
+ * @deftypefun int jit_insn_mark_debug (jit_function_t func, jit_nint data1, jit_nint data2)
+ * Mark the current position in @code{func} as corresponding to a breakpoint
+ * location.  When a break occurs, the global debug hook is called with
+ * @code{func}, @code{data1}, and @code{data2} as arguments.  See the
+ * description for @code{jit_function_enable_breakpoints} for more
+ * information on breakpoint support.
+ * @end deftypefun
+@*/
+int jit_insn_mark_debug
+	(jit_function_t func, jit_nint data1, jit_nint data2)
+{
+	if(!jit_insn_new_block(func))
+	{
+		return 0;
+	}
+	return create_note(func, JIT_OP_MARK_DEBUG,
+				       jit_value_create_nint_constant
+							(func, jit_type_nint, data1),
+				       jit_value_create_nint_constant
+							(func, jit_type_nint, data2));
+}
+
+/*@
  * @deftypefun void jit_insn_iter_init ({jit_insn_iter_t *} iter, jit_block_t block)
  * Initialize an iterator to point to the first instruction in @code{block}.
  * @end deftypefun
