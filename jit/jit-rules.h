@@ -139,6 +139,7 @@ struct jit_gencode
 {
 	jit_regused_t		permanent;	/* Permanently allocated global regs */
 	jit_regused_t		touched;	/* All registers that were touched */
+	jit_regused_t		inhibit;	/* Temporarily inhibited registers */
 	jit_cache_posn		posn;		/* Current cache output position */
 	jit_regcontents_t	contents[JIT_NUM_REGS]; /* Contents of each register */
 	int					current_age;/* Current age value for registers */

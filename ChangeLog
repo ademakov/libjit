@@ -1,4 +1,13 @@
 
+2004-06-18  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* jit/jit-dump.c, jit/jit-reg-alloc.c, jit/jit-rules-arm.c,
+	jit/jit-rules-arm.h, jit/jit-rules-x86.c, jit/jit-rules-x86.h,
+	jit/jit-rules-x86.sel, jit/jit-rules.c, jit/jit-rules.h,
+	tests/param.pas: rewrite the x86 and ARM parameter handling
+	routines to centralise the code and fix several bugs; add new
+	tests for fastcall and stdcall conventions.
+
 2004-06-17  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-reg-alloc.c (_jit_regs_set_outgoing): pass 64-bit "fastcall"

@@ -188,7 +188,7 @@ void jit_dump_value(FILE *stream, jit_function_t func, jit_value_t value, const 
 
 			case JIT_TYPE_FLOAT32:
 			{
-				jit_snprintf(buf, sizeof(buf), "%g",
+				jit_snprintf(buf, sizeof(buf), "%f",
 							 (double)(const_value.un.float32_value));
 				name = buf;
 			}
@@ -196,7 +196,7 @@ void jit_dump_value(FILE *stream, jit_function_t func, jit_value_t value, const 
 
 			case JIT_TYPE_FLOAT64:
 			{
-				jit_snprintf(buf, sizeof(buf), "%g",
+				jit_snprintf(buf, sizeof(buf), "%f",
 							 (double)(const_value.un.float64_value));
 				name = buf;
 			}
@@ -204,7 +204,7 @@ void jit_dump_value(FILE *stream, jit_function_t func, jit_value_t value, const 
 
 			case JIT_TYPE_NFLOAT:
 			{
-				jit_snprintf(buf, sizeof(buf), "%g",
+				jit_snprintf(buf, sizeof(buf), "%f",
 							 (double)(const_value.un.nfloat_value));
 				name = buf;
 			}
@@ -572,7 +572,7 @@ static void dump_interp_code(FILE *stream, void **pc, void **end)
 				jit_memcpy(&value, pc, sizeof(jit_float32));
 				pc += (sizeof(jit_float32) + sizeof(void *) - 1) /
 					  sizeof(void *);
-				fprintf(stream, " %g", (double)value);
+				fprintf(stream, " %f", (double)value);
 			}
 			break;
 
@@ -582,7 +582,7 @@ static void dump_interp_code(FILE *stream, void **pc, void **end)
 				jit_memcpy(&value, pc, sizeof(jit_float64));
 				pc += (sizeof(jit_float64) + sizeof(void *) - 1) /
 					  sizeof(void *);
-				fprintf(stream, " %g", (double)value);
+				fprintf(stream, " %f", (double)value);
 			}
 			break;
 
@@ -592,7 +592,7 @@ static void dump_interp_code(FILE *stream, void **pc, void **end)
 				jit_memcpy(&value, pc, sizeof(jit_nfloat));
 				pc += (sizeof(jit_nfloat) + sizeof(void *) - 1) /
 					  sizeof(void *);
-				fprintf(stream, " %g", (double)value);
+				fprintf(stream, " %f", (double)value);
 			}
 			break;
 

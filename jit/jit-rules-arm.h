@@ -114,6 +114,16 @@ extern	"C" {
 			} while (0)
 #define	jit_extra_gen_cleanup(gen)	do { ; } while (0)
 
+/*
+ * Parameter passing rules.  We start by assuming that lr, sp, fp,
+   r8, r7, r6, r5, and r4 need to be saved in the local frame.
+ */
+#define	JIT_CDECL_WORD_REG_PARAMS		{0, 1, 2, 3, -1}
+#define	JIT_MAX_WORD_REG_PARAMS			4
+#define	JIT_INITIAL_STACK_OFFSET		(sizeof(void *))
+#define	JIT_INITIAL_FRAME_SIZE			(8 * sizeof(void *))
+#define	JIT_USE_PARAM_AREA				1
+
 #ifdef	__cplusplus
 };
 #endif

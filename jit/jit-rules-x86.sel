@@ -1826,6 +1826,7 @@ JIT_OP_SETUP_FOR_NESTED: spill_before
 
 JIT_OP_SETUP_FOR_SIBLING: spill_before
 	[] -> {
+		jit_value_t parent;
 		jit_nint level = jit_value_get_nint_constant(insn->value1);
 		jit_nint nest_reg = jit_value_get_nint_constant(insn->value2);
 		int cpu_reg;
@@ -1837,7 +1838,25 @@ JIT_OP_SETUP_FOR_SIBLING: spill_before
 		{
 			cpu_reg = _jit_reg_info[nest_reg].cpu_reg;
 		}
-		x86_mov_reg_membase(inst, cpu_reg, X86_EBP, 0, sizeof(void *));
+		parent = func->builder->parent_frame;
+		if(parent->in_register)
+		{
+			x86_mov_reg_reg(inst, cpu_reg,
+							_jit_reg_info[parent->reg].cpu_reg,
+							sizeof(void *));
+		}
+		else if(parent->in_global_register)
+		{
+			x86_mov_reg_reg(inst, cpu_reg,
+							_jit_reg_info[parent->global_reg].cpu_reg,
+							sizeof(void *));
+		}
+		else
+		{
+			_jit_gen_fix_value(parent);
+			x86_mov_reg_membase(inst, cpu_reg, X86_EBP,
+							    parent->frame_offset, sizeof(void *));
+		}
 		while(level > 0)
 		{
 			gen->posn.ptr = inst;
@@ -1861,7 +1880,8 @@ JIT_OP_IMPORT: manual
 		int reg;
 		jit_nint level = jit_value_get_nint_constant(insn->value2);
 		_jit_gen_fix_value(insn->value1);
-		reg = _jit_regs_dest_value(gen, insn->dest);
+		reg = _jit_regs_load_value
+			(gen, func->builder->parent_frame, 1, 0);
 		inst = gen->posn.ptr;
 		if(!jit_cache_check_for_n(&(gen->posn), 32 + level * 8))
 		{
@@ -1869,7 +1889,6 @@ JIT_OP_IMPORT: manual
 			return;
 		}
 		reg = _jit_reg_info[reg].cpu_reg;
-		x86_mov_reg_membase(inst, reg, X86_EBP, 0, sizeof(void *));
 		while(level > 0)
 		{
 			x86_mov_reg_membase(inst, reg, reg, 0, sizeof(void *));

@@ -75,6 +75,15 @@ extern	"C" {
  */
 #define	JIT_ALIGN_OVERRIDES		1
 
+/*
+ * Parameter passing rules.
+ */
+#define	JIT_CDECL_WORD_REG_PARAMS		{-1}
+#define	JIT_FASTCALL_WORD_REG_PARAMS	{1, 2, -1}	/* ecx, edx */
+#define	JIT_MAX_WORD_REG_PARAMS			2
+#define	JIT_INITIAL_STACK_OFFSET		(2 * sizeof(void *))
+#define	JIT_INITIAL_FRAME_SIZE			0
+
 #ifdef	__cplusplus
 };
 #endif

@@ -55,6 +55,7 @@ void _jit_regs_init_for_block(jit_gencode_t gen)
 		}
 		gen->stack_map[reg] = -1;
 	}
+	gen->inhibit = jit_regused_init;
 }
 
 /*@
@@ -749,10 +750,22 @@ void _jit_regs_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value)
 	int other_reg;
 	int need_pair;
 
-	need_pair = _jit_regs_needs_long_pair(value->type);
 #ifdef JIT_BACKEND_X86
+	jit_type_t type;
+	type = jit_type_normalize(value->type);
+	need_pair = 0;
+	if(type)
+	{
+		/* We might need to put float values in register pairs under x86 */
+		if(type->kind == JIT_TYPE_LONG || type->kind == JIT_TYPE_ULONG ||
+		   type->kind == JIT_TYPE_FLOAT64 || type->kind == JIT_TYPE_NFLOAT)
+		{
+			need_pair = 1;
+		}
+	}
 	if(value->in_register && value->reg == reg && !need_pair)
 #else
+	need_pair = _jit_regs_needs_long_pair(value->type);
 	if(value->in_register && value->reg == reg)
 #endif
 	{
@@ -789,11 +802,14 @@ void _jit_regs_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value)
 			other_reg = _jit_reg_info[reg].other_reg;
 		#endif
 			_jit_gen_load_value(gen, reg, other_reg, value);
+			jit_reg_set_used(gen->inhibit, reg);
+			jit_reg_set_used(gen->inhibit, other_reg);
 		}
 		else
 		{
 			_jit_regs_want_reg(gen, reg, 0);
 			_jit_gen_load_value(gen, reg, -1, value);
+			jit_reg_set_used(gen->inhibit, reg);
 		}
 	}
 }
@@ -956,7 +972,8 @@ static int free_register_for_value
 	for(reg = 0; reg < JIT_NUM_REGS; ++reg)
 	{
 		if((_jit_reg_info[reg].flags & type) != 0 &&
-		   !jit_reg_is_used(gen->permanent, reg))
+		   !jit_reg_is_used(gen->permanent, reg) &&
+		   !jit_reg_is_used(gen->inhibit, reg))
 		{
 			if((_jit_reg_info[reg].flags & JIT_REG_IN_STACK) != 0)
 			{
@@ -1437,7 +1454,7 @@ void _jit_regs_force_out(jit_gencode_t gen, jit_value_t value, int is_dest)
 		else
 		{
 			/* Always do a spill for a stack register */
-			_jit_regs_want_reg(gen, value->reg, 0);
+			spill_register(gen, value->reg);
 		}
 	}
 }

@@ -52,6 +52,12 @@
 #define	X86_REG_ST7			15
 
 /*
+ * Determine if a pseudo register number is word-based or float-based.
+ */
+#define	IS_WORD_REG(reg)	((reg) < X86_REG_ST0)
+#define	IS_FLOAT_REG(reg)	((reg) >= X86_REG_ST0)
+
+/*
  * Round a size up to a multiple of the stack word size.
  */
 #define	ROUND_STACK(size)	\
@@ -75,504 +81,6 @@ void _jit_gen_get_elf_info(jit_elf_info_t *info)
 	info->abi = 186;	/* Private code, indicating STDCALL/FASTCALL support */
 #endif
 	info->abi_version = 0;
-}
-
-/*
- * Force values out of fastcall registers that cannot be easily
- * accessed in register form (i.e. long, float, and struct values).
- */
-static int force_out_of_regs(jit_function_t func, jit_value_t param,
-							 int num_regs, unsigned int num_stack_words)
-{
-	jit_value_t address;
-	jit_value_t temp;
-	jit_nint offset = 0;
-	jit_nint frame_offset = 2 * sizeof(void *);
-
-	/* Get the address of the parameter, to force it into the frame,
-	   and to set up for the later "jit_insn_store_relative" calls */
-	address = jit_insn_address_of(func, param);
-	if(!address)
-	{
-		return 0;
-	}
-
-	/* Force the values out of the registers */
-	while(num_regs > 0)
-	{
-		temp = jit_value_create(func, jit_type_void_ptr);
-		if(!temp)
-		{
-			return 0;
-		}
-		if(num_regs == 2)
-		{
-			if(!jit_insn_incoming_reg(func, temp, X86_REG_ECX))
-			{
-				return 0;
-			}
-		}
-		else
-		{
-			if(!jit_insn_incoming_reg(func, temp, X86_REG_EDX))
-			{
-				return 0;
-			}
-		}
-		if(!jit_insn_store_relative(func, address, offset, temp))
-		{
-			return 0;
-		}
-		offset += sizeof(void *);
-		--num_regs;
-	}
-
-
-	/* Force the rest of the value out of the incoming stack frame */
-	while(num_stack_words > 0)
-	{
-		temp = jit_value_create(func, jit_type_void_ptr);
-		if(!temp)
-		{
-			return 0;
-		}
-		if(!jit_insn_incoming_frame_posn(func, temp, frame_offset))
-		{
-			return 0;
-		}
-		if(!jit_insn_store_relative(func, address, offset, temp))
-		{
-			return 0;
-		}
-		offset += sizeof(void *);
-		frame_offset += sizeof(void *);
-		--num_stack_words;
-	}
-	return 1;
-}
-
-int _jit_create_entry_insns(jit_function_t func)
-{
-	jit_type_t signature = func->signature;
-	jit_type_t type;
-	int num_regs;
-	jit_nint offset;
-	jit_value_t value;
-	unsigned int num_params;
-	unsigned int param;
-	unsigned int size;
-	unsigned int num_stack_words;
-
-	/* Reset the local variable frame size for this function */
-	func->builder->frame_size = 0;
-
-	/* Determine the number of registers to allocate to parameters */
-#if JIT_APPLY_X86_FASTCALL == 1
-	if(jit_type_get_abi(signature) == jit_abi_fastcall)
-	{
-		num_regs = 2;
-	}
-	else
-#endif
-	{
-		num_regs = 0;
-	}
-
-	/* The starting parameter offset (saved ebp and return address on stack) */
-	offset = 2 * sizeof(void *);
-
-	/* If the function is nested, then we need an extra parameter
-	   to pass the pointer to the parent's local variable frame */
-	if(func->nested_parent)
-	{
-		if(num_regs > 0)
-		{
-			--num_regs;
-		}
-		else
-		{
-			offset += sizeof(void *);
-		}
-	}
-
-	/* Allocate the structure return pointer */
-	value = jit_value_get_struct_pointer(func);
-	if(value)
-	{
-		if(num_regs == 2)
-		{
-			if(!jit_insn_incoming_reg(func, value, X86_REG_ECX))
-			{
-				return 0;
-			}
-			--num_regs;
-		}
-		else if(num_regs == 1)
-		{
-			if(!jit_insn_incoming_reg(func, value, X86_REG_EDX))
-			{
-				return 0;
-			}
-			--num_regs;
-		}
-		else
-		{
-			if(!jit_insn_incoming_frame_posn(func, value, offset))
-			{
-				return 0;
-			}
-			offset += sizeof(void *);
-		}
-	}
-
-	/* Allocate the parameter offsets */
-	num_params = jit_type_num_params(signature);
-	for(param = 0; param < num_params; ++param)
-	{
-		value = jit_value_get_param(func, param);
-		if(!value)
-		{
-			continue;
-		}
-		type = jit_type_normalize(jit_value_get_type(value));
-		switch(type->kind)
-		{
-			case JIT_TYPE_SBYTE:
-			case JIT_TYPE_UBYTE:
-			case JIT_TYPE_SHORT:
-			case JIT_TYPE_USHORT:
-			case JIT_TYPE_INT:
-			case JIT_TYPE_UINT:
-			case JIT_TYPE_NINT:
-			case JIT_TYPE_NUINT:
-			case JIT_TYPE_SIGNATURE:
-			case JIT_TYPE_PTR:
-			{
-				if(num_regs == 2)
-				{
-					if(!jit_insn_incoming_reg(func, value, X86_REG_ECX))
-					{
-						return 0;
-					}
-					--num_regs;
-				}
-				else if(num_regs == 1)
-				{
-					if(!jit_insn_incoming_reg(func, value, X86_REG_EDX))
-					{
-						return 0;
-					}
-					--num_regs;
-				}
-				else
-				{
-					if(!jit_insn_incoming_frame_posn(func, value, offset))
-					{
-						return 0;
-					}
-					offset += sizeof(void *);
-				}
-			}
-			break;
-
-			case JIT_TYPE_LONG:
-			case JIT_TYPE_ULONG:
-			case JIT_TYPE_FLOAT32:
-			case JIT_TYPE_FLOAT64:
-			case JIT_TYPE_NFLOAT:
-			case JIT_TYPE_STRUCT:
-			case JIT_TYPE_UNION:
-			{
-				/* Deal with the possibility that the value may be split
-				   between registers and the stack */
-				size = ROUND_STACK(jit_type_get_size(type));
-				if(num_regs == 2)
-				{
-					if(size <= sizeof(void *))
-					{
-						if(!force_out_of_regs(func, value, 1, 0))
-						{
-							return 0;
-						}
-						--num_regs;
-					}
-					else
-					{
-						num_stack_words = (size / sizeof(void *)) - 2;
-						if(!force_out_of_regs(func, value, 2, num_stack_words))
-						{
-							return 0;
-						}
-						num_regs = 0;
-						offset += num_stack_words * sizeof(void *);
-					}
-				}
-				else if(num_regs == 1)
-				{
-					num_stack_words = (size / sizeof(void *)) - 1;
-					if(!force_out_of_regs(func, value, 1, num_stack_words))
-					{
-						return 0;
-					}
-					num_regs = 0;
-					offset += num_stack_words * sizeof(void *);
-				}
-				else
-				{
-					if(!jit_insn_incoming_frame_posn(func, value, offset))
-					{
-						return 0;
-					}
-					offset += size;
-				}
-			}
-			break;
-		}
-	}
-	return 1;
-}
-
-int _jit_create_call_setup_insns
-	(jit_function_t func, jit_type_t signature,
-	 jit_value_t *args, unsigned int num_args,
-	 int is_nested, int nesting_level, jit_value_t *struct_return, int flags)
-{
-	jit_type_t type = jit_type_get_return(signature);
-	jit_value_t value;
-	unsigned int size;
-	unsigned int index;
-	unsigned int num_stack_args;
-	unsigned int word_regs;
-	jit_value_t partial;
-
-	/* Determine which values are going to end up in fastcall registers */
-#if JIT_APPLY_X86_FASTCALL == 1
-	if(jit_type_get_abi(signature) == jit_abi_fastcall)
-	{
-		word_regs = 0;
-		if(func->nested_parent)
-		{
-			++word_regs;
-		}
-		if(jit_type_return_via_pointer(type))
-		{
-			++word_regs;
-		}
-		index = 0;
-		partial = 0;
-		while(index < num_args && word_regs < 2)
-		{
-			size = jit_type_get_size(jit_value_get_type(args[index]));
-			size = ROUND_STACK(size) / sizeof(void *);
-			if(size <= (2 - word_regs))
-			{
-				/* This argument will fit entirely in registers */
-				word_regs += size;
-				++index;
-			}
-			else
-			{
-				/* Partly in registers and partly on the stack.
-				   We first copy it into a buffer that we can address */
-				partial = jit_value_create
-					(func, jit_value_get_type(args[index]));
-				if(!partial)
-				{
-					return 0;
-				}
-				jit_value_set_addressable(partial);
-				if(!jit_insn_store(func, partial, args[index]))
-				{
-					return 0;
-				}
-				++index;
-				break;
-			}
-		}
-		num_stack_args = num_args - index;
-	}
-	else
-#endif
-	{
-		word_regs = 0;
-		partial = 0;
-		num_stack_args = num_args;
-	}
-
-	/* Flush deferred stack pops from previous calls if too many
-	   parameters have collected up on the stack since last time */
-	if(!jit_insn_flush_defer_pop
-			(func, 32 - (jit_nint)(num_stack_args * sizeof(void *))))
-	{
-		return 0;
-	}
-
-	/* Push all of the stacked arguments in reverse order */
-	while(num_stack_args > 0)
-	{
-		--num_stack_args;
-		--num_args;
-		if(!jit_insn_push(func, args[num_args]))
-		{
-			return 0;
-		}
-	}
-
-	/* Handle a value that is partly on the stack and partly in registers */
-	if(partial)
-	{
-		--num_args;
-		index = (2 - word_regs) * sizeof(void *);
-		size = ROUND_STACK(jit_type_get_size(jit_value_get_type(partial)));
-		while(size > index)
-		{
-			size -= sizeof(void *);
-			value = jit_insn_address_of(func, partial);
-			if(!value)
-			{
-				return 0;
-			}
-			value = jit_insn_load_relative
-				(func, value, (jit_nint)size, jit_type_void_ptr);
-			if(!value)
-			{
-				return 0;
-			}
-			if(!jit_insn_push(func, value))
-			{
-				return 0;
-			}
-		}
-		word_regs = 2;
-		while(size > 0)
-		{
-			size -= sizeof(void *);
-			value = jit_insn_address_of(func, partial);
-			if(!value)
-			{
-				return 0;
-			}
-			value = jit_insn_load_relative
-				(func, value, (jit_nint)size, jit_type_void_ptr);
-			if(!value)
-			{
-				return 0;
-			}
-			if(word_regs == 2)
-			{
-				if(!jit_insn_outgoing_reg(func, value, X86_REG_EDX))
-				{
-					return 0;
-				}
-				--word_regs;
-			}
-			else
-			{
-				if(!jit_insn_outgoing_reg(func, value, X86_REG_ECX))
-				{
-					return 0;
-				}
-				--word_regs;
-			}
-		}
-	}
-
-	/* Push arguments that will end up entirely in registers */
-	while(num_args > 0)
-	{
-		--num_args;
-		size = jit_type_get_size(jit_value_get_type(args[num_args]));
-		size = ROUND_STACK(size) / sizeof(void *);
-		if(size == 2)
-		{
-			if(!jit_insn_outgoing_reg(func, args[num_args], X86_REG_ECX))
-			{
-				return 0;
-			}
-			word_regs = 0;
-		}
-		else if(word_regs == 2)
-		{
-			if(!jit_insn_outgoing_reg(func, args[num_args], X86_REG_EDX))
-			{
-				return 0;
-			}
-			--word_regs;
-		}
-		else
-		{
-			if(!jit_insn_outgoing_reg(func, args[num_args], X86_REG_ECX))
-			{
-				return 0;
-			}
-			--word_regs;
-		}
-	}
-
-	/* Do we need to add a structure return pointer argument? */
-	if(jit_type_return_via_pointer(type))
-	{
-		value = jit_value_create(func, type);
-		if(!value)
-		{
-			return 0;
-		}
-		*struct_return = value;
-		value = jit_insn_address_of(func, value);
-		if(!value)
-		{
-			return 0;
-		}
-		if(word_regs == 2)
-		{
-			if(!jit_insn_outgoing_reg(func, value, X86_REG_EDX))
-			{
-				return 0;
-			}
-			--word_regs;
-		}
-		else if(word_regs == 1)
-		{
-			if(!jit_insn_outgoing_reg(func, value, X86_REG_ECX))
-			{
-				return 0;
-			}
-			--word_regs;
-		}
-		else
-		{
-			if(!jit_insn_push(func, value))
-			{
-				return 0;
-			}
-		}
-	}
-	else
-	{
-		*struct_return = 0;
-	}
-
-	/* Do we need to add nested function scope information? */
-	if(is_nested)
-	{
-		if(word_regs > 0)
-		{
-			if(!jit_insn_setup_for_nested(func, nesting_level, X86_REG_ECX))
-			{
-				return 0;
-			}
-		}
-		else
-		{
-			if(!jit_insn_setup_for_nested(func, nesting_level, -1))
-			{
-				return 0;
-			}
-		}
-	}
-
-	/* The call is ready to proceed */
-	return 1;
 }
 
 int _jit_setup_indirect_pointer(jit_function_t func, jit_value_t value)
@@ -915,7 +423,7 @@ void _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 
 	/* Output an appropriate instruction to spill the value */
 	offset = (int)(value->frame_offset);
-	if(reg < X86_REG_ST0)
+	if(IS_WORD_REG(reg))
 	{
 		/* Spill a word register.  If the value is smaller than a word,
 		   then we write the entire word.  The local stack frame is
@@ -964,7 +472,7 @@ void _jit_gen_free_reg(jit_gencode_t gen, int reg,
 {
 	/* We only need to take explicit action if we are freeing a
 	   floating-point register whose value hasn't been used yet */
-	if(!value_used && reg >= X86_REG_ST0 && reg <= X86_REG_ST7)
+	if(!value_used && IS_FLOAT_REG(reg))
 	{
 		if(jit_cache_check_for_n(&(gen->posn), 2))
 		{
@@ -1029,9 +537,17 @@ void _jit_gen_load_value
 					jit_cache_mark_full(&(gen->posn));
 					return;
 				}
-				ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float32));
-				jit_memcpy(ptr, &float32_value, sizeof(float32_value));
-				x86_fld(inst, ptr, 0);
+				if(IS_WORD_REG(reg))
+				{
+					x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
+									((jit_int *)&float32_value)[0]);
+				}
+				else
+				{
+					ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float32));
+					jit_memcpy(ptr, &float32_value, sizeof(float32_value));
+					x86_fld(inst, ptr, 0);
+				}
 			}
 			break;
 
@@ -1044,9 +560,19 @@ void _jit_gen_load_value
 					jit_cache_mark_full(&(gen->posn));
 					return;
 				}
-				ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float64));
-				jit_memcpy(ptr, &float64_value, sizeof(float64_value));
-				x86_fld(inst, ptr, 1);
+				if(IS_WORD_REG(reg))
+				{
+					x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
+									((jit_int *)&float64_value)[0]);
+					x86_mov_reg_imm(inst, _jit_reg_info[other_reg].cpu_reg,
+									((jit_int *)&float64_value)[1]);
+				}
+				else
+				{
+					ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float64));
+					jit_memcpy(ptr, &float64_value, sizeof(float64_value));
+					x86_fld(inst, ptr, 1);
+				}
 			}
 			break;
 
@@ -1059,15 +585,26 @@ void _jit_gen_load_value
 					jit_cache_mark_full(&(gen->posn));
 					return;
 				}
-				ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_nfloat));
-				jit_memcpy(ptr, &nfloat_value, sizeof(nfloat_value));
-				if(sizeof(jit_nfloat) != sizeof(jit_float64))
+				if(IS_WORD_REG(reg) &&
+				   sizeof(jit_nfloat) == sizeof(jit_float64))
 				{
-					x86_fld80_mem(inst, ptr);
+					x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
+									((jit_int *)&nfloat_value)[0]);
+					x86_mov_reg_imm(inst, _jit_reg_info[other_reg].cpu_reg,
+									((jit_int *)&nfloat_value)[1]);
 				}
 				else
 				{
-					x86_fld(inst, ptr, 1);
+					ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_nfloat));
+					jit_memcpy(ptr, &nfloat_value, sizeof(nfloat_value));
+					if(sizeof(jit_nfloat) != sizeof(jit_float64))
+					{
+						x86_fld80_mem(inst, ptr);
+					}
+					else
+					{
+						x86_fld(inst, ptr, 1);
+					}
 				}
 			}
 			break;
@@ -1142,19 +679,52 @@ void _jit_gen_load_value
 
 			case JIT_TYPE_FLOAT32:
 			{
-				x86_fld_membase(inst, X86_EBP, offset, 0);
+				if(IS_WORD_REG(reg))
+				{
+					x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
+										X86_EBP, offset, 4);
+				}
+				else
+				{
+					x86_fld_membase(inst, X86_EBP, offset, 0);
+				}
 			}
 			break;
 
 			case JIT_TYPE_FLOAT64:
 			{
-				x86_fld_membase(inst, X86_EBP, offset, 1);
+				if(IS_WORD_REG(reg))
+				{
+					x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
+										X86_EBP, offset, 4);
+					x86_mov_reg_membase(inst, _jit_reg_info[other_reg].cpu_reg,
+										X86_EBP, offset + 4, 4);
+				}
+				else
+				{
+					x86_fld_membase(inst, X86_EBP, offset, 1);
+				}
 			}
 			break;
 
 			case JIT_TYPE_NFLOAT:
 			{
-				x86_fld80_membase(inst, X86_EBP, offset);
+				if(IS_WORD_REG(reg) &&
+				   sizeof(jit_nfloat) == sizeof(jit_float64))
+				{
+					x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
+										X86_EBP, offset, 4);
+					x86_mov_reg_membase(inst, _jit_reg_info[other_reg].cpu_reg,
+										X86_EBP, offset + 4, 4);
+				}
+				else if(sizeof(jit_nfloat) == sizeof(jit_float64))
+				{
+					x86_fld_membase(inst, X86_EBP, offset, 1);
+				}
+				else
+				{
+					x86_fld80_membase(inst, X86_EBP, offset);
+				}
 			}
 			break;
 		}
