@@ -1786,7 +1786,7 @@ IfTail
 				jit_label_t label = jit_label_undefined;
 
 				/* Jump to the end of the "if" statement */
-				if(jit_block_ends_in_dead
+				if(!jit_block_ends_in_dead
 						(jit_block_previous(dpas_current_function(), 0)))
 				{
 					if(!jit_insn_branch(dpas_current_function(), &label))
