@@ -24,6 +24,9 @@
 	* jit/jit-rules-arm.c (_jit_gen_spill_reg): spill properly to
 	global registers for ARM.
 
+	* jit/jit-reg-alloc.c, jit/jit-rules-arm.c, jit/jit-rules-arm.sel,
+	jit/jit-rules-x86.sel: minor register assignment bugs.
+
 2004-06-08  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c: fix ROUND_END_PTR so that it adds the size

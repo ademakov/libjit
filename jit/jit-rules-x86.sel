@@ -1462,7 +1462,7 @@ JIT_OP_RETURN:
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_INT: unary_note
+JIT_OP_RETURN_INT: unary_branch
 	[reg] -> {
 		int cpu_reg = $1;
 		if(cpu_reg != X86_EAX)
@@ -1492,17 +1492,17 @@ JIT_OP_RETURN_LONG: spill_before
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_FLOAT32: unary_note, stack, only
+JIT_OP_RETURN_FLOAT32: unary_branch, stack, only
 	[freg] -> {
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_FLOAT64: unary_note, stack, only
+JIT_OP_RETURN_FLOAT64: unary_branch, stack, only
 	[freg] -> {
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_NFLOAT: unary_note, stack, only
+JIT_OP_RETURN_NFLOAT: unary_branch, stack, only
 	[freg] -> {
 		inst = jump_to_epilog(gen, inst, block);
 	}

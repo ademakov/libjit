@@ -357,7 +357,7 @@ int _jit_create_call_setup_insns
 		size = jit_type_get_size(jit_value_get_type(args[num_args]));
 		size = ROUND_STACK(size) / sizeof(void *);
 		word_regs -= size;
-		if(!jit_insn_outgoing_reg(func, args[num_args], (int)size))
+		if(!jit_insn_outgoing_reg(func, args[num_args], (int)word_regs))
 		{
 			return 0;
 		}
@@ -529,7 +529,7 @@ void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 	/* Allocate space for the local variable frame.  Subtract off
 	   the space for the registers that we just saved.  The pc, lr,
 	   and fp registers are always saved, so account for them too */
-	frame_size = func->builder->frame_size - (saved + 3);
+	frame_size = func->builder->frame_size - (saved + 3 * sizeof(void *));
 	if(frame_size > 0)
 	{
 		arm_alu_reg_imm(inst, ARM_SUB, ARM_SP, ARM_SP, frame_size);
