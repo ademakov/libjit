@@ -1911,7 +1911,7 @@ JIT_OP_LOAD_RELATIVE_LONG: manual
 		int reg2, reg3;
 		int frame_offset;
 		_jit_gen_fix_value(insn->dest);
-		get_reg_pair(gen, reg, -1, -1, &reg2, &reg3);
+		_jit_regs_get_reg_pair(gen, reg, -1, -1, &reg2, &reg3);
 		reg  = _jit_reg_info[reg].cpu_reg;
 		reg2 = _jit_reg_info[reg2].cpu_reg;
 		reg3 = _jit_reg_info[reg3].cpu_reg;
@@ -2129,7 +2129,7 @@ JIT_OP_STORE_RELATIVE_LONG: manual
 		int frame_offset;
 		if(!(insn->value1->is_constant))
 		{
-			get_reg_pair(gen, reg, -1, -1, &reg2, &reg3);
+			_jit_regs_get_reg_pair(gen, reg, -1, -1, &reg2, &reg3);
 			_jit_gen_fix_value(insn->value1);
 			inst = gen->posn.ptr;
 			if(!jit_cache_check_for_n(&(gen->posn), 32))

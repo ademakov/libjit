@@ -582,7 +582,7 @@ JIT_OP_RETURN_NFLOAT: manual
 
 JIT_OP_RETURN_SMALL_STRUCT: spill_before
 	[] -> {
-		/* TODO: load the structure value into EAX:EDX */
+		/* TODO: load the structure value into r0:r1 */
 		TODO();
 		inst = jump_to_epilog(gen, inst, block);
 	}
@@ -638,3 +638,452 @@ JIT_OP_IMPORT:
 		TODO();
 	}
 
+/*
+ * Data manipulation.
+ */
+
+JIT_OP_COPY_LOAD_SBYTE: unary
+	[reg] -> {}
+
+JIT_OP_COPY_LOAD_UBYTE: unary
+	[reg] -> {}
+
+JIT_OP_COPY_LOAD_SHORT: unary
+	[reg] -> {}
+
+JIT_OP_COPY_LOAD_USHORT: unary
+	[reg] -> {}
+
+JIT_OP_COPY_INT: unary
+	[reg] -> {}
+
+JIT_OP_COPY_LONG: spill_before
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_COPY_FLOAT32: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_COPY_FLOAT64: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_COPY_NFLOAT: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_COPY_STRUCT: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_COPY_STORE_BYTE: manual
+	[] -> {
+		arm_inst_ptr inst;
+		int reg;
+		_jit_regs_force_out(gen, insn->dest, 1);
+		_jit_gen_fix_value(insn->dest);
+		reg = _jit_regs_load_value
+			(gen, insn->value1, 0,
+			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+			 				 JIT_INSN_VALUE1_LIVE)));
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		arm_store_membase_byte(inst, _jit_reg_info[reg].cpu_reg,
+							   ARM_FP, insn->dest->frame_offset);
+		gen->posn.ptr = (unsigned char *)inst;
+	}
+
+JIT_OP_COPY_STORE_SHORT: manual
+	[] -> {
+		arm_inst_ptr inst;
+		int reg;
+		_jit_regs_force_out(gen, insn->dest, 1);
+		_jit_gen_fix_value(insn->dest);
+		reg = _jit_regs_load_value
+			(gen, insn->value1, 1,
+			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+			 				 JIT_INSN_VALUE1_LIVE)));
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		arm_store_membase_short(inst, _jit_reg_info[reg].cpu_reg,
+							    ARM_FP, insn->dest->frame_offset);
+		gen->posn.ptr = (unsigned char *)inst;
+		_jit_regs_free_reg(gen, reg, 1);
+	}
+
+JIT_OP_ADDRESS_OF: manual
+	[] -> {
+		arm_inst_ptr inst;
+		int reg, offset;
+		_jit_regs_force_out(gen, insn->value1, 0);
+		_jit_gen_fix_value(insn->value1);
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		reg = _jit_regs_dest_value(gen, insn->dest);
+		reg = _jit_reg_info[reg].cpu_reg;
+		offset = insn->value1->frame_offset;
+		if(offset > 0)
+		{
+			arm_alu_reg_imm(inst, ARM_ADD, reg, ARM_FP, offset);
+		}
+		else if(offset < 0)
+		{
+			arm_alu_reg_imm(inst, ARM_SUB, reg, ARM_FP, -offset);
+		}
+		else
+		{
+			arm_mov_reg_reg(inst, reg, ARM_FP);
+		}
+		gen->posn.ptr = (unsigned char *)inst;
+	}
+
+/*
+ * Stack pushes and pops.
+ */
+
+JIT_OP_RETURN_REG: manual
+	[] -> { /* Nothing to do here */ }
+
+JIT_OP_PUSH_INT: unary_note
+	[reg] -> {
+		arm_push_reg(inst, $1);
+	}
+
+JIT_OP_PUSH_LONG: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_PUSH_FLOAT32: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_PUSH_FLOAT64: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_PUSH_NFLOAT: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_PUSH_STRUCT: unary_note
+	[reg] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_POP_STACK:
+	[] -> {
+		arm_alu_reg_imm(inst, ARM_ADD, ARM_SP, ARM_SP, insn->value1->address);
+	}
+
+JIT_OP_FLUSH_SMALL_STRUCT:
+	[] -> {
+		jit_nuint size;
+		jit_nint offset;
+		_jit_gen_fix_value(insn->value1);
+		size = jit_type_get_size(jit_value_get_type(insn->value1));
+		offset = insn->value1->frame_offset;
+		switch(size)
+		{
+			case 1:
+			{
+				arm_store_membase_byte(inst, ARM_R0, ARM_FP, offset);
+			}
+			break;
+
+			case 2:
+			{
+				arm_store_membase_short(inst, ARM_R0, ARM_FP, offset);
+			}
+			break;
+
+			case 3:
+			{
+				arm_mov_reg_reg(inst, ARM_R1, ARM_R0);
+				arm_store_membase_short(inst, ARM_R0, ARM_FP, offset);
+				arm_shift_reg_imm8(inst, ARM_SHR, ARM_R0, ARM_R1, 16);
+				arm_store_membase_byte(inst, ARM_R0, ARM_FP, offset + 2);
+			}
+			break;
+
+			case 4:
+			{
+				arm_store_membase(inst, ARM_R0, ARM_FP, offset);
+			}
+			break;
+
+			case 5:
+			{
+				arm_store_membase(inst, ARM_R0, ARM_FP, offset);
+				arm_store_membase_byte(inst, ARM_R1, ARM_FP, offset + 4);
+			}
+			break;
+
+			case 6:
+			{
+				arm_store_membase(inst, ARM_R0, ARM_FP, offset);
+				arm_store_membase_short(inst, ARM_R1, ARM_FP, offset + 4);
+			}
+			break;
+
+			case 7:
+			{
+				arm_store_membase(inst, ARM_R0, ARM_FP, offset);
+				arm_mov_reg_reg(inst, ARM_R2, ARM_R1);
+				arm_store_membase_short(inst, ARM_R1, ARM_FP, offset + 4);
+				arm_shift_reg_imm8(inst, ARM_SHR, ARM_R1, ARM_R2, 16);
+				arm_store_membase_byte(inst, ARM_R1, ARM_FP, offset + 6);
+			}
+			break;
+
+			case 8:
+			{
+				arm_store_membase(inst, ARM_R0, ARM_FP, offset);
+				arm_store_membase(inst, ARM_R1, ARM_FP, offset + 4);
+			}
+			break;
+		}
+	}
+
+/*
+ * Pointer-relative loads and stores.
+ */
+
+JIT_OP_LOAD_RELATIVE_SBYTE: unary
+	[reg] -> {
+		arm_load_membase_sbyte(inst, $1, $1, insn->value2->address);
+	}
+
+JIT_OP_LOAD_RELATIVE_UBYTE: unary
+	[reg] -> {
+		arm_load_membase_byte(inst, $1, $1, insn->value2->address);
+	}
+
+JIT_OP_LOAD_RELATIVE_SHORT: unary
+	[reg] -> {
+		arm_load_membase_short(inst, $1, $1, insn->value2->address);
+	}
+
+JIT_OP_LOAD_RELATIVE_USHORT: unary
+	[reg] -> {
+		arm_load_membase_ushort(inst, $1, $1, insn->value2->address);
+	}
+
+JIT_OP_LOAD_RELATIVE_INT: unary
+	[reg] -> {
+		arm_load_membase(inst, $1, $1, insn->value2->address);
+	}
+
+JIT_OP_LOAD_RELATIVE_LONG: manual
+	[] -> {
+		arm_inst_ptr inst;
+		int reg = _jit_regs_load_value
+			(gen, insn->value1, 0,
+			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+			 				 JIT_INSN_VALUE1_LIVE)));
+		int reg2, reg3;
+		int frame_offset;
+		_jit_gen_fix_value(insn->dest);
+		_jit_regs_get_reg_pair(gen, reg, -1, -1, &reg2, &reg3);
+		reg  = _jit_reg_info[reg].cpu_reg;
+		reg2 = _jit_reg_info[reg2].cpu_reg;
+		reg3 = _jit_reg_info[reg3].cpu_reg;
+		frame_offset = insn->dest->frame_offset;
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		arm_load_membase(inst, reg2, reg, insn->value2->address);
+		arm_load_membase(inst, reg3, reg, insn->value2->address + 4);
+		arm_store_membase(inst, reg2, ARM_FP, frame_offset);
+		arm_store_membase(inst, reg3, ARM_FP, frame_offset + 4);
+		insn->dest->in_frame = 1;
+		gen->posn.ptr = (unsigned char *)inst;
+	}
+
+JIT_OP_LOAD_RELATIVE_FLOAT32: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_LOAD_RELATIVE_FLOAT64: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_LOAD_RELATIVE_NFLOAT: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_LOAD_RELATIVE_STRUCT: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_STORE_RELATIVE_BYTE: manual
+	[] -> {
+		arm_inst_ptr inst;
+		int reg = _jit_regs_load_value
+			(gen, insn->dest, 0,
+			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
+			 				 JIT_INSN_DEST_LIVE)));
+		int reg2 = _jit_regs_load_value
+			(gen, insn->value1, 0,
+			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+			 				 JIT_INSN_VALUE1_LIVE)));
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		reg  = _jit_reg_info[reg].cpu_reg;
+		reg2 = _jit_reg_info[reg2].cpu_reg;
+		arm_store_membase_byte(inst, reg2, reg, insn->value2->address);
+		gen->posn.ptr = (unsigned char *)inst;
+	}
+
+JIT_OP_STORE_RELATIVE_SHORT: manual
+	[] -> {
+		arm_inst_ptr inst;
+		int reg = _jit_regs_load_value
+			(gen, insn->dest, 0,
+			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
+			 				 JIT_INSN_DEST_LIVE)));
+		int reg2 = _jit_regs_load_value
+			(gen, insn->value1, 1,
+			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+			 				 JIT_INSN_VALUE1_LIVE)));
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		reg  = _jit_reg_info[reg].cpu_reg;
+		reg2 = _jit_reg_info[reg2].cpu_reg;
+		arm_store_membase_short(inst, reg2, reg, insn->value2->address);
+		gen->posn.ptr = (unsigned char *)inst;
+		_jit_regs_free_reg(gen, reg2, 1);
+	}
+
+JIT_OP_STORE_RELATIVE_INT: manual
+	[] -> {
+		arm_inst_ptr inst;
+		int reg = _jit_regs_load_value
+			(gen, insn->dest, 0,
+			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
+			 				 JIT_INSN_DEST_LIVE)));
+		int reg2 = _jit_regs_load_value
+			(gen, insn->value1, 0,
+			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+			 				 JIT_INSN_VALUE1_LIVE)));
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		reg  = _jit_reg_info[reg].cpu_reg;
+		reg2 = _jit_reg_info[reg2].cpu_reg;
+		arm_store_membase(inst, reg2, reg, insn->value2->address);
+		gen->posn.ptr = (unsigned char *)inst;
+	}
+
+JIT_OP_STORE_RELATIVE_LONG: manual
+	[] -> {
+		arm_inst_ptr inst;
+		int reg = _jit_regs_load_value
+			(gen, insn->dest, 0,
+			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
+			 				 JIT_INSN_DEST_LIVE)));
+		int reg2, reg3;
+		int frame_offset;
+		_jit_regs_get_reg_pair(gen, reg, -1, -1, &reg2, &reg3);
+		_jit_gen_fix_value(insn->value1);
+		inst = (arm_inst_ptr)(gen->posn.ptr);
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		reg  = _jit_reg_info[reg].cpu_reg;
+		reg2 = _jit_reg_info[reg2].cpu_reg;
+		reg3 = _jit_reg_info[reg3].cpu_reg;
+		frame_offset = insn->value1->frame_offset;
+		arm_load_membase(inst, reg2, ARM_FP, frame_offset);
+		arm_load_membase(inst, reg3, ARM_FP, frame_offset + 4);
+		arm_store_membase(inst, reg2, reg, insn->value2->address);
+		arm_store_membase(inst, reg3, reg, insn->value2->address + 4);
+		gen->posn.ptr = (unsigned char *)inst;
+	}
+
+JIT_OP_STORE_RELATIVE_FLOAT32: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_STORE_RELATIVE_FLOAT64: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_STORE_RELATIVE_NFLOAT: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_STORE_RELATIVE_STRUCT: manual
+	[] -> {
+		/* TODO */
+		TODO();
+	}
+
+JIT_OP_ADD_RELATIVE: unary
+	[reg] -> {
+		if(insn->value2->address != 0)
+		{
+			arm_alu_reg_imm(inst, ARM_ADD, $1, $1, insn->value2->address);
+		}
+	}

@@ -1468,3 +1468,51 @@ void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func)
 
 #endif
 }
+
+/*
+ * @deftypefun void _jit_regs_get_reg_pair (jit_gencode_t gen, int not_this1, int not_this2, int not_this3, {int *} reg, {int *} reg2)
+ * Get a register pair for temporary operations on "long" values.
+ * @end deftypefun
+ */
+void _jit_regs_get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
+						    int not_this3, int *reg, int *reg2)
+{
+	int index;
+	for(index = 0; index < 8; ++index)
+	{
+		if((_jit_reg_info[index].flags & JIT_REG_WORD) == 0 ||
+		   jit_reg_is_used(gen->permanent, index))
+		{
+			continue;
+		}
+		if(index != not_this1 && index != not_this2 &&
+		   index != not_this3)
+		{
+			break;
+		}
+	}
+	*reg = index;
+	_jit_regs_want_reg(gen, index, 0);
+	for(; index < 8; ++index)
+	{
+		if((_jit_reg_info[index].flags & JIT_REG_WORD) == 0 ||
+		   jit_reg_is_used(gen->permanent, index))
+		{
+			continue;
+		}
+		if(index != not_this1 && index != not_this2 &&
+		   index != not_this3 && index != *reg)
+		{
+			break;
+		}
+	}
+	if(index >= 8)
+	{
+		*reg2 = -1;
+	}
+	else
+	{
+		*reg2 = index;
+		_jit_regs_want_reg(gen, index, 0);
+	}
+}

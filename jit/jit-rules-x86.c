@@ -1354,52 +1354,6 @@ static unsigned char *jump_to_epilog
 }
 
 /*
- * Get a register pair for temporary operations on "long" values.
- */
-static void get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
-						 int not_this3, int *reg, int *reg2)
-{
-	int index;
-	for(index = 0; index < 8; ++index)
-	{
-		if((_jit_reg_info[index].flags & JIT_REG_WORD) == 0 ||
-		   jit_reg_is_used(gen->permanent, index))
-		{
-			continue;
-		}
-		if(index != not_this1 && index != not_this2 &&
-		   index != not_this3)
-		{
-			break;
-		}
-	}
-	*reg = index;
-	_jit_regs_want_reg(gen, index, 0);
-	for(; index < 8; ++index)
-	{
-		if((_jit_reg_info[index].flags & JIT_REG_WORD) == 0 ||
-		   jit_reg_is_used(gen->permanent, index))
-		{
-			continue;
-		}
-		if(index != not_this1 && index != not_this2 &&
-		   index != not_this3 && index != *reg)
-		{
-			break;
-		}
-	}
-	if(index >= 8)
-	{
-		*reg2 = -1;
-	}
-	else
-	{
-		*reg2 = index;
-		_jit_regs_want_reg(gen, index, 0);
-	}
-}
-
-/*
  * Store a byte value to a membase address.
  */
 static unsigned char *mov_membase_reg_byte

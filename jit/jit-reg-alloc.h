@@ -56,6 +56,8 @@ int _jit_regs_num_used(jit_gencode_t gen, int type_reg);
 int _jit_regs_new_top(jit_gencode_t gen, jit_value_t value, int type_reg);
 void _jit_regs_force_out(jit_gencode_t gen, jit_value_t value, int is_dest);
 void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func);
+void _jit_regs_get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
+						    int not_this3, int *reg, int *reg2);
 
 #ifdef	__cplusplus
 };

@@ -26,6 +26,7 @@
 
 #include "jit-gen-arm.h"
 #include "jit-reg-alloc.h"
+#include "jit-setjmp.h"
 #include <stdio.h>
 
 /*
@@ -659,7 +660,155 @@ void _jit_gen_free_reg(jit_gencode_t gen, int reg,
 void _jit_gen_load_value
 	(jit_gencode_t gen, int reg, int other_reg, jit_value_t value)
 {
-	/* TODO */
+	void *ptr;
+	int offset;
+
+	/* Make sure that we have sufficient space */
+	jit_cache_setup_output(16);
+
+	if(value->is_constant)
+	{
+		/* Determine the type of constant to be loaded */
+		switch(jit_type_normalize(value->type)->kind)
+		{
+			case JIT_TYPE_SBYTE:
+			case JIT_TYPE_UBYTE:
+			case JIT_TYPE_SHORT:
+			case JIT_TYPE_USHORT:
+			case JIT_TYPE_INT:
+			case JIT_TYPE_UINT:
+			{
+				arm_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
+								(jit_nint)(value->address));
+			}
+			break;
+
+			case JIT_TYPE_LONG:
+			case JIT_TYPE_ULONG:
+			{
+				jit_long long_value;
+				long_value = jit_value_get_long_constant(value);
+				arm_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
+								(jit_int)long_value);
+				arm_mov_reg_imm(inst, _jit_reg_info[other_reg].cpu_reg,
+								(jit_int)(long_value >> 32));
+			}
+			break;
+
+			case JIT_TYPE_FLOAT32:
+			{
+				jit_float32 float32_value;
+				float32_value = jit_value_get_float32_constant(value);
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float32));
+				jit_memcpy(ptr, &float32_value, sizeof(float32_value));
+				/* TODO */
+				/*x86_fld(inst, ptr, 0);*/
+			}
+			break;
+
+			case JIT_TYPE_FLOAT64:
+			case JIT_TYPE_NFLOAT:
+			{
+				jit_float64 float64_value;
+				float64_value = jit_value_get_float64_constant(value);
+				if(!jit_cache_check_for_n(&(gen->posn), 32))
+				{
+					jit_cache_mark_full(&(gen->posn));
+					return;
+				}
+				ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float64));
+				jit_memcpy(ptr, &float64_value, sizeof(float64_value));
+				/* TODO */
+				/*x86_fld(inst, ptr, 1);*/
+			}
+			break;
+		}
+	}
+	else if(value->has_global_register)
+	{
+		/* Load the value out of a global register */
+		arm_mov_reg_reg(inst, _jit_reg_info[reg].cpu_reg,
+						_jit_reg_info[value->global_reg].cpu_reg);
+	}
+	else
+	{
+		/* Fix the position of the value in the stack frame */
+		_jit_gen_fix_value(value);
+		offset = (int)(value->frame_offset);
+
+		/* Load the value into the specified register */
+		switch(jit_type_normalize(value->type)->kind)
+		{
+			case JIT_TYPE_SBYTE:
+			{
+				arm_load_membase_sbyte(inst, _jit_reg_info[reg].cpu_reg,
+								       ARM_FP, offset);
+			}
+			break;
+
+			case JIT_TYPE_UBYTE:
+			{
+				arm_load_membase_byte(inst, _jit_reg_info[reg].cpu_reg,
+								      ARM_FP, offset);
+			}
+			break;
+
+			case JIT_TYPE_SHORT:
+			{
+				arm_load_membase_short(inst, _jit_reg_info[reg].cpu_reg,
+								       ARM_FP, offset);
+			}
+			break;
+
+			case JIT_TYPE_USHORT:
+			{
+				arm_load_membase_ushort(inst, _jit_reg_info[reg].cpu_reg,
+								        ARM_FP, offset);
+			}
+			break;
+
+			case JIT_TYPE_INT:
+			case JIT_TYPE_UINT:
+			{
+				arm_load_membase(inst, _jit_reg_info[reg].cpu_reg,
+								 ARM_FP, offset);
+			}
+			break;
+
+			case JIT_TYPE_LONG:
+			case JIT_TYPE_ULONG:
+			{
+				arm_load_membase(inst, _jit_reg_info[reg].cpu_reg,
+								 ARM_FP, offset);
+				arm_load_membase(inst, _jit_reg_info[other_reg].cpu_reg,
+								 ARM_FP, offset + 4);
+			}
+			break;
+
+			case JIT_TYPE_FLOAT32:
+			{
+				/* TODO */
+				/*x86_fld_membase(inst, X86_EBP, offset, 0);*/
+			}
+			break;
+
+			case JIT_TYPE_FLOAT64:
+			case JIT_TYPE_NFLOAT:
+			{
+				/* TODO */
+				/*x86_fld_membase(inst, X86_EBP, offset, 1);*/
+			}
+			break;
+		}
+	}
+
+	/* End the code output process */
+	jit_cache_end_output();
 }
 
 void _jit_gen_fix_value(jit_value_t value)
@@ -715,24 +864,31 @@ static arm_inst_ptr output_branch
 static arm_inst_ptr throw_builtin
 		(arm_inst_ptr inst, jit_function_t func, int cond, int type)
 {
-#if 0
-	/* TODO: port to ARM */
+	arm_inst_ptr patch;
+
+	/* Branch past the following code if "cond" is not true */
+	patch = inst;
+	arm_branch_imm(inst, cond ^ 0x01, 0);
+
 	/* We need to update "catch_pc" if we have a "try" block */
 	if(func->builder->setjmp_value != 0)
 	{
 		_jit_gen_fix_value(func->builder->setjmp_value);
-		x86_call_imm(inst, 0);
-		x86_pop_membase(inst, X86_EBP,
-						func->builder->setjmp_value->frame_offset +
-						jit_jmp_catch_pc_offset);
+		arm_mov_reg_reg(inst, ARM_WORK, ARM_PC);
+		arm_store_membase(inst, ARM_WORK, ARM_FP,
+						  func->builder->setjmp_value->frame_offset +
+						  jit_jmp_catch_pc_offset);
 	}
 
 	/* Push the exception type onto the stack */
-	x86_push_imm(inst, type);
+	arm_mov_reg_imm(inst, ARM_WORK, type);
+	arm_push_reg(inst, ARM_WORK);
 
 	/* Call the "jit_exception_builtin" function, which will never return */
-	x86_call_code(inst, jit_exception_builtin);
-#endif
+	arm_call(inst, jit_exception_builtin);
+
+	/* Back-patch the previous branch instruction */
+	arm_patch(patch, inst);
 	return inst;
 }
 
