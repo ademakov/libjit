@@ -4462,20 +4462,14 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 
 		VMCASE(JIT_OP_MARK_BREAKPOINT):
 		{
-			/* Process a breakpoint within the current function */
-			if(func->func->breakpoints_enabled ||
-			   func->func->context->breakpoints_enabled)
-			{
-				jit_debug_hook_func hook;
-				hook = (jit_debug_hook_func)
-					jit_context_get_meta(func->func->context,
-										 JIT_OPTION_DEBUG_HOOK);
-				if(hook)
-				{
-					(*hook)(func->func, VM_NINT_ARG, VM_NINT_ARG2);
-				}
-			}
+			/* Process a marked breakpoint within the current function */
+			tempptr = (void *)VM_NINT_ARG;
+			tempptr2 = (void *)VM_NINT_ARG2;
 			VM_MODIFY_PC_AND_STACK(3, 0);
+			_jit_backtrace_push(&call_trace, pc);
+			_jit_debugger_hook
+				(func->func, (jit_nint)tempptr, (jit_nint)tempptr2);
+			_jit_backtrace_pop();
 		}
 		VMBREAK;
 

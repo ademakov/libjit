@@ -1027,7 +1027,7 @@ field with a @code{pointer to procedure/function} type.
 @chapter Hooking a breakpoint debugger into libjit
 @cindex Breakpoint debugging
 
-@include libjitext-debug.texi
+@include libjitext-debugger.texi
 
 @c -----------------------------------------------------------------------
 

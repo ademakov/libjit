@@ -63,6 +63,11 @@ typedef struct _jit_value *jit_value_t;
 typedef struct _jit_type *jit_type_t;
 
 /*
+ * Opaque type that represents an exception stack trace.
+ */
+typedef struct jit_stack_trace *jit_stack_trace_t;
+
+/*
  * Block label identifier.
  */
 typedef jit_nuint jit_label_t;

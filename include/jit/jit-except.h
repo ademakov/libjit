@@ -46,11 +46,6 @@ extern	"C" {
 typedef void *(*jit_exception_func)(int exception_type);
 
 /*
- * Opaque type that represents an exception stack trace.
- */
-typedef struct jit_stack_trace *jit_stack_trace_t;
-
-/*
  * External function declarations.
  */
 void *jit_exception_get_last(void);

@@ -1,4 +1,17 @@
 
+2004-10-06  Rhys Weatherley  <rweather@southern-storm.com.au>
+
+	* doc/Makefile.am, doc/libjit.texi, include/jit/Makefile.am,
+	include/jit/jit-common.h, include/jit/jit-context.h,
+	include/jit/jit-debugger.h, include/jit/jit-except.h,
+	include/jit/jit-function.h, include/jit/jit.h, jit/Makefile.am,
+	jit/jit-context.c, jit/jit-debug.c, jit/jit-debugger.c,
+	jit/jit-insn.c, jit/jit-internal.h, jit/jit-interp.c:
+	redesign the debugger API so that it contains functions
+	like "add breakpoint", "run", "step", etc that more closely resemble
+	what a front end debugger will want to have, shifting the
+	implementation burden off the front end.
+
 2004-10-04  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/jit-function.h, include/jit/jit-insn.h,

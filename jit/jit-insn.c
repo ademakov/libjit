@@ -7694,27 +7694,6 @@ int jit_insn_mark_offset(jit_function_t func, jit_int offset)
 					   			(func, jit_type_int, offset));
 }
 
-#if !defined(JIT_BACKEND_INTERP)
-
-/*
- * Perform first-level debug hook testing.
- */
-void _jit_hook_test(jit_function_t func, jit_nint data1, jit_nint data2)
-{
-	if(func->breakpoints_enabled || func->context->breakpoints_enabled)
-	{
-		jit_debug_hook_func hook;
-		hook = (jit_debug_hook_func)
-			jit_context_get_meta(func->context, JIT_OPTION_DEBUG_HOOK);
-		if(hook)
-		{
-			(*hook)(func, data1, data2);
-		}
-	}
-}
-
-#endif /* !JIT_BACKEND_INTERP */
-
 /* Documentation is in jit-debug.c */
 int jit_insn_mark_breakpoint
 	(jit_function_t func, jit_nint data1, jit_nint data2)
@@ -7731,7 +7710,7 @@ int jit_insn_mark_breakpoint
 				       jit_value_create_nint_constant
 							(func, jit_type_nint, data2));
 #else
-	/* Insert a call to "_jit_hook_test" on native platforms */
+	/* Insert a call to "_jit_debugger_hook" on native platforms */
 	jit_type_t params[3];
 	jit_type_t signature;
 	jit_value_t values[3];
@@ -7762,7 +7741,7 @@ int jit_insn_mark_breakpoint
 		jit_type_free(signature);
 		return 0;
 	}
-	jit_insn_call_native(func, "_jit_hook_test", (void *)_jit_hook_test,
+	jit_insn_call_native(func, "_jit_debugger_hook", (void *)_jit_debugger_hook,
 						 signature, values, 3, JIT_CALL_NOTHROW);
 	jit_type_free(signature);
 	return 1;

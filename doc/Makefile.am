@@ -8,7 +8,7 @@ libjit_TEXINFOS = \
 	$(srcdir)/libjitext-apply.texi \
 	$(srcdir)/libjitext-block.texi \
 	$(srcdir)/libjitext-context.texi \
-	$(srcdir)/libjitext-debug.texi \
+	$(srcdir)/libjitext-debugger.texi \
 	$(srcdir)/libjitext-dump.texi \
 	$(srcdir)/libjitext-dynlib.texi \
 	$(srcdir)/libjitext-elf-read.texi \
@@ -42,7 +42,7 @@ $(srcdir)/libjitext-block.texi: $(top_srcdir)/jit/jit-block.c
 $(srcdir)/libjitext-context.texi: $(top_srcdir)/jit/jit-context.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
-$(srcdir)/libjitext-debug.texi: $(top_srcdir)/jit/jit-debug.c
+$(srcdir)/libjitext-debugger.texi: $(top_srcdir)/jit/jit-debugger.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
 $(srcdir)/libjitext-dump.texi: $(top_srcdir)/jit/jit-dump.c

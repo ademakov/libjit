@@ -377,7 +377,6 @@ struct _jit_function
 	int					has_try : 1;
 	int					optimization_level : 8;
 	int volatile		is_compiled;
-	int volatile		breakpoints_enabled;
 
 	/* The entry point for the function's compiled code */
 	void * volatile		entry_point;
@@ -459,8 +458,9 @@ struct _jit_context
 	jit_regsym_t	   *registered_symbols;
 	int					num_registered_symbols;
 
-	/* Flag that is set if all breakpoints in the system are enabled */
-	int volatile		breakpoints_enabled;
+	/* Debugger support */
+	jit_debugger_hook_func debug_hook;
+	jit_debugger_t		debugger;
 };
 
 /*
@@ -574,6 +574,11 @@ int _jit_load_opcode(int base_opcode, jit_type_t type,
  * and "struct".
  */
 int _jit_store_opcode(int base_opcode, int small_base, jit_type_t type);
+
+/*
+ * Function that is called upon each breakpoint location.
+ */
+void _jit_debugger_hook(jit_function_t func, jit_nint data1, jit_nint data2);
 
 /*
  * Internal structure of a type descriptor.

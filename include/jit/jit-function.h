@@ -70,8 +70,6 @@ void jit_function_set_optimization_level
 unsigned int jit_function_get_optimization_level
 	(jit_function_t func) JIT_NOTHROW;
 unsigned int jit_function_get_max_optimization_level(void) JIT_NOTHROW;
-void jit_function_enable_breakpoints(jit_function_t func, int flag) JIT_NOTHROW;
-int jit_function_breakpoints_enabled(jit_function_t func) JIT_NOTHROW;
 
 #ifdef	__cplusplus
 };

@@ -30,6 +30,7 @@ extern	"C" {
 #include <jit/jit-context.h>
 #include <jit/jit-apply.h>
 #include <jit/jit-block.h>
+#include <jit/jit-debugger.h>
 #include <jit/jit-elf.h>
 #include <jit/jit-except.h>
 #include <jit/jit-function.h>

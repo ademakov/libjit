@@ -170,21 +170,6 @@ void jit_context_build_end(jit_context_t context)
  *
  * If the @code{type} already has some metadata associated with it, then
  * the previous value will be freed.
- *
- * The following non-numeric options are currently defined:
- *
- * @table @code
- * @vindex JIT_OPTION_DEBUG_HOOK
- * @item JIT_OPTION_DEBUG_HOOK
- * Address of a function that should be called whenever an active
- * breakpoint is encountered.  The prototype should be as follows:
- *
- * @example
- * void hook(jit_function_t func, jit_nint data1, jit_nint data2);
- * @end example
- *
- * @xref{Breakpoint Debugging}, for more information.
- * @end table
  * @end deftypefun
 @*/
 int jit_context_set_meta
