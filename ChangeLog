@@ -8,6 +8,10 @@
 	jit/jit-value.c, tools/gen-sel-parser.y: implement a simple global
 	register allocation policy, based on usage counts.
 
+	* jit/jit-reg-alloc.c (_jit_regs_load_value): if a value is in a
+	global register and it is not going to be destroyed by an instruction,
+	then use the global register as the operand.
+
 2004-06-01  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-cache.c, jit/jit-elf-read.c, tools/gen-apply.c:

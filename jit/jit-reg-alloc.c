@@ -1026,6 +1026,14 @@ int _jit_regs_load_value
 		}
 	}
 
+	/* If the value is in a global register, and we are not going
+	   to destroy the value, then use the global register itself.
+	   This will avoid a redundant register copy operation */
+	if(value->in_global_register && !destroy)
+	{
+		return value->global_reg;
+	}
+
 	/* Search for a free register to hold the value */
 	reg = free_register_for_value(gen, value, &other_reg);
 	load_value(gen, reg, other_reg, value, destroy);
