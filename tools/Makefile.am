@@ -8,6 +8,8 @@ gen_sel_SOURCES = gen-sel-parser.y \
 
 AM_YFLAGS = -d
 
+gen-sel-scanner.l: gen-sel-parser.c
+
 all-local: $(top_builddir)/jit/jit-apply-rules.h
 
 $(top_builddir)/jit/jit-apply-rules.h: gen-apply$(EXEEXT)

@@ -4,6 +4,8 @@
 	* doc/Makefile.am, doc/README, doc/libjit.texi,
 	jit/jit-dump.c, jit/jit-insn.c: documentation updates.
 
+	* dpas/Makefile.am, tools/Makefile.am: support for parallel builds.
+
 2004-08-04  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-opcode.c: fix the operand types for "call_vtable_ptr".

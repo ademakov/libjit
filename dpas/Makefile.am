@@ -21,4 +21,6 @@ dpas_DEPENDENCIES = $(top_builddir)/jit/libjit.la
 AM_CFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include -I. -I$(srcdir) \
 			-DDPAS_INCLUDE_DIR=\"$(datadir)/dpas\"
 
+dpas-scanner.l: dpas-parser.c
+
 CLEANFILES = dpas-parser.c dpas-scanner.c dpas-parser.h
