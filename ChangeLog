@@ -11,6 +11,9 @@
 
 	* jit/jit-value.c: fix a warning.
 
+	* configure.in, jit/jit-insn.c: use "sigsetjmp" instead of
+	"setjmp", because "setjmp" may be a macro on some systems.
+
 2004-06-06  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c (jit_flush_exec): flush cache lines properly

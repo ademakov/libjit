@@ -6397,7 +6397,7 @@ static int initialize_setjmp_block(jit_function_t func)
 	jit_label_t end_label = jit_label_undefined;
 	jit_label_t rethrow_label = jit_label_undefined;
 	jit_type_t type;
-	jit_value_t args[1];
+	jit_value_t args[2];
 	jit_value_t value;
 
 	/* Bail out if we have already done this before */
@@ -6443,7 +6443,37 @@ static int initialize_setjmp_block(jit_function_t func)
 		 (void *)_jit_unwind_push_setjmp, type, args, 1, JIT_CALL_NOTHROW);
 	jit_type_free(type);
 
-	/* Call "setjmp" with "&setjmp_value" as its argument */
+	/* Call "__sigsetjmp" or "setjmp" with "&setjmp_value" as its argument.
+	   We prefer "__sigsetjmp" because it is least likely to be a macro */
+#if defined(HAVE___SIGSETJMP) || defined(HAVE_SIGSETJMP)
+	{
+		jit_type_t params[2];
+		params[0] = jit_type_void_ptr;
+		params[1] = jit_type_sys_int;
+		type = jit_type_create_signature
+			(jit_abi_cdecl, jit_type_int, params, 2, 1);
+	}
+	if(!type)
+	{
+		return 0;
+	}
+	args[0] = jit_insn_address_of(func, func->builder->setjmp_value);
+	args[1] = jit_value_create_nint_constant(func, jit_type_sys_int, 1);
+#if defined(HAVE___SIGSETJMP)
+	value = jit_insn_call_native
+		(func, "__sigsetjmp", (void *)__sigsetjmp,
+		 type, args, 2, JIT_CALL_NOTHROW);
+#else
+	value = jit_insn_call_native
+		(func, "sigsetjmp", (void *)sigsetjmp,
+		 type, args, 2, JIT_CALL_NOTHROW);
+#endif
+	jit_type_free(type);
+	if(!value)
+	{
+		return 0;
+	}
+#else	/* !HAVE_SIGSETJMP */
 	type = jit_type_void_ptr;
 	type = jit_type_create_signature
 		(jit_abi_cdecl, jit_type_int, &type, 1, 1);
@@ -6459,6 +6489,7 @@ static int initialize_setjmp_block(jit_function_t func)
 	{
 		return 0;
 	}
+#endif	/* !HAVE_SIGSETJMP */
 
 	/* Branch to the end of the init code if "setjmp" returned zero */
 	if(!jit_insn_branch_if_not(func, value, &end_label))
