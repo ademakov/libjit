@@ -19,6 +19,13 @@
 	report errors for unimplemented expressions and statements,
 	so that users are not "surprised" when things silently fail.
 
+	* .cvsignore, auto_gen.sh, configure.in, doc/.cvsignore,
+	dpas/.cvsignore, dpas/Makefile.am, include/.cvsignore,
+	jit/.cvsignore, jit/Makefile.am, jitdynamic/.cvsignore,
+	jitdynamic/Makefile.am, jitplus/.cvsignore, jitplus/Makefile.am,
+	tools/.cvsignore, tutorial/.cvsignore, tutorial/Makefile.am:
+	modify the autoconf/automake build system to use libtool.
+
 2004-05-10  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* jit/jit-reg-alloc.c, jit/jit-reg-alloc.h, jit/jit-rules-interp.c:

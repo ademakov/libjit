@@ -17,8 +17,8 @@ AM_YFLAGS = -d
 
 CCLD = $(CXX)
 
-dpas_LDADD = $(top_builddir)/jit/libjit.a
-dpas_DEPENDENCIES = $(top_builddir)/jit/libjit.a
+dpas_LDADD = $(top_builddir)/jit/libjit.la
+dpas_DEPENDENCIES = $(top_builddir)/jit/libjit.la
 
 AM_CFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include -I. -I$(srcdir) \
 			-DDPAS_INCLUDE_DIR=\"$(datadir)/dpas\"

@@ -1,5 +1,8 @@
 Makefile
 Makefile.in
 .deps
+.libs
 gen-apply
 gen-apply.exe
+*.lo
+*.la

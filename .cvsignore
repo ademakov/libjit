@@ -11,3 +11,6 @@ config.h
 config.h.in
 stamp-h
 stamp-h.in
+libtool
+ltconfig
+ltmain.sh

@@ -1,4 +1,7 @@
 Makefile
 Makefile.in
 .deps
+.libs
 jit-apply-rules.h
+*.lo
+*.la

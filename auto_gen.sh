@@ -31,6 +31,11 @@ case "$AM_VERSION" in
                 *) AM_FLAGS="--ignore-deps" ;;
 esac
 
+# Run libtoolize if necessary.
+if test ! -f "ltconfig" ; then
+	libtoolize --copy 2>/dev/null
+fi
+
 # Run automake and autoconf.
 automake --add-missing --copy $AM_FLAGS
 autoconf
