@@ -28,6 +28,7 @@ libjit_a_SOURCES = \
 		jit-interp.cpp \
 		jit-intrinsic.c \
 		jit-live.c \
+		jit-mangle.c \
 		jit-memory.c \
 		jit-memory.h \
 		jit-meta.c \
