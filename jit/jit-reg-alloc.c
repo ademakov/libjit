@@ -290,7 +290,7 @@ static void spill_register(jit_gencode_t gen, int reg)
 {
 	if((_jit_reg_info[reg].flags & JIT_REG_IN_STACK) == 0)
 	{
-		return spill_all_between(gen, reg, reg);
+		spill_all_between(gen, reg, reg);
 	}
 	else
 	{

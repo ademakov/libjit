@@ -3,6 +3,8 @@
 
 	* tools/gen-apply.c: fix a macro generation bug for Win32 systems.
 
+	* jit/jit-reg-alloc.c: fix a compile bug.
+
 2004-05-14  Rhys Weatherley  <rweather@southern-storm.com.au>
 
 	* include/jit/Makefile.am, include/jit/jit-objmodel-private.h,
