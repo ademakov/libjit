@@ -50,9 +50,25 @@ typedef enum
 	ARM_LINK = ARM_R14,			/* Link register */
 	ARM_PC   = ARM_R15,			/* Program counter */
 	ARM_WORK = ARM_R12,			/* Work register that we can destroy */
-	ARM_SP   = ARM_R13,			/* Stack pointer */
+	ARM_SP   = ARM_R13			/* Stack pointer */
 
 } ARM_REG;
+
+/*
+ * Floating-point register numbers.
+ */
+typedef enum
+{
+	ARM_F0	= 0,
+	ARM_F1	= 1,
+	ARM_F2	= 2,
+	ARM_F3	= 3,
+	ARM_F4	= 4,
+	ARM_F5	= 5,
+	ARM_F6	= 6,
+	ARM_F7	= 7
+
+} ARM_FREG;
 
 /*
  * Condition codes.
@@ -78,7 +94,7 @@ typedef enum
 	ARM_CC_GE_UN = ARM_CC_CS,	/* Unsigned greater than or equal */
 	ARM_CC_LT_UN = ARM_CC_CC,	/* Unsigned less than */
 	ARM_CC_GT_UN = ARM_CC_HI,	/* Unsigned greater than */
-	ARM_CC_LE_UN = ARM_CC_LS,	/* Unsigned less than or equal */
+	ARM_CC_LE_UN = ARM_CC_LS	/* Unsigned less than or equal */
 
 } ARM_CC;
 
@@ -102,7 +118,7 @@ typedef enum
 	ARM_ORR = 12,				/* Bitwise OR */
 	ARM_MOV = 13,				/* Move */
 	ARM_BIC = 14,				/* Test with Op1 & ~Op2 */
-	ARM_MVN = 15,				/* Bitwise NOT */
+	ARM_MVN = 15				/* Bitwise NOT */
 
 } ARM_OP;
 
@@ -114,9 +130,52 @@ typedef enum
 	ARM_SHL = 0,				/* Logical left */
 	ARM_SHR = 1,				/* Logical right */
 	ARM_SAR = 2,				/* Arithmetic right */
-	ARM_ROR = 3,				/* Rotate right */
+	ARM_ROR = 3					/* Rotate right */
 
 } ARM_SHIFT;
+
+/*
+ * Floating-point unary operators.
+ */
+typedef enum
+{
+	ARM_MVF		= 0,			/* Move */
+	ARM_MNF		= 1,			/* Move negative */
+	ARM_ABS		= 2,			/* Absolute value */
+	ARM_RND		= 3,			/* Round */
+	ARM_SQT		= 4,			/* Square root */
+	ARM_LOG		= 5,			/* log10 */
+	ARM_LGN		= 6,			/* ln */
+	ARM_EXP		= 7,			/* exp */
+	ARM_SIN		= 8,			/* sin */
+	ARM_COS		= 9,			/* cos */
+	ARM_TAN		= 10,			/* tan */
+	ARM_ASN		= 11,			/* asin */
+	ARM_ACS		= 12,			/* acos */
+	ARM_ATN		= 13			/* atan */
+
+} ARM_FUNARY;
+
+/*
+ * Floating-point binary operators.
+ */
+typedef enum
+{
+	ARM_ADF		= 0,			/* Add */
+	ARM_MUF		= 1,			/* Multiply */
+	ARM_SUF		= 2,			/* Subtract */
+	ARM_RSF		= 3,			/* Reverse subtract */
+	ARM_DVF		= 4,			/* Divide */
+	ARM_RDF		= 5,			/* Reverse divide */
+	ARM_POW		= 6,			/* pow */
+	ARM_RPW		= 7,			/* Reverse pow */
+	ARM_RMF		= 8,			/* Remainder */
+	ARM_FML		= 9,			/* Fast multiply (32-bit only) */
+	ARM_FDV		= 10,			/* Fast divide (32-bit only) */
+	ARM_FRD		= 11,			/* Fast reverse divide (32-bit only) */
+	ARM_POL		= 12			/* Polar angle */
+
+} ARM_FBINARY;
 
 /*
  * Number of registers that are used for parameters (r0-r3).
@@ -403,6 +462,44 @@ extern arm_inst_ptr _arm_mov_reg_imm
 			} while (0)
 
 /*
+ * Perform a binary operation on floating-point arguments.
+ */
+#define	arm_alu_freg_freg(inst,opc,dreg,sreg1,sreg2)	\
+			do { \
+				*(inst)++ = arm_prefix(0x0E000180) | \
+							(((unsigned int)(opc)) << 20) | \
+							(((unsigned int)(dreg)) << 12) | \
+							(((unsigned int)(sreg1)) << 16) | \
+							 ((unsigned int)(sreg2)); \
+			} while (0)
+#define	arm_alu_freg_freg_32(inst,opc,dreg,sreg1,sreg2)	\
+			do { \
+				*(inst)++ = arm_prefix(0x0E000100) | \
+							(((unsigned int)(opc)) << 20) | \
+							(((unsigned int)(dreg)) << 12) | \
+							(((unsigned int)(sreg1)) << 16) | \
+							 ((unsigned int)(sreg2)); \
+			} while (0)
+
+/*
+ * Perform a unary operation on floating-point arguments.
+ */
+#define	arm_alu_freg(inst,opc,dreg,sreg)	\
+			do { \
+				*(inst)++ = arm_prefix(0x0E008180) | \
+							(((unsigned int)(opc)) << 20) | \
+							(((unsigned int)(dreg)) << 12) | \
+							 ((unsigned int)(sreg)); \
+			} while (0)
+#define	arm_alu_freg_32(inst,opc,dreg,sreg)	\
+			do { \
+				*(inst)++ = arm_prefix(0x0E008100) | \
+							(((unsigned int)(opc)) << 20) | \
+							(((unsigned int)(dreg)) << 12) | \
+							 ((unsigned int)(sreg)); \
+			} while (0)
+
+/*
  * Branch or jump immediate by a byte offset.  The offset is
  * assumed to be +/- 32 Mbytes.
  */
@@ -619,6 +716,48 @@ extern arm_inst_ptr _arm_mov_reg_imm
 			} while (0)
 
 /*
+ * Load a floating-point value from an address into a register.
+ */
+#define	arm_load_membase_float_either(inst,reg,basereg,imm,mask)	\
+			do { \
+				int __mb_offset = (int)(imm); \
+				if(__mb_offset >= 0 && __mb_offset < (1 << 10) && \
+				   (__mb_offset & 3) == 0) \
+				{ \
+					*(inst)++ = arm_prefix(0x0D100000 | (mask)) | \
+							(((unsigned int)(basereg)) << 16) | \
+							(((unsigned int)(reg)) << 12) | \
+							 ((unsigned int)((__mb_offset / 4) & 0xFF); \
+				} \
+				else if(__mb_offset > -(1 << 10) && __mb_offset < 0 && \
+				        (__mb_offset & 3) == 0) \
+				{ \
+					*(inst)++ = arm_prefix(0x0D180000 | (mask)) | \
+							(((unsigned int)(basereg)) << 16) | \
+							(((unsigned int)(reg)) << 12) | \
+							 ((unsigned int)(((-__mb_offset) / 4) & 0xFF));\
+				} \
+				else \
+				{ \
+					arm_mov_reg_imm((inst), ARM_WORK, __mb_offset); \
+					arm_alu_reg_reg((inst), ARM_ADD, ARM_WORK, \
+								    (basereg), ARM_WORK); \
+					*(inst)++ = arm_prefix(0x0D100000 | (mask)) | \
+							(((unsigned int)ARM_WORK) << 16) | \
+							(((unsigned int)(reg)) << 12); \
+				} \
+			} while (0)
+#define	arm_load_membase_float32(inst,reg,basereg,imm)	\
+			do { \
+				arm_load_membase_float((inst), (reg), (basereg), (imm), 0); \
+			} while (0)
+#define	arm_load_membase_float64(inst,reg,basereg,imm)	\
+			do { \
+				arm_load_membase_float((inst), (reg), (basereg), \
+									   (imm), 0x00008000); \
+			} while (0)
+
+/*
  * Store a value from a register into an address.
  *
  * Note: storing a 16-bit value destroys the value in the register.
@@ -673,6 +812,58 @@ extern arm_inst_ptr _arm_mov_reg_imm
 #define	arm_store_membase_ushort(inst,reg,basereg,imm)	\
 			do { \
 				arm_store_membase_short((inst), (reg), (basereg), (imm)); \
+			} while (0)
+
+/*
+ * Store a floating-point value to a memory address.
+ */
+#define	arm_store_membase_float_either(inst,reg,basereg,imm,mask)	\
+			do { \
+				int __mb_offset = (int)(imm); \
+				if(__mb_offset >= 0 && __mb_offset < (1 << 10) && \
+				   (__mb_offset & 3) == 0) \
+				{ \
+					*(inst)++ = arm_prefix(0x0D800000 | (mask)) | \
+							(((unsigned int)(basereg)) << 16) | \
+							(((unsigned int)(reg)) << 12) | \
+							 ((unsigned int)((__mb_offset / 4) & 0xFF); \
+				} \
+				else if(__mb_offset > -(1 << 10) && __mb_offset < 0 && \
+				        (__mb_offset & 3) == 0) \
+				{ \
+					*(inst)++ = arm_prefix(0x0D880000 | (mask)) | \
+							(((unsigned int)(basereg)) << 16) | \
+							(((unsigned int)(reg)) << 12) | \
+							 ((unsigned int)(((-__mb_offset) / 4) & 0xFF));\
+				} \
+				else \
+				{ \
+					arm_mov_reg_imm((inst), ARM_WORK, __mb_offset); \
+					arm_alu_reg_reg((inst), ARM_ADD, ARM_WORK, \
+								    (basereg), ARM_WORK); \
+					*(inst)++ = arm_prefix(0x0D800000 | (mask)) | \
+							(((unsigned int)ARM_WORK) << 16) | \
+							(((unsigned int)(reg)) << 12); \
+				} \
+			} while (0)
+#define	arm_store_membase_float32(inst,reg,basereg,imm)	\
+			do { \
+				arm_store_membase_float((inst), (reg), (basereg), (imm), 0); \
+			} while (0)
+#define	arm_store_membase_float64(inst,reg,basereg,imm)	\
+			do { \
+				arm_store_membase_float((inst), (reg), (basereg), \
+									    (imm), 0x00008000); \
+			} while (0)
+#define	arm_push_reg_float32(inst,reg)	\
+			do { \
+				arm_store_membase_float((inst), (reg), ARM_SP, \
+									    -4, 0x00200000); \
+			} while (0)
+#define	arm_push_reg_float64(inst,reg)	\
+			do { \
+				arm_store_membase_float((inst), (reg), ARM_SP, \
+									    -4, 0x00208000); \
 			} while (0)
 
 /*
