@@ -628,23 +628,45 @@ jit_value jit_function::get_struct_pointer()
  * @deftypemethodx jit_function void insn_branch_if ({const jit_value&} value, {jit_label&} label)
  * @deftypemethodx jit_function void insn_branch_if_not ({const jit_value&} value, {jit_label&} label)
  * @deftypemethodx jit_function jit_value insn_address_of ({const jit_value&} value1)
+ * @deftypemethodx jit_function jit_value insn_address_of_label ({jit_label&} label)
  * @deftypemethodx jit_function jit_value insn_convert ({const jit_value&} value, jit_type_t type, int overflow_check)
  * @deftypemethodx jit_function jit_value insn_call ({const char *} name, jit_function_t jit_func, jit_type_t signature, {jit_value_t *} args, {unsigned int} num_args, int flags)
  * @deftypemethodx jit_function jit_value insn_call_indirect ({const jit_value&} value, jit_type_t signature, {jit_value_t *} args, {unsigned int} num_args, int flags)
  * @deftypemethodx jit_function jit_value insn_call_indirect_vtable ({const jit_value&} value, jit_type_t signature, {jit_value_t *} args, {unsigned int} num_args, int flags)
  * @deftypemethodx jit_function jit_value insn_call_native ({const char *} name, {void *} native_func, jit_type_t signature, {jit_value_t *} args, {unsigned int} num_args, int flags)
  * @deftypemethodx jit_function jit_value insn_call_intrinsic ({const char *} name, {void *} intrinsic_func, {const jit_intrinsic_descr_t&} descriptor, {const jit_value&} arg1, {const jit_value&} arg2)
+ * @deftypemethodx jit_function void insn_incoming_reg ({const jit_value&} value, int reg)
+ * @deftypemethodx jit_function void insn_incoming_frame_posn ({const jit_value&}  value, jit_nint posn)
+ * @deftypemethodx jit_function void insn_outgoing_reg ({const jit_value&} value, int reg)
+ * @deftypemethodx jit_function void insn_return_reg ({const jit_value&} value, int reg)
+ * @deftypemethodx jit_function void insn_setup_for_nested (int nested_level, int reg)
+ * @deftypemethodx jit_function void insn_flush_struct ({const jit_value&} value)
  * @deftypemethodx jit_function jit_value insn_import (jit_value value)
+ * @deftypemethodx jit_function void insn_push ({const jit_value&} value)
+ * @deftypemethodx jit_function void insn_push_ptr ({const jit_value&} value, jit_type_t type)
  * @deftypemethodx jit_function void insn_return ({const jit_value&} value)
  * @deftypemethodx jit_function void insn_return ()
  * @deftypemethodx jit_function void insn_return_ptr ({const jit_value&} value, jit_type_t type)
  * @deftypemethodx jit_function void insn_default_return ()
  * @deftypemethodx jit_function void insn_throw ({const jit_value&} value)
  * @deftypemethodx jit_function jit_value insn_get_call_stack ()
+ * @deftypemethodx jit_function jit_value insn_thrown_exception ()
+ * @deftypemethodx jit_function void insn_uses_catcher ()
+ * @deftypemethodx jit_function jit_value insn_start_catcher ()
+ * @deftypemethodx jit_function void insn_branch_if_pc_not_in_range ({const jit_label&} start_label, {const jit_label&} end_label, {jit_label&} label)
+ * @deftypemethodx jit_function void insn_rethrow_unhandled ()
+ * @deftypemethodx jit_function void insn_start_finally ({jit_label&} label)
+ * @deftypemethodx jit_function void insn_return_from_finally ()
+ * @deftypemethodx jit_function void insn_call_finally ({jit_label&} label)
+ * @deftypemethodx jit_function jit_value insn_start_filter ({jit_label&} label, jit_type_t type)
+ * @deftypemethodx jit_function void insn_return_from_filter ({const jit_value&} value)
+ * @deftypemethodx jit_function jit_value insn_call_filter ({jit_label&} label, {const jit_value&} value, jit_type_t type)
  * @deftypemethodx jit_function void insn_memcpy ({const jit_value&} dest, {const jit_value&} src, {const jit_value&} size)
- * @deftypemethodx void insn_memmove ({const jit_value&} dest, {const jit_value&} src, {const jit_value&} size)
- * @deftypemethodx void jit_insn_memset ({const jit_value&} dest, {const jit_value&} value, {const jit_value&} size)
- * @deftypemethodx jit_value jit_insn_alloca ({const jit_value&} size)
+ * @deftypemethodx jit_function void insn_memmove ({const jit_value&} dest, {const jit_value&} src, {const jit_value&} size)
+ * @deftypemethodx jit_function void jit_insn_memset ({const jit_value&} dest, {const jit_value&} value, {const jit_value&} size)
+ * @deftypemethodx jit_function jit_value jit_insn_alloca ({const jit_value&} size)
+ * @deftypemethodx jit_function void insn_move_blocks_to_end ({const jit_label&} from_label, {const jit_label&} to_label)
+ * @deftypemethodx jit_function void insn_move_blocks_to_start ({const jit_label&} from_label, {const jit_label&} to_label)
  * Create instructions of various kinds.  @xref{Instructions}, for more
  * information on the individual instructions and their arguments.
  * @end deftypemethod
@@ -1063,6 +1085,11 @@ jit_value jit_function::insn_address_of(const jit_value& value1)
 	value_wrap(jit_insn_address_of(func, value1.raw()));
 }
 
+jit_value jit_function::insn_address_of_label(jit_label& label)
+{
+	value_wrap(jit_insn_address_of_label(func, label.rawp()));
+}
+
 jit_value jit_function::insn_convert
 	(const jit_value& value, jit_type_t type, int overflow_check)
 {
@@ -1111,9 +1138,70 @@ jit_value jit_function::insn_call_intrinsic
 		(func, name, intrinsic_func, &descriptor, arg1.raw(), arg2.raw()));
 }
 
+void jit_function::insn_incoming_reg(const jit_value& value, int reg)
+{
+	if(!jit_insn_incoming_reg(func, value.raw(), reg))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_incoming_frame_posn
+	(const jit_value& value, jit_nint posn)
+{
+	if(!jit_insn_incoming_frame_posn(func, value.raw(), posn))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_outgoing_reg(const jit_value& value, int reg)
+{
+	if(!jit_insn_outgoing_reg(func, value.raw(), reg))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_return_reg(const jit_value& value, int reg)
+{
+	if(!jit_insn_return_reg(func, value.raw(), reg))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_setup_for_nested(int nested_level, int reg)
+{
+}
+
+void jit_function::insn_flush_struct(const jit_value& value)
+{
+	if(!jit_insn_flush_struct(func, value.raw()))
+	{
+		out_of_memory();
+	}
+}
+
 jit_value jit_function::insn_import(jit_value value)
 {
 	value_wrap(jit_insn_import(func, value.raw()));
+}
+
+void jit_function::insn_push(const jit_value& value)
+{
+	if(!jit_insn_push(func, value.raw()))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_push_ptr(const jit_value& value, jit_type_t type)
+{
+	if(!jit_insn_push_ptr(func, value.raw(), type))
+	{
+		out_of_memory();
+	}
 }
 
 void jit_function::insn_return(const jit_value& value)
@@ -1161,6 +1249,86 @@ jit_value jit_function::insn_get_call_stack()
 	value_wrap(jit_insn_get_call_stack(func));
 }
 
+jit_value jit_function::insn_thrown_exception()
+{
+	value_wrap(jit_insn_thrown_exception(func));
+}
+
+void jit_function::insn_uses_catcher()
+{
+	if(!jit_insn_uses_catcher(func))
+	{
+		out_of_memory();
+	}
+}
+
+jit_value jit_function::insn_start_catcher()
+{
+	value_wrap(jit_insn_start_catcher(func));
+}
+
+void jit_function::insn_branch_if_pc_not_in_range
+	(const jit_label& start_label, const jit_label& end_label,
+	 jit_label& label)
+{
+	if(!jit_insn_branch_if_pc_not_in_range
+			(func, start_label.raw(), end_label.raw(), label.rawp()))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_rethrow_unhandled()
+{
+	if(!jit_insn_rethrow_unhandled(func))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_start_finally(jit_label& label)
+{
+	if(!jit_insn_start_finally(func, label.rawp()))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_return_from_finally()
+{
+	if(!jit_insn_return_from_finally(func))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_call_finally(jit_label& label)
+{
+	if(!jit_insn_call_finally(func, label.rawp()))
+	{
+		out_of_memory();
+	}
+}
+
+jit_value jit_function::insn_start_filter(jit_label& label, jit_type_t type)
+{
+	value_wrap(jit_insn_start_filter(func, label.rawp(), type));
+}
+
+void jit_function::insn_return_from_filter(const jit_value& value)
+{
+	if(!jit_insn_return_from_filter(func, value.raw()))
+	{
+		out_of_memory();
+	}
+}
+
+jit_value jit_function::insn_call_filter
+	(jit_label& label, const jit_value& value, jit_type_t type)
+{
+	value_wrap(jit_insn_call_filter(func, label.rawp(), value.raw(), type));
+}
+
 void jit_function::insn_memcpy
 	(const jit_value& dest, const jit_value& src, const jit_value& size)
 {
@@ -1191,6 +1359,24 @@ void jit_function::insn_memset
 jit_value jit_function::insn_alloca(const jit_value& size)
 {
 	value_wrap(jit_insn_alloca(func, size.raw()));
+}
+
+void jit_function::insn_move_blocks_to_end
+	(const jit_label& from_label, const jit_label& to_label)
+{
+	if(!jit_insn_move_blocks_to_end(func, from_label.raw(), to_label.raw()))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_move_blocks_to_start
+	(const jit_label& from_label, const jit_label& to_label)
+{
+	if(!jit_insn_move_blocks_to_start(func, from_label.raw(), to_label.raw()))
+	{
+		out_of_memory();
+	}
 }
 
 void jit_function::register_on_demand()

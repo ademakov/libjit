@@ -283,6 +283,7 @@ public:
 	void insn_branch_if(const jit_value& value, jit_label& label);
 	void insn_branch_if_not(const jit_value& value, jit_label& label);
 	jit_value insn_address_of(const jit_value& value1);
+	jit_value insn_address_of_label(jit_label& label);
 	jit_value insn_convert
 		(const jit_value& value, jit_type_t type, int overflow_check=0);
 	jit_value insn_call
@@ -302,13 +303,35 @@ public:
 		(const char *name, void *intrinsic_func,
 	 	 const jit_intrinsic_descr_t& descriptor,
 		 const jit_value& arg1, const jit_value& arg2);
+	void insn_incoming_reg(const jit_value& value, int reg);
+	void insn_incoming_frame_posn(const jit_value& value, jit_nint posn);
+	void insn_outgoing_reg(const jit_value& value, int reg);
+	void insn_return_reg(const jit_value& value, int reg);
+	void insn_setup_for_nested(int nested_level, int reg);
+	void insn_flush_struct(const jit_value& value);
 	jit_value insn_import(jit_value value);
+	void insn_push(const jit_value& value);
+	void insn_push_ptr(const jit_value& value, jit_type_t type);
 	void insn_return(const jit_value& value);
 	void insn_return();
 	void insn_return_ptr(const jit_value& value, jit_type_t type);
 	void insn_default_return();
 	void insn_throw(const jit_value& value);
 	jit_value insn_get_call_stack();
+	jit_value insn_thrown_exception();
+	void insn_uses_catcher();
+	jit_value insn_start_catcher();
+	void insn_branch_if_pc_not_in_range
+		(const jit_label& start_label, const jit_label& end_label,
+		 jit_label& label);
+	void insn_rethrow_unhandled();
+	void insn_start_finally(jit_label& label);
+	void insn_return_from_finally();
+	void insn_call_finally(jit_label& label);
+	jit_value insn_start_filter(jit_label& label, jit_type_t type);
+	void insn_return_from_filter(const jit_value& value);
+	jit_value insn_call_filter
+		(jit_label& label, const jit_value& value, jit_type_t type);
 	void insn_memcpy
 		(const jit_value& dest, const jit_value& src, const jit_value& size);
 	void insn_memmove
@@ -316,6 +339,10 @@ public:
 	void insn_memset
 		(const jit_value& dest, const jit_value& value, const jit_value& size);
 	jit_value insn_alloca(const jit_value& size);
+	void insn_move_blocks_to_end
+		(const jit_label& from_label, const jit_label& to_label);
+	void insn_move_blocks_to_start
+		(const jit_label& from_label, const jit_label& to_label);
 
 private:
 	jit_function_t func;
