@@ -631,28 +631,34 @@ void _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 	/* Make sure that we have sufficient space */
 	jit_cache_setup_output(20);
 
-	/* Fix the value in place within the local variable frame */
-	_jit_gen_fix_value(value);
-
 	/* Output an appropriate instruction to spill the value */
-	offset = (int)(value->frame_offset);
-	if(reg < 16)
+	if(value->has_global_register)
 	{
-		arm_store_membase(inst, reg, ARM_FP, offset);
-		if(other_reg != -1)
-		{
-			/* Spill the other word register in a pair */
-			offset += sizeof(void *);
-			arm_store_membase(inst, other_reg, ARM_FP, offset);
-		}
-	}
-	else if(jit_type_normalize(value->type)->kind == JIT_TYPE_FLOAT32)
-	{
-		arm_store_membase_float32(inst, reg - 16, ARM_FP, offset);
+		arm_mov_reg_reg(gen, _jit_reg_info[value->global_reg].cpu_reg,
+						_jit_reg_info[reg].cpu_reg);
 	}
 	else
 	{
-		arm_store_membase_float64(inst, reg - 16, ARM_FP, offset);
+		_jit_gen_fix_value(value);
+		offset = (int)(value->frame_offset);
+		if(reg < 16)
+		{
+			arm_store_membase(inst, reg, ARM_FP, offset);
+			if(other_reg != -1)
+			{
+				/* Spill the other word register in a pair */
+				offset += sizeof(void *);
+				arm_store_membase(inst, other_reg, ARM_FP, offset);
+			}
+		}
+		else if(jit_type_normalize(value->type)->kind == JIT_TYPE_FLOAT32)
+		{
+			arm_store_membase_float32(inst, reg - 16, ARM_FP, offset);
+		}
+		else
+		{
+			arm_store_membase_float64(inst, reg - 16, ARM_FP, offset);
+		}
 	}
 
 	/* End the code output process */

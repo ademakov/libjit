@@ -21,6 +21,9 @@
 	so that we can disable certain rules on ARM platforms that lack
 	floating-point support.
 
+	* jit/jit-rules-arm.c (_jit_gen_spill_reg): spill properly to
+	global registers for ARM.
+
 2004-06-08  Miroslaw Dobrzanski-Neumann  <mne@mosaic-ag.com>
 
 	* jit/jit-alloc.c: fix ROUND_END_PTR so that it adds the size
