@@ -1,3 +1,7 @@
+2005-11-19  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/apply-x86-64.h: Change definition of JIT_MEMCPY from "jit_memcpy" to
+	"jit_memcpy@PLT" to fix the build of a shared library for x86_64.
 
 2004-11-18  Rhys Weatherley  <rweather@southern-storm.com.au>
 

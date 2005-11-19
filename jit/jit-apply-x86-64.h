@@ -44,7 +44,7 @@
 #if defined(__GNUC__)
 
 #ifndef	JIT_MEMCPY
-#define	JIT_MEMCPY	"jit_memcpy"
+#define	JIT_MEMCPY	"jit_memcpy@PLT"
 #endif
 
 #define	jit_builtin_apply(func,args,size,return_float,return_buf)	\
