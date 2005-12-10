@@ -1,3 +1,8 @@
+2005-12-10  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-gen-x86.h: Merged changes from the latest Mono project's version
+	of this file.
+
 2005-11-19  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/apply-x86-64.h: Change definition of JIT_MEMCPY from "jit_memcpy" to
