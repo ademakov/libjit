@@ -3,6 +3,12 @@
 	* jit/jit-gen-x86.h: Merged changes from the latest Mono project's version
 	of this file.
 
+	* jit/jit-rules-x86.sel: Done the following rules:
+	JIT_OP_LOAD_ELEMENT_FLOAT32, JIT_OP_LOAD_ELEMENT_FLOAT64,
+	JIT_OP_LOAD_ELEMENT_NFLOAT, JIT_OP_STORE_ELEMENT_LONG,
+	JIT_OP_STORE_ELEMENT_FLOAT32, JIT_OP_STORE_ELEMENT_FLOAT64,
+	JIT_OP_STORE_ELEMENT_NFLOAT.
+
 2005-11-19  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/apply-x86-64.h: Change definition of JIT_MEMCPY from "jit_memcpy" to

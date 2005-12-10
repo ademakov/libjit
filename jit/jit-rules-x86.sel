@@ -2834,20 +2834,94 @@ JIT_OP_LOAD_ELEMENT_LONG: manual
 
 JIT_OP_LOAD_ELEMENT_FLOAT32: manual
 	[] -> {
-		/* TODO */
-		TODO();
+		unsigned char *inst;
+		int reg, reg2;
+
+		reg = _jit_regs_load_value(gen, insn->value1, 0,
+			(insn->flags & (JIT_INSN_VALUE1_NEXT_USE | JIT_INSN_VALUE1_LIVE)));
+		reg2 = _jit_regs_load_value(gen, insn->value2, 0,
+			 (insn->flags & (JIT_INSN_VALUE2_NEXT_USE | JIT_INSN_VALUE2_LIVE)));
+		_jit_regs_new_top(gen, insn->dest, 8);
+
+		inst = gen->posn.ptr;
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+
+		reg = _jit_reg_info[reg].cpu_reg;
+		reg2 = _jit_reg_info[reg2].cpu_reg;
+
+		x86_lea_memindex(inst, reg, reg, 0, reg2, 2);
+		x86_fld_membase(inst, reg, 0, 0);
+
+		gen->posn.ptr = inst;
 	}
 
 JIT_OP_LOAD_ELEMENT_FLOAT64: manual
 	[] -> {
-		/* TODO */
-		TODO();
+		unsigned char *inst;
+		int reg, reg2, reg3;
+
+		reg = _jit_regs_load_value(gen, insn->value1, 0,
+			(insn->flags & (JIT_INSN_VALUE1_NEXT_USE | JIT_INSN_VALUE1_LIVE)));
+		reg2 = _jit_regs_load_value(gen, insn->value2, 0,
+			 (insn->flags & (JIT_INSN_VALUE2_NEXT_USE | JIT_INSN_VALUE2_LIVE)));
+		reg3 = _jit_regs_new_top(gen, insn->dest, 8);
+
+		inst = gen->posn.ptr;
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+
+		reg = _jit_reg_info[reg].cpu_reg;
+		reg2 = _jit_reg_info[reg2].cpu_reg;
+
+		x86_lea_memindex(inst, reg, reg, 0, reg2, 3);
+		x86_fld_membase(inst, reg, 0, 1);
+
+		gen->posn.ptr = inst;
 	}
 
 JIT_OP_LOAD_ELEMENT_NFLOAT: manual
 	[] -> {
-		/* TODO */
-		TODO();
+		unsigned char *inst;
+		int reg, reg2, reg3;
+
+		reg = _jit_regs_load_value(gen, insn->value1, 0,
+			(insn->flags & (JIT_INSN_VALUE1_NEXT_USE | JIT_INSN_VALUE1_LIVE)));
+		reg2 = _jit_regs_load_value(gen, insn->value2, 0,
+			 (insn->flags & (JIT_INSN_VALUE2_NEXT_USE | JIT_INSN_VALUE2_LIVE)));
+		reg3 = _jit_regs_new_top(gen, insn->dest, 8);
+
+		inst = gen->posn.ptr;
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+
+		reg = _jit_reg_info[reg].cpu_reg;
+		reg2 = _jit_reg_info[reg2].cpu_reg;
+
+		if(sizeof(jit_nfloat) != sizeof(jit_float64))
+		{
+			/* reg2 = reg2 + reg2 * 2  */
+			x86_lea_memindex(inst, reg2, reg2, 0, reg2, 1);
+			/* reg = reg + reg2 * 4 */
+			x86_lea_memindex(inst, reg, reg, 0, reg2, 2);
+			x86_fld80_membase(inst, reg, 0);
+		}
+		else
+		{
+			x86_lea_memindex(inst, reg, reg, 0, reg2, 3);
+			x86_fld_membase(inst, reg, 0, 1);
+		}
+
+		gen->posn.ptr = inst;
 	}
 
 JIT_OP_STORE_ELEMENT_BYTE: ternary
@@ -2867,26 +2941,68 @@ JIT_OP_STORE_ELEMENT_INT: ternary
 
 JIT_OP_STORE_ELEMENT_LONG: manual
 	[] -> {
-		/* TODO */
-		TODO();
+		unsigned char *inst;
+		int reg, reg2, reg3, reg4;
+		int frame_offset;
+
+		reg = _jit_regs_load_value
+			(gen, insn->dest, 0,
+			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
+			 				 JIT_INSN_DEST_LIVE)));
+		reg2 = _jit_regs_load_value
+			(gen, insn->value1, 1,
+			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
+			 				 JIT_INSN_VALUE1_LIVE)));
+		_jit_regs_get_reg_pair(gen, reg, reg2, -1, &reg3, &reg4);
+		_jit_gen_fix_value(insn->value2);
+
+		inst = gen->posn.ptr;
+		if(!jit_cache_check_for_n(&(gen->posn), 32))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+		reg = _jit_reg_info[reg].cpu_reg;
+		reg2 = _jit_reg_info[reg2].cpu_reg;
+		reg3 = _jit_reg_info[reg3].cpu_reg;
+		reg4 = _jit_reg_info[reg4].cpu_reg;
+		frame_offset = insn->value2->frame_offset;
+
+		x86_mov_reg_membase(inst, reg3, X86_EBP, frame_offset, 4);
+		x86_mov_reg_membase(inst, reg4, X86_EBP, frame_offset + 4, 4);
+		x86_mov_memindex_reg(inst, reg, 0, reg2, 3, reg3, 4);
+		x86_mov_memindex_reg(inst, reg, 4, reg2, 3, reg4, 4);
+
+		gen->posn.ptr = inst;
 	}
 
 JIT_OP_STORE_ELEMENT_FLOAT32: ternary
 	[reg, reg, freg] -> {
-		/* TODO */
-		TODO();
+		x86_lea_memindex(inst, $1, $1, 0, $2, 2);
+		x86_fst_membase(inst, $1, 0, 0, 1);
 	}
 
 JIT_OP_STORE_ELEMENT_FLOAT64: ternary
 	[reg, reg, freg] -> {
-		/* TODO */
-		TODO();
+		x86_lea_memindex(inst, $1, $1, 0, $2, 3);
+		x86_fst_membase(inst, $1, 0, 1, 1);
 	}
 
 JIT_OP_STORE_ELEMENT_NFLOAT: ternary
 	[reg, reg, freg] -> {
-		/* TODO */
-		TODO();
+		if(sizeof(jit_nfloat) != sizeof(jit_float64))
+		{
+			/* reg2 = reg2 + reg2 * 2  */
+			x86_lea_memindex(inst, $2, $2, 0, $2, 1);
+			/* reg = reg + reg2 * 4 */
+			x86_lea_memindex(inst, $1, $1, 0, $2, 2);
+			x86_fst80_membase(inst, reg, 0);
+		}
+		else
+		{
+			x86_lea_memindex(inst, $1, $1, 0, $2, 3);
+			x86_fst_membase(inst, $1, 0, 1, 1);
+		}
 	}
 
 /*
