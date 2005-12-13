@@ -1,18 +1,32 @@
+2005-12-13  Aleksey Demakov  <ademakov@gmail.com>
+
+	* configure.in: Added --enable-long-double option that forces
+	jit_nfloat to be long double.
+
+	* jit/jit-apply-x86.h (jit_builtin_apply, jit_builtin_return_float):
+	In gcc/Win32 and gcc/non-Win32 versions of the macros check the size
+	of jit_nfloat and use fstpl/fldl or fstpt/fldt instructions
+	accordingly.
+
+	* tools/gen-apply.c (detect_float_return): On x86 only the first
+	10 bytes of 12 byte long doubles are significant and are used for
+	comparison.
+
 2005-12-12  Aleksey Demakov  <ademakov@gmail.com>
 
-	* jit/jit-dump.c (dump_object_code): in order to make dump work on cygwin
-	call "as" and "objdump" in two separate system() calls because it looks
-	like the ';' separator between commands does not work there. Also on Win32
-	use TMP and TEMP environment variables as the tmp directory names and
-	fallback to "c:/tmp".
+	* jit/jit-dump.c (dump_object_code): in order to make dump work on
+	cygwin call "as" and "objdump" in two separate system() calls because
+	it looks like the ';' separator between commands does not work there.
+	Also on Win32 use TMP and TEMP environment variables as the tmp
+	directory names and fallback to "c:/tmp".
 
-	* jit/jit-gen-x86.h (jit_assert): change definition to resolve problems
-	introduced at 2005-12-10.
+	* jit/jit-gen-x86.h (jit_assert): change the macro definition to
+	resolve	problems introduced at 2005-12-10.
 
 2005-12-10  Aleksey Demakov  <ademakov@gmail.com>
 
-	* jit/jit-gen-x86.h: Merged changes from the latest Mono project's version
-	of this file.
+	* jit/jit-gen-x86.h: Merged changes from the latest Mono project's
+	version	of this file.
 
 	* jit/jit-rules-x86.sel: Done the following rules:
 	JIT_OP_LOAD_ELEMENT_FLOAT32, JIT_OP_LOAD_ELEMENT_FLOAT64,

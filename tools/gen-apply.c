@@ -56,6 +56,17 @@ the "jit-apply-rules.h" file.
 	#define	PLATFORM_IS_X86_64	1
 #endif
 
+/*
+ * On x86 the extended precision numbers are 10 bytes long. However certain
+ * ABIs define the long double size equal to 12 bytes. The extra 2 bytes are
+ * for alignment purposes only and has no significance in computations.
+ */
+#if PLATFORM_IS_X86
+#define NFLOAT_SIGNIFICANT_BYTES (sizeof(jit_nfloat) != 12 ? sizeof(jit_nfloat) : 10)
+#else
+#define NFLOAT_SIGNIFICANT_BYTES sizeof(jit_nfloat)
+#endif
+
 #if defined(PLATFORM_IS_GCC) || defined(PLATFORM_IS_WIN32)
 
 /*
@@ -717,7 +728,7 @@ void detect_float_return(void)
 				mem_copy(&nfloat_value, return_value + offset,
 						 sizeof(jit_nfloat));
 				temp_nfloat = (jit_nfloat)123.0;
-				if(!mem_cmp(&nfloat_value, &temp_nfloat, sizeof(jit_nfloat)))
+				if(!mem_cmp(&nfloat_value, &temp_nfloat, NFLOAT_SIGNIFICANT_BYTES))
 				{
 					break;
 				}

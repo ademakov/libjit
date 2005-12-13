@@ -67,13 +67,25 @@
 			); \
 			if((return_float)) \
 			{ \
-				__asm__ ( \
-					"movl %0, %%ecx\n\t" \
-					"fstpt 8(%%ecx)\n\t" \
-					: : "m"(__return_buf) \
-					: "ecx", "st" \
-				); \
-			} \
+				if(sizeof(jit_nfloat) == sizeof(double)) \
+				{ \
+					__asm__ ( \
+						"movl %0, %%ecx\n\t" \
+						"fstpl 8(%%ecx)\n\t" \
+						: : "m"(__return_buf) \
+						: "ecx", "st" \
+					); \
+				} \
+				else \
+				{ \
+					__asm__ ( \
+						"movl %0, %%ecx\n\t" \
+						"fstpt 8(%%ecx)\n\t" \
+						: : "m"(__return_buf) \
+						: "ecx", "st" \
+					); \
+				} \
+	    		} \
 		} while (0)
 
 #define	jit_builtin_apply_args(type,args)	\
@@ -163,12 +175,24 @@
 			); \
 			if((return_float)) \
 			{ \
-				__asm__ ( \
-					"movl %0, %%ecx\n\t" \
-					"fstpt 8(%%ecx)\n\t" \
-					: : "m"(__return_buf) \
-					: "ecx", "st" \
-				); \
+				if(sizeof(jit_nfloat) == sizeof(double)) \
+				{ \
+					__asm__ ( \
+						"movl %0, %%ecx\n\t" \
+						"fstpl 8(%%ecx)\n\t" \
+						: : "m"(__return_buf) \
+						: "ecx", "st" \
+					); \
+				} \
+				else \
+				{ \
+					__asm__ ( \
+						"movl %0, %%ecx\n\t" \
+						"fstpt 8(%%ecx)\n\t" \
+						: : "m"(__return_buf) \
+						: "ecx", "st" \
+					); \
+				} \
 			} \
 		} while (0)
 
@@ -201,15 +225,27 @@
 
 #define	jit_builtin_return_float(return_buf)	\
 		do { \
-			double __value = \
+			jit_nfloat __value = \
 				((jit_apply_return *)(return_buf))-> \
 					f_value.inner_value.nfloat_value; \
-			__asm__ ( \
-				"leal %0, %%ecx\n\t" \
-				"fldl (%%ecx)\n\t" \
-				: : "m"(__value) \
-				: "ecx", "st" \
-			); \
+			if(sizeof(jit_nfloat) == sizeof(double)) \
+			{ \
+				__asm__ ( \
+					"leal %0, %%ecx\n\t" \
+					"fldl (%%ecx)\n\t" \
+					: : "m"(__value) \
+					: "ecx", "st" \
+				); \
+			} \
+			else \
+			{ \
+				__asm__ ( \
+					"leal %0, %%ecx\n\t" \
+					"fldt (%%ecx)\n\t" \
+					: : "m"(__value) \
+					: "ecx", "st" \
+				); \
+			} \
 			return; \
 		} while (0)
 
