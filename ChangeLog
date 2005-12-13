@@ -1,3 +1,14 @@
+2005-12-12  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-dump.c (dump_object_code): in order to make dump work on cygwin
+	call "as" and "objdump" in two separate system() calls because it looks
+	like the ';' separator between commands does not work there. Also on Win32
+	use TMP and TEMP environment variables as the tmp directory names and
+	fallback to "c:/tmp".
+
+	* jit/jit-gen-x86.h (jit_assert): change definition to resolve problems
+	introduced at 2005-12-10.
+
 2005-12-10  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-gen-x86.h: Merged changes from the latest Mono project's version

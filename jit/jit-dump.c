@@ -647,8 +647,39 @@ static void dump_interp_code(FILE *stream, void **pc, void **end)
 static void dump_object_code(FILE *stream, void *start, void *end)
 {
 	char cmdline[BUFSIZ];
-	FILE *file = fopen("/tmp/libjit-dump.s", "w");
 	unsigned char *pc = (unsigned char *)start;
+	FILE *file;
+
+#if JIT_WIN32_PLATFORM
+	/*
+	 * NOTE: If libjit is compiled on cygwin with -mno-cygwin flag then
+	 * fopen("/tmp/foo.s", ...) will use the root folder of the current
+	 * drive. That is the full file name will be like "c:/tmp/foo". But
+	 * the ``as'' and ``objdump'' utilities still use the cygwin's root.
+	 * So "as /tmp/foo.s" will look for "c:/cygwin/tmp/foo.s". To avoid
+	 * this ambiguity the file name has to contian the drive spec (e.g.
+	 * fopen("c:/tmp/foo.s", ...) and "as c;/tmp/foo.s"). Here we assume
+	 * that the TMP or TEMP environment variables always contain it.
+	 */
+	char s_path[BUFSIZ];
+	char o_path[BUFSIZ];
+	char *tmp_dir = getenv("TMP");
+	if(tmp_dir == NULL)
+	{
+		tmp_dir = getenv("TEMP");
+		if(tmp_dir == NULL)
+		{
+			tmp_dir = "c:/tmp";
+		}
+	}
+	sprintf(s_path, "%s/libjit-dump.s", tmp_dir);
+	sprintf(o_path, "%s/libjit-dump.o", tmp_dir);
+#else
+	const char *s_path = "/tmp/libjit-dump.s";
+	const char *o_path = "/tmp/libjit-dump.s";
+#endif
+
+	file = fopen(s_path, "w");
 	if(!file)
 	{
 		return;
@@ -660,12 +691,13 @@ static void dump_object_code(FILE *stream, void *start, void *end)
 		++pc;
 	}
 	fclose(file);
-	sprintf(cmdline, "as /tmp/libjit-dump.s -o /tmp/libjit-dump.o;"
-					 "objdump --adjust-vma=%ld -d /tmp/libjit-dump.o%s",
-			(long)(jit_nint)start, (stream == stderr ? " 1>&2" : ""));
+	sprintf(cmdline, "as %s -o %s", s_path, o_path);
 	system(cmdline);
-	unlink("/tmp/libjit-dump.s");
-	unlink("/tmp/libjit-dump.o");
+	sprintf(cmdline, "objdump --adjust-vma=%ld -d %s%s",
+			(long)(jit_nint)start, o_path, (stream == stderr ? " 1>&2" : ""));
+	system(cmdline);
+	unlink(s_path);
+	unlink(o_path);
 	putc('\n', stream);
 	fflush(stream);
 }

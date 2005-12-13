@@ -17,7 +17,7 @@
 
 #ifndef JIT_GEN_X86_H
 #define JIT_GEN_X86_H
-#define	jit_assert(x)	break
+#define	jit_assert(x)	if (!(x)) break
 /*
 // x86 register numbers
 */
