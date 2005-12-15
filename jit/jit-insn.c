@@ -3948,6 +3948,7 @@ add_block:
 jit_value_t jit_insn_address_of(jit_function_t func, jit_value_t value1)
 {
 	jit_type_t type;
+	jit_value_t temp;
 	jit_value_t result;
 	if(!value1)
 	{
@@ -3957,6 +3958,17 @@ jit_value_t jit_insn_address_of(jit_function_t func, jit_value_t value1)
 	if(!type)
 	{
 		return 0;
+	}
+	/* if it is a constant, need to create a temporary and then make that addressable */
+	if(jit_value_is_constant(value1))
+	{
+		temp = jit_value_create(func, jit_value_get_type(value1));
+		if(!temp)
+		{
+			return 0;
+		}
+		jit_insn_store(func, temp, value1);
+		value1 = temp;
 	}
 	jit_value_set_addressable(value1);
 	result = apply_unary(func, JIT_OP_ADDRESS_OF, value1, type);
