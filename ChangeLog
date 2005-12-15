@@ -2,7 +2,7 @@
 2005-12-15  Avinash Atreya  <avinashatreya@gmail.com>
 
 	* jit/jit-insn.c: Store constants to a temporary to obtain
-	address of constant values.
+	address of constant values (Gopal).
 
 2005-12-13  Aleksey Demakov  <ademakov@gmail.com>
 
