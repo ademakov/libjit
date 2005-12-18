@@ -415,8 +415,28 @@ void *jit_stack_trace_get_pc
 unsigned int jit_stack_trace_get_offset
 	(jit_context_t context, jit_stack_trace_t trace, unsigned int posn)
 {
-	/* TODO */
-	return 0;
+	if(trace && posn < trace->size)
+	{
+		jit_cache_t cache = _jit_context_get_cache(context);
+		if(cache)
+		{
+			jit_function_t func = (jit_function_t) _jit_cache_get_method
+				(cache, trace->items[posn], 0);
+			if (func)
+			{
+#ifdef JIT_PROLOG_SIZE
+				unsigned long offset = trace->items[posn] - func->cache_start;
+				return _jit_cache_get_bytecode
+					(cache, func->cache_start, offset, 0);
+#else
+				unsigned long offset = trace->items[posn] - func->entry_point;
+				return _jit_cache_get_bytecode
+					(cache, func->entry_point, offset, 0);
+#endif
+			}
+		}
+	}
+	return JIT_CACHE_NO_OFFSET;
 }
 
 /*@

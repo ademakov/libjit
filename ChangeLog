@@ -1,3 +1,12 @@
+2005-12-18  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-internal.h, jit/jit-function.c (jit_function_compile):
+	Add cache_start field to the jit_function struct, set it to the start
+	of the function code cache.
+
+	* jit/jit-except.c (jit_stack_trace_get_offset): implement the
+	function.
+
 2005-12-15  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-insn.c (jit_insn_address_of): return null if the value is

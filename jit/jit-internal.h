@@ -387,6 +387,12 @@ struct _jit_function
 	/* The function to call to perform on-demand compilation */
 	jit_on_demand_func	on_demand;
 
+ 	/* TODO: This field is used only if JIT_PROLOG_SIZE is defined.
+	   However the header that defines it is included after this one
+	   so "#ifdef JIT_PROLOG_SIZE" does not work here. */
+	/* The start of the code cache. */
+	void *			cache_start;
+
 #ifdef jit_redirector_size
 	/* Buffer that contains the redirector for this function.
 	   Redirectors are used to support on-demand compilation */
