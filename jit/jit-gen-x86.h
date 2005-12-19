@@ -1214,6 +1214,12 @@ typedef union {
 		x86_membase_emit ((inst), 0, (basereg), (disp));	\
 	} while (0)
 
+#define x86_fld_memindex(inst,basereg,disp,indexreg,shift,is_double)	\
+	do {	\
+		*(inst)++ = (is_double) ? (unsigned char)0xdd : (unsigned char)0xd9;	\
+		x86_memindex_emit ((inst), 0, (basereg), (disp), (indexreg), (shift));	\
+	} while (0)
+
 #define x86_fld80_mem(inst,mem)	\
 	do {	\
 		*(inst)++ = (unsigned char)0xdb;	\
@@ -1224,6 +1230,12 @@ typedef union {
 	do {	\
 		*(inst)++ = (unsigned char)0xdb;	\
 		x86_membase_emit ((inst), 5, (basereg), (disp));	\
+	} while (0)
+
+#define x86_fld80_memindex(inst,basereg,disp,indexreg,shift)	\
+	do {	\
+		*(inst)++ = (unsigned char)0xdb;	\
+		x86_memindex_emit ((inst), 5, (basereg), (disp), (indexreg), (shift));	\
 	} while (0)
 
 #define x86_fild(inst,mem,is_long)	\
@@ -1284,12 +1296,17 @@ typedef union {
 		x86_membase_emit ((inst), 2 + ((pop_stack) ? 1 : 0), (basereg), (disp));	\
 	} while (0)
 
+#define x86_fst_memindex(inst,basereg,disp,indexreg,shift,is_double,pop_stack)	\
+	do {	\
+		*(inst)++ = (is_double) ? (unsigned char)0xdd: (unsigned char)0xd9;	\
+		x86_memindex_emit ((inst), 2 + ((pop_stack) ? 1 : 0), (basereg), (disp), (indexreg), (shift));	\
+	} while (0)
+
 #define x86_fst80_mem(inst,mem)	\
 	do {	\
 		*(inst)++ = (unsigned char)0xdb;	\
 		x86_mem_emit ((inst), 7, (mem));	\
 	} while (0)
-
 
 #define x86_fst80_membase(inst,basereg,disp)	\
 	do {	\
@@ -1297,6 +1314,11 @@ typedef union {
 		x86_membase_emit ((inst), 7, (basereg), (disp));	\
 	} while (0)
 
+#define x86_fst80_memindex(inst,basereg,disp,indexreg,shift)	\
+	do {	\
+		*(inst)++ = (unsigned char)0xdb;	\
+		x86_memindex_emit ((inst), 7, (basereg), (disp), (indexreg), (shift));	\
+	} while (0)
 
 #define x86_fist_pop(inst,mem,is_long)	\
 	do {	\

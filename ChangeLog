@@ -1,3 +1,12 @@
+2005-12-20  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-gen-x86.h (x86_fld_memindex, x86_fld80_memindex)
+	(x86_fst_memindex, x86_fst80_memindex): add floating point load
+	and store macros with memindex addressing.
+
+	* jit/jit-rules-x86.sel: optimize floating point element load
+	and store rules. Fix potential register allocation problems.
+
 2005-12-18  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-internal.h, jit/jit-function.c (jit_function_compile):
