@@ -1,7 +1,7 @@
 2005-12-22  Aleksey Demakov  <ademakov@gmail.com>
 
-	* jit/jit-rules-x86.sel: implement JIT_OP_MEMSET rule optimized
-	for small constant size blocks.
+	* jit/jit-rules-x86.sel: implement JIT_OP_MEMSET and JIT_OP_MEMCPY
+	rules optimized	for small constant size blocks.
 
 2005-12-20  Aleksey Demakov  <ademakov@gmail.com>
 

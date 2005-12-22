@@ -3031,8 +3031,117 @@ JIT_OP_STORE_ELEMENT_NFLOAT: manual
 
 JIT_OP_MEMCPY: manual
 	[] -> {
-		/* TODO */
-		TODO();
+		unsigned char *inst;
+		int reg, reg2, reg3;
+		int regi, save_reg3;
+		int disp;
+
+		if(insn->value2->is_constant && insn->value2->address <= 0)
+		{
+		}
+		else if(insn->value2->is_constant && insn->value2->address <= 32)
+		{
+			reg = _jit_regs_load_value
+				(gen, insn->dest, 0,
+				 (insn->flags & (JIT_INSN_DEST_NEXT_USE | JIT_INSN_DEST_LIVE)));
+			reg2 = _jit_regs_load_value
+				(gen, insn->value1, 0,
+				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE | JIT_INSN_VALUE1_LIVE)));
+
+			reg3 = -1;
+			save_reg3 = 0;
+			for(regi = 0; regi < 4; regi++)
+			{
+				if(regi != reg && regi != reg2)
+				{
+					if(gen->contents[regi].num_values == 0 &&
+					   gen->contents[regi].used_for_temp == 0)
+					{
+						reg3 = regi;
+						break;
+					}
+					if(reg3 == -1)
+					{
+						reg3 = regi;
+					}
+				}
+			}
+			if(gen->contents[reg3].num_values > 0 ||
+			   gen->contents[reg3].used_for_temp)
+			{
+				save_reg3 = 1;
+			}
+
+			inst = gen->posn.ptr;
+			if(!jit_cache_check_for_n(&(gen->posn), 256))
+			{
+				jit_cache_mark_full(&(gen->posn));
+				return;
+			}
+
+			reg = _jit_reg_info[reg].cpu_reg;
+			reg2 = _jit_reg_info[reg2].cpu_reg;
+			reg3 = _jit_reg_info[reg3].cpu_reg;
+
+       			if(save_reg3)
+			{
+				x86_push_reg(inst, reg3);
+			}
+
+			disp = 0;
+			while(insn->value2->address >= (disp + 4))
+			{
+				x86_mov_reg_membase(inst, reg3, reg2, disp, 4);
+				x86_mov_membase_reg(inst, reg, disp, reg3, 4);
+				disp += 4;
+			}
+			if(insn->value2->address >= (disp + 2))
+			{
+				x86_mov_reg_membase(inst, reg3, reg2, disp, 2);
+				x86_mov_membase_reg(inst, reg, disp, reg3, 2);
+				disp += 2;
+			}
+			if(insn->value2->address > disp)
+			{
+				x86_mov_reg_membase(inst, reg3, reg2, disp, 1);
+				x86_mov_membase_reg(inst, reg, disp, reg3, 1);
+			}
+
+			if(save_reg3)
+			{
+				x86_pop_reg(inst, reg3);
+			}
+
+			gen->posn.ptr = inst;
+		}
+		else
+		{
+			reg = _jit_regs_load_value
+				(gen, insn->dest, 0,
+				 (insn->flags & (JIT_INSN_DEST_NEXT_USE | JIT_INSN_DEST_LIVE)));
+			reg2 = _jit_regs_load_value
+				(gen, insn->value1, 0,
+				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE | JIT_INSN_VALUE1_LIVE)));
+			reg3 = _jit_regs_load_value
+				(gen, insn->value2, 0,
+				 (insn->flags & (JIT_INSN_VALUE2_NEXT_USE | JIT_INSN_VALUE2_LIVE)));
+			_jit_regs_spill_all(gen);
+
+			inst = gen->posn.ptr;
+			if(!jit_cache_check_for_n(&(gen->posn), 32))
+			{
+				jit_cache_mark_full(&(gen->posn));
+				return;
+			}
+
+			x86_push_reg(inst, _jit_reg_info[reg3].cpu_reg);
+			x86_push_reg(inst, _jit_reg_info[reg2].cpu_reg);
+			x86_push_reg(inst, _jit_reg_info[reg].cpu_reg);
+			x86_call_code(inst, jit_memcpy);
+			x86_alu_reg_imm(inst, X86_ADD, X86_ESP, 3 * sizeof(void *));
+
+			gen->posn.ptr = inst;
+		}
 	}
 
 JIT_OP_MEMMOVE: manual
