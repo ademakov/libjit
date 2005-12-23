@@ -200,7 +200,7 @@ void jit_exception_builtin(int exception_type)
 {
 	jit_exception_func handler;
 	void *object;
-	static const char * const messages[9] = {
+	static const char * const messages[10] = {
 		"Success",
 		"Overflow during checked arithmetic operation",
 		"Arithmetic exception (dividing the minimum integer by -1)",
@@ -209,7 +209,8 @@ void jit_exception_builtin(int exception_type)
 		"Out of memory",
 		"Null pointer dereferenced",
 		"Null function pointer called",
-		"Nested function called from non-nested context"
+		"Nested function called from non-nested context",
+		"Array index out of bounds"
 	};
 	#define	num_messages	(sizeof(messages) / sizeof(const char *))
 

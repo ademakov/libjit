@@ -592,6 +592,35 @@ static dpas_semvalue invoke_procedure
 	return rvalue;
 }
 
+static int throw_builtin_exception(jit_function_t func, int exception_type)
+{
+	jit_type_t signature;
+	jit_type_t param_types[1];
+	jit_value_t param_values[1];
+
+	/* Call the "jit_exception_builtin" function to report the exception */
+	param_types[0] = jit_type_int;
+	signature = jit_type_create_signature
+		(jit_abi_cdecl, jit_type_void, param_types, 1, 1);
+	if(!signature)
+	{
+		return 0;
+	}
+
+	param_values[0] = jit_value_create_nint_constant(func, jit_type_int, exception_type);
+	if(!param_values[0])
+	{
+		return 0;
+	}
+	jit_insn_call_native
+		(func, "jit_exception_builtin",
+		 (void *)jit_exception_builtin, signature, param_values, 1,
+		 JIT_CALL_NORETURN);
+	jit_type_free(signature);
+
+	return 1;
+}
+
 /*
  * Handle a numeric binary operator.
  */
@@ -2725,7 +2754,6 @@ Variable
 				jit_value_t array = 0;
 				jit_type_t array_type = 0;
 				jit_type_t elem_type = 0;
-				jit_value_t *low_bounds = 0;
 				int rank = $3.len;
 				if(dpas_sem_is_lvalue($1) || dpas_sem_is_lvalue_ea($1))
 				{
@@ -2800,16 +2828,125 @@ Variable
 				}
 				else if(array)
 				{
-					/* TODO */
-					dpas_error("array expressions are not fully implemented");
-					dpas_sem_set_error($$);
+					jit_nint i = 0;
+					jit_function_t func = dpas_current_function();
+					jit_value_t total_offset = 0;
+					jit_value_t lvalue_ea = 0;
+					jit_value_t index = 0;
+					jit_value_t lower_bound = 0;
+					jit_value_t upper_bound = 0;
+					jit_value_t difference = 0;
+					jit_value_t factor = 0;
+					jit_value_t offset = 0;
+					jit_value_t temp1 = 0;
+					jit_value_t temp2 = 0;
+					jit_value_t zero = 0;
+					jit_label_t out_of_bounds = jit_label_undefined;
+					jit_label_t all_is_well = jit_label_undefined;
+					jit_nuint range_size = 1;
+					dpas_array *info = 0;
+					jit_type_t *bounds = 0;
+	
+					/* get the bounds from the tagged type that was created during array creation */
+					/* may not be available if the array is accessed via a pointer */
+					info = jit_type_get_tagged_data(array_type);
+					if (info)
+					{
+						bounds = info->bounds;
+					}
+
+					/* create a constant jit_value_t that holds 0 */
+					/* needed for comparision and initialization */
+					zero = jit_value_create_nint_constant(func,jit_type_uint,0);
+
+					/* initialize total_offset with zero */
+					total_offset = jit_value_create(func,jit_type_uint);
+					jit_insn_store(func,total_offset,zero);
+
+					for ( i = 0 ; i < rank ; i++ )
+					{
+						/* get the value of the index from the expression list */
+						index = dpas_sem_get_value($3.exprs[i]);
+
+						/* get values for upper and lower bounds */
+						if ( bounds )
+						{
+							/* bounds can be either subrange or tagged */
+							if ( jit_type_get_tagged_kind(bounds[i]) == DPAS_TAG_SUBRANGE )
+							{
+								upper_bound = jit_value_create_nint_constant(func,jit_type_int,
+										((dpas_subrange *)jit_type_get_tagged_data(bounds[i]))->last.un.int_value);
+								lower_bound = jit_value_create_nint_constant(func,jit_type_int,
+										((dpas_subrange *)jit_type_get_tagged_data(bounds[i]))->first.un.int_value);
+							}
+							else if ( jit_type_get_tagged_kind(bounds[i]) == DPAS_TAG_ENUM )
+							{
+								upper_bound = jit_value_create_nint_constant(func,jit_type_int,
+										((dpas_enum *)jit_type_get_tagged_data(bounds[i]))->num_elems-1);
+								lower_bound = jit_value_create_nint_constant(func,jit_type_int,0);
+							}
+
+							/* check the upper bound first */
+							temp1 = jit_insn_le(func,index,upper_bound);
+							/* jump if not less than or equal to out_of_bounds */
+							jit_insn_branch_if_not(func,temp1,&out_of_bounds);
+							/* fall through if it is less than or equal */
+
+							/* compute difference = index - lower_bound and check greater than 0 
+								 so that we can re-use it */
+							difference = jit_insn_sub(func,index,lower_bound);
+
+							temp2 = jit_insn_ge(func,difference,zero);
+							/* jump if not greater than or equal to out_of_bounds */
+							jit_insn_branch_if_not(func,temp2,&out_of_bounds);
+							/* fall through if greater than or equal */
+
+							/* create a constant_value for the factor(range_size) */
+							factor = jit_value_create_nint_constant(func,jit_type_uint,range_size);
+
+							/* offset = difference * factor */
+							offset = jit_insn_mul(func,difference,factor);
+
+							/* total_offset += offset */
+							total_offset = jit_insn_add(func,total_offset,offset);
+
+							/*compute the range size for the next dimension */
+							range_size *= (jit_value_get_nint_constant(upper_bound) - 
+										(jit_value_get_nint_constant(lower_bound) -1));
+						}
+						else
+						{
+							/* no bounds are available, so it must be a pointer access */
+							jit_insn_store(func,total_offset,index);
+						}
+					}
+
+					if ( bounds )
+					{
+						/* if anything went wrong in the loop, we would be in out_of_bounds. 
+							 so jump to all_is_well */
+						jit_insn_branch(func,&all_is_well);
+
+						/* if we are here, out_of_bounds, throw an exception */
+						jit_insn_label(func,&out_of_bounds);
+
+						throw_builtin_exception(func, JIT_RESULT_OUT_OF_BOUNDS);
+
+						/* if we we are here, all_is_well */
+						jit_insn_label(func,&all_is_well);
+					}
+
+					/* compute effective address and set lvalue_ea*/
+					lvalue_ea = jit_insn_load_elem_address(func,array,total_offset,elem_type);
+					dpas_sem_set_lvalue_ea($$,elem_type,lvalue_ea);
+
+					/* clean-up : we aren't allocating anything here */
 				}
 				else
 				{
 					dpas_error("invalid l-value supplied to array expression");
 					dpas_sem_set_error($$);
 				}
-				jit_free(low_bounds);
 				expression_list_free($3.exprs, $3.len);
 			}
 	| Variable '.' Identifier			{

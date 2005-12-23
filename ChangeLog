@@ -1,3 +1,16 @@
+2005-12-24  Avinash Atreya  <avinashatreya@gmail.com>
+
+	* dpas/dpas-parser.y: implement array expressions (committed by Aleksey
+	Demakov, jit_insn_throw replaced with throw_builtin_exception)
+
+2005-12-24  Aleksey Demakov  <ademakov@gmail.com>
+
+	* include/jit/jit-except.h, jit/jit-except.c (jit_exception_builtin): 
+	add JIT_RESULT_OUT_OF_BOUNDS builtin exception type code.
+
+	* dpas/dpas-parser.y (throw_builtin_exception): add static function
+	that makes jit_exception_builtin call.
+
 2005-12-22  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.sel: implement JIT_OP_MEMSET and JIT_OP_MEMCPY

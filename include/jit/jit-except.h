@@ -39,6 +39,7 @@ extern	"C" {
 #define	JIT_RESULT_NULL_REFERENCE	-5
 #define	JIT_RESULT_NULL_FUNCTION	-6
 #define	JIT_RESULT_CALLED_NESTED	-7
+#define	JIT_RESULT_OUT_OF_BOUNDS	-8
 
 /*
  * Exception handling function for builtin exceptions.
