@@ -684,7 +684,6 @@ int jit_function_compile(jit_function_t func)
 		end = gen.posn.ptr;
 
 #ifdef JIT_PROLOG_SIZE
-		func->cache_start = start;
 		/* Back-patch the function prolog and get the real entry point */
 		if(have_prolog)
 		{
