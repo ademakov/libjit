@@ -1014,6 +1014,28 @@ static int add_parent(jit_cache_method_t *parent_buf,
 	return 1;
 }
 
+void *_jit_cache_get_start_method(jit_cache_t cache, void *pc)
+{
+	/* TODO: This function is not currently aware of multiple regions. */
+	jit_cache_method_t node = cache->head.right;
+	while(node != &(cache->nil))
+	{
+		if(((unsigned char *)pc) < node->start)
+		{
+			node = GetLeft(node);
+		}
+		else if(((unsigned char *)pc) >= node->end)
+		{
+			node = GetRight(node);
+		}
+		else
+		{
+			return node->start;
+		}
+	}
+	return 0;
+}
+
 void *_jit_cache_get_end_method(jit_cache_t cache, void *pc)
 {
 	jit_cache_method_t parent_buf[16];

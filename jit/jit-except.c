@@ -426,14 +426,13 @@ unsigned int jit_stack_trace_get_offset
 			if (func)
 			{
 #ifdef JIT_PROLOG_SIZE
-				unsigned long offset = trace->items[posn] - func->cache_start;
-				return _jit_cache_get_bytecode
-					(cache, func->cache_start, offset, 0);
+				void *start = _jit_cache_get_start_method
+					(cache, func->entry_point);
 #else
-				unsigned long offset = trace->items[posn] - func->entry_point;
-				return _jit_cache_get_bytecode
-					(cache, func->entry_point, offset, 0);
+				void *start = func->entry_point;
 #endif
+				unsigned long offset = trace->items[posn] - start;
+				return _jit_cache_get_bytecode(cache, start, offset, 0);
 			}
 		}
 	}

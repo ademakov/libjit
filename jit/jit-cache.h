@@ -130,6 +130,16 @@ void _jit_cache_set_cookie(jit_cache_posn *posn, void *cookie);
 void *_jit_cache_get_method(jit_cache_t cache, void *pc, void **cookie);
 
 /*
+ * Get the start of a method with a particular starting PC.
+ * Returns NULL if the PC could not be located.
+ * NOTE: This function is not currently aware of the
+ * possibility of multiple regions per function. To ensure
+ * correct results the ``pc'' argument has to be in the
+ * first region.
+ */
+void *_jit_cache_get_start_method(jit_cache_t cache, void *pc);
+
+/*
  * Get the end of a method with a particular starting PC.
  * Returns NULL if the PC could not be located.
  */

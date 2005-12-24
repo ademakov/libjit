@@ -11,6 +11,14 @@
 	* dpas/dpas-parser.y (throw_builtin_exception): add static function
 	that makes jit_exception_builtin call.
 
+	* jit/jit-cache.c (_jit_cache_get_start_method): add function that
+	for an address in cache returns the start address of the block that
+	contains it.
+	* jit/jit-except.c (jit_stack_trace_get_offset): use
+	_jit_cache_get_start_method function instead of cache_start field.
+	* jit/jit-internal.h, jit/jit-function.c (jit_function_compile):
+	remove cache_start field to the jit_function struct.
+
 2005-12-22  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.sel: implement JIT_OP_MEMSET and JIT_OP_MEMCPY
