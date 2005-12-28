@@ -1,3 +1,8 @@
+2005-12-28  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.sel: implement JIT_OP_MEMMOVE rule. Get rid of
+	compiler warnings in JIT_OP_MEMSET.
+
 2005-12-24  Avinash Atreya  <avinashatreya@gmail.com>
 
 	* dpas/dpas-parser.y: implement array expressions (committed by Aleksey
