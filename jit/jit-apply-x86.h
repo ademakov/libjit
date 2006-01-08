@@ -104,10 +104,10 @@
 #define	jit_builtin_return_int(return_buf)	\
 		do { \
 			__asm__ ( \
-				"movl %0, %%ecx\n\t" \
+				"leal %0, %%ecx\n\t" \
 				"movl (%%ecx), %%eax\n\t" \
 				"movl 4(%%ecx), %%edx\n\t" \
-				: : "m"((return_buf)) \
+				: : "m"(*(return_buf)) \
 				: "eax", "ecx", "edx" \
 			); \
 			return; \
@@ -214,10 +214,10 @@
 #define	jit_builtin_return_int(return_buf)	\
 		do { \
 			__asm__ ( \
-				"movl %0, %%ecx\n\t" \
+				"leal %0, %%ecx\n\t" \
 				"movl (%%ecx), %%eax\n\t" \
 				"movl 4(%%ecx), %%edx\n\t" \
-				: : "m"((return_buf)) \
+				: : "m"(*(return_buf)) \
 				: "eax", "ecx", "edx" \
 			); \
 			return; \

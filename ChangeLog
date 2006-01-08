@@ -1,3 +1,9 @@
+2006-01-08  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-apply-x86.h (jit_builtin_return_int): change definition
+	to dereference the return_buf argument and use leal instead of movl.
+	This fixes builds with gcc 4.0.2.
+
 2005-12-28  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.sel: implement JIT_OP_MEMMOVE rule. Get rid of
