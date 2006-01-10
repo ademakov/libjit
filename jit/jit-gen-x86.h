@@ -1480,6 +1480,11 @@ typedef union {
 		x86_membase_emit ((inst), 4, (basereg), (disp));	\
 	} while (0)
 
+#define x86_jump_memindex(inst,basereg,disp,indexreg,shift)	\
+	do {	\
+		*(inst)++ = (unsigned char)0xff;	\
+		x86_memindex_emit ((inst), 4, (basereg), (disp), (indexreg), (shift)); \
+	} while (0)
 /*
  * target is a pointer in our buffer.
  */
