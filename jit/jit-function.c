@@ -710,6 +710,7 @@ int jit_function_compile(jit_function_t func)
 			{
 				block->address = 0;
 				block->fixup_list = 0;
+				block->fixup_absolute_list = 0;
 			}
 		}
 

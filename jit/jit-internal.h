@@ -184,8 +184,9 @@ struct _jit_block
 	int					entered_via_top : 1;
 	int					entered_via_branch : 1;
 	int					ends_in_dead : 1;
-	void			   *address;
-	void			   *fixup_list;
+	void				*address;
+	void				*fixup_list;
+	void				*fixup_absolute_list;
 };
 
 /*

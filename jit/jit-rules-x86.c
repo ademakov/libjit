@@ -1397,6 +1397,15 @@ void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block)
 		fixup = next;
 	}
 	block->fixup_list = 0;
+
+	fixup = (void**)(block->fixup_absolute_list);
+	while(fixup != 0)
+	{
+		next = (void **)(fixup[0]);
+		fixup[0] = (void *)((jit_nint)(block->address));
+		fixup = next;
+	}
+	block->fixup_absolute_list = 0;
 }
 
 void _jit_gen_end_block(jit_gencode_t gen, jit_block_t block)
