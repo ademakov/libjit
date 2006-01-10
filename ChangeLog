@@ -5,6 +5,10 @@
 	* jit/jit-internal.h, jit/jit-function.c, jiy/jit-rules-x86.c:
 	add fixup_absolute_list field to _jit_block struct for fixing up
 	absolute address references to a block.
+	* include/jit/jit-opcode.h (JIT_OP_JUMP_TABLE),
+	* jit/jit-rules-x86.sel (JIT_OP_JUMP_TABLE),
+	* include/jit/jit-insn.h, jit/jit-insn.c (jit_insn_jump_table):
+	add new opcode.
 
 2006-01-08  Aleksey Demakov  <ademakov@gmail.com>
 

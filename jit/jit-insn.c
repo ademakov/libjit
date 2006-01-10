@@ -3941,6 +3941,106 @@ add_block:
 }
 
 /*@
+ * @deftypefun jit_insn_jump_table(jit_function_t func, jit_value_t value, jit_label_t *labels, unsigned int num_labels)
+ *
+ * @end deftypefun
+@*/
+int jit_insn_jump_table
+	(jit_function_t func, jit_value_t value,
+	 jit_label_t *labels, unsigned int num_labels)
+{
+	jit_insn_t insn;
+	unsigned int index;
+	jit_label_t *new_labels;
+	jit_value_t value_labels;
+	jit_value_t value_num_labels;
+
+	/* Bail out if the parameters are invalid */
+	if(!value || !labels || !num_labels)
+	{
+		return 0;
+	}
+
+	/* Ensure that we have a function builder */
+	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+
+	/* Flush any stack pops that were deferred previously */
+	if(!jit_insn_flush_defer_pop(func, 0))
+	{
+		return 0;
+	}
+
+	/* Allocate new label identifiers, if necessary */
+	for(index = 0; index < num_labels; index++)
+	{
+		if(labels[index] == jit_label_undefined)
+		{
+			labels[index] = (func->builder->next_label)++;
+		}
+	}
+
+	/* If the condition is constant, then convert it into either
+	   an unconditional branch or a fall-through, as appropriate */
+	if(jit_value_is_constant(value))
+	{
+		index = jit_value_get_nint_constant(value);
+		if(index < num_labels && index >= 0)
+		{
+			return jit_insn_branch(func, &labels[index]);
+		}
+		else
+		{
+			return 1;
+		}
+	}
+
+	new_labels = jit_malloc(num_labels * sizeof(jit_label_t));
+	if(!new_labels)
+	{
+		return 0;
+	}
+	for(index = 0; index < num_labels; index++)
+	{
+		new_labels[index] = labels[index];
+	}
+
+	value_labels = jit_value_create_nint_constant(func, jit_type_void_ptr, (jit_nint) new_labels);
+	if(!value_labels)
+	{
+		jit_free(new_labels);
+		return 0;
+	}
+	value_labels->free_address = 1;
+
+	value_num_labels = jit_value_create_nint_constant(func, jit_type_uint, num_labels);
+	if(!value_num_labels)
+	{
+		_jit_value_free(value_labels);
+		return 0;
+	}
+
+	/* Add a new branch instruction */
+	insn = _jit_block_add_insn(func->builder->current_block);
+	if(!insn)
+	{
+		return 0;
+	}
+	jit_value_ref(func, value);
+
+	insn->opcode = JIT_OP_JUMP_TABLE;
+	insn->flags = JIT_INSN_DEST_IS_VALUE;
+	insn->dest = value;
+	insn->value1 = value_labels;
+	insn->value2 = value_num_labels;
+
+	/* Add a new block for the fall-through case */
+	return jit_insn_new_block(func);
+}
+
+/*@
  * @deftypefun jit_value_t jit_insn_address_of (jit_function_t func, jit_value_t value1)
  * Get the address of a value into a new temporary.
  * @end deftypefun

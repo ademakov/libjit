@@ -3125,6 +3125,9 @@ JIT_OP_MEMCPY: manual
 			reg3 = _jit_regs_load_value
 				(gen, insn->value2, 0,
 				 (insn->flags & (JIT_INSN_VALUE2_NEXT_USE | JIT_INSN_VALUE2_LIVE)));
+
+			/* A function call may destroy EAX,EBX,ECX,EDX registers. */
+			/* TODO: do not spill ESI and EDI. */
 			_jit_regs_spill_all(gen);
 
 			inst = gen->posn.ptr;
@@ -3373,4 +3376,70 @@ JIT_OP_ALLOCA: unary
 		x86_alu_reg_reg(inst, X86_SUB, X86_ESP, $1);
 		x86_mov_reg_reg(inst, $1, X86_ESP, 4);
 		gen->stack_changed = 1;
+	}
+
+JIT_OP_JUMP_TABLE: manual
+	[] -> {
+		unsigned char *inst;
+		unsigned char *patch_jump_table;
+		unsigned char *patch_fall_through;
+		int reg;
+		int index;
+		jit_label_t *labels;
+		jit_nint num_labels;
+		jit_block_t block;
+		int address;
+
+		reg = _jit_regs_load_value
+			(gen, insn->dest, 0,
+			 (insn->flags & (JIT_INSN_DEST_NEXT_USE | JIT_INSN_DEST_LIVE)));
+		_jit_regs_spill_all(gen);
+
+		labels = (jit_label_t *) insn->value1->address;
+		num_labels = insn->value2->address;
+
+		inst = gen->posn.ptr;
+		if(!jit_cache_check_for_n(&(gen->posn), 32 + sizeof(void) * num_labels))
+		{
+			jit_cache_mark_full(&(gen->posn));
+			return;
+		}
+
+		x86_alu_reg_imm(inst, X86_CMP, reg, num_labels);
+		patch_fall_through = inst;
+		x86_branch32(inst, X86_CC_GE, 0, 1);
+
+		patch_jump_table = inst;
+		x86_jump_memindex(inst, X86_NOBASEREG, 0, reg, 2);
+		while(((jit_nint) inst & (sizeof(void*) - 1)) != 0)
+		{
+			x86_nop(inst);
+		}
+
+		// displacement goes after opcode. ModR/M, and SIB bytes
+		*((void **)(patch_jump_table + 3)) = inst;
+
+		for(index = 0; index < num_labels; index++)
+		{
+			block = jit_block_from_label(func, labels[index]);
+			if(!block)
+			{
+				return;
+			}
+
+			if(block->address)
+			{
+				x86_imm_emit32(inst, address);
+			}
+			else
+			{
+				/* Output a placeholder and record on the block's fixup list */
+				x86_imm_emit32(inst, (int)(block->fixup_absolute_list));
+				block->fixup_absolute_list = (void *)(inst - 4);
+			}
+		}
+
+		x86_patch(patch_fall_through, inst);
+
+		gen->posn.ptr = inst;
 	}

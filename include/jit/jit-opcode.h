@@ -521,9 +521,14 @@ extern	"C" {
 #define	JIT_OP_MARK_BREAKPOINT				0x01A4
 
 /*
+ * Switch statement support.
+ */
+#define JIT_OP_JUMP_TABLE					0x01A5
+
+/*
  * The number of opcodes in the above list.
  */
-#define	JIT_OP_NUM_OPCODES					0x01A5
+#define	JIT_OP_NUM_OPCODES					0x01A6
 
 /*
  * Opcode information.

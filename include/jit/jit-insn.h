@@ -209,6 +209,9 @@ int jit_insn_branch_if
 	(jit_function_t func, jit_value_t value, jit_label_t *label) JIT_NOTHROW;
 int jit_insn_branch_if_not
 	(jit_function_t func, jit_value_t value, jit_label_t *label) JIT_NOTHROW;
+int jit_insn_jump_table
+	(jit_function_t func, jit_value_t value,
+	 jit_label_t *labels, unsigned int num_labels) JIT_NOTHROW;
 jit_value_t jit_insn_address_of
 	(jit_function_t func, jit_value_t value1) JIT_NOTHROW;
 jit_value_t jit_insn_address_of_label
