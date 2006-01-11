@@ -1103,6 +1103,47 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		}
 		/* Not reached */
 
+		case JIT_OP_JUMP_TABLE:
+		{
+			jit_label_t *labels;
+			jit_nint num_labels;
+			jit_nint index;
+
+			labels = (jit_label_t *) insn->value1->address;
+			num_labels = insn->value2->address;
+
+			_jit_regs_spill_all(gen);
+			_jit_regs_load_to_top(gen,
+					      insn->dest,
+					      (insn->flags & (JIT_INSN_DEST_NEXT_USE |
+							      JIT_INSN_DEST_LIVE)),
+					      0);
+
+			jit_cache_opcode(&(gen->posn), insn->opcode);
+			jit_cache_native(&(gen->posn), num_labels);
+			for(index = 0; index < num_labels; index++)
+			{
+				block = jit_block_from_label(func, labels[index]);
+				if(!block)
+				{
+					return;
+				}
+				if(block->address)
+				{
+					/* We already know the address of the block */
+					jit_cache_native(&(gen->posn), block->address);
+				}
+				else
+				{
+					/* Record this position on the block's fixup list */
+					pc = (void **)(gen->posn.ptr);
+					jit_cache_native(&(gen->posn), block->fixup_absolute_list);
+					block->fixup_absolute_list = pc;
+				}
+			}
+		}
+		break;
+
 		case JIT_OP_ADDRESS_OF_LABEL:
 		{
 			/* Get the address of a particular label */
@@ -1750,6 +1791,15 @@ void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block)
 		fixup = next;
 	}
 	block->fixup_list = 0;
+
+	fixup = (void **)(block->fixup_absolute_list);
+	while(fixup != 0)
+	{
+		next = (void **)(fixup[0]);
+		fixup[0] = (void *)(jit_nint)((void **)(block->address));
+		fixup = next;
+	}
+	block->fixup_absolute_list = 0;
 
 	/* If this is the exception catcher block, then we need to update
 	   the exception cookie for the function to point to here */

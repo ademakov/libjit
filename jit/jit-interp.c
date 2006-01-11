@@ -2045,6 +2045,20 @@ restart_tail:
 		}
 		VMBREAK;
 
+		VMCASE(JIT_OP_JUMP_TABLE):
+		{
+			if(VM_STK_INT0 < VM_NINT_ARG && VM_STK_INT0 >= 0)
+			{
+				pc = pc[2 + VM_STK_INT0];
+				VM_MODIFY_STACK(1);
+			}
+			else
+			{
+				VM_MODIFY_PC_AND_STACK(2 + VM_NINT_ARG, 1);
+			}
+		}
+		VMBREAK;
+
 		/******************************************************************
 		 * Comparison opcodes.
 		 ******************************************************************/
