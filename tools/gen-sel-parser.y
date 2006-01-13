@@ -808,7 +808,16 @@ Rule
 					printf("\t}\n");
 					printf("\telse\n");
 					printf("\t{\n");
-					printf("\t\t_jit_gen_spill_reg(gen, reg, -1, insn->dest);\n");
+					printf("\t\tint other_reg;\n");
+					printf("\t\tif(gen->contents[reg].is_long_start)\n");
+					printf("\t\t{\n");
+					printf("\t\t\tother_reg = _jit_reg_info[reg].other_reg;\n");
+					printf("\t\t}\n");
+					printf("\t\telse\n");
+					printf("\t\t{\n");
+					printf("\t\t\tother_reg = -1;\n");
+					printf("\t\t}\n");
+					printf("\t\t_jit_gen_spill_reg(gen, reg, other_reg, insn->dest);\n");
 					printf("\t\tif(insn->dest->has_global_register)\n");
 					printf("\t\t\tinsn->dest->in_global_register = 1;\n");
 					printf("\t\telse\n");

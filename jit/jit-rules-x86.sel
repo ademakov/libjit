@@ -3055,7 +3055,8 @@ JIT_OP_MEMCPY: manual
 				if(regi != reg && regi != reg2)
 				{
 					if(gen->contents[regi].num_values == 0 &&
-					   gen->contents[regi].used_for_temp == 0)
+					   !gen->contents[regi].used_for_temp &&
+					   !gen->contents[reg].is_long_end)
 					{
 						reg3 = regi;
 						break;
@@ -3067,7 +3068,8 @@ JIT_OP_MEMCPY: manual
 				}
 			}
 			if(gen->contents[reg3].num_values > 0 ||
-			   gen->contents[reg3].used_for_temp)
+			   gen->contents[regi].used_for_temp ||
+			   gen->contents[reg].is_long_end)
 			{
 				save_reg3 = 1;
 			}
@@ -3226,7 +3228,8 @@ JIT_OP_MEMSET: manual
 						if(regi != reg && regi != reg2)
 						{
 							if(gen->contents[regi].num_values == 0 &&
-							   gen->contents[regi].used_for_temp == 0)
+							   !gen->contents[regi].used_for_temp &&
+							   !gen->contents[reg].is_long_end)
 							{
 								reg3 = regi;
 								break;
@@ -3238,7 +3241,8 @@ JIT_OP_MEMSET: manual
 						}
 					}
 					if(gen->contents[reg3].num_values > 0 ||
-					   gen->contents[reg3].used_for_temp)
+					   gen->contents[regi].used_for_temp ||
+					   gen->contents[reg].is_long_end)
 					{
 						save_reg3 = 1;
 					}

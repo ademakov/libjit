@@ -994,7 +994,8 @@ static int free_register_for_value
 			else if(!need_pair)
 			{
 				if(gen->contents[reg].num_values == 0 &&
-				   !(gen->contents[reg].used_for_temp))
+				   !(gen->contents[reg].used_for_temp) &&
+				   !(gen->contents[reg].is_long_end))
 				{
 					return reg;
 				}

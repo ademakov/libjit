@@ -1,3 +1,12 @@
+2006-01-14  Aleksey Demakov  <ademakov@gmail.com>
+
+	* tools/gen-sel-parser.y: spilling a register which is the first
+	part of a register pair spill the other part too.
+
+	* jit/jit-reg-alloc.c (free_register_for_value):
+	* jit/jit-rules-x86.sel: if a register is the second part of a
+	register pair do not consider it free.
+
 2006-01-13  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-insn.c: fix all descriptors of intrinsic functions that
