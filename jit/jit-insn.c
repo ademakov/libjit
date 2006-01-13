@@ -111,7 +111,7 @@ static jit_intrinsic_descr_t const descr_I_II = {
 	(jit_type_t)&_jit_type_uint_def
 };
 static jit_intrinsic_descr_t const descr_e_pI_II = {
-	(jit_type_t)&_jit_type_uint_def,
+	(jit_type_t)&_jit_type_int_def,
 	(jit_type_t)&_jit_type_uint_def,
 	(jit_type_t)&_jit_type_uint_def,
 	(jit_type_t)&_jit_type_uint_def
@@ -135,7 +135,7 @@ static jit_intrinsic_descr_t const descr_l_ll = {
 	(jit_type_t)&_jit_type_long_def
 };
 static jit_intrinsic_descr_t const descr_e_pl_ll = {
-	(jit_type_t)&_jit_type_long_def,
+	(jit_type_t)&_jit_type_int_def,
 	(jit_type_t)&_jit_type_long_def,
 	(jit_type_t)&_jit_type_long_def,
 	(jit_type_t)&_jit_type_long_def
@@ -171,7 +171,7 @@ static jit_intrinsic_descr_t const descr_L_LL = {
 	(jit_type_t)&_jit_type_ulong_def
 };
 static jit_intrinsic_descr_t const descr_e_pL_LL = {
-	(jit_type_t)&_jit_type_ulong_def,
+	(jit_type_t)&_jit_type_int_def,
 	(jit_type_t)&_jit_type_ulong_def,
 	(jit_type_t)&_jit_type_ulong_def,
 	(jit_type_t)&_jit_type_ulong_def

@@ -1,3 +1,9 @@
+2006-01-13  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-insn.c: fix all descriptors of intrinsic functions that
+	return an exception code to have return_type equal to
+	_jit_type_int_def.
+
 2006-01-11  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-gen-x86.h (x86_jump_memindex): add macro for indirect
