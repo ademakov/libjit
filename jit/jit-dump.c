@@ -676,7 +676,7 @@ static void dump_object_code(FILE *stream, void *start, void *end)
 	sprintf(o_path, "%s/libjit-dump.o", tmp_dir);
 #else
 	const char *s_path = "/tmp/libjit-dump.s";
-	const char *o_path = "/tmp/libjit-dump.s";
+	const char *o_path = "/tmp/libjit-dump.o";
 #endif
 
 	file = fopen(s_path, "w");
