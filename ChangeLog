@@ -3,6 +3,8 @@
 
 	* configure.in, NEWS: update version for the "0.0.6" release.
 
+	* configure.in: updating working version to "0.0.7".
+
 2006-01-14  Aleksey Demakov  <ademakov@gmail.com>
 
 	* tools/gen-sel-parser.y: spilling a register which is the first
