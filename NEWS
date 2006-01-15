@@ -1,4 +1,59 @@
 
+0.0.6 (15 January 2006)
+
+	x86:
+
+	* Be careful when using EBX in cpuid instructions so as not to confuse
+	  gcc in PIC mode (Rhys W).
+	* Fixes to floating point instruction selection (Rhys Weatherley).
+	* Some support for structure copying (Rhys Weatherley).
+	* Pointer-relative loads and stores (Rhys Weatherley).
+	* Correct the offset for long-form backwards branches (Evin Robertson).
+	* Constant pointers in relative offset operations (Rhys Weatherley).
+	* Merge in Mono's changes to jit-gen-x86.h (Aleksey Demakov).
+	* Array loads and stores for floating point values (Aleksey Demakov).
+	* Memcpy, memset, and memmove operations (Aleksey Demakov).
+	* Return buffer problems in apply function with gcc 4.0.2 (Aleksey Demakov).
+
+	x86-64:
+
+	* Use the correct library entry point when calling jit_memcpy from
+	  compiled code (Klaus Treichel).
+
+	Interpreter:
+
+	* Return area pointers (Rhys Weatherley).
+	* Prevent double push of indirect function pointers (Rhys Weatherley).
+
+	Function/instruction core:
+
+	* Clear block addresses and fixup lists if a function restart is needed
+	  (Evin Robertson).
+	* Use destination type for store type, not source type (Evin Robertson).
+	* Tail call implementation (Rhys Weatherley).
+	* Address of constants (Avinash Atreya, Aleksey Demakov).
+	* Functions for locating the proper start of a function in the cache
+	  (Aleksey Demakov).
+	* New exception type for array out of bounds (Aleksey Demakov).
+	* Jump tables (Aleksey Demakov).
+	* Intrinsics that return exception codes should be labeled "int" (Aleksy D).
+	* Spill both parts of a register pair properly (Aleksey Demakov).
+	* Fixes to freeing of register pairs (Aleksey Demakov).
+
+	Dpas:
+
+	* Throw builtin exceptions (Aleksey Demakov).
+	* Implement array expressions (Aleksey Demakov).
+
+	Other:
+
+	* Sample VM for demonstrating libjit (Norbert Bellow).
+	* Debug interface for line numbers and breakpoints (Rhys Weatherley).
+	* Man page formatting issues (Peter Lund).
+	* Wrong return value in jit_function_apply_vararg (Evin Robertson).
+	* Make debug dumping work with cygwin (Aleksey Demakov).
+	* Option to force use on long double on Win32 (Aleksey Demakov).
+
 0.0.4 (8 August 2004)
 
 	* Pluggable object models.

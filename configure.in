@@ -5,7 +5,7 @@ dnl Determine the build, host, and target system types.
 AC_CANONICAL_SYSTEM
 
 dnl Initialize automake.
-AM_INIT_AUTOMAKE(libjit, 0.0.5)
+AM_INIT_AUTOMAKE(libjit, 0.0.6)
 AM_CONFIG_HEADER(config.h)
 
 dnl Set the version number for the shared libraries.
