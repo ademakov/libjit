@@ -43,7 +43,7 @@
 	Dpas:
 
 	* Throw builtin exceptions (Aleksey Demakov).
-	* Implement array expressions (Aleksey Demakov).
+	* Implement array expressions (Avinash Atreya).
 
 	Other:
 
