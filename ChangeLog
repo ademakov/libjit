@@ -1,3 +1,8 @@
+2006-01-30  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.c (_jit_gen_load_value): optimize loading
+	of zero constants. Allow to move a value from one register to
+	another.
 
 2006-01-15  Rhys Weatherley  <rweather@southern-storm.com.au>
 

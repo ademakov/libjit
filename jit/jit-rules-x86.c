@@ -760,19 +760,30 @@ void _jit_gen_free_reg(jit_gencode_t gen, int reg,
 	}
 }
 
-void _jit_gen_load_value
-	(jit_gencode_t gen, int reg, int other_reg, jit_value_t value)
+static int
+fp_stack_index(jit_gencode_t gen, int reg)
 {
+	int top = gen->stack_map[X86_REG_ST0];
+	return top - reg;
+}
+
+void
+_jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value)
+{
+	jit_type_t type;
+	int src_reg, other_src_reg;
 	void *ptr;
 	int offset;
 
 	/* Make sure that we have sufficient space */
 	jit_cache_setup_output(16);
 
+	type = jit_type_normalize(value->type);
+
+	/* Load zero */
 	if(value->is_constant)
 	{
-		/* Determine the type of constant to be loaded */
-		switch(jit_type_normalize(value->type)->kind)
+		switch(type->kind)
 		{
 			case JIT_TYPE_SBYTE:
 			case JIT_TYPE_UBYTE:
@@ -781,8 +792,15 @@ void _jit_gen_load_value
 			case JIT_TYPE_INT:
 			case JIT_TYPE_UINT:
 			{
-				x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
-								(jit_nint)(value->address));
+				if((jit_nint)(value->address) == 0)
+				{
+					x86_clear_reg(inst, _jit_reg_info[reg].cpu_reg);
+				}
+				else
+				{
+					x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
+							(jit_nint)(value->address));
+				}
 			}
 			break;
 
@@ -791,15 +809,27 @@ void _jit_gen_load_value
 			{
 				jit_long long_value;
 				long_value = jit_value_get_long_constant(value);
-			#ifdef JIT_NATIVE_INT64
-				x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
-								(jit_nint)long_value);
-			#else
-				x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
-								(jit_int)long_value);
-				x86_mov_reg_imm(inst, _jit_reg_info[other_reg].cpu_reg,
-								(jit_int)(long_value >> 32));
-			#endif
+				if(long_value == 0)
+				{
+#ifdef JIT_NATIVE_INT64
+					x86_clear_reg(inst, _jit_reg_info[reg].cpu_reg);
+#else
+					x86_clear_reg(inst, _jit_reg_info[reg].cpu_reg);
+					x86_clear_reg(inst, _jit_reg_info[other_reg].cpu_reg);
+#endif
+				}
+				else
+				{
+#ifdef JIT_NATIVE_INT64
+					x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
+							(jit_nint)long_value);
+#else
+					x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
+							(jit_int)long_value);
+					x86_mov_reg_imm(inst, _jit_reg_info[other_reg].cpu_reg,
+							(jit_int)(long_value >> 32));
+#endif
+				}
 			}
 			break;
 
@@ -807,21 +837,27 @@ void _jit_gen_load_value
 			{
 				jit_float32 float32_value;
 				float32_value = jit_value_get_float32_constant(value);
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
 				if(IS_WORD_REG(reg))
 				{
 					x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
-									((jit_int *)&float32_value)[0]);
+							((jit_int *)&float32_value)[0]);
 				}
 				else
 				{
-					ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float32));
-					jit_memcpy(ptr, &float32_value, sizeof(float32_value));
-					x86_fld(inst, ptr, 0);
+					if(float32_value == (jit_float32) 0.0)
+					{
+						x86_fldz(inst);
+					}
+					else if(float32_value == (jit_float32) 1.0)
+					{
+						x86_fld1(inst);
+					}
+					else
+					{
+						ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float32));
+						jit_memcpy(ptr, &float32_value, sizeof(float32_value));
+						x86_fld(inst, ptr, 0);
+					}
 				}
 			}
 			break;
@@ -830,23 +866,29 @@ void _jit_gen_load_value
 			{
 				jit_float64 float64_value;
 				float64_value = jit_value_get_float64_constant(value);
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
 				if(IS_WORD_REG(reg))
 				{
 					x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
-									((jit_int *)&float64_value)[0]);
+							((jit_int *)&float64_value)[0]);
 					x86_mov_reg_imm(inst, _jit_reg_info[other_reg].cpu_reg,
-									((jit_int *)&float64_value)[1]);
+							((jit_int *)&float64_value)[1]);
 				}
 				else
 				{
-					ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float64));
-					jit_memcpy(ptr, &float64_value, sizeof(float64_value));
-					x86_fld(inst, ptr, 1);
+					if(float64_value == (jit_float64) 0.0)
+					{
+						x86_fldz(inst);
+					}
+					else if(float64_value == (jit_float64) 1.0)
+					{
+						x86_fld1(inst);
+					}
+					else
+					{
+						ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float64));
+						jit_memcpy(ptr, &float64_value, sizeof(float64_value));
+						x86_fld(inst, ptr, 1);
+					}
 				}
 			}
 			break;
@@ -855,42 +897,127 @@ void _jit_gen_load_value
 			{
 				jit_nfloat nfloat_value;
 				nfloat_value = jit_value_get_nfloat_constant(value);
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
-				if(IS_WORD_REG(reg) &&
-				   sizeof(jit_nfloat) == sizeof(jit_float64))
+				if(IS_WORD_REG(reg) && sizeof(jit_nfloat) == sizeof(jit_float64))
 				{
 					x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
-									((jit_int *)&nfloat_value)[0]);
+							((jit_int *)&nfloat_value)[0]);
 					x86_mov_reg_imm(inst, _jit_reg_info[other_reg].cpu_reg,
-									((jit_int *)&nfloat_value)[1]);
+							((jit_int *)&nfloat_value)[1]);
 				}
 				else
 				{
-					ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_nfloat));
-					jit_memcpy(ptr, &nfloat_value, sizeof(nfloat_value));
-					if(sizeof(jit_nfloat) != sizeof(jit_float64))
+					if(nfloat_value == (jit_nfloat) 0.0)
 					{
-						x86_fld80_mem(inst, ptr);
+						x86_fldz(inst);
+					}
+					else if(nfloat_value == (jit_nfloat) 1.0)
+					{
+						x86_fld1(inst);
 					}
 					else
 					{
-						x86_fld(inst, ptr, 1);
+						ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_nfloat));
+						jit_memcpy(ptr, &nfloat_value, sizeof(nfloat_value));
+						if(sizeof(jit_nfloat) == sizeof(jit_float64))
+						{
+							x86_fld(inst, ptr, 1);
+						}
+						else
+						{
+							x86_fld80_mem(inst, ptr);
+						}
 					}
 				}
 			}
 			break;
 		}
 	}
-	else if(value->has_global_register)
+	else if(value->in_register || value->in_global_register)
 	{
-		/* Load the value out of a global register */
-		x86_mov_reg_reg(inst, _jit_reg_info[reg].cpu_reg,
-						_jit_reg_info[value->global_reg].cpu_reg,
-						sizeof(void *));
+		if(value->in_register)
+		{
+			src_reg = value->reg;
+			if(other_reg >= 0)
+			{
+				other_src_reg = _jit_reg_info[src_reg].other_reg;
+			}
+		}
+		else
+		{
+			src_reg = value->global_reg;
+			other_src_reg = -1;
+		}
+
+		switch(type->kind)
+		{
+#if 0
+			case JIT_TYPE_SBYTE:
+			{
+				x86_widen_reg(inst, _jit_reg_info[reg].cpu_reg,
+					      _jit_reg_info[src_reg].cpu_reg, 1, 0);
+			}
+			break;
+
+			case JIT_TYPE_UBYTE:
+			{
+				x86_widen_reg(inst, _jit_reg_info[reg].cpu_reg,
+					      _jit_reg_info[src_reg].cpu_reg, 0, 0);
+			}
+			break;
+
+			case JIT_TYPE_SHORT:
+			{
+				x86_widen_reg(inst, _jit_reg_info[reg].cpu_reg,
+					      _jit_reg_info[src_reg].cpu_reg, 1, 1);
+			}
+			break;
+
+			case JIT_TYPE_USHORT:
+			{
+				x86_widen_reg(inst, _jit_reg_info[reg].cpu_reg,
+					      _jit_reg_info[src_reg].cpu_reg, 0, 1);
+			}
+			break;
+#else
+			case JIT_TYPE_SBYTE:
+			case JIT_TYPE_UBYTE:
+			case JIT_TYPE_SHORT:
+			case JIT_TYPE_USHORT:
+#endif
+			case JIT_TYPE_INT:
+			case JIT_TYPE_UINT:
+			{
+				x86_mov_reg_reg(inst, _jit_reg_info[reg].cpu_reg,
+						_jit_reg_info[src_reg].cpu_reg, 4);
+			}
+			break;
+
+			case JIT_TYPE_LONG:
+			case JIT_TYPE_ULONG:
+			{
+#ifdef JIT_NATIVE_INT64
+				x86_mov_reg_reg(inst, _jit_reg_info[reg].cpu_reg,
+						_jit_reg_info[src_reg].cpu_reg, 8);
+#else
+				x86_mov_reg_reg(inst, _jit_reg_info[reg].cpu_reg,
+						_jit_reg_info[src_reg].cpu_reg, 4);
+				x86_mov_reg_reg(inst, _jit_reg_info[other_reg].cpu_reg,
+						_jit_reg_info[other_src_reg].cpu_reg, 4);
+#endif
+			}
+			break;
+
+			case JIT_TYPE_FLOAT32:
+			case JIT_TYPE_FLOAT64:
+			case JIT_TYPE_NFLOAT:
+			{
+				if(!IS_WORD_REG(reg))
+				{
+					x86_fld_reg(inst, fp_stack_index(gen, src_reg));
+				}
+			}
+			break;
+		}
 	}
 	else
 	{
@@ -899,33 +1026,33 @@ void _jit_gen_load_value
 		offset = (int)(value->frame_offset);
 
 		/* Load the value into the specified register */
-		switch(jit_type_normalize(value->type)->kind)
+		switch(type->kind)
 		{
 			case JIT_TYPE_SBYTE:
 			{
 				x86_widen_membase(inst, _jit_reg_info[reg].cpu_reg,
-								  X86_EBP, offset, 1, 0);
+						  X86_EBP, offset, 1, 0);
 			}
 			break;
 
 			case JIT_TYPE_UBYTE:
 			{
 				x86_widen_membase(inst, _jit_reg_info[reg].cpu_reg,
-								  X86_EBP, offset, 0, 0);
+						  X86_EBP, offset, 0, 0);
 			}
 			break;
 
 			case JIT_TYPE_SHORT:
 			{
 				x86_widen_membase(inst, _jit_reg_info[reg].cpu_reg,
-								  X86_EBP, offset, 1, 1);
+						  X86_EBP, offset, 1, 1);
 			}
 			break;
 
 			case JIT_TYPE_USHORT:
 			{
 				x86_widen_membase(inst, _jit_reg_info[reg].cpu_reg,
-								  X86_EBP, offset, 0, 1);
+						  X86_EBP, offset, 0, 1);
 			}
 			break;
 
@@ -933,22 +1060,22 @@ void _jit_gen_load_value
 			case JIT_TYPE_UINT:
 			{
 				x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
-									X86_EBP, offset, 4);
+						    X86_EBP, offset, 4);
 			}
 			break;
 
 			case JIT_TYPE_LONG:
 			case JIT_TYPE_ULONG:
 			{
-			#ifdef JIT_NATIVE_INT64
+#ifdef JIT_NATIVE_INT64
 				x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
-									X86_EBP, offset, 8);
-			#else
+						    X86_EBP, offset, 8);
+#else
 				x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
-									X86_EBP, offset, 4);
+						    X86_EBP, offset, 4);
 				x86_mov_reg_membase(inst, _jit_reg_info[other_reg].cpu_reg,
-									X86_EBP, offset + 4, 4);
-			#endif
+						    X86_EBP, offset + 4, 4);
+#endif
 			}
 			break;
 
@@ -957,7 +1084,7 @@ void _jit_gen_load_value
 				if(IS_WORD_REG(reg))
 				{
 					x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
-										X86_EBP, offset, 4);
+							    X86_EBP, offset, 4);
 				}
 				else
 				{
@@ -971,9 +1098,9 @@ void _jit_gen_load_value
 				if(IS_WORD_REG(reg))
 				{
 					x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
-										X86_EBP, offset, 4);
+							    X86_EBP, offset, 4);
 					x86_mov_reg_membase(inst, _jit_reg_info[other_reg].cpu_reg,
-										X86_EBP, offset + 4, 4);
+							    X86_EBP, offset + 4, 4);
 				}
 				else
 				{
@@ -984,13 +1111,12 @@ void _jit_gen_load_value
 
 			case JIT_TYPE_NFLOAT:
 			{
-				if(IS_WORD_REG(reg) &&
-				   sizeof(jit_nfloat) == sizeof(jit_float64))
+				if(IS_WORD_REG(reg) && sizeof(jit_nfloat) == sizeof(jit_float64))
 				{
 					x86_mov_reg_membase(inst, _jit_reg_info[reg].cpu_reg,
-										X86_EBP, offset, 4);
+							    X86_EBP, offset, 4);
 					x86_mov_reg_membase(inst, _jit_reg_info[other_reg].cpu_reg,
-										X86_EBP, offset + 4, 4);
+							    X86_EBP, offset + 4, 4);
 				}
 				else if(sizeof(jit_nfloat) == sizeof(jit_float64))
 				{
