@@ -1,3 +1,7 @@
+2006-02-04  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.sel: fix a typo in JIT_OP_JUMP_TABLE.
+
 2006-01-30  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.c (_jit_gen_load_value): optimize loading

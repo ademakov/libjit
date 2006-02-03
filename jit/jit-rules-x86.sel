@@ -3392,7 +3392,6 @@ JIT_OP_JUMP_TABLE: manual
 		jit_label_t *labels;
 		jit_nint num_labels;
 		jit_block_t block;
-		int address;
 
 		reg = _jit_regs_load_value
 			(gen, insn->dest, 0,
@@ -3433,7 +3432,7 @@ JIT_OP_JUMP_TABLE: manual
 
 			if(block->address)
 			{
-				x86_imm_emit32(inst, address);
+				x86_imm_emit32(inst, block->address);
 			}
 			else
 			{
