@@ -1,10 +1,14 @@
+2006-02-12  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.sel: fix JIT_OP_CALL_FINALLY.
+
 2006-02-10  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-bitset.c: 
 	* jit/jit-bitset.h: 
 	* jit/jit-cfg.c:
-	* jit/jit-cfg.h: initial code for a more precise liveness analyses
-	based on the control flow graph.
+	* jit/jit-cfg.h: initial code drop for a more precise liveness
+	analysis based on control flow graph.
 
 2006-02-04  Aleksey Demakov  <ademakov@gmail.com>
 

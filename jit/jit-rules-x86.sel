@@ -1879,7 +1879,23 @@ JIT_OP_LEAVE_FINALLY: spill_before
 
 JIT_OP_CALL_FINALLY: spill_before
 	[] -> {
-		inst = output_branch(func, inst, 0xE8 /* call */, insn);
+		jit_block_t block;
+
+		block = jit_block_from_label(func, (jit_label_t)(insn->dest));
+		if(!block)
+		{
+			return;
+		}
+
+		if(block->address)
+		{
+			x86_call_code(inst, block->address);
+		}
+		else
+		{
+			x86_call_imm(inst, block->fixup_list);
+			block->fixup_list = (void *)(inst - 4);
+		}
 	}
 
 JIT_OP_ENTER_FILTER: manual
