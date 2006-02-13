@@ -1,3 +1,9 @@
+2006-02-13  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-internal.h (struct _jit_value): add index field.
+	* jit/jit-value.c (alloc_value): initialize index field;
+	* jit/Makefile.am (libjit_la_SOURCES): add jit-bitset.c and jit-cfg.c.
+
 2006-02-12  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.sel: fix JIT_OP_CALL_FINALLY.

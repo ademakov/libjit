@@ -219,6 +219,7 @@ struct _jit_value
 	jit_nint			address;
 	jit_nint			frame_offset;
 	jit_nuint			usage_count;
+	int				index;
 };
 #define	JIT_INVALID_FRAME_OFFSET	((jit_nint)0x7FFFFFFF)
 

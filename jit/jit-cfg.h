@@ -77,7 +77,7 @@ struct _jit_node
 	_jit_edge_t		*preds;
 	int			num_preds;
 
-	/* liveness analyses data */
+	/* liveness analysis data */
 	_jit_bitset_t		live_in;
 	_jit_bitset_t		live_out;
 	_jit_bitset_t		live_use;
@@ -98,7 +98,7 @@ struct _jit_edge
 };
 
 /*
- * Value entry that contains information for data flow analyses
+ * Value entry that contains information for data flow analysis
  * and register allocation.
  */
 struct _jit_value_entry

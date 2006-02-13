@@ -9,8 +9,10 @@ libjit_la_SOURCES = \
 		jit-apply-arm.c \
 		jit-apply-x86.h \
 		jit-apply-x86.c \
+		jit-bitset.c \
 		jit-block.c \
 		jit-cache.c \
+		jit-cfg.c \
 		jit-context.c \
 		jit-cpuid-x86.h \
 		jit-cpuid-x86.c \
