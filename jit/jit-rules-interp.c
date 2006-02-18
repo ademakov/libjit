@@ -906,6 +906,21 @@ void _jit_gen_load_value
 }
 
 /*@
+ * @deftypefun void _jit_gen_spill_global (jit_gencode_t gen, jit_value_t value)
+ * Spill the contents of @code{value} from its corresponding global register.
+ * This is used in rare cases when a machine instruction requires its operand
+ * to be in the specific register that happens to be global. In such cases the
+ * register is spilled just before the instruction and loaded back immediately
+ * after it.
+ * @end deftypefun
+@*/
+void _jit_gen_spill_global(jit_gencode_t gen, jit_value_t value)
+{
+	/* Global registers are not used in the interpreted back end */
+}
+
+
+/*@
  * @deftypefun void _jit_gen_load_global (jit_gencode_t gen, jit_value_t value)
  * Load the contents of @code{value} into its corresponding global register.
  * This is used at the head of a function to pull parameters out of stack

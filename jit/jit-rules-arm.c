@@ -761,6 +761,11 @@ void _jit_gen_load_value
 	jit_cache_end_output();
 }
 
+void _jit_gen_spill_global(jit_gencode_t gen, jit_value_t value)
+{
+	/* TODO: Implement if ARM needs it. */
+}
+
 void _jit_gen_load_global(jit_gencode_t gen, jit_value_t value)
 {
 	jit_cache_setup_output(32);

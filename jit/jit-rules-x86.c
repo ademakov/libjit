@@ -1135,6 +1135,15 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 	jit_cache_end_output();
 }
 
+void _jit_gen_spill_global(jit_gencode_t gen, jit_value_t value)
+{
+	jit_cache_setup_output(16);
+	_jit_gen_fix_value(value);
+	x86_mov_membase_reg(inst, X86_EBP, value->frame_offset,
+			    _jit_reg_info[value->global_reg].cpu_reg, sizeof(void *));
+	jit_cache_end_output();
+}
+
 void _jit_gen_load_global(jit_gencode_t gen, jit_value_t value)
 {
 	jit_cache_setup_output(16);

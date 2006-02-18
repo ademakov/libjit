@@ -1627,3 +1627,1161 @@ void _jit_regs_get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
 		_jit_regs_want_reg(gen, index, 0);
 	}
 }
+
+/*
+ * New Reg Alloc API
+ */
+
+/*
+ * Set assigned and clobbered flags for register.
+ */
+static void
+set_register_bits(_jit_regs_t *regs, _jit_regdesc_t *desc, int output)
+{
+	int clobber;
+	if(desc->reg >= 0)
+	{
+		clobber = desc->clobber;
+		if(output && desc->value->in_register && desc->value->reg == desc->reg)
+		{
+			clobber = 0;
+		}
+
+		jit_reg_set_used(regs->assigned, desc->reg);
+		if(clobber)
+		{
+			jit_reg_set_used(regs->clobber, desc->reg);
+		}
+		if(desc->other_reg >= 0)
+		{
+			jit_reg_set_used(regs->assigned, desc->other_reg);
+			if(clobber)
+			{
+				jit_reg_set_used(regs->clobber, desc->other_reg);
+			}
+		}
+	}
+}
+
+/*
+ * Determine the type of register that we need.
+ */
+static int
+get_register_type(jit_value_t value, int need_pair)
+{
+	switch(jit_type_normalize(value->type)->kind)
+	{
+	case JIT_TYPE_SBYTE:
+	case JIT_TYPE_UBYTE:
+	case JIT_TYPE_SHORT:
+	case JIT_TYPE_USHORT:
+	case JIT_TYPE_INT:
+	case JIT_TYPE_UINT:
+	case JIT_TYPE_NINT:
+	case JIT_TYPE_NUINT:
+	case JIT_TYPE_SIGNATURE:
+	case JIT_TYPE_PTR:
+		return JIT_REG_WORD;
+
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+		return need_pair ? JIT_REG_LONG : JIT_REG_WORD;
+
+	case JIT_TYPE_FLOAT32:
+		return JIT_REG_FLOAT32;
+
+	case JIT_TYPE_FLOAT64:
+		return JIT_REG_FLOAT64;
+
+	case JIT_TYPE_NFLOAT:
+		return JIT_REG_NFLOAT;
+	}
+
+	return 0;
+}
+
+/*
+ * Assign diplicate input value to the same register if possible.
+ * The first value has to be already assigned. The second value
+ * is assigned to the same register if it is equal to the first
+ * and neither of them is clobbered.
+ */
+static void
+reuse_duplicate_value(_jit_regdesc_t *desc1, _jit_regdesc_t *desc2)
+{
+	if(desc1->value == desc2->value
+	   && desc1->reg >= 0 && desc2->reg < 0
+	   && !desc1->clobber && !desc2->clobber)
+	{
+		desc2->reg = desc1->reg;
+		desc2->other_reg = desc1->other_reg;
+	}
+}
+
+/*
+ * Assign value to the register it is already in if possible. This is the case
+ * if the register is not already assigned to and one of the following is true:
+ *  1. The value is output and it the only value in register.
+ *  2. The value is input and it is not clobbered.
+ *  3. The value is input and it the only value in register, it is clobbered
+ *     but not used afterwards.
+ *  4. The value is input and it is clobbered even if we do not use its
+ *     register. This might be because the instruction clobbers all or
+ *     some registers (see _jit_regs_clobber_all(), jit_regs_clobber()).
+ * NOTE: In the last case it might be possible to find a not clobbered register
+ * where the value could be moved to so that the original copy can be used for
+ * input without spilling. However probaly this corner case is not worth the
+ * effort.
+ */
+static void
+reuse_register(jit_gencode_t gen, _jit_regs_t *regs, _jit_regdesc_t *desc, int output)
+{
+	int reg;
+	int other_reg;
+
+	reg = -1;
+	other_reg = -1;
+	if(desc->value->in_register)
+	{
+		reg = desc->value->reg;
+
+		if(_jit_regs_needs_long_pair(desc->value->type))
+		{
+			other_reg = _jit_reg_info[reg].other_reg;
+		}
+		else
+		{
+			other_reg = -1;
+		}
+	}
+	else if(desc->value->in_global_register
+		&& (regs->is_ternary
+		    || desc->value == regs->descs[0].value
+		    || desc->value != regs->descs[1].value))
+	{
+		/* It is safe to use the global register directly when it
+		   is not a binary operation which output value is going
+		   to override the original one. */
+		reg = desc->value->global_reg;
+		other_reg = -1;
+	}
+
+	if(reg < 0)
+	{
+		return;
+	}
+
+	if(jit_reg_is_used(regs->assigned, reg))
+	{
+		return;
+	}
+	if(output)
+	{
+		if(gen->contents[reg].num_values > 1)
+		{
+			return;
+		}
+	}
+	else
+	{
+		if(desc->clobber
+		   && (desc->live || desc->used || gen->contents[reg].num_values > 1)
+		   && !jit_reg_is_used(regs->clobber, reg))
+		{
+			return;
+		}
+	}
+
+	if(other_reg >= 0)
+	{
+		if(jit_reg_is_used(regs->assigned, other_reg))
+		{
+			return;
+		}
+
+		if(output)
+		{
+			if(gen->contents[other_reg].num_values > 1)
+			{
+				return;
+			}
+		}
+		else
+		{
+			if(desc->clobber
+			   && (desc->live || desc->used || gen->contents[other_reg].num_values > 1)
+			   && !jit_reg_is_used(regs->clobber, other_reg))
+			{
+				return;
+			}
+		}
+	}
+
+	desc->reg = reg;
+	desc->other_reg = other_reg;
+	set_register_bits(regs, desc, output);
+}
+
+/*
+ * Assign value to a register that is cheapest to use. We are here either
+ * because the value is not in register or it is but the register will be
+ * clobbered so the reuse_register() function failed to assign the register.
+ *
+ * Depending on the value location and on the presence of a free register we
+ * do one of the following:
+ *
+ * 1. The value is in register and there is a free register.
+ *    In this case we will generate a reg-to-reg move.
+ * 2. The value is in register and there are no free regsiters.
+ *    In this case we will generate a spill if the register is dirty.
+ * 3. The value is in frame and there is a free register.
+ *    In this case we will generate a value load.
+ * 4. The value is in frame and there are no free registers.
+ *    In this case we choose a register to evict. We will generate a
+ *    spill for the dirty register and load the value there.
+ *
+ * In the last case we choose the register using the following rules:
+ *
+ * 1. Choose clean registers over dirty.
+ * 2. Choose registers that contain global values over those that don't.
+ * 2. Choose old registers over new.
+ *
+ * NOTE: A register is clean if the value it contains has not changed since
+ * it was loaded form the frame. Otherwise it is dirty. There is no need to
+ * spill clean registers. Dirty registers has to be spilled.
+ *
+ * TODO: build use lists in CFG and choose the register on the basis of next
+ * value use instead of the register age.
+ *
+ */
+static int
+use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, _jit_regdesc_t *desc, int output)
+{
+	int type;
+	int need_pair;
+	int reg;
+	int other_reg;
+	int cost;
+	int free_reg;
+	int suitable_reg;
+	int suitable_cost;
+	int suitable_age;
+	int index;
+
+	if(desc)
+	{
+		type = get_register_type(desc->value, need_pair);
+		if(!type)
+		{
+			return -1;
+		}
+
+		need_pair = _jit_regs_needs_long_pair(desc->value->type);
+	}
+	else
+	{
+		type = JIT_REG_WORD;
+		need_pair = 0;
+	}
+
+	free_reg = -1;
+	suitable_reg = -1;
+	suitable_cost = 0;
+	suitable_age = -1;
+	for(reg = 0; reg < JIT_NUM_REGS; ++reg)
+	{
+		if((_jit_reg_info[reg].flags & type) == 0)
+		{
+			continue;
+		}
+
+		if((_jit_reg_info[reg].flags & JIT_REG_IN_STACK) != 0)
+		{
+			/* TODO: Support stack registers. */
+			return -1;
+		}
+
+		if(need_pair)
+		{
+			other_reg = _jit_reg_info[reg].other_reg;
+		}
+		else
+		{
+			other_reg = -1;
+		}
+
+		if(jit_reg_is_used(gen->permanent, reg)
+		   || jit_reg_is_used(gen->inhibit, reg)
+		   || jit_reg_is_used(regs->assigned, reg))
+		{
+			continue;
+		}
+		if(other_reg >= 0)
+		{
+			if(jit_reg_is_used(gen->permanent, other_reg)
+			   || jit_reg_is_used(gen->inhibit, other_reg)
+			   || jit_reg_is_used(regs->assigned, other_reg))
+			{
+				continue;
+			}
+		}
+
+		if(gen->contents[reg].num_values == 0
+		   && !gen->contents[reg].is_long_end
+		   && (other_reg < 0 || gen->contents[other_reg].num_values == 0))
+		{
+			free_reg = reg;
+			break;
+		}
+
+		cost = 0;
+		for(index = 0; index < gen->contents[reg].num_values; index++)
+		{
+			if(gen->contents[reg].values[index]->has_global_register)
+			{
+				if(!gen->contents[reg].values[index]->in_global_register)
+				{
+					cost += 1;
+				}
+			}
+			else
+			{
+				if(!gen->contents[reg].values[index]->in_frame)
+				{
+					cost += 3;
+				}
+			}
+		}
+		if(other_reg >= 0)
+		{
+			for(index = 0; index < gen->contents[other_reg].num_values; index++)
+			{
+				if(gen->contents[other_reg].values[index]->has_global_register)
+				{
+					if(!gen->contents[other_reg].values[index]->in_global_register)
+					{
+						cost += 1;
+					}
+				}
+				else
+				{
+					if(!gen->contents[other_reg].values[index]->in_frame)
+					{
+						cost += 3;
+					}
+				}
+			}
+		}
+
+		if(suitable_reg == -1
+		   || cost < suitable_cost
+		   || (cost == suitable_cost && gen->contents[reg].age < suitable_age))
+		{
+			/* This is the oldest suitable register of this type */
+			suitable_reg = reg;
+			suitable_cost = cost;
+			suitable_age = gen->contents[reg].age;
+		}
+	}
+
+	if(desc && desc->value->in_register && free_reg < 0)
+	{
+		/* Case 2. */
+		reg = desc->value->reg;
+	}
+	else if(free_reg >= 0)
+	{
+		/* Cases 1 and 3. */
+		reg = free_reg;
+	}
+	else
+	{
+		/* Case 4. */
+		reg = suitable_reg;
+	}
+
+	if(desc && reg >= 0)
+	{
+		if(need_pair)
+		{
+			other_reg = _jit_reg_info[reg].other_reg;
+		}
+		else
+		{
+			other_reg = -1;
+		}
+
+		desc->reg = reg;
+		desc->other_reg = other_reg;
+		set_register_bits(regs, desc, output);
+	}
+
+	return reg;
+}
+
+static void
+set_register(jit_gencode_t gen, _jit_regdesc_t *desc, int still_in_frame)
+{
+	int reg, other_reg;
+	int first_stack_reg;
+
+	reg = desc->reg;
+	other_reg = desc->other_reg;
+
+	if(desc->value->has_global_register && desc->value->global_reg == reg)
+	{
+		desc->value->in_register = 0;
+		desc->value->in_global_register = 1;
+		return;
+	}
+
+	gen->contents[reg].values[0] = desc->value;
+	gen->contents[reg].num_values = 1;
+	gen->contents[reg].age = gen->current_age;
+	gen->contents[reg].used_for_temp = 0;
+	gen->contents[reg].is_long_end = 0;
+	if(other_reg == -1)
+	{
+		gen->contents[reg].is_long_start = 0;
+	}
+	else
+	{
+		gen->contents[reg].is_long_start = 1;
+		gen->contents[other_reg].num_values = 0;
+		gen->contents[other_reg].age = gen->current_age;
+		gen->contents[other_reg].used_for_temp = 0;
+		gen->contents[other_reg].is_long_start = 0;
+		gen->contents[other_reg].is_long_end = 1;
+	}
+
+	/* Set the stack mappings for this register */
+	if((_jit_reg_info[reg].flags & JIT_REG_IN_STACK) != 0)
+	{
+		first_stack_reg = reg;
+		while((_jit_reg_info[first_stack_reg].flags & JIT_REG_START_STACK) == 0)
+		{
+			--first_stack_reg;
+		}
+		gen->contents[reg].remap = first_stack_reg;
+		gen->stack_map[first_stack_reg] = desc->reg;
+	}
+
+	/* Adjust the value to reflect that it is in "reg", and maybe the frame */
+	desc->value->in_register = 1;
+	if(desc->value->has_global_register)
+		desc->value->in_global_register = still_in_frame;
+	else
+		desc->value->in_frame = still_in_frame;
+	desc->value->reg = reg;
+}
+
+static void
+load_single(jit_gencode_t gen, _jit_regdesc_t *desc)
+{
+	if(!desc->value)
+	{
+		return;
+	}
+
+	if(desc->value->in_register)
+	{
+		if(desc->value->reg != desc->reg)
+		{
+			if(gen->contents[desc->reg].num_values > 0)
+			{
+				spill_register(gen, desc->reg);
+			}
+			if(desc->other_reg >= 0 && gen->contents[desc->other_reg].num_values > 0)
+			{
+				spill_register(gen, desc->other_reg);
+			}
+			_jit_gen_load_value(gen, desc->reg, desc->other_reg, desc->value);
+		}
+	}
+	else if(desc->value->in_global_register)
+	{
+		if(desc->value->global_reg != desc->reg)
+		{
+			if(gen->contents[desc->reg].num_values > 0)
+			{
+				spill_register(gen, desc->reg);
+			}
+			if(desc->other_reg >= 0 && gen->contents[desc->other_reg].num_values > 0)
+			{
+				spill_register(gen, desc->other_reg);
+			}
+			_jit_gen_load_value(gen, desc->reg, desc->other_reg, desc->value);
+			set_register(gen, desc, 1);
+		}
+	}
+	else
+	{
+		if(gen->contents[desc->reg].num_values > 0)
+		{
+			spill_register(gen, desc->reg);
+		}
+		if(desc->other_reg >= 0 && gen->contents[desc->other_reg].num_values > 0)
+		{
+			spill_register(gen, desc->other_reg);
+		}
+		_jit_gen_load_value(gen, desc->reg, desc->other_reg, desc->value);
+		set_register(gen, desc, 1);
+	}
+}
+
+static void
+load_couple(jit_gencode_t gen, _jit_regdesc_t *desc1, _jit_regdesc_t *desc2)
+{
+	int reg2, other_reg2;
+
+	if(!desc1->value || !desc1->value->in_register || desc1->value->reg == desc1->reg)
+	{
+		load_single(gen, desc2);
+		load_single(gen, desc1);
+	}
+	else if(!desc2->value || !desc2->value->in_register || desc2->value->reg == desc2->reg)
+	{
+		load_single(gen, desc1);
+		load_single(gen, desc2);
+	}
+	else
+	{
+		reg2 = desc2->value->reg;
+		if(gen->contents[reg2].is_long_start)
+		{
+			other_reg2 = _jit_reg_info[reg2].other_reg;
+		}
+		else
+		{
+			other_reg2 = -1;
+		}
+
+		if(desc1->reg != reg2 && desc1->other_reg != reg2
+		   && (other_reg2 < 0
+		       || (desc1->reg != other_reg2 && desc1->other_reg != other_reg2)))
+		{
+			load_single(gen, desc1);
+			load_single(gen, desc2);
+		}
+		else
+		{
+			load_single(gen, desc2);
+			load_single(gen, desc1);
+		}
+	}
+}
+
+static void
+load_triple(jit_gencode_t gen, _jit_regdesc_t *desc1, _jit_regdesc_t *desc2, _jit_regdesc_t *desc3)
+{
+	int reg1, other_reg1;
+	int reg2, other_reg2;
+	int reg3, other_reg3;
+
+	if(!desc1->value || !desc1->value->in_register || desc1->value->reg == desc1->reg)
+	{
+		load_couple(gen, desc2, desc3);
+		load_single(gen, desc1);
+	}
+	else if(!desc2->value || !desc2->value->in_register || desc2->value->reg == desc2->reg)
+	{
+		load_couple(gen, desc1, desc3);
+		load_single(gen, desc2);
+	}
+	else if(!desc3->value || !desc3->value->in_register || desc3->value->reg == desc3->reg)
+	{
+		load_couple(gen, desc1, desc2);
+		load_single(gen, desc3);
+	}
+	else
+	{
+		reg1 = desc1->value->reg;
+		if(gen->contents[reg1].is_long_start)
+		{
+			other_reg1 = _jit_reg_info[reg1].other_reg;
+		}
+		else
+		{
+			other_reg1 = -1;
+		}
+
+		reg2 = desc2->value->reg;
+		if(gen->contents[reg2].is_long_start)
+		{
+			other_reg2 = _jit_reg_info[reg2].other_reg;
+		}
+		else
+		{
+			other_reg2 = -1;
+		}
+
+		reg3 = desc3->value->reg;
+		if(gen->contents[reg3].is_long_start)
+		{
+			other_reg3 = _jit_reg_info[reg3].other_reg;
+		}
+		else
+		{
+			other_reg3 = -1;
+		}
+
+		if(desc1->reg != reg2 && desc1->other_reg != reg2
+		   && desc1->reg != reg3 && desc1->other_reg != reg3
+		   && (other_reg2 < 0
+		       || (desc1->reg != other_reg2 && desc1->other_reg != other_reg2))
+		   && (other_reg3 < 0
+		       || (desc1->reg != other_reg3 && desc1->other_reg != other_reg3)))
+		{
+			load_single(gen, desc1);
+			load_couple(gen, desc2, desc3);
+		}
+		else if(desc2->reg != reg1 && desc2->other_reg != reg1
+			&& desc2->reg != reg3 && desc2->other_reg != reg3
+			&& (other_reg1 < 0
+			    || (desc2->reg != other_reg1 && desc2->other_reg != other_reg1))
+			&& (other_reg3 < 0
+			    || (desc2->reg != other_reg3 && desc2->other_reg != other_reg3)))
+		{
+			load_single(gen, desc2);
+			load_couple(gen, desc1, desc3);
+		}
+		else
+		{
+			load_single(gen, desc3);
+			load_couple(gen, desc1, desc2);
+		}
+	}
+}
+
+void
+_jit_regs_init(_jit_regs_t *regs, int is_ternary, int is_commutative)
+{
+	int i;
+
+	regs->is_ternary = is_ternary;
+	regs->is_commutative = is_commutative;
+
+	for(i = 0; i < _JIT_REGS_VALUE_MAX; i++)
+	{
+		regs->descs[i].value = 0;
+		regs->descs[i].reg = -1;
+		regs->descs[i].other_reg = -1;
+		regs->descs[i].clobber = 0;
+		regs->descs[i].live = 0;
+		regs->descs[i].used = 0;
+	}
+	regs->num_descs = 0;
+
+	for(i = 0; i < _JIT_REGS_SCRATCH_MAX; i++)
+	{
+		regs->scratch[1] = -1;
+	}
+	regs->num_scratch = 0;
+
+	regs->assigned = jit_regused_init;
+	regs->clobber = jit_regused_init;
+}
+
+void
+_jit_regs_set_dest(_jit_regs_t *regs, jit_insn_t insn, int clobber, int reg, int other_reg)
+{
+	if(regs->num_descs < 1)
+	{
+		regs->num_descs = 1;
+	}
+
+	regs->descs[0].value = insn->dest;
+	if(reg >= 0)
+	{
+		regs->descs[0].reg = reg;
+		regs->descs[0].other_reg = other_reg;
+	}
+	if(!regs->is_ternary || clobber)
+	{
+		regs->descs[0].clobber = 1;
+	}
+	if((insn->flags & JIT_INSN_DEST_LIVE) != 0)
+	{
+		regs->descs[0].live = 1;
+	}
+	if((insn->flags & JIT_INSN_DEST_NEXT_USE) != 0)
+	{
+		regs->descs[0].used = 1;
+	}
+}
+
+void
+_jit_regs_set_value1(_jit_regs_t *regs, jit_insn_t insn, int clobber, int reg, int other_reg)
+{
+	if(regs->num_descs < 2)
+	{
+		regs->num_descs = 2;
+	}
+
+	regs->descs[1].value = insn->value1;
+	if(reg >= 0)
+	{
+		regs->descs[1].reg = reg;
+		regs->descs[1].other_reg = other_reg;
+	}
+	if(clobber)
+	{
+		regs->descs[1].clobber = 1;
+	}
+	if((insn->flags & JIT_INSN_VALUE1_LIVE) != 0)
+	{
+		regs->descs[1].live = 1;
+	}
+	if((insn->flags & JIT_INSN_VALUE1_NEXT_USE) != 0)
+	{
+		regs->descs[1].used = 1;
+	}
+}
+
+void
+_jit_regs_set_value2(_jit_regs_t *regs, jit_insn_t insn, int clobber, int reg, int other_reg)
+{
+	if(regs->num_descs < 3)
+	{
+		regs->num_descs = 3;
+	}
+
+	regs->descs[2].value = insn->value2;
+	if(reg >= 0)
+	{
+		regs->descs[2].reg = reg;
+		regs->descs[2].other_reg = other_reg;
+	}
+	if(clobber)
+	{
+		regs->descs[2].clobber = 1;
+	}
+	if((insn->flags & JIT_INSN_VALUE2_LIVE) != 0)
+	{
+		regs->descs[2].live = 1;
+	}
+	if((insn->flags & JIT_INSN_VALUE2_NEXT_USE) != 0)
+	{
+		regs->descs[2].used = 1;
+	}
+}
+
+void
+_jit_regs_set_scratch(_jit_regs_t *regs, int reg)
+{
+	if(regs->num_scratch < _JIT_REGS_SCRATCH_MAX)
+	{
+		regs->scratch[regs->num_scratch++] = reg;
+	}
+}
+
+void
+_jit_regs_clobber(_jit_regs_t *regs, int reg)
+{
+	jit_reg_set_used(regs->clobber, reg);
+}
+
+void
+_jit_regs_clobber_all(_jit_regs_t *regs)
+{
+	regs->clobber = jit_regused_init_used;
+}
+
+int
+_jit_regs_dest(_jit_regs_t *regs)
+{
+	int reg;
+	reg = regs->descs[0].reg;
+	if(reg >= 0)
+	{
+		return _jit_reg_info[reg].cpu_reg;
+	}
+	return -1;
+}
+
+int
+_jit_regs_value1(_jit_regs_t *regs)
+{
+	int reg;
+	reg = regs->descs[1].reg;
+	if(reg >= 0)
+	{
+		return _jit_reg_info[reg].cpu_reg;
+	}
+	return -1;
+}
+
+int
+_jit_regs_value2(_jit_regs_t *regs)
+{
+	int reg;
+	reg = regs->descs[2].reg;
+	if(reg >= 0)
+	{
+		return _jit_reg_info[reg].cpu_reg;
+	}
+	return -1;
+}
+
+int
+_jit_regs_dest_other(_jit_regs_t *regs)
+{
+	int reg;
+	reg = regs->descs[0].other_reg;
+	if(reg >= 0)
+	{
+		return _jit_reg_info[reg].cpu_reg;
+	}
+	return -1;
+}
+
+int
+_jit_regs_value1_other(_jit_regs_t *regs)
+{
+	int reg;
+	reg = regs->descs[1].other_reg;
+	if(reg >= 0)
+	{
+		return _jit_reg_info[reg].cpu_reg;
+	}
+	return -1;
+}
+
+int
+_jit_regs_value2_other(_jit_regs_t *regs)
+{
+	int reg;
+	reg = regs->descs[2].other_reg;
+	if(reg >= 0)
+	{
+		return _jit_reg_info[reg].cpu_reg;
+	}
+	return -1;
+}
+
+int
+_jit_regs_scratch(_jit_regs_t *regs, int index)
+{
+	int reg;
+	if(index < regs->num_scratch && index >= 0)
+	{
+		reg = regs->scratch[index];
+		if(reg >= 0)
+		{
+			return _jit_reg_info[reg].cpu_reg;
+		}
+	}
+	return -1;
+}
+
+int
+_jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
+{
+	_jit_regdesc_t *desc1;
+	_jit_regdesc_t *desc2;
+	_jit_regdesc_t *desc3;
+	_jit_regdesc_t tmp;
+	int index;
+
+	desc1 = &regs->descs[0];
+	desc2 = &regs->descs[1];
+	desc3 = &regs->descs[2];
+
+	/* If the operation is not ternary its output clobbers the first input value. */
+	if(!regs->is_ternary && desc1->value && desc2->value)
+	{
+		/* If the operation is commutative choose which value is cheaper to clobber. */
+		if(regs->is_commutative && desc3->value)
+		{
+			if((desc2->value != desc1->value && desc3->value == desc1->value)
+			   || (desc2->live && !desc3->live && !desc2->used && !desc3->used)
+			   || (desc2->used && !desc3->used)
+			   || (!desc2->value->in_frame && desc3->value->in_frame))
+			{
+				tmp = *desc2;
+				*desc2 = *desc3;
+				*desc3 = tmp;
+			}
+		}
+
+		if(desc1->value != desc2->value)
+		{
+			desc2->clobber = 1;
+		}
+	}
+
+	/* Process pre-assigned registers. */
+
+	if(desc1->reg >= 0)
+	{
+		if(regs->is_ternary)
+		{
+			set_register_bits(regs, desc1, 0);
+		}
+		else
+		{
+			set_register_bits(regs, desc1, 1);
+		}
+	}
+	if(desc2->reg >= 0)
+	{
+		set_register_bits(regs, desc2, 0);
+	}
+	if(desc3->reg >= 0)
+	{
+		set_register_bits(regs, desc3, 0);
+	}
+
+	for(index = 0; index < regs->num_scratch; index++)
+	{
+		if(regs->scratch[index] >= 0)
+		{
+			jit_reg_set_used(regs->assigned, regs->scratch[index]);
+			jit_reg_set_used(regs->clobber, regs->scratch[index]);
+		}
+	}
+
+	/* For values that are already in registers try to keep them there. */
+
+	if(!regs->is_ternary && desc1->value && desc2->value)
+	{
+		if(desc1->reg < 0 && desc2->reg < 0)
+		{
+			/* If input value is in register and it will not be
+			   used again we can save one move by placing output
+			   value into that register. */
+			if(!(desc2->live || desc2->used))
+			{
+				reuse_register(gen, regs, desc2, 0);
+				if(desc2->reg >= 0)
+				{
+					desc1->reg = desc2->reg;
+					desc1->other_reg = desc2->other_reg;
+					set_register_bits(regs, desc1, 1);
+				}
+			}
+			if(desc1->reg < 0)
+			{
+				reuse_register(gen, regs, desc1, 1);
+				if(desc1->reg >= 0)
+				{
+					desc2->reg = desc1->reg;
+					desc2->other_reg = desc1->other_reg;
+					set_register_bits(regs, desc2, 0);
+				}
+			}
+		}
+	}
+	else
+	{
+		if(desc1->value && desc1->reg < 0)
+		{
+			reuse_register(gen, regs, desc1, 0);
+		}
+		if(desc2->value && desc2->reg < 0)
+		{
+			reuse_register(gen, regs, desc2, 0);
+		}
+	}
+	if(desc3->value && desc3->reg < 0)
+	{
+		reuse_register(gen, regs, desc3, 0);
+	}
+
+	/* Assign the remaining registers. */
+
+	if(regs->is_ternary)
+	{
+		if(desc1->value && desc1->reg < 0)
+		{
+			use_cheapest_register(gen, regs, desc1, 0);
+			if(desc1->reg < 0)
+			{
+				return 0;
+			}
+		}
+
+		reuse_duplicate_value(desc1, desc2);
+		reuse_duplicate_value(desc1, desc3);
+
+		if(desc2->value && desc2->reg < 0)
+		{
+			use_cheapest_register(gen, regs, desc2, 0);
+			if(desc2->reg < 0)
+			{
+				return 0;
+			}
+		}
+	}
+	else
+	{
+		if(desc1->value && desc1->reg < 0)
+		{
+			if(desc2->reg >= 0)
+			{
+				desc1->reg = desc2->reg;
+				desc1->other_reg = desc2->other_reg;
+				set_register_bits(regs, desc1, 1);
+			}
+			else
+			{
+				use_cheapest_register(gen, regs, desc1, 1);
+				if(desc1->reg < 0)
+				{
+					return 0;
+				}
+			}
+		}
+
+		if(desc2->value && desc2->reg < 0)
+		{
+			if(desc1->reg >= 0)
+			{
+				desc2->reg = desc1->reg;
+				desc2->other_reg = desc1->other_reg;
+				set_register_bits(regs, desc2, 0);
+			}
+			else
+			{
+				use_cheapest_register(gen, regs, desc2, 0);
+				if(desc2->reg < 0)
+				{
+					return 0;
+				}
+			}
+		}
+	}
+
+	reuse_duplicate_value(desc2, desc3);
+
+	if(desc3->value && desc3->reg < 0)
+	{
+		use_cheapest_register(gen, regs, desc3, 0);
+		if(desc3->reg < 0)
+		{
+			return 0;
+		}
+	}
+
+	for(index = 0; index < regs->num_scratch; index++)
+	{
+		if(regs->scratch[index] < 0)
+		{
+			regs->scratch[index] = use_cheapest_register(gen, regs, 0, 0);
+			jit_reg_set_used(regs->assigned, regs->scratch[index]);
+			jit_reg_set_used(regs->clobber, regs->scratch[index]);
+		}
+	}
+
+	return 1;
+}
+
+int
+_jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs)
+{
+	_jit_regdesc_t *desc1;
+	_jit_regdesc_t *desc2;
+	_jit_regdesc_t *desc3;
+	int reg;
+
+	desc1 = &regs->descs[0];
+	desc2 = &regs->descs[1];
+	desc3 = &regs->descs[2];
+
+	/* Load values. */
+	if(regs->is_ternary)
+	{
+		load_triple(gen, desc1, desc2, desc3);
+	}
+	else
+	{
+		if(desc1->value)
+		{
+			/* To avoid spilling the value that we are about to
+			   change pretend that its current content is already
+			   in the frame. The correct flags will be set by the
+			   _jit_regs_commit() function. */
+			if(desc1->value->has_global_register)
+			{
+				desc1->value->in_global_register = 1;
+			}
+			else
+			{
+				desc1->value->in_frame = 1;
+			}
+		}
+
+		load_couple(gen, desc2, desc3);
+	}
+
+	/* Spill clobbered registers. */
+	for(reg = 0; reg < JIT_NUM_REGS; reg++)
+	{
+		if(jit_reg_is_used(regs->clobber, reg))
+		{
+			if(jit_reg_is_used(gen->permanent, reg))
+			{
+				/* Oops, global register. */
+				_jit_gen_spill_global(gen, gen->contents[reg].values[0]);
+			}
+			else
+			{
+				spill_register(gen, reg);
+			}
+		}
+	}
+
+	return 1;
+}
+
+void
+_jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs)
+{
+	_jit_regdesc_t *desc1;
+	int reg;
+
+	desc1 = &regs->descs[0];
+
+	/* If the output register is used in this basic block remember it.
+	   Otherwise spill it. */
+	if(!regs->is_ternary && desc1->value)
+	{
+		if(desc1->used)
+		{
+			set_register(gen, desc1, 0);
+		}
+		else
+		{
+			if(desc1->value->has_global_register)
+			{
+				if(desc1->value->global_reg != desc1->reg)
+				{
+					_jit_gen_spill_reg(gen, desc1->reg, desc1->other_reg, desc1->value);
+				}
+				desc1->value->in_register = 0;
+				desc1->value->in_global_register = 1;
+			}
+			else
+			{
+				_jit_gen_spill_reg(gen, desc1->reg, desc1->other_reg, desc1->value);
+				desc1->value->in_register = 0;
+				desc1->value->in_frame = 1;
+			}
+		}
+
+		jit_reg_clear_used(regs->clobber, desc1->reg);
+		if(desc1->other_reg >= 0)
+		{
+			jit_reg_clear_used(regs->clobber, desc1->other_reg);
+		}
+	}
+
+	/* Load clobbered global registers. */
+	for(reg = 0; reg < JIT_NUM_REGS; reg++)
+	{
+		if(jit_reg_is_used(regs->clobber, reg) && jit_reg_is_used(gen->permanent, reg))
+		{
+			_jit_gen_load_global(gen, gen->contents[reg].values[0]);
+		}
+	}
+}

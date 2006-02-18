@@ -99,6 +99,7 @@ extern jit_reginfo_t const _jit_reg_info[JIT_NUM_REGS];
 #if !defined(jit_regused_init)
 typedef jit_uint jit_regused_t;
 #define	jit_regused_init				(0)
+#define	jit_regused_init_used				(~0)
 #define	jit_reg_is_used(mask,reg)		\
 			(((mask) & (((jit_uint)1) << (reg))) != 0)
 #define	jit_reg_set_used(mask,reg)		((mask) |= (((jit_uint)1) << (reg)))
@@ -192,6 +193,7 @@ void _jit_gen_free_reg(jit_gencode_t gen, int reg,
 					   int other_reg, int value_used);
 void _jit_gen_load_value
 	(jit_gencode_t gen, int reg, int other_reg, jit_value_t value);
+void _jit_gen_spill_global(jit_gencode_t gen, jit_value_t value);
 void _jit_gen_load_global(jit_gencode_t gen, jit_value_t value);
 void _jit_gen_fix_value(jit_value_t value);
 void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,

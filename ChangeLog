@@ -1,3 +1,16 @@
+2006-02-19  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.h: 
+	* jit/jit-reg-alloc.c: Initial version of new local register
+	  allocator.
+
+	* jit/jit-rules.h: 
+	* jit/jit-rules-arm.c (_jit_gen_spill_global): 
+	* jit/jit-rules-interp.c (_jit_gen_spill_global): 
+	* jit/jit-rules-x86.c (_jit_gen_spill_global): add function for
+	spilling global registers. Used by the new allocator. Only x86
+	version is really implemented.
+
 2006-02-13  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-internal.h (struct _jit_value): add index field.

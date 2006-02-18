@@ -57,7 +57,73 @@ int _jit_regs_new_top(jit_gencode_t gen, jit_value_t value, int type_reg);
 void _jit_regs_force_out(jit_gencode_t gen, jit_value_t value, int is_dest);
 void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func);
 void _jit_regs_get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
-						    int not_this3, int *reg, int *reg2);
+			    int not_this3, int *reg, int *reg2);
+
+
+/*
+ * New Reg Alloc API
+ */
+
+/*
+ * The maximum number of values per instruction.
+ */
+#define _JIT_REGS_VALUE_MAX		3
+
+/*
+ * The maximum number of temporaries per instruction.
+ */
+#define _JIT_REGS_SCRATCH_MAX		4
+
+/*
+ * Contains register assignment data for single operand.
+ */
+typedef struct
+{
+	jit_value_t	value;
+	short		reg;
+	short		other_reg;
+	unsigned	clobber : 1;
+	unsigned	live : 1;
+	unsigned	used : 1;
+
+} _jit_regdesc_t;
+
+/*
+ * Contains register assignment data for instruction.
+ */
+typedef struct
+{
+	int		is_ternary;
+	int		is_commutative;
+
+	_jit_regdesc_t	descs[_JIT_REGS_VALUE_MAX];
+	int		num_descs;
+
+	int		scratch[_JIT_REGS_SCRATCH_MAX];
+	int		num_scratch;
+
+	jit_regused_t	assigned;
+	jit_regused_t	clobber;
+
+} _jit_regs_t;
+
+void _jit_regs_init(_jit_regs_t *regs, int is_ternary, int is_commutative);
+void _jit_regs_set_dest(_jit_regs_t *regs, jit_insn_t insn, int clobber, int reg, int other_reg);
+void _jit_regs_set_value1(_jit_regs_t *regs, jit_insn_t insn, int clobber, int reg, int other_reg);
+void _jit_regs_set_value2(_jit_regs_t *regs, jit_insn_t insn, int clobber, int reg, int other_reg);
+void _jit_regs_set_scratch(_jit_regs_t *regs, int reg);
+void _jit_regs_clobber(_jit_regs_t *regs, int reg);
+void _jit_regs_clobber_all(_jit_regs_t *regs);
+int _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs);
+int _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs);
+void _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs);
+int _jit_regs_dest(_jit_regs_t *regs);
+int _jit_regs_value1(_jit_regs_t *regs);
+int _jit_regs_value2(_jit_regs_t *regs);
+int _jit_regs_dest_other(_jit_regs_t *regs);
+int _jit_regs_value1_other(_jit_regs_t *regs);
+int _jit_regs_value2_other(_jit_regs_t *regs);
+int _jit_regs_scratch(_jit_regs_t *regs, int index);
 
 #ifdef	__cplusplus
 };
