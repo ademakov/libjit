@@ -1,3 +1,8 @@
+2006-02-20  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.c (_jit_create_call_return_insns): fix return
+	code in case of no return value or struct returned via pointer.
+
 2006-02-19  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.h: 
