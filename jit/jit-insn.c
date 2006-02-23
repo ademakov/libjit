@@ -4100,7 +4100,7 @@ jit_value_t jit_insn_address_of_label(jit_function_t func, jit_label_t *label)
 	insn->opcode = (short)JIT_OP_ADDRESS_OF_LABEL;
 	insn->flags = JIT_INSN_VALUE1_IS_LABEL;
 	insn->dest = dest;
-	insn->value1 = (jit_value_t)label;
+	insn->value1 = (jit_value_t)(*label);
 	return dest;
 }
 

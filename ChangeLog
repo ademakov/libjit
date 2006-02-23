@@ -1,3 +1,8 @@
+2006-02-24  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-insn.c (jit_insn_address_of_label): fix a typo.
+	* jit/jit-rules-x86.sel: fix JIT_OP_ADDRESS_OF_LABEL rule.
+
 2006-02-20  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.c (_jit_create_call_return_insns): fix return

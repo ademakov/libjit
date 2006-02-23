@@ -1925,7 +1925,11 @@ JIT_OP_CALL_FILTER_RETURN: manual
 JIT_OP_ADDRESS_OF_LABEL: manual
 	[] -> {
 		unsigned char *inst;
-		int reg = _jit_regs_dest_value(gen, insn->dest);
+		jit_block_t block;
+		int reg;
+
+		reg = _jit_regs_dest_value(gen, insn->dest);
+
 		inst = gen->posn.ptr;
 		if(!jit_cache_check_for_n(&(gen->posn), 32))
 		{
@@ -1933,11 +1937,19 @@ JIT_OP_ADDRESS_OF_LABEL: manual
 			return;
 		}
 		reg = _jit_reg_info[reg].cpu_reg;
-		inst = output_branch(func, inst, 0xB8 + reg /* mov reg, imm */, insn);
-		x86_call_imm(inst, 0);
-		x86_alu_reg_membase(inst, X86_ADD, reg, X86_ESP, 0);
-		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(void *));
-		x86_alu_reg_imm(inst, X86_SUB, reg, 5);
+
+		block = jit_block_from_label(func, (jit_label_t)(insn->value1));
+		if(block->address)
+		{
+			x86_mov_reg_imm(inst, reg, block->address);
+		}
+		else
+		{
+			/* Output a placeholder and record on the block's fixup list */
+			x86_mov_reg_imm(inst, reg, (int)(block->fixup_absolute_list));
+			block->fixup_absolute_list = (void *)(inst - 4);
+		}
+
 		gen->posn.ptr = inst;
 	}
 
