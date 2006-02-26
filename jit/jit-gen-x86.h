@@ -1417,13 +1417,13 @@ typedef union {
 
 #define x86_pop_mem(inst,mem)	\
 	do {	\
-		*(inst)++ = (unsigned char)0x87;	\
+		*(inst)++ = (unsigned char)0x8f;	\
 		x86_mem_emit ((inst), 0, (mem));	\
 	} while (0)
 
 #define x86_pop_membase(inst,basereg,disp)	\
 	do {	\
-		*(inst)++ = (unsigned char)0x87;	\
+		*(inst)++ = (unsigned char)0x8f;	\
 		x86_membase_emit ((inst), 0, (basereg), (disp));	\
 	} while (0)
 
