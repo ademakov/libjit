@@ -1,5 +1,7 @@
 2006-02-26  Aleksey Demakov  <ademakov@gmail.com>
 
+	* jit/jit-rules-x86.sel: fix JIT_OP_STORE_RELATIVE_LONG.
+
 	* jit/jit-gen-x86.h (x86_pop_mem, x86_pop_membase): fix opcode --
 	  it was 0x87 (xchg) instead of 0x8f (pop).
 

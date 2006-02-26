@@ -2633,7 +2633,7 @@ JIT_OP_STORE_RELATIVE_LONG: manual
 				(inst, reg, insn->value2->address,
 				 (jit_int)(const_value & jit_max_uint), 4);
 			x86_mov_membase_imm
-				(inst, reg, insn->value2->address,
+				(inst, reg, insn->value2->address + 4,
 				 (jit_int)((const_value >> 32) & jit_max_uint), 4);
 			gen->posn.ptr = inst;
 		}
