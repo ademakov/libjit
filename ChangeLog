@@ -1,3 +1,8 @@
+2006-02-27  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-insn.c (jit_insn_convert): fix int->uint and uint->int
+	conversion.
+
 2006-02-26  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.sel: fix JIT_OP_STORE_RELATIVE_LONG.

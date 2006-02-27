@@ -4481,7 +4481,7 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 			#ifndef JIT_NATIVE_INT32
 				{CVT(JIT_OP_TRUNC_INT, int),
 			#else
-				{CVT_NONE,
+				{CVT(JIT_OP_COPY_INT, int),
 			#endif
 					CVT_NONE,
 					CVT_NONE},
@@ -4538,7 +4538,7 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 			#ifndef JIT_NATIVE_INT32
 				{CVT(JIT_OP_TRUNC_UINT, uint),
 			#else
-				{CVT_NONE,
+				{CVT(JIT_OP_COPY_INT, uint),
 			#endif
 					CVT_NONE,
 					CVT_NONE},
