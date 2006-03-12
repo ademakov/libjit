@@ -5202,8 +5202,8 @@ static int create_call_setup_insns
 		args = new_args;
 	}
 
-	/* If we are calling ourselves, then store back to our own parameters */
-	if((flags & JIT_CALL_TAIL) != 0 && func == callee)
+	/* If we are performing a tail call, then store back to our own parameters */
+	if((flags & JIT_CALL_TAIL) != 0)
 	{
 		for(arg_num = 0; arg_num < num_args; ++arg_num)
 		{
@@ -6608,6 +6608,21 @@ int jit_insn_return(jit_function_t func, jit_value_t value)
 		return 0;
 	}
 
+	/* We need to pop the "setjmp" context */
+	if(func->has_try)
+	{
+		type = jit_type_create_signature
+			(jit_abi_cdecl, jit_type_void, 0, 0, 1);
+		if(!type)
+		{
+			return 0;
+		}
+		jit_insn_call_native
+			(func, "_jit_unwind_pop_setjmp",
+			 (void *)_jit_unwind_pop_setjmp, type, 0, 0, JIT_CALL_NOTHROW);
+		jit_type_free(type);
+	}
+
 	/* This function has an ordinary return path */
 	func->builder->ordinary_return = 1;
 
@@ -6759,6 +6774,21 @@ int jit_insn_return_ptr
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
+	}
+
+	/* We need to pop the "setjmp" context */
+	if(func->has_try)
+	{
+		type = jit_type_create_signature
+			(jit_abi_cdecl, jit_type_void, 0, 0, 1);
+		if(!type)
+		{
+			return 0;
+		}
+		jit_insn_call_native
+			(func, "_jit_unwind_pop_setjmp",
+			 (void *)_jit_unwind_pop_setjmp, type, 0, 0, JIT_CALL_NOTHROW);
+		jit_type_free(type);
 	}
 
 	/* This function has an ordinary return path */

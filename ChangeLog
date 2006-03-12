@@ -1,3 +1,14 @@
+2006-03-12  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-insn.c: Pop the setjump context on return from functions with
+	a catcher.
+
+2006-03-11  Kirill Kononenko  <Kirill.Kononenko@gmail.com>
+
+	* jit/jit-insn.c (create_call_setup_insn): fix tail calls, work
+	if the called function is not the callee function
+	(thanks klausT for finding the bug).
+
 2006-02-27  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-insn.c (jit_insn_convert): fix int->uint and uint->int
