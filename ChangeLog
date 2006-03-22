@@ -1,3 +1,10 @@
+2006-03-23  Aleksey Demakov  <ademakov@gmail.com>
+
+	* tools/Makefile.am: 
+	* tools/gen-rules-parser.y, tools/gen-rules-scanner.l: add
+	"gen-rules" tool that is similar to "gen-sel" but uses new
+	register allocator.
+
 2006-03-12  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-insn.c: Pop the setjump context on return from functions with
