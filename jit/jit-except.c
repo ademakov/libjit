@@ -303,11 +303,12 @@ struct jit_stack_trace
 @*/
 jit_stack_trace_t jit_exception_get_stack_trace(void)
 {
+	jit_stack_trace_t trace = 0;
+	unsigned int size = 0;
+#if JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
 	jit_thread_control_t control;
 	jit_backtrace_t top;
 	jit_backtrace_t item;
-	unsigned int size;
-	jit_stack_trace_t trace;
 	
 	/* Count the number of items in the current thread's call stack */
 	control = _jit_thread_get_control();
@@ -343,6 +344,36 @@ jit_stack_trace_t jit_exception_get_stack_trace(void)
 		++size;
 		item = item->parent;
 	}
+#else
+	void *frame = jit_get_current_frame();
+
+	/* Count the number of items in the current thread's call stack */
+	while(frame != 0)
+	{
+		frame = jit_get_next_frame_address(frame);
+		++size;
+	}
+
+	/* Allocate memory for the stack trace */
+	trace = (jit_stack_trace_t)jit_malloc
+		(sizeof(struct jit_stack_trace) +
+		 size * sizeof(void *) - sizeof(void *));
+	if(!trace)
+	{
+		return 0;
+	}
+	trace->size = size;
+
+	/* Populate the stack trace with the items we counted earlier */
+	size = 0;
+	frame = jit_get_current_frame();
+	while(frame != 0)
+	{
+		trace->items[size] = jit_get_return_address(frame);
+		frame = jit_get_next_frame_address(frame);
+		++size;
+	}
+#endif
 	return trace;
 }
 

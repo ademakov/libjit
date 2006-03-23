@@ -1,3 +1,8 @@
+2006-03-23  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jitc-except.c: Walk the stack to build the stack trace in
+	jit_exception_get_stack_trace when the frame is not broken.
+
 2006-03-23  Aleksey Demakov  <ademakov@gmail.com>
 
 	* tools/Makefile.am: 
