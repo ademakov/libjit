@@ -102,7 +102,10 @@ WHITE			[ \t\v\r\f]
 "ternary"		{ RETURNTOK(K_TERNARY); }
 "stack"			{ RETURNTOK(K_STACK); }
 "only"			{ RETURNTOK(K_ONLY); }
+"copy"			{ RETURNTOK(K_COPY); }
+"x87arith"		{ RETURNTOK(K_X87ARITH); }
 "commutative"		{ RETURNTOK(K_COMMUTATIVE); }
+"reversible"		{ RETURNTOK(K_REVERSIBLE); }
 "if"			{ RETURNTOK(K_IF); }
 "clobber"		{ RETURNTOK(K_CLOBBER); }
 "scratch"		{ RETURNTOK(K_SCRATCH); }

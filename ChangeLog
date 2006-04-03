@@ -1,3 +1,9 @@
+2006-04-03  Aleksey Demakov  <ademakov@gmail.com>
+
+	* tools/gen-rules-scanner.l:
+	* tools/gen-rules-parser.y: add `reversible', `x87arith',
+	  and `copy' keywords. Fix bugs.
+
 2006-03-23  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jitc-except.c: Walk the stack to build the stack trace in

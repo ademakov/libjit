@@ -114,11 +114,14 @@ static int gensel_first_stack_reg = 8;	/* st0 under x86 */
 #define	GENSEL_OPT_TERNARY			7
 #define	GENSEL_OPT_STACK			8
 #define	GENSEL_OPT_ONLY				9
-#define GENSEL_OPT_COMMUTATIVE			10
+#define	GENSEL_OPT_COPY				10
+#define GENSEL_OPT_X87ARITH			11
+#define GENSEL_OPT_COMMUTATIVE			12
+#define GENSEL_OPT_REVERSIBLE			13
 
-#define	GENSEL_OPT_MANUAL			11
-#define	GENSEL_OPT_MORE_SPACE			12
-#define	GENSEL_OPT_SPILL_BEFORE			13
+#define	GENSEL_OPT_MANUAL			14
+#define	GENSEL_OPT_MORE_SPACE			15
+#define	GENSEL_OPT_SPILL_BEFORE			16
 
 /*
  * Pattern values.
@@ -840,7 +843,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			}
 			printf("_JIT_REGS_TERNARY");
 		}
-		if(gensel_search_option(options, GENSEL_OPT_COMMUTATIVE))
+		if(gensel_search_option(options, GENSEL_OPT_BINARY_BRANCH)
+		   || gensel_search_option(options, GENSEL_OPT_UNARY_BRANCH))
 		{
 			if(seen_option)
 			{
@@ -850,7 +854,19 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			{
 				seen_option = 1;
 			}
-			printf("_JIT_REGS_COMMUTATIVE");
+			printf("_JIT_REGS_BRANCH");
+		}
+		if(gensel_search_option(options, GENSEL_OPT_COPY))
+		{
+			if(seen_option)
+			{
+				printf(" | ");
+			}
+			else
+			{
+				seen_option = 1;
+			}
+			printf("_JIT_REGS_COPY");
 		}
 		if(gensel_search_option(options, GENSEL_OPT_STACK))
 		{
@@ -864,8 +880,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			}
 			printf("_JIT_REGS_STACK");
 		}
-/*
-		if(gensel_search_option(options, GENSEL_OPT_))
+		if(gensel_search_option(options, GENSEL_OPT_X87ARITH))
 		{
 			if(seen_option)
 			{
@@ -875,14 +890,46 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			{
 				seen_option = 1;
 			}
-			printf("_JIT_REGS_");
+			printf("_JIT_REGS_X87_ARITH");
 		}
-*/
+		if(gensel_search_option(options, GENSEL_OPT_COMMUTATIVE))
+		{
+			if(seen_option)
+			{
+				printf(" | ");
+			}
+			else
+			{
+				seen_option = 1;
+			}
+			printf("_JIT_REGS_COMMUTATIVE");
+		}
+		if(gensel_search_option(options, GENSEL_OPT_REVERSIBLE))
+		{
+			if(seen_option)
+			{
+				printf(" | ");
+			}
+			else
+			{
+				seen_option = 1;
+			}
+			printf("_JIT_REGS_REVERSIBLE");
+		}
 		if(!seen_option)
 		{
 			printf("0");
 		}
 		printf(");\n");
+
+		if(!(gensel_search_option(options, GENSEL_OPT_TERNARY)
+		     || gensel_search_option(options, GENSEL_OPT_BINARY_NOTE)
+		     || gensel_search_option(options, GENSEL_OPT_BINARY_BRANCH)
+		     || gensel_search_option(options, GENSEL_OPT_UNARY_NOTE)
+		     || gensel_search_option(options, GENSEL_OPT_UNARY_BRANCH)))
+		{
+			printf("\t\t_jit_regs_set_dest(&regs, insn, 0, -1, -1);\n");
+		}
 
 		regs = 0;
 		index = 0;
@@ -898,12 +945,12 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 					printf("\t\t%s = _jit_regs_lookup(\"%s\")];\n",
 					       gensel_reg_names[regs],
 					       pattern->values->value);
-					printf("\t\t_jit_regs_set_%s(&regs, insn, %s, -1);\n",
+					printf("\t\t_jit_regs_set_%s(&regs, insn, 0, %s, -1);\n",
 					       args[index], gensel_reg_names[regs]);
 				}
 				else
 				{
-					printf("\t\t_jit_regs_set_%s(&regs, insn, -1, -1);\n",
+					printf("\t\t_jit_regs_set_%s(&regs, insn, 0, -1, -1);\n",
 					       args[index]);
 				}
 				++regs;
@@ -922,7 +969,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 						printf("\t\t%s = _jit_regs_lookup(\"%s\")];\n",
 						       gensel_other_reg_names[regs],
 						       pattern->values->next->value);
-						printf("\t\t_jit_regs_set_%s(&regs, insn, %s, %s);\n",
+						printf("\t\t_jit_regs_set_%s(&regs, insn, 0, %s, %s);\n",
 						       args[index],
 						       gensel_reg_names[regs],
 						       gensel_other_reg_names[regs]);
@@ -932,13 +979,13 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 						printf("\t\t%s = _jit_regs_lookup(\"%s\")];\n",
 						       gensel_reg_names[regs],
 						       pattern->values->value);
-						printf("\t\t_jit_regs_set_%s(&regs, insn, %s, -1);\n",
+						printf("\t\t_jit_regs_set_%s(&regs, insn, 0, %s, -1);\n",
 						       args[index], gensel_reg_names[regs]);
 					}
 				}
 				else
 				{
-					printf("\t\t_jit_regs_set_%s(&regs, insn, -1, -1);\n",
+					printf("\t\t_jit_regs_set_%s(&regs, insn, 0, -1, -1);\n",
 					       args[index]);
 				}
 				++regs;
@@ -1013,16 +1060,16 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			{
 			case GENSEL_PATT_REG:
 			case GENSEL_PATT_FREG:
-				printf("\t\t%s = _jit_reg_info[_jit_regs_%s(regs)].cpu_reg;\n",
+				printf("\t\t%s = _jit_reg_info[_jit_regs_%s(&regs)].cpu_reg;\n",
 				       gensel_reg_names[regs], args[index]);
 				++regs;
 				++index;
 				break;
 
 			case GENSEL_PATT_LREG:
-				printf("\t\t%s = _jit_reg_info[_jit_regs_%s(regs)].cpu_reg;\n",
+				printf("\t\t%s = _jit_reg_info[_jit_regs_%s(&regs)].cpu_reg;\n",
 				       gensel_reg_names[regs], args[index]);
-				printf("\t\t%s = _jit_reg_info[_jit_regs_%s_other(regs)].cpu_reg;\n",
+				printf("\t\t%s = _jit_reg_info[_jit_regs_%s_other(&regs)].cpu_reg;\n",
 				       gensel_other_reg_names[regs], args[index]);
 				++regs;
 				++index;
@@ -1202,7 +1249,10 @@ static void gensel_output_supported(void)
 %token K_TERNARY		"`ternary'"
 %token K_STACK			"`stack'"
 %token K_ONLY			"`only'"
+%token K_COPY			"`copy'"
+%token K_X87ARITH		"`x87arith'"
 %token K_COMMUTATIVE		"`commutative'"
+%token K_REVERSIBLE		"`reversible'"
 %token K_IF			"`if'"
 %token K_CLOBBER		"`clobber'"
 %token K_SCRATCH		"`scratch'"
@@ -1443,7 +1493,10 @@ OptionTag
 	| K_TERNARY			{ $$ = GENSEL_OPT_TERNARY; }
 	| K_STACK			{ $$ = GENSEL_OPT_STACK; }
 	| K_ONLY			{ $$ = GENSEL_OPT_ONLY; }
+	| K_COPY			{ $$ = GENSEL_OPT_COPY; }
+	| K_X87ARITH			{ $$ = GENSEL_OPT_X87ARITH; }
 	| K_COMMUTATIVE			{ $$ = GENSEL_OPT_COMMUTATIVE; }
+	| K_REVERSIBLE			{ $$ = GENSEL_OPT_REVERSIBLE; }
 
 	/* deprecated: */
 	| K_MANUAL			{ $$ = GENSEL_OPT_MANUAL; }
