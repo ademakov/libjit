@@ -78,6 +78,12 @@ void _jit_create_closure(unsigned char *buf, void *func,
 void *_jit_create_redirector(unsigned char *buf, void *func,
 							 void *user_data, int abi);
 
+
+/*
+ * Create the indirector for the function.
+ */
+void *_jit_create_indirector(unsigned char *buf, void **entry);
+
 /*
  * Pad a buffer with NOP instructions.  Used to align code.
  * This will only be called if "jit_should_pad" is defined.

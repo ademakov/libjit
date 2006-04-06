@@ -211,6 +211,16 @@ void *_jit_create_redirector(unsigned char *buf, void *func,
 	return start;
 }
 
+void *_jit_create_indirector(unsigned char *buf, void **entry)
+{
+	void *start = (void *)buf;
+
+	/* Jump to the entry point. */
+	x86_jump_mem(buf, entry);
+
+	return start;
+}
+
 void _jit_pad_buffer(unsigned char *buf, int len)
 {
 	while(len >= 6)

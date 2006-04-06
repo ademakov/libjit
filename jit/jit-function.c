@@ -65,7 +65,12 @@ jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
 	func->entry_point = _jit_create_redirector
 		(func->redirector, (void *)_jit_function_compile_on_demand,
 		 func, jit_type_get_abi(signature));
+# if defined(jit_indirector_size)
+	func->closure_entry = _jit_create_indirector
+		(func->indirector, (void**) &(func->entry_point));
+# else
 	func->closure_entry = func->entry_point;
+# endif
 #endif
 
 	/* Add the function to the context list */
@@ -571,7 +576,9 @@ int jit_function_compile(jit_function_t func)
 	struct jit_gencode gen;
 	jit_cache_t cache;
 	void *start;
+#if !defined(jit_redirector_size) || !defined(jit_indirector_size) || defined(JIT_BACKEND_INTERP)
 	void *recompilable_start = 0;
+#endif
 	void *end;
 	jit_block_t block;
 	int result;
@@ -691,12 +698,14 @@ int jit_function_compile(jit_function_t func)
 		}
 #endif
 
+#if !defined(jit_redirector_size) || !defined(jit_indirector_size) || defined(JIT_BACKEND_INTERP)
 		/* If the function is recompilable, then we need an extra entry
 		   point to properly redirect previous references to the function */
 		if(func->is_recompilable)
 		{
 			recompilable_start = _jit_gen_redirector(&gen, func);
 		}
+#endif
 
 		/* End the function's output process */
 		result = _jit_cache_end_method(&(gen.posn));
@@ -747,11 +756,19 @@ int jit_function_compile(jit_function_t func)
 
 	/* Record the entry point */
 	func->entry_point = start;
+#if !defined(jit_redirector_size) || !defined(jit_indirector_size) || defined(JIT_BACKEND_INTERP)
 	if(recompilable_start)
 	{
 		func->closure_entry = recompilable_start;
 	}
 	else
+#else
+	/* If the function is recompilable, then we keep closure_entry
+	   point to indirector to properly redirect previous references
+	   to the function, otherwise we make it equal to the function
+	   start */
+	if(!func->is_recompilable)
+#endif
 	{
 		func->closure_entry = start;
 	}

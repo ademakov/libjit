@@ -5213,6 +5213,7 @@ static int create_call_setup_insns
 				return 0;
 			}
 		}
+		*struct_return = 0;
 		return 1;
 	}
 

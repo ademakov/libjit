@@ -1,3 +1,17 @@
+2006-04-07  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-internal.h (struct _jit_function): add indirector field.
+	* jit/jit-function.c (jit_function_compile, jit_function_create):
+	  use indirector.
+	* jit/jit-apply-x86.h: define jit_indirector_size.
+	* jit/jit-apply-func.h, jit/jit-apply-x86.c (_jit_create_indirector):
+	  add function that emits indirector code.
+
+2006-04-07  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-insn.c (create_call_setup_insns): zero struct_return
+	in case of tail calls (the problem was found by Klaus).
+
 2006-04-03  Aleksey Demakov  <ademakov@gmail.com>
 
 	* tools/gen-rules-scanner.l:

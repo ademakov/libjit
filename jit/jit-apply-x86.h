@@ -349,6 +349,12 @@
 #define	jit_redirector_size		32
 
 /*
+ * The number of bytes that are needed for a indirector stub.
+ * This includes any extra bytes that are needed for alignment.
+ */
+#define	jit_indirector_size		8
+
+/*
  * We should pad unused code space with NOP's.
  */
 #define	jit_should_pad			1
