@@ -1,5 +1,7 @@
 2006-04-08  Aleksey Demakov  <ademakov@gmail.com>
 
+	* jit/jit-opcode.c: add jump table into jit_opcodes array.
+
 	* tools/gen-rules-parser.y: extend pattern syntax to allow mark
 	  registers as clobbered. Fix bugs.
 

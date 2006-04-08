@@ -536,6 +536,10 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	{"mark_offset",					F_(EMPTY, INT, EMPTY)},
 	{"mark_breakpoint",				F_(EMPTY, PTR, PTR)},
 
+	/*
+	 * Switch statement support.
+	 */
+	{"jump_table",					F_(PTR, PTR, INT)},
 };
 
 #if defined(JIT_BACKEND_INTERP)
