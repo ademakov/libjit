@@ -142,6 +142,12 @@ static int gensel_first_stack_reg = 8;	/* st0 under x86 */
 #define	GENSEL_PATT_SPACE			14
 
 /*
+ * Register flags.
+ */
+#define GENSEL_FLAG_CLOBBER			1
+#define GENSEL_FLAG_EARLY_CLOBBER		2
+
+/*
  * Option value.
  */
 typedef struct gensel_value *gensel_value_t;
@@ -158,6 +164,7 @@ typedef struct gensel_option *gensel_option_t;
 struct gensel_option
 {
 	int			option;
+	int			flags;
 	gensel_value_t		values;
 	gensel_option_t		next;
 };
@@ -184,12 +191,15 @@ static char *gensel_other_reg_names[] = {
 static char *gensel_imm_names[] = {
 	"imm_value", "imm_value2", "imm_value3"
 };
+static char *gensel_reg_flags[] = {
+	"0", "_JIT_REGS_CLOBBER", "_JIT_REGS_EARLY_CLOBBER"
+};
 
 /*
  * Create an option.
  */
 static gensel_option_t
-gensel_create_option(int option, gensel_value_t values)
+gensel_create_option_2(int option, int flags, gensel_value_t values)
 {
 	gensel_option_t op;
 
@@ -200,9 +210,19 @@ gensel_create_option(int option, gensel_value_t values)
 	}
 
 	op->option = option;
+	op->flags = flags;
 	op->values = values;
 	op->next = 0;
 	return op;
+}
+
+/*
+ * Create an option.
+ */
+static gensel_option_t
+gensel_create_option(int option, gensel_value_t values)
+{
+	return gensel_create_option_2(option, 0, values);
 }
 
 /*
@@ -624,6 +644,27 @@ static void gensel_output_clause(gensel_clause_t clause, gensel_option_t options
 	}
 }
 
+static int
+clause_contains_registers(gensel_clause_t clause)
+{
+	gensel_option_t pattern;
+	pattern = clause->pattern;
+	while(pattern)
+	{
+		switch(pattern->option)
+		{
+		case GENSEL_PATT_REG:
+		case GENSEL_PATT_FREG:
+		case GENSEL_PATT_LREG:
+		case GENSEL_PATT_SCRATCH:
+		case GENSEL_PATT_CLOBBER:
+			return 1;
+		}
+		pattern = pattern->next;
+	}
+	return 0;
+}
+
 /*
  * Output the clauses for a rule.
  */
@@ -636,6 +677,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 	int first, seen_option;
 	int regs, imms, index;
 	int scratch, clobber_all;
+	int contains_registers;
 
 	/* If the clause is manual, then output it as-is */
 	if(gensel_search_option(options, GENSEL_OPT_MANUAL))
@@ -648,8 +690,23 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 		return;
 	}
 
+	clause = clauses;
+	contains_registers = 0;
+	while(clause)
+	{
+		contains_registers = clause_contains_registers(clause);
+		if(contains_registers)
+		{
+			break;
+		}
+		clause = clause->next;
+	}
+
 	printf("\t%s inst;\n", gensel_inst_type);
-	printf("\t_jit_regs_t regs;\n");
+	if(contains_registers)
+	{
+		printf("\t_jit_regs_t regs;\n");
+	}
 	gensel_declare_regs(clauses, options);
 	if(gensel_search_option(options, GENSEL_OPT_SPILL_BEFORE))
 	{
@@ -673,7 +730,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 	/* Output the clause checking and dispatching code */
 	clause = clauses;
 	first = 1;
-	while(clause != 0)
+	while(clause)
 	{
 		if(clause->next)
 		{
@@ -692,89 +749,102 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				case GENSEL_PATT_REG:
 				case GENSEL_PATT_LREG:
 				case GENSEL_PATT_FREG:
-					if(index > 0 || seen_option)
+					/* Do not check if the value is in
+					   a register as the allocator will
+					   load them anyway as long as other
+					   conditions are met. */
+#if 0
+					if(seen_option)
 					{
 						printf(" && ");
 					}
 					printf("insn->%s->in_register", args[index]);
+#endif
 					++index;
 					break;
 
 				case GENSEL_PATT_IMM:
-					if(index > 0 || seen_option)
+					if(seen_option)
 					{
 						printf(" && ");
 					}
 					printf("insn->%s->is_constant", args[index]);
+					seen_option = 1;
 					++index;
 					break;
 
 				case GENSEL_PATT_IMMZERO:
-					if(index > 0 || seen_option)
+					if(seen_option)
 					{
 						printf(" && ");
 					}
 					printf("insn->%s->is_nint_constant && ", args[index]);
 					printf("insn->%s->address == 0", args[index]);
+					seen_option = 1;
 					++index;
 					break;
 
 				case GENSEL_PATT_IMMS8:
-					if(index > 0 || seen_option)
+					if(seen_option)
 					{
 						printf(" && ");
 					}
 					printf("insn->%s->is_nint_constant && ", args[index]);
 					printf("insn->%s->address >= -128 && ", args[index]);
 					printf("insn->%s->address <= 127", args[index]);
+					seen_option = 1;
 					++index;
 					break;
 
 				case GENSEL_PATT_IMMU8:
-					if(index > 0 || seen_option)
+					if(seen_option)
 					{
 						printf(" && ");
 					}
 					printf("insn->%s->is_nint_constant && ", args[index]);
 					printf("insn->%s->address >= 0 && ", args[index]);
 					printf("insn->%s->address <= 255", args[index]);
+					seen_option = 1;
 					++index;
 					break;
 
 				case GENSEL_PATT_IMMS16:
-					if(index > 0 || seen_option)
+					if(seen_option)
 					{
 						printf(" && ");
 					}
 					printf("insn->%s->is_nint_constant && ", args[index]);
 					printf("insn->%s->address >= -32768 && ", args[index]);
 					printf("insn->%s->address <= 32767", args[index]);
+					seen_option = 1;
 					++index;
 					break;
 
 				case GENSEL_PATT_IMMU16:
-					if(index > 0 || seen_option)
+					if(seen_option)
 					{
 						printf(" && ");
 					}
 					printf("insn->%s->is_nint_constant && ", args[index]);
 					printf("insn->%s->address >= 0 && ", args[index]);
 					printf("insn->%s->address <= 65535", args[index]);
+					seen_option = 1;
 					++index;
 					break;
 
 				case GENSEL_PATT_LOCAL:
-					if(index > 0 || seen_option)
+					if(seen_option)
 					{
 						printf(" && ");
 					}
 					printf("insn->%s->in_frame && !(insn->%s->in_register)",
 					       args[index], args[index]);
+					seen_option = 1;
 					++index;
 					break;
 
 				case GENSEL_PATT_IF:
-					if(index > 0 || seen_option)
+					if(seen_option)
 					{
 						printf(" && ");
 					}
@@ -785,6 +855,10 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 					break;
 				}
 				pattern = pattern->next;
+			}
+			if(!seen_option)
+			{
+				printf("1");
 			}
 			printf(")\n\t{\n");
 		}
@@ -824,111 +898,130 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			}
 		}
 
-		seen_option = 0;
-		printf("\t\t_jit_regs_init(&regs, ");
-		if(clobber_all)
-		{
-			seen_option = 1;
-			printf("_JIT_REGS_CLOBBER_ALL");
-		}
-		if(gensel_search_option(options, GENSEL_OPT_TERNARY))
-		{
-			if(seen_option)
-			{
-				printf(" | ");
-			}
-			else
-			{
-				seen_option = 1;
-			}
-			printf("_JIT_REGS_TERNARY");
-		}
+		contains_registers = clause_contains_registers(clause);
+
 		if(gensel_search_option(options, GENSEL_OPT_BINARY_BRANCH)
 		   || gensel_search_option(options, GENSEL_OPT_UNARY_BRANCH))
 		{
-			if(seen_option)
+			/* Spill all other registers back to their original positions */
+			if(contains_registers)
 			{
-				printf(" | ");
+				clobber_all = 1;
 			}
 			else
 			{
-				seen_option = 1;
+				printf("\t\t_jit_regs_spill_all(gen);\n");
 			}
-			printf("_JIT_REGS_BRANCH");
 		}
-		if(gensel_search_option(options, GENSEL_OPT_COPY))
-		{
-			if(seen_option)
-			{
-				printf(" | ");
-			}
-			else
-			{
-				seen_option = 1;
-			}
-			printf("_JIT_REGS_COPY");
-		}
-		if(gensel_search_option(options, GENSEL_OPT_STACK))
-		{
-			if(seen_option)
-			{
-				printf(" | ");
-			}
-			else
-			{
-				seen_option = 1;
-			}
-			printf("_JIT_REGS_STACK");
-		}
-		if(gensel_search_option(options, GENSEL_OPT_X87ARITH))
-		{
-			if(seen_option)
-			{
-				printf(" | ");
-			}
-			else
-			{
-				seen_option = 1;
-			}
-			printf("_JIT_REGS_X87_ARITH");
-		}
-		if(gensel_search_option(options, GENSEL_OPT_COMMUTATIVE))
-		{
-			if(seen_option)
-			{
-				printf(" | ");
-			}
-			else
-			{
-				seen_option = 1;
-			}
-			printf("_JIT_REGS_COMMUTATIVE");
-		}
-		if(gensel_search_option(options, GENSEL_OPT_REVERSIBLE))
-		{
-			if(seen_option)
-			{
-				printf(" | ");
-			}
-			else
-			{
-				seen_option = 1;
-			}
-			printf("_JIT_REGS_REVERSIBLE");
-		}
-		if(!seen_option)
-		{
-			printf("0");
-		}
-		printf(");\n");
 
-		if(!(gensel_search_option(options, GENSEL_OPT_TERNARY)
-		     || gensel_search_option(options, GENSEL_OPT_BINARY_NOTE)
-		     || gensel_search_option(options, GENSEL_OPT_BINARY_BRANCH)
-		     || gensel_search_option(options, GENSEL_OPT_UNARY_NOTE)
-		     || gensel_search_option(options, GENSEL_OPT_UNARY_BRANCH)))
+		if(contains_registers)
 		{
-			printf("\t\t_jit_regs_set_dest(&regs, insn, 0, -1, -1);\n");
+			seen_option = 0;
+			printf("\t\t_jit_regs_init(&regs, ");
+			if(clobber_all)
+			{
+				seen_option = 1;
+				printf("_JIT_REGS_CLOBBER_ALL");
+			}
+			if(gensel_search_option(options, GENSEL_OPT_TERNARY))
+			{
+				if(seen_option)
+				{
+					printf(" | ");
+				}
+				else
+				{
+					seen_option = 1;
+				}
+				printf("_JIT_REGS_TERNARY");
+			}
+			if(gensel_search_option(options, GENSEL_OPT_BINARY_BRANCH)
+			   || gensel_search_option(options, GENSEL_OPT_UNARY_BRANCH))
+			{
+				if(seen_option)
+				{
+					printf(" | ");
+				}
+				else
+				{
+					seen_option = 1;
+				}
+				printf("_JIT_REGS_BRANCH");
+			}
+			if(gensel_search_option(options, GENSEL_OPT_COPY))
+			{
+				if(seen_option)
+				{
+					printf(" | ");
+				}
+				else
+				{
+					seen_option = 1;
+				}
+				printf("_JIT_REGS_COPY");
+			}
+			if(gensel_search_option(options, GENSEL_OPT_STACK))
+			{
+				if(seen_option)
+				{
+					printf(" | ");
+				}
+				else
+				{
+					seen_option = 1;
+				}
+				printf("_JIT_REGS_STACK");
+			}
+			if(gensel_search_option(options, GENSEL_OPT_X87ARITH))
+			{
+				if(seen_option)
+				{
+					printf(" | ");
+				}
+				else
+				{
+					seen_option = 1;
+				}
+				printf("_JIT_REGS_X87_ARITH");
+			}
+			if(gensel_search_option(options, GENSEL_OPT_COMMUTATIVE))
+			{
+				if(seen_option)
+				{
+					printf(" | ");
+				}
+				else
+				{
+					seen_option = 1;
+				}
+				printf("_JIT_REGS_COMMUTATIVE");
+			}
+			if(gensel_search_option(options, GENSEL_OPT_REVERSIBLE))
+			{
+				if(seen_option)
+				{
+					printf(" | ");
+				}
+				else
+				{
+					seen_option = 1;
+				}
+				printf("_JIT_REGS_REVERSIBLE");
+			}
+			if(!seen_option)
+			{
+				printf("0");
+			}
+			printf(");\n");
+
+			if(!(gensel_search_option(options, GENSEL_OPT_TERNARY)
+			     || gensel_search_option(options, GENSEL_OPT_BINARY_NOTE)
+			     || gensel_search_option(options, GENSEL_OPT_BINARY_BRANCH)
+			     || gensel_search_option(options, GENSEL_OPT_UNARY_NOTE)
+			     || gensel_search_option(options, GENSEL_OPT_UNARY_BRANCH)))
+			{
+				printf("\t\t_jit_regs_set_dest(&regs, insn, 0, -1, -1);\n");
+			}
 		}
 
 		regs = 0;
@@ -942,16 +1035,19 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			case GENSEL_PATT_FREG:
 				if(pattern->values && pattern->values->value)
 				{
-					printf("\t\t%s = _jit_regs_lookup(\"%s\")];\n",
+					printf("\t\t%s = _jit_regs_lookup(\"%s\");\n",
 					       gensel_reg_names[regs],
 					       pattern->values->value);
-					printf("\t\t_jit_regs_set_%s(&regs, insn, 0, %s, -1);\n",
-					       args[index], gensel_reg_names[regs]);
+					printf("\t\t_jit_regs_set_%s(&regs, insn, %s, %s, -1);\n",
+					       args[index],
+					       gensel_reg_flags[pattern->flags],
+					       gensel_reg_names[regs]);
 				}
 				else
 				{
-					printf("\t\t_jit_regs_set_%s(&regs, insn, 0, -1, -1);\n",
-					       args[index]);
+					printf("\t\t_jit_regs_set_%s(&regs, insn, %s, -1, -1);\n",
+					       args[index],
+					       gensel_reg_flags[pattern->flags]);
 				}
 				++regs;
 				++index;
@@ -969,8 +1065,9 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 						printf("\t\t%s = _jit_regs_lookup(\"%s\")];\n",
 						       gensel_other_reg_names[regs],
 						       pattern->values->next->value);
-						printf("\t\t_jit_regs_set_%s(&regs, insn, 0, %s, %s);\n",
+						printf("\t\t_jit_regs_set_%s(&regs, insn, %s, %s, %s);\n",
 						       args[index],
+						       gensel_reg_flags[pattern->flags],
 						       gensel_reg_names[regs],
 						       gensel_other_reg_names[regs]);
 					}
@@ -979,14 +1076,17 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 						printf("\t\t%s = _jit_regs_lookup(\"%s\")];\n",
 						       gensel_reg_names[regs],
 						       pattern->values->value);
-						printf("\t\t_jit_regs_set_%s(&regs, insn, 0, %s, -1);\n",
-						       args[index], gensel_reg_names[regs]);
+						printf("\t\t_jit_regs_set_%s(&regs, insn, %s, %s, -1);\n",
+						       args[index],
+						       gensel_reg_flags[pattern->flags],
+						       gensel_reg_names[regs]);
 					}
 				}
 				else
 				{
-					printf("\t\t_jit_regs_set_%s(&regs, insn, 0, -1, -1);\n",
-					       args[index]);
+					printf("\t\t_jit_regs_set_%s(&regs, insn, %s, -1, -1);\n",
+					       args[index],
+					       gensel_reg_flags[pattern->flags]);
 				}
 				++regs;
 				++index;
@@ -1040,14 +1140,17 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			pattern = pattern->next;
 		}
 
-		printf("\t\tif(!_jit_regs_assign(gen, &regs))\n");
-		printf("\t\t{\n");
-		printf("\t\t\treturn;\n");
-		printf("\t\t}\n");
-		printf("\t\tif(!_jit_regs_gen(gen, &regs))\n");
-		printf("\t\t{\n");
-		printf("\t\t\treturn;\n");
-		printf("\t\t}\n");
+		if(contains_registers)
+		{
+			printf("\t\tif(!_jit_regs_assign(gen, &regs))\n");
+			printf("\t\t{\n");
+			printf("\t\t\treturn;\n");
+			printf("\t\t}\n");
+			printf("\t\tif(!_jit_regs_gen(gen, &regs))\n");
+			printf("\t\t{\n");
+			printf("\t\t\treturn;\n");
+			printf("\t\t}\n");
+		}
 
 		regs = 0;
 		imms = 0;
@@ -1112,16 +1215,12 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			pattern = pattern->next;
 		}
 
-		if(gensel_search_option(options, GENSEL_OPT_BINARY_BRANCH)
-		   || gensel_search_option(options, GENSEL_OPT_UNARY_BRANCH))
-		{
-			/* Spill all other registers back to their original positions */
-			printf("\t\t_jit_regs_spill_all(gen);\n");
-		}
-
 		gensel_output_clause(clause, options);
 
-		printf("\t\t_jit_regs_commit(gen, &regs);\n");
+		if(contains_registers)
+		{
+			printf("\t\t_jit_regs_commit(gen, &regs);\n");
+		}
 
 		printf("\t}\n");
 		first = 0;
@@ -1271,7 +1370,7 @@ static void gensel_output_supported(void)
 %type <code>			CODE_BLOCK
 %type <name>			IDENTIFIER LITERAL
 %type <name>			IfClause IdentifierList Literal
-%type <tag>			OptionTag InputTag RegTag LRegTag
+%type <tag>			OptionTag InputTag RegTag LRegTag RegFlag
 %type <clauses>			Clauses Clause
 %type <options>			Options OptionList Pattern Pattern2
 %type <option>			Option PatternElement Scratch Clobber If Space
@@ -1415,16 +1514,29 @@ Pattern2
 	;
 
 PatternElement
-	: InputTag			{ $$ = gensel_create_option($1, 0); }
-	| RegTag '(' Value ')'		{ $$ = gensel_create_option($1, $3); }
-	| LRegTag '(' Value ')'		{ $$ = gensel_create_option($1, $3); }
-	| LRegTag '(' ValuePair ')'	{ $$ = gensel_create_option($1, $3.head); }
+	: InputTag			{
+			$$ = gensel_create_option($1, 0);
+		}
+	| RegFlag RegTag		{
+			$$ = gensel_create_option_2($2, $1, 0);
+		}
+	| RegFlag LRegTag		{
+			$$ = gensel_create_option_2($2, $1, 0);
+		}
+	| RegFlag RegTag '(' Value ')'	{
+			$$ = gensel_create_option_2($2, $1, $4);
+		}
+	| RegFlag LRegTag '(' Value ')'	{
+			$$ = gensel_create_option_2($2, $1, $4);
+		}
+	| RegFlag LRegTag '(' ValuePair ')'	{
+			$$ = gensel_create_option_2($2, $1, $4.head);
+		}
 	| Scratch
 	| Clobber
 	| If
 	| Space
 	;
-
 Scratch
 	: K_SCRATCH '(' ValueList ')'	{
 			$$ = gensel_create_option(GENSEL_PATT_SCRATCH, $3.head);
@@ -1505,10 +1617,7 @@ OptionTag
 	;
 	
 InputTag
-	: K_REG				{ $$ = GENSEL_PATT_REG; }
-	| K_LREG			{ $$ = GENSEL_PATT_LREG; }
-	| K_FREG			{ $$ = GENSEL_PATT_FREG; }
-	| K_IMM				{ $$ = GENSEL_PATT_IMM; }
+	: K_IMM				{ $$ = GENSEL_PATT_IMM; }
 	| K_IMMZERO			{ $$ = GENSEL_PATT_IMMZERO; }
 	| K_IMMS8			{ $$ = GENSEL_PATT_IMMS8; }
 	| K_IMMU8			{ $$ = GENSEL_PATT_IMMU8; }
@@ -1524,6 +1633,12 @@ RegTag
 
 LRegTag
 	: K_LREG			{ $$ = GENSEL_PATT_LREG; }
+	;
+
+RegFlag
+	: /* empty */			{ $$ = 0; }
+	| '*'				{ $$ = GENSEL_FLAG_CLOBBER; }
+	| '+'				{ $$ = GENSEL_FLAG_EARLY_CLOBBER; }
 	;
 
 Literal

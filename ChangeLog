@@ -1,3 +1,8 @@
+2006-04-08  Aleksey Demakov  <ademakov@gmail.com>
+
+	* tools/gen-rules-parser.y: extend pattern syntax to allow mark
+	  registers as clobbered. Fix bugs.
+
 2006-04-07  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-internal.h (struct _jit_function): add indirector field.
