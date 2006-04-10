@@ -7228,6 +7228,10 @@ int jit_insn_uses_catcher(jit_function_t func)
 jit_value_t jit_insn_start_catcher(jit_function_t func)
 {
 	jit_value_t value;
+#if !defined(JIT_BACKEND_INTERP)
+	jit_value_t last_exception;
+	jit_type_t type;
+#endif
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
@@ -7248,6 +7252,17 @@ jit_value_t jit_insn_start_catcher(jit_function_t func)
 	{
 		return 0;
 	}
+#else
+	type = jit_type_create_signature(jit_abi_cdecl, jit_type_void_ptr, 0, 0, 1);
+	if(!type)
+	{
+		return 0;
+	}
+	last_exception = jit_insn_call_native(
+		func, "jit_exception_get_last",
+		(void *)jit_exception_get_last, type, 0, 0, JIT_CALL_NOTHROW);
+	jit_insn_store(func, value, last_exception);
+	jit_type_free(type);
 #endif
 	return value;
 }
