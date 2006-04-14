@@ -2997,6 +2997,7 @@ _jit_regs_init(_jit_regs_t *regs, int flags)
 	regs->stack_count = 0;
 	regs->initial_stack_size = 0;
 	regs->current_stack_size = 0;
+	regs->num_exchanges = 0;
 }
 
 void

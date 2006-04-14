@@ -768,6 +768,67 @@ fp_stack_index(jit_gencode_t gen, int reg)
 }
 
 void
+_jit_gen_exch_top(jit_gencode_t gen, int reg, int pop)
+{
+	if(IS_FLOAT_REG(reg))
+	{
+		jit_cache_setup_output(2);
+		if(pop)
+		{
+			x86_fstp(inst, reg - X86_REG_ST0);
+		}
+		else
+		{
+			x86_fxch(inst, reg - X86_REG_ST0);
+		}
+		jit_cache_end_output();
+	}
+}
+
+void
+_jit_gen_spill_top(jit_gencode_t gen, int reg, jit_value_t value, int pop)
+{
+	int offset;
+	if(IS_FLOAT_REG(reg))
+	{
+		/* Fix the value in place within the local variable frame */
+		_jit_gen_fix_value(value);
+
+		/* Make sure that we have sufficient space */
+		jit_cache_setup_output(16);
+
+		/* Output an appropriate instruction to spill the value */
+		offset = (int)(value->frame_offset);
+
+		/* Spill the top of the floating-point register stack */
+		switch(jit_type_normalize(value->type)->kind)
+		{
+			case JIT_TYPE_FLOAT32:
+			{
+				x86_fst_membase(inst, X86_EBP, offset, 0, pop);
+			}
+			break;
+
+			case JIT_TYPE_FLOAT64:
+			{
+				x86_fst_membase(inst, X86_EBP, offset, 1, pop);
+			}
+			break;
+
+			case JIT_TYPE_NFLOAT:
+			{
+				x86_fst80_membase(inst, X86_EBP, offset);
+				if(!pop)
+				{
+					x86_fld80_membase(inst, X86_EBP, offset);
+				}
+			}
+			break;
+		}
+	}
+}
+
+void
 _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value)
 {
 	jit_type_t type;
@@ -1135,20 +1196,36 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 	jit_cache_end_output();
 }
 
-void _jit_gen_spill_global(jit_gencode_t gen, jit_value_t value)
+void _jit_gen_spill_global(jit_gencode_t gen, int reg, jit_value_t value)
 {
 	jit_cache_setup_output(16);
-	_jit_gen_fix_value(value);
-	x86_mov_membase_reg(inst, X86_EBP, value->frame_offset,
-			    _jit_reg_info[value->global_reg].cpu_reg, sizeof(void *));
+	if(value)
+	{
+		_jit_gen_fix_value(value);
+		x86_mov_membase_reg(inst,
+			 X86_EBP, value->frame_offset,
+			_jit_reg_info[value->global_reg].cpu_reg, sizeof(void *));
+	}
+	else
+	{
+		x86_push_reg(inst, _jit_reg_info[reg].cpu_reg);
+	}
 	jit_cache_end_output();
 }
 
-void _jit_gen_load_global(jit_gencode_t gen, jit_value_t value)
+void _jit_gen_load_global(jit_gencode_t gen, int reg, jit_value_t value)
 {
 	jit_cache_setup_output(16);
-	x86_mov_reg_membase(inst, _jit_reg_info[value->global_reg].cpu_reg,
-						X86_EBP, value->frame_offset, sizeof(void *));
+	if(value)
+	{
+		x86_mov_reg_membase(inst,
+			_jit_reg_info[value->global_reg].cpu_reg,
+			X86_EBP, value->frame_offset, sizeof(void *));
+	}
+	else
+	{
+		x86_pop_reg(inst, _jit_reg_info[reg].cpu_reg);
+	}
 	jit_cache_end_output();
 }
 
@@ -1502,7 +1579,11 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	switch(insn->opcode)
 	{
 		#define JIT_INCLUDE_RULES
+#if _JIT_NEW_REG_ALLOC
+		#include "jit-rules-x86.inc"
+#else
 		#include "jit-rules-x86.slc"
+#endif
 		#undef JIT_INCLUDE_RULES
 
 		default:

@@ -28,6 +28,11 @@ extern	"C" {
 #endif
 
 /*
+#define _JIT_COMPILE_DEBUG	1
+*/
+
+
+/*
  * Determine what kind of Win32 system we are running on.
  */
 #if defined(__CYGWIN__) || defined(__CYGWIN32__)
@@ -348,6 +353,10 @@ struct _jit_builder
 	/* Size of the outgoing parameter area in the frame */
 	jit_nint			param_area_size;
 
+#ifdef _JIT_COMPILE_DEBUG
+	int				block_count;
+	int				insn_count;
+#endif
 };
 
 /*

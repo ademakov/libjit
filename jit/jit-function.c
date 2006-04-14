@@ -445,10 +445,20 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 	jit_insn_iter_t iter;
 	jit_insn_t insn;
 
+#ifdef _JIT_COMPILE_DEBUG
+	printf("Block: %d\n", func->builder->block_count++);
+#endif
+
 	/* Iterate over all blocks in the function */
 	jit_insn_iter_init(&iter, block);
 	while((insn = jit_insn_iter_next(&iter)) != 0)
 	{
+#ifdef _JIT_COMPILE_DEBUG
+		unsigned char *p1, *p2;
+		p1 = gen->posn.ptr;
+		printf("Insn %5d: 0x%04x - ", func->builder->insn_count++, insn->opcode);
+#endif
+
 		switch(insn->opcode)
 		{
 			case JIT_OP_NOP:		break;		/* Ignore NOP's */
@@ -482,7 +492,7 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 				if(insn->value1->has_global_register)
 				{
 					insn->value1->in_global_register = 1;
-					_jit_gen_load_global(gen, insn->value1);
+					_jit_gen_load_global(gen, insn->value1->global_reg, insn->value1);
 				}
 				else
 				{
@@ -540,6 +550,11 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 			}
 			break;
 		}
+
+#ifdef _JIT_COMPILE_DEBUG
+		p2 = gen->posn.ptr;
+		printf("%d\n", p2 - p1);
+#endif
 	}
 }
 
@@ -626,6 +641,12 @@ int jit_function_compile(jit_function_t func)
 	   due to a lack of space in the current method cache page */
 	do
 	{
+#ifdef _JIT_COMPILE_DEBUG
+		printf("\n*** Start compilation ***\n\n");
+		func->builder->block_count = 0;
+		func->builder->insn_count = 0;
+#endif
+
 		/* Start function output to the cache */
 		start = _jit_cache_start_method
 			(cache, &(gen.posn), JIT_FUNCTION_ALIGNMENT, func);

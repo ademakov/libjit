@@ -3,6 +3,18 @@
 	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c: new register allocator
 	improved and extended to support stack registers.
 
+	* jit/jit-internal.h (struct _jit_builder): 
+	* jit/jit-function.c (compile_block, jit_function_compile): add
+	some tracing.
+
+	* jit/jit-rules.h:
+	* jit/jit-rules-arm.c:
+	* jit/jit-rules-interp.c: 
+	* jit/jit-rules-x86.c: add _jit_gen_exch_top and _jit_gen_spill_top
+	functions used by new allocator to handle stack registers. Add reg
+	argument to _jit_gen_spill_global and_jit_gen_load_global
+	functions.
+
 2006-04-11  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-insn.c (jit_insn_start_catcher): initialize
