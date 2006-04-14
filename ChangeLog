@@ -1,3 +1,8 @@
+2006-04-14  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c: new register allocator
+	improved and extended to support stack registers.
+
 2006-04-11  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-insn.c (jit_insn_start_catcher): initialize

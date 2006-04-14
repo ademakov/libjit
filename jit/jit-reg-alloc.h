@@ -72,7 +72,44 @@ void _jit_regs_get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
 /*
  * The maximum number of temporaries per instruction.
  */
-#define _JIT_REGS_SCRATCH_MAX		4
+#define _JIT_REGS_SCRATCH_MAX		6
+
+/*
+ * The maximum number of stack register exchanges.
+ */
+#define _JIT_REGS_MAX_EXCHANGES		16
+
+/*
+ * Flags for _jit_regs_init().
+ */
+#define _JIT_REGS_CLOBBER_ALL		0x0001
+#define _JIT_REGS_TERNARY		0x0002
+#define _JIT_REGS_BRANCH		0x0004
+#define _JIT_REGS_COPY			0x0008
+#define _JIT_REGS_STACK			0x0010
+#define _JIT_REGS_X87_ARITH		0x0020
+#define _JIT_REGS_COMMUTATIVE		0x0040
+#define _JIT_REGS_REVERSIBLE		0x0080
+
+/*
+ * Flags for _jit_regs_set_dest(), _jit_regs_set_value1(), _jit_regs_set_value2().
+ */
+#define _JIT_REGS_CLOBBER		0x0001
+#define _JIT_REGS_EARLY_CLOBBER		0x0002
+
+/*
+ * Flags returned by _jit_regs_select_insn().
+ */
+#define _JIT_REGS_NO_POP		0x0001
+#define _JIT_REGS_REVERSE_DEST		0x0002
+#define _JIT_REGS_REVERSE_ARGS		0x0004
+
+/*
+ * This value is used internally to assign a stack register.
+ * It indicates that we are going to use the next free stack
+ * regsiter but we do not yet know which one it is.
+#define _JIT_REGS_NEXT_STACK_REG	0x7fff
+ */
 
 /*
  * Contains register assignment data for single operand.
@@ -80,11 +117,14 @@ void _jit_regs_get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
 typedef struct
 {
 	jit_value_t	value;
-	short		reg;
-	short		other_reg;
-	unsigned	clobber : 1;
+	int		reg;
+	int		other_reg;
 	unsigned	live : 1;
 	unsigned	used : 1;
+	unsigned	clobber : 1;
+	unsigned	early_clobber : 1;
+	unsigned	on_stack : 1;
+	unsigned	duplicate : 1;
 
 } _jit_regdesc_t;
 
@@ -93,8 +133,18 @@ typedef struct
  */
 typedef struct
 {
-	int		is_ternary;
-	int		is_commutative;
+	unsigned	clobber_all : 1;
+	unsigned	ternary : 1;
+	unsigned	branch : 1;
+	unsigned	copy : 1;
+	unsigned	commutative : 1;
+	unsigned	on_stack : 1;
+	unsigned	x87_arith : 1;
+	unsigned	reversible : 1;
+
+	unsigned	no_pop : 1;
+	unsigned	reverse_dest : 1;
+	unsigned	reverse_args : 1;
 
 	_jit_regdesc_t	descs[_JIT_REGS_VALUE_MAX];
 	int		num_descs;
@@ -105,17 +155,23 @@ typedef struct
 	jit_regused_t	assigned;
 	jit_regused_t	clobber;
 
+	int		stack_start;
+	int		stack_count;
+	int		initial_stack_size;
+	int		current_stack_size;
+	int		exchanges[_JIT_REGS_MAX_EXCHANGES][2];
+	int		num_exchanges;
 } _jit_regs_t;
 
-void _jit_regs_init(_jit_regs_t *regs, int is_ternary, int is_commutative);
-void _jit_regs_set_dest(_jit_regs_t *regs, jit_insn_t insn, int clobber, int reg, int other_reg);
-void _jit_regs_set_value1(_jit_regs_t *regs, jit_insn_t insn, int clobber, int reg, int other_reg);
-void _jit_regs_set_value2(_jit_regs_t *regs, jit_insn_t insn, int clobber, int reg, int other_reg);
+void _jit_regs_init(_jit_regs_t *regs, int flags);
+void _jit_regs_set_dest(_jit_regs_t *regs, jit_insn_t insn, int flags, int reg, int other_reg);
+void _jit_regs_set_value1(_jit_regs_t *regs, jit_insn_t insn, int flags, int reg, int other_reg);
+void _jit_regs_set_value2(_jit_regs_t *regs, jit_insn_t insn, int flags, int reg, int other_reg);
 void _jit_regs_set_scratch(_jit_regs_t *regs, int reg);
-void _jit_regs_clobber(_jit_regs_t *regs, int reg);
-void _jit_regs_clobber_all(_jit_regs_t *regs);
+void _jit_regs_set_clobber(_jit_regs_t *regs, int reg);
 int _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs);
 int _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs);
+int _jit_regs_select(_jit_regs_t *regs);
 void _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs);
 int _jit_regs_dest(_jit_regs_t *regs);
 int _jit_regs_value1(_jit_regs_t *regs);
@@ -124,6 +180,7 @@ int _jit_regs_dest_other(_jit_regs_t *regs);
 int _jit_regs_value1_other(_jit_regs_t *regs);
 int _jit_regs_value2_other(_jit_regs_t *regs);
 int _jit_regs_scratch(_jit_regs_t *regs, int index);
+int _jit_regs_lookup(char *name);
 
 #ifdef	__cplusplus
 };
