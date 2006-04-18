@@ -1579,7 +1579,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	switch(insn->opcode)
 	{
 		#define JIT_INCLUDE_RULES
-#if _JIT_NEW_REG_ALLOC
+#if USE_NEW_REG_ALLOC
 		#include "jit-rules-x86.inc"
 #else
 		#include "jit-rules-x86.slc"
