@@ -83,6 +83,7 @@ WHITE			[ \t\v\r\f]
 %%
 
 "->"			{ RETURNTOK(K_PTR); }
+"any"			{ RETURNTOK(K_ANY); }
 "reg"			{ RETURNTOK(K_REG); }
 "lreg"			{ RETURNTOK(K_LREG); }
 "freg"			{ RETURNTOK(K_FREG); }

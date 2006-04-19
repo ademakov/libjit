@@ -1002,6 +1002,10 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 			{
 				other_src_reg = _jit_reg_info[src_reg].other_reg;
 			}
+			else
+			{
+				other_src_reg = -1;
+			}
 		}
 		else
 		{
