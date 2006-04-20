@@ -1,3 +1,7 @@
+2006-04-20  Aleksey Demakov  <ademakov@gmail.com>
+
+	* tools/gen-rules-parser.y: fix generation of `if' pattern code.
+
 2006-04-19  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.c (_jit_gen_load_value): fix compiler warning.
