@@ -92,7 +92,8 @@ void _jit_regs_get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
 #define _JIT_REGS_REVERSIBLE		0x0080
 
 /*
- * Flags for _jit_regs_set_dest(), _jit_regs_set_value1(), _jit_regs_set_value2().
+ * Flags for _jit_regs_init_dest(), _jit_regs_init_value1(), and
+ * _jit_regs_init_value2().
  */
 #define _JIT_REGS_CLOBBER		0x0001
 #define _JIT_REGS_EARLY_CLOBBER		0x0002
@@ -105,13 +106,6 @@ void _jit_regs_get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
 #define _JIT_REGS_REVERSE_ARGS		0x0004
 
 /*
- * This value is used internally to assign a stack register.
- * It indicates that we are going to use the next free stack
- * regsiter but we do not yet know which one it is.
-#define _JIT_REGS_NEXT_STACK_REG	0x7fff
- */
-
-/*
  * Contains register assignment data for single operand.
  */
 typedef struct
@@ -119,6 +113,7 @@ typedef struct
 	jit_value_t	value;
 	int		reg;
 	int		other_reg;
+	jit_regused_t	regset;
 	unsigned	live : 1;
 	unsigned	used : 1;
 	unsigned	clobber : 1;
@@ -127,6 +122,16 @@ typedef struct
 	unsigned	duplicate : 1;
 
 } _jit_regdesc_t;
+
+/*
+ * Contains scratch register assignment data.
+ */
+typedef struct
+{
+	int		reg;
+	jit_regused_t	regset;
+
+} _jit_scratch_t;
 
 /*
  * Contains register assignment data for instruction.
@@ -147,9 +152,7 @@ typedef struct
 	unsigned	reverse_args : 1;
 
 	_jit_regdesc_t	descs[_JIT_REGS_VALUE_MAX];
-	int		num_descs;
-
-	int		scratch[_JIT_REGS_SCRATCH_MAX];
+	_jit_scratch_t	scratch[_JIT_REGS_SCRATCH_MAX];
 	int		num_scratch;
 
 	jit_regused_t	assigned;
@@ -164,15 +167,26 @@ typedef struct
 } _jit_regs_t;
 
 void _jit_regs_init(_jit_regs_t *regs, int flags);
-void _jit_regs_set_dest(_jit_regs_t *regs, jit_insn_t insn, int flags, int reg, int other_reg);
-void _jit_regs_set_value1(_jit_regs_t *regs, jit_insn_t insn, int flags, int reg, int other_reg);
-void _jit_regs_set_value2(_jit_regs_t *regs, jit_insn_t insn, int flags, int reg, int other_reg);
-void _jit_regs_set_scratch(_jit_regs_t *regs, int reg);
+void _jit_regs_init_dest(_jit_regs_t *regs, jit_insn_t insn, int flags);
+void _jit_regs_init_value1(_jit_regs_t *regs, jit_insn_t insn, int flags);
+void _jit_regs_init_value2(_jit_regs_t *regs, jit_insn_t insn, int flags);
+
+void _jit_regs_set_dest(_jit_regs_t *regs, int reg, int other_reg);
+void _jit_regs_set_value1(_jit_regs_t *regs, int reg, int other_reg);
+void _jit_regs_set_value2(_jit_regs_t *regs, int reg, int other_reg);
+void _jit_regs_add_scratch(_jit_regs_t *regs, int reg);
 void _jit_regs_set_clobber(_jit_regs_t *regs, int reg);
+
+void _jit_regs_set_dest_from(_jit_regs_t *regs, jit_regused_t regset);
+void _jit_regs_set_value1_from(_jit_regs_t *regs, jit_regused_t regset);
+void _jit_regs_set_value2_from(_jit_regs_t *regs, jit_regused_t regset);
+void _jit_regs_add_scratch_from(_jit_regs_t *regs, jit_regused_t regset);
+
 int _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs);
 int _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs);
 int _jit_regs_select(_jit_regs_t *regs);
 void _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs);
+
 int _jit_regs_dest(_jit_regs_t *regs);
 int _jit_regs_value1(_jit_regs_t *regs);
 int _jit_regs_value2(_jit_regs_t *regs);
@@ -180,6 +194,7 @@ int _jit_regs_dest_other(_jit_regs_t *regs);
 int _jit_regs_value1_other(_jit_regs_t *regs);
 int _jit_regs_value2_other(_jit_regs_t *regs);
 int _jit_regs_scratch(_jit_regs_t *regs, int index);
+
 int _jit_regs_lookup(char *name);
 
 #ifdef	__cplusplus

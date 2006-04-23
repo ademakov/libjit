@@ -1,3 +1,11 @@
+2006-04-23  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c: register allocator now
+	supports register sets that constrain the register assignment.
+
+	* tools/gen-rules-parser.y: extend grammar to support register sets.
+	Fix bugs.
+
 2006-04-20  Aleksey Demakov  <ademakov@gmail.com>
 
 	* tools/gen-rules-parser.y: fix generation of `if' pattern code.

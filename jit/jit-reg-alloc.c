@@ -1843,6 +1843,37 @@ value_clobbers_register(jit_gencode_t gen, _jit_regs_t *regs, int index, int reg
 }
 
 /*
+ * Initialize register descriptor.
+ */
+static void
+init_desc(_jit_regs_t *regs, int index, jit_value_t value, int flags, int live, int used)
+{
+	_jit_regdesc_t *desc;
+
+	desc = &regs->descs[index];
+
+	desc->value = value;
+	if(index > 0 || regs->ternary)
+	{
+		if((flags & _JIT_REGS_EARLY_CLOBBER) != 0)
+		{
+			desc->clobber = 1;
+			desc->early_clobber = 1;
+		}
+		else if((flags & _JIT_REGS_CLOBBER) != 0)
+		{
+			desc->clobber = 1;
+		}
+	}
+	desc->live = live;
+	desc->used = used;
+	if(regs->on_stack)
+	{
+		desc->on_stack = 1;
+	}
+}
+
+/*
  * Set assigned and clobbered flags for register.
  */
 static void
@@ -2067,7 +2098,7 @@ compute_spill_cost(jit_gencode_t gen, _jit_regs_t *regs, int reg, int other_reg)
  *
  */
 static int
-use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
+use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regused_t regset)
 {
 	_jit_regdesc_t *desc;
 	int output;
@@ -2121,7 +2152,8 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 			other_reg = -1;
 		}
 
-		if(jit_reg_is_used(gen->inhibit, reg)
+		if(!jit_reg_is_used(regset, reg)
+		   || jit_reg_is_used(gen->inhibit, reg)
 		   || jit_reg_is_used(regs->assigned, reg))
 		{
 			continue;
@@ -2975,6 +3007,7 @@ _jit_regs_init(_jit_regs_t *regs, int flags)
 		regs->descs[index].value = 0;
 		regs->descs[index].reg = -1;
 		regs->descs[index].other_reg = -1;
+		regs->descs[index].regset = jit_regused_init_used;
 		regs->descs[index].clobber = 0;
 		regs->descs[index].early_clobber = 0;
 		regs->descs[index].live = 0;
@@ -2982,11 +3015,11 @@ _jit_regs_init(_jit_regs_t *regs, int flags)
 		regs->descs[index].on_stack = 0;
 		regs->descs[index].duplicate = 0;
 	}
-	regs->num_descs = 0;
 
 	for(index = 0; index < _JIT_REGS_SCRATCH_MAX; index++)
 	{
-		regs->scratch[index] = -1;
+		regs->scratch[index].reg = -1;
+		regs->scratch[index].regset = jit_regused_init_used;
 	}
 	regs->num_scratch = 0;
 
@@ -3001,140 +3034,65 @@ _jit_regs_init(_jit_regs_t *regs, int flags)
 }
 
 void
-_jit_regs_set_dest(_jit_regs_t *regs, jit_insn_t insn, int flags, int reg, int other_reg)
+_jit_regs_init_dest(_jit_regs_t *regs, jit_insn_t insn, int flags)
 {
-	if((insn->flags & JIT_INSN_DEST_OTHER_FLAGS) != 0)
+	if((insn->flags & JIT_INSN_DEST_OTHER_FLAGS) == 0)
 	{
-		return;
-	}
-
-	if(regs->num_descs < 1)
-	{
-		regs->num_descs = 1;
-	}
-
-	regs->descs[0].value = insn->dest;
-	if(reg >= 0)
-	{
-		regs->descs[0].reg = reg;
-		regs->descs[0].other_reg = other_reg;
-	}
-	if(regs->ternary)
-	{
-		if((flags & _JIT_REGS_EARLY_CLOBBER) != 0)
-		{
-			regs->descs[0].clobber = 1;
-			regs->descs[0].early_clobber = 1;
-		}
-		else if((flags & _JIT_REGS_CLOBBER) != 0)
-		{
-			regs->descs[0].clobber = 1;
-		}
-	}
-	if((insn->flags & JIT_INSN_DEST_LIVE) != 0)
-	{
-		regs->descs[0].live = 1;
-	}
-	if((insn->flags & JIT_INSN_DEST_NEXT_USE) != 0)
-	{
-		regs->descs[0].used = 1;
-	}
-	if(regs->on_stack)
-	{
-		regs->descs[0].on_stack = 1;
+		init_desc(regs, 0, insn->dest, flags,
+			  (insn->flags & JIT_INSN_DEST_LIVE) != 0,
+			  (insn->flags & JIT_INSN_DEST_NEXT_USE) != 0);
 	}
 }
 
 void
-_jit_regs_set_value1(_jit_regs_t *regs, jit_insn_t insn, int flags, int reg, int other_reg)
+_jit_regs_init_value1(_jit_regs_t *regs, jit_insn_t insn, int flags)
 {
-	if((insn->flags & JIT_INSN_VALUE1_OTHER_FLAGS) != 0)
+	if((insn->flags & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
 	{
-		return;
-	}
-
-	if(regs->num_descs < 2)
-	{
-		regs->num_descs = 2;
-	}
-
-	regs->descs[1].value = insn->value1;
-	if(reg >= 0)
-	{
-		regs->descs[1].reg = reg;
-		regs->descs[1].other_reg = other_reg;
-	}
-	if((flags & _JIT_REGS_EARLY_CLOBBER) != 0)
-	{
-		regs->descs[1].clobber = 1;
-		regs->descs[1].early_clobber = 1;
-	}
-	else if((flags & _JIT_REGS_CLOBBER) != 0)
-	{
-		regs->descs[1].clobber = 1;
-	}
-	if((insn->flags & JIT_INSN_VALUE1_LIVE) != 0)
-	{
-		regs->descs[1].live = 1;
-	}
-	if((insn->flags & JIT_INSN_VALUE1_NEXT_USE) != 0)
-	{
-		regs->descs[1].used = 1;
-	}
-	if(regs->on_stack)
-	{
-		regs->descs[1].on_stack = 1;
+		init_desc(regs, 1, insn->value1, flags,
+			  (insn->flags & JIT_INSN_VALUE1_LIVE) != 0,
+			  (insn->flags & JIT_INSN_VALUE1_NEXT_USE) != 0);
 	}
 }
 
 void
-_jit_regs_set_value2(_jit_regs_t *regs, jit_insn_t insn, int flags, int reg, int other_reg)
+_jit_regs_init_value2(_jit_regs_t *regs, jit_insn_t insn, int flags)
 {
-	if((insn->flags & JIT_INSN_VALUE2_OTHER_FLAGS) != 0)
+	if((insn->flags & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
 	{
-		return;
-	}
-
-	if(regs->num_descs < 3)
-	{
-		regs->num_descs = 3;
-	}
-
-	regs->descs[2].value = insn->value2;
-	if(reg >= 0)
-	{
-		regs->descs[2].reg = reg;
-		regs->descs[2].other_reg = other_reg;
-	}
-	if((flags & _JIT_REGS_EARLY_CLOBBER) != 0)
-	{
-		regs->descs[2].clobber = 1;
-		regs->descs[2].early_clobber = 1;
-	}
-	else if((flags & _JIT_REGS_CLOBBER) != 0)
-	{
-		regs->descs[2].clobber = 1;
-	}
-	if((insn->flags & JIT_INSN_VALUE2_LIVE) != 0)
-	{
-		regs->descs[2].live = 1;
-	}
-	if((insn->flags & JIT_INSN_VALUE2_NEXT_USE) != 0)
-	{
-		regs->descs[2].used = 1;
-	}
-	if(regs->on_stack)
-	{
-		regs->descs[2].on_stack = 1;
+		init_desc(regs, 2, insn->value2, flags,
+			  (insn->flags & JIT_INSN_VALUE2_LIVE) != 0,
+			  (insn->flags & JIT_INSN_VALUE2_NEXT_USE) != 0);
 	}
 }
 
 void
-_jit_regs_set_scratch(_jit_regs_t *regs, int reg)
+_jit_regs_set_dest(_jit_regs_t *regs, int reg, int other_reg)
+{
+	regs->descs[0].reg = reg;
+	regs->descs[0].other_reg = other_reg;
+}
+
+void
+_jit_regs_set_value1(_jit_regs_t *regs, int reg, int other_reg)
+{
+	regs->descs[1].reg = reg;
+	regs->descs[1].other_reg = other_reg;
+}
+
+void
+_jit_regs_set_value2(_jit_regs_t *regs, int reg, int other_reg)
+{
+	regs->descs[2].reg = reg;
+	regs->descs[2].other_reg = other_reg;
+}
+
+void
+_jit_regs_add_scratch(_jit_regs_t *regs, int reg)
 {
 	if(regs->num_scratch < _JIT_REGS_SCRATCH_MAX)
 	{
-		regs->scratch[regs->num_scratch++] = reg;
+		regs->scratch[regs->num_scratch++].reg = reg;
 	}
 }
 
@@ -3142,6 +3100,33 @@ void
 _jit_regs_set_clobber(_jit_regs_t *regs, int reg)
 {
 	jit_reg_set_used(regs->clobber, reg);
+}
+
+void
+_jit_regs_set_dest_from(_jit_regs_t *regs, jit_regused_t regset)
+{
+	regs->descs[0].regset = regset;
+}
+
+void
+_jit_regs_set_value1_from(_jit_regs_t *regs, jit_regused_t regset)
+{
+	regs->descs[1].regset = regset;
+}
+
+void
+_jit_regs_set_value2_from(_jit_regs_t *regs, jit_regused_t regset)
+{
+	regs->descs[2].regset = regset;
+}
+
+void
+_jit_regs_add_scratch_from(_jit_regs_t *regs, jit_regused_t regset)
+{
+	if(regs->num_scratch < _JIT_REGS_SCRATCH_MAX)
+	{
+		regs->scratch[regs->num_scratch++].regset = regset;
+	}
 }
 
 int
@@ -3185,7 +3170,7 @@ _jit_regs_scratch(_jit_regs_t *regs, int index)
 {
 	if(index < regs->num_scratch && index >= 0)
 	{
-		return regs->scratch[index];
+		return regs->scratch[index].reg;
 	}
 	return -1;
 }
@@ -3224,14 +3209,25 @@ _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 
 	for(index = 0; index < regs->num_scratch; index++)
 	{
-		if(regs->scratch[index] >= 0)
+		if(regs->scratch[index].reg >= 0)
 		{
-			if(IS_STACK_REG(regs->scratch[index]))
+			if(IS_STACK_REG(regs->scratch[index].reg))
 			{
 				return 0;
 			}
-			jit_reg_set_used(regs->assigned, regs->scratch[index]);
-			jit_reg_set_used(regs->clobber, regs->scratch[index]);
+			jit_reg_set_used(regs->assigned, regs->scratch[index].reg);
+			jit_reg_set_used(regs->clobber, regs->scratch[index].reg);
+		}
+		else if(regs->scratch[index].regset != jit_regused_init_used)
+		{
+			regs->scratch[index].reg = use_cheapest_register(
+				gen, regs, -1, regs->scratch[index].regset);
+			if(regs->scratch[index].reg < 0)
+			{
+				return 0;
+			}
+			jit_reg_set_used(regs->assigned, regs->scratch[index].reg);
+			jit_reg_set_used(regs->clobber, regs->scratch[index].reg);
 		}
 	}
 
@@ -3257,7 +3253,7 @@ _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 	{
 		if(regs->descs[0].value && regs->descs[0].reg < 0)
 		{
-			use_cheapest_register(gen, regs, 0);
+			use_cheapest_register(gen, regs, 0, regs->descs[0].regset);
 			if(regs->descs[0].reg < 0)
 			{
 				return 0;
@@ -3274,7 +3270,8 @@ _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 			   && gen->contents[regs->descs[out_index].value->reg].num_values == 1
 			   && !(regs->descs[out_index].live || regs->descs[out_index].used))
 			{
-				use_cheapest_register(gen, regs, out_index);
+				use_cheapest_register(
+					gen, regs, out_index, regs->descs[out_index].regset);
 				if(regs->descs[out_index].reg < 0)
 				{
 					return 0;
@@ -3284,7 +3281,7 @@ _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 				|| (regs->descs[0].value->in_register
 				    && gen->contents[regs->descs[0].value->reg].num_values == 1))
 			{
-				use_cheapest_register(gen, regs, 0);
+				use_cheapest_register(gen, regs, 0, regs->descs[0].regset);
 				if(regs->descs[0].reg < 0)
 				{
 					return 0;
@@ -3300,7 +3297,7 @@ _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 	}
 	if(regs->descs[1].value && regs->descs[1].reg < 0)
 	{
-		use_cheapest_register(gen, regs, 1);
+		use_cheapest_register(gen, regs, 1, regs->descs[1].regset);
 		if(regs->descs[1].reg < 0)
 		{
 			return 0;
@@ -3309,7 +3306,7 @@ _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 	check_duplicate_value(regs, &regs->descs[1], &regs->descs[2]);
 	if(regs->descs[2].value && regs->descs[2].reg < 0)
 	{
-		use_cheapest_register(gen, regs, 2);
+		use_cheapest_register(gen, regs, 2, regs->descs[2].regset);
 		if(regs->descs[2].reg < 0)
 		{
 			return 0;
@@ -3319,7 +3316,7 @@ _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 	{
 		if(regs->descs[out_index].reg < 0)
 		{
-			use_cheapest_register(gen, regs, 0);
+			use_cheapest_register(gen, regs, 0, regs->descs[0].regset);
 			if(regs->descs[0].reg < 0)
 			{
 				return 0;
@@ -3335,15 +3332,16 @@ _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 
 	for(index = 0; index < regs->num_scratch; index++)
 	{
-		if(regs->scratch[index] < 0)
+		if(regs->scratch[index].reg < 0)
 		{
-			regs->scratch[index] = use_cheapest_register(gen, regs, -1);
-			if(regs->scratch[index] < 0)
+			regs->scratch[index].reg = use_cheapest_register(
+				gen, regs, -1, jit_regused_init_used);
+			if(regs->scratch[index].reg < 0)
 			{
 				return 0;
 			}
-			jit_reg_set_used(regs->assigned, regs->scratch[index]);
-			jit_reg_set_used(regs->clobber, regs->scratch[index]);
+			jit_reg_set_used(regs->assigned, regs->scratch[index].reg);
+			jit_reg_set_used(regs->clobber, regs->scratch[index].reg);
 		}
 	}
 
@@ -3596,6 +3594,11 @@ _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs)
 	}
 }
 
+/*@
+ * @deftypefun void _jit_regs_lookup (char *name)
+ * Get register by name.
+ * @end deftypefun
+@*/
 int
 _jit_regs_lookup(char *name)
 {
