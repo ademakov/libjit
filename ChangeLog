@@ -6,6 +6,9 @@
 	* tools/gen-rules-parser.y: extend grammar to support register sets.
 	Fix bugs.
 
+	* jit/jit-rules-x86.ins: take advantage of new register allocator
+	for JIT_OP_MEMORY, JIT_OP_MEMOVE, JIT_OP_MEMESET rules.
+
 2006-04-20  Aleksey Demakov  <ademakov@gmail.com>
 
 	* tools/gen-rules-parser.y: fix generation of `if' pattern code.
