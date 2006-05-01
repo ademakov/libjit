@@ -1,5 +1,5 @@
 /*
- * jit-rules-x86.sel - Instruction selector for x86.
+ * jit-rules-x86.ins - Instruction selector for x86.
  *
  * Copyright (C) 2004  Southern Storm Software, Pty Ltd.
  *
@@ -2075,13 +2075,13 @@ JIT_OP_ADDRESS_OF: manual
 		int reg;
 		_jit_regs_force_out(gen, insn->value1, 0);
 		_jit_gen_fix_value(insn->value1);
+		reg = _jit_regs_dest_value(gen, insn->dest);
 		inst = gen->posn.ptr;
 		if(!jit_cache_check_for_n(&(gen->posn), 32))
 		{
 			jit_cache_mark_full(&(gen->posn));
 			return;
 		}
-		reg = _jit_regs_dest_value(gen, insn->dest);
 		reg = _jit_reg_info[reg].cpu_reg;
 		x86_lea_membase(inst, reg, X86_EBP, insn->value1->frame_offset);
 		gen->posn.ptr = inst;
@@ -2512,77 +2512,18 @@ JIT_OP_STORE_RELATIVE_SHORT: manual
 		}
 	}
 
-JIT_OP_STORE_RELATIVE_INT: manual
-	[] -> {
-		unsigned char *inst;
-		int reg, reg2;
-		if(insn->dest->is_constant)
-		{
-			reg = insn->dest->address + insn->value2->address;
-			if(insn->value1->is_constant)
-			{
-				inst = gen->posn.ptr;
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
-				x86_mov_mem_imm(inst, reg, insn->value1->address, 4);
-			}
-			else
-			{
-				reg2 = _jit_regs_load_value
-					(gen, insn->value1, 0,
-					 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-					 				 JIT_INSN_VALUE1_LIVE)));
-				inst = gen->posn.ptr;
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
-				reg2 = _jit_reg_info[reg2].cpu_reg;
-				x86_mov_mem_reg(inst, reg, reg2, 4);
-			}
-			gen->posn.ptr = inst;
-		}
-		else
-		{
-			reg = _jit_regs_load_value
-				(gen, insn->dest, 0,
-				 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-				 				 JIT_INSN_DEST_LIVE)));
-			if(!(insn->value1->is_constant))
-			{
-				reg2 = _jit_regs_load_value
-					(gen, insn->value1, 0,
-					 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-					 				 JIT_INSN_VALUE1_LIVE)));
-				inst = gen->posn.ptr;
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
-				reg  = _jit_reg_info[reg].cpu_reg;
-				reg2 = _jit_reg_info[reg2].cpu_reg;
-				x86_mov_membase_reg(inst, reg, insn->value2->address, reg2, 4);
-				gen->posn.ptr = inst;
-			}
-			else
-			{
-				inst = gen->posn.ptr;
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
-				reg = _jit_reg_info[reg].cpu_reg;
-				x86_mov_membase_imm(inst, reg, insn->value2->address,
-									insn->value1->address, 4);
-				gen->posn.ptr = inst;
-			}
-		}
+JIT_OP_STORE_RELATIVE_INT: ternary
+	[imm, imm, imm] -> {
+		x86_mov_mem_imm(inst, $1 + $3, $2, 4);
+	}
+	[imm, reg, imm] -> {
+		x86_mov_mem_reg(inst, $1 + $3, $2, 4);
+	}
+	[reg, imm, imm] -> {
+		x86_mov_membase_imm(inst, $1, $3, $2, 4);
+	}
+	[reg, reg, imm] -> {
+		x86_mov_membase_reg(inst, $1, $3, $2, 4);
 	}
 
 JIT_OP_STORE_RELATIVE_LONG: manual

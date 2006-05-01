@@ -2080,13 +2080,13 @@ JIT_OP_ADDRESS_OF: manual
 		int reg;
 		_jit_regs_force_out(gen, insn->value1, 0);
 		_jit_gen_fix_value(insn->value1);
+		reg = _jit_regs_dest_value(gen, insn->dest);
 		inst = gen->posn.ptr;
 		if(!jit_cache_check_for_n(&(gen->posn), 32))
 		{
 			jit_cache_mark_full(&(gen->posn));
 			return;
 		}
-		reg = _jit_regs_dest_value(gen, insn->dest);
 		reg = _jit_reg_info[reg].cpu_reg;
 		x86_lea_membase(inst, reg, X86_EBP, insn->value1->frame_offset);
 		gen->posn.ptr = inst;
