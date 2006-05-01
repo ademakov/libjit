@@ -1,3 +1,10 @@
+2006-05-01  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.sel, jit/jit-rules-x86.ins: fix problem with
+	spilling dest register in JIT_OP_ADDRESS_OF rule.
+
+	* jit/jit-rules-x86.ins: rewrite JIT_OP_STORE_RELATIVE_INT rule.
+
 2006-04-23  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c: register allocator now
