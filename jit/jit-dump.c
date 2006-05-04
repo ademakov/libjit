@@ -641,14 +641,14 @@ static void dump_interp_code(FILE *stream, void **pc, void **end)
 #else /* !JIT_BACKEND_INTERP */
 
 /*
- * Dump the native object code representation of a function.
- * Can only dump to stdout or stderr at the moment.
+ * Dump the native object code representation of a function to stream.
  */
 static void dump_object_code(FILE *stream, void *start, void *end)
 {
 	char cmdline[BUFSIZ];
 	unsigned char *pc = (unsigned char *)start;
 	FILE *file;
+	int ch;
 
 #if JIT_WIN32_PLATFORM
 	/*
@@ -693,9 +693,18 @@ static void dump_object_code(FILE *stream, void *start, void *end)
 	fclose(file);
 	sprintf(cmdline, "as %s -o %s", s_path, o_path);
 	system(cmdline);
-	sprintf(cmdline, "objdump --adjust-vma=%ld -d %s%s",
-			(long)(jit_nint)start, o_path, (stream == stderr ? " 1>&2" : ""));
+	sprintf(cmdline, "objdump --adjust-vma=%ld -d %s > %s",
+			(long)(jit_nint)start, o_path, s_path);
 	system(cmdline);
+	file = fopen(s_path, "r");
+	if(file)
+	{
+		while((ch = getc(file)) != EOF)
+		{
+			putc(ch, stream);
+		}
+		fclose(file);
+	}
 	unlink(s_path);
 	unlink(o_path);
 	putc('\n', stream);
@@ -706,7 +715,7 @@ static void dump_object_code(FILE *stream, void *start, void *end)
 
 /*@
  * @deftypefun void jit_dump_function ({FILE *} stream, jit_function_t func, {const char *} name)
- * Dump the three-address instructions within a function to a stdio stream.
+ * Dump the three-address instructions within a function to a stream.
  * The @code{name} is attached to the output as a friendly label, but
  * has no other significance.
  *
