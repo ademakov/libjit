@@ -1,3 +1,8 @@
+2006-05-05  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c: fix spilling and
+	many problems with stack registers.
+
 2006-05-04  Radek Polak  <psonek2@seznam.cz>
 
 	* jit/jit-dump.c (dump_object_code): Now can dump to any stream

@@ -113,6 +113,7 @@ typedef struct
 	jit_value_t	value;
 	int		reg;
 	int		other_reg;
+	int		stack_reg;
 	jit_regused_t	regset;
 	unsigned	live : 1;
 	unsigned	used : 1;
@@ -120,6 +121,8 @@ typedef struct
 	unsigned	early_clobber : 1;
 	unsigned	on_stack : 1;
 	unsigned	duplicate : 1;
+	unsigned	load : 1;
+	unsigned	copy : 1;
 
 } _jit_regdesc_t;
 
@@ -157,11 +160,13 @@ typedef struct
 
 	jit_regused_t	assigned;
 	jit_regused_t	clobber;
+	jit_regused_t	spill;
 
 	int		stack_start;
-	int		stack_count;
-	int		initial_stack_size;
-	int		current_stack_size;
+	int		initial_stack_top;
+	int		current_stack_top;
+	int		wanted_stack_count;
+	int		loaded_stack_count;
 	int		exchanges[_JIT_REGS_MAX_EXCHANGES][2];
 	int		num_exchanges;
 } _jit_regs_t;
