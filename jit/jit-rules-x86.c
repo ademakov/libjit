@@ -791,11 +791,11 @@ _jit_gen_spill_top(jit_gencode_t gen, int reg, jit_value_t value, int pop)
 	int offset;
 	if(IS_FLOAT_REG(reg))
 	{
-		/* Fix the value in place within the local variable frame */
-		_jit_gen_fix_value(value);
-
 		/* Make sure that we have sufficient space */
 		jit_cache_setup_output(16);
+
+		/* Fix the value in place within the local variable frame */
+		_jit_gen_fix_value(value);
 
 		/* Output an appropriate instruction to spill the value */
 		offset = (int)(value->frame_offset);
@@ -825,6 +825,9 @@ _jit_gen_spill_top(jit_gencode_t gen, int reg, jit_value_t value, int pop)
 			}
 			break;
 		}
+
+		/* End the code output process */
+		jit_cache_end_output();
 	}
 }
 

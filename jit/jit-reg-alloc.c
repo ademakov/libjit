@@ -3000,6 +3000,10 @@ spill_reg(jit_gencode_t gen, _jit_regs_t *regs, int reg)
 	int other_reg, index, usage;
 	jit_value_t value;
 
+#ifdef JIT_REG_DEBUG
+	printf("spill_reg(reg = %d)\n", reg);
+#endif
+
 	/* Find the other register in a long pair */
 	if(gen->contents[reg].is_long_start)
 	{
@@ -3062,6 +3066,12 @@ static void
 spill_value(jit_gencode_t gen, _jit_regs_t *regs, jit_value_t value, int reg, int other_reg)
 {
 	int top;
+
+#ifdef JIT_REG_DEBUG
+	printf("spill_value(value = ");
+	jit_dump_value(stdout, jit_value_get_function(value), value, 0);
+	printf(", reg = %d, other_reg = %d)\n", reg, other_reg);
+#endif
 
 	if(IS_STACK_REG(reg))
 	{
@@ -3315,13 +3325,13 @@ commit_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index)
 
 	if(!desc->used)
 	{
-		spill_value(gen, regs, desc->value, reg, other_reg);
 		if(desc->live || (IS_STACK_REG(reg) && gen->contents[reg].num_values == 1))
 		{
-			unbind_value(gen, desc->value, reg, other_reg);
+			spill_value(gen, regs, desc->value, reg, other_reg);
 		}
 		else
 		{
+			unbind_value(gen, desc->value, reg, other_reg);
 		}
 	}
 }
@@ -3368,7 +3378,10 @@ commit_output_value(jit_gencode_t gen, _jit_regs_t *regs)
 			{
 				spill_value(gen, regs, desc->value, desc->reg, desc->other_reg);
 			}
-			unbind_value(gen, desc->value, desc->reg, desc->other_reg);
+			else
+			{
+				unbind_value(gen, desc->value, desc->reg, desc->other_reg);
+			}
 		}
 	}
 
