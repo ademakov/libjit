@@ -119,7 +119,6 @@ typedef struct
 	unsigned	used : 1;
 	unsigned	clobber : 1;
 	unsigned	early_clobber : 1;
-	unsigned	on_stack : 1;
 	unsigned	duplicate : 1;
 	unsigned	load : 1;
 	unsigned	copy : 1;
