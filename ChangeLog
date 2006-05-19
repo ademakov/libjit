@@ -1,3 +1,14 @@
+2006-05-19  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit-reg-alloc.h, jit/jit-reg-alloc.c: determine if input values
+	need to be saved and evicted from registers to stack frame at the
+	_jit_regs_assign() time. Uniformly save input values that need to
+	in _jit_regs_gen(), do not save them in _jit_regs_commit(). This
+	simplifies handling of stack registers. Remove initial_stack_top,
+	exchanges, num_exchages fields from the _jit_regs_t struct. Add
+	save and kill bit fields to the _jit_regdesc_t struct. Refactor
+	and clean up code.
+
 2006-05-10  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c (use_cheapest_register): check if the other

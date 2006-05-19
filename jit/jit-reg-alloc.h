@@ -120,8 +120,10 @@ typedef struct
 	unsigned	clobber : 1;
 	unsigned	early_clobber : 1;
 	unsigned	duplicate : 1;
+	unsigned	save : 1;
 	unsigned	load : 1;
 	unsigned	copy : 1;
+	unsigned	kill : 1;
 
 } _jit_regdesc_t;
 
@@ -162,12 +164,9 @@ typedef struct
 	jit_regused_t	spill;
 
 	int		stack_start;
-	int		initial_stack_top;
 	int		current_stack_top;
 	int		wanted_stack_count;
 	int		loaded_stack_count;
-	int		exchanges[_JIT_REGS_MAX_EXCHANGES][2];
-	int		num_exchanges;
 } _jit_regs_t;
 
 void _jit_regs_init(_jit_regs_t *regs, int flags);
