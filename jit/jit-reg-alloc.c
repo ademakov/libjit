@@ -3740,23 +3740,17 @@ _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 #endif
 
 	/* Set clobber flags. */
-	for(index = 0; index < JIT_NUM_REGS; index++)
+	if(regs->clobber_all)
 	{
-		if((_jit_reg_info[index].flags & JIT_REG_FIXED)
-		   || jit_reg_is_used(gen->permanent, index))
+		for(index = 0; index < JIT_NUM_REGS; index++)
 		{
-			continue;
-		}
-		if(regs->clobber_all)
-		{
+			if((_jit_reg_info[index].flags & JIT_REG_FIXED)
+			   || jit_reg_is_used(gen->permanent, index))
+			{
+				continue;
+			}
 			jit_reg_set_used(regs->clobber, index);
 		}
-#if 0
-		if(jit_reg_is_used(regs->clobber, index))
-		{
-			jit_reg_set_used(gen->touched, index);
-		}
-#endif
 	}
 
 	/* Spill all clobbered registers. */

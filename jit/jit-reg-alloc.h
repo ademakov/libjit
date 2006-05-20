@@ -75,11 +75,6 @@ void _jit_regs_get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
 #define _JIT_REGS_SCRATCH_MAX		6
 
 /*
- * The maximum number of stack register exchanges.
- */
-#define _JIT_REGS_MAX_EXCHANGES		16
-
-/*
  * Flags for _jit_regs_init().
  */
 #define _JIT_REGS_CLOBBER_ALL		0x0001

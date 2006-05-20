@@ -775,11 +775,11 @@ _jit_gen_exch_top(jit_gencode_t gen, int reg, int pop)
 		jit_cache_setup_output(2);
 		if(pop)
 		{
-			x86_fstp(inst, reg - X86_REG_ST0);
+			x86_fstp(inst, fp_stack_index(gen, reg));
 		}
 		else
 		{
-			x86_fxch(inst, reg - X86_REG_ST0);
+			x86_fxch(inst, fp_stack_index(gen, reg));
 		}
 		jit_cache_end_output();
 	}

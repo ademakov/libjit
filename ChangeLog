@@ -1,3 +1,11 @@
+2006-05-20  avd  <avd@buzz.wiraqocha.local>
+
+	* jit/jit-rules-x86.c (_jit_gen_exch_top): fix computation of stack
+	register index.
+
+	* jit/jit-reg-alloc.c (_jit_regs_assign): micro optimization by
+	changing nesting order of for and if statements.
+
 2006-05-19  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit-reg-alloc.h, jit/jit-reg-alloc.c: determine if input values
