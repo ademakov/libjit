@@ -1,4 +1,13 @@
-2006-05-20  avd  <avd@buzz.wiraqocha.local>
+2006-05-21  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.h: add _JIT_REGS_FREE_DEST flag to be used in
+	cases when the destination register is independent of any input
+	register.
+	* tools/gen-rules-parser.y: allow specification	of independent
+	destination register with '=reg' pattern syntax. (But the allocator
+	does not yet handle this.)
+
+2006-05-20  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.c (_jit_gen_exch_top): fix computation of stack
 	register index.

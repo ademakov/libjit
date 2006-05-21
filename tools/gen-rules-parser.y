@@ -103,6 +103,11 @@ static int gensel_first_stack_reg = 8;	/* st0 under x86 */
 #define MAX_SCRATCH				6
 
 /*
+ * Maximal number of pattern elements.
+ */
+#define MAX_PATTERN				(MAX_INPUT + MAX_SCRATCH)
+
+/*
  * Options.
  */
 #define	GENSEL_OPT_BINARY			1
@@ -145,8 +150,9 @@ static int gensel_first_stack_reg = 8;	/* st0 under x86 */
 /*
  * Register flags.
  */
-#define GENSEL_FLAG_CLOBBER			1
-#define GENSEL_FLAG_EARLY_CLOBBER		2
+#define GENSEL_FLAG_DEST			1
+#define GENSEL_FLAG_CLOBBER			2
+#define GENSEL_FLAG_EARLY_CLOBBER		3
 
 /*
  * Value Type.
@@ -194,6 +200,9 @@ struct gensel_clause
 	gensel_clause_t		next;
 };
 
+static char *gensel_args[] = {
+	"dest", "value1", "value2"
+};
 static char *gensel_imm_args[] = {
 	"insn->dest->address", "insn->value1->address", "insn->value2->address"
 };
@@ -206,8 +215,11 @@ static char *gensel_other_reg_names[] = {
 static char *gensel_imm_names[] = {
 	"imm_value", "imm_value2", "imm_value3"
 };
+static char *gensel_local_names[] = {
+	"local_offset", "local_offset2", "local_offset3"
+};
 static char *gensel_reg_flags[] = {
-	"0", "_JIT_REGS_CLOBBER", "_JIT_REGS_EARLY_CLOBBER"
+	"0", "0", "_JIT_REGS_CLOBBER", "_JIT_REGS_EARLY_CLOBBER"
 };
 
 /*
@@ -364,19 +376,20 @@ static void gensel_declare_regs(gensel_clause_t clauses, gensel_option_t options
 	int regs, max_regs;
 	int other_regs_mask;
 	int imms, max_imms;
-	int have_local;
+	int locals, max_locals;
 	int scratch, others;
 	int have_regset;
 
 	max_regs = 0;
 	other_regs_mask = 0;
 	max_imms = 0;
-	have_local = 0;
+	max_locals = 0;
 	have_regset = 0;
 	while(clauses != 0)
 	{
 		regs = 0;
 		imms = 0;
+		locals = 0;
 		others = 0;
 		scratch = 0;
 		pattern = clauses->pattern;
@@ -421,8 +434,7 @@ static void gensel_declare_regs(gensel_clause_t clauses, gensel_option_t options
 				break;
 
 			case GENSEL_PATT_LOCAL:
-				have_local = 1;
-				++others;
+				++locals;
 				break;
 
 			case GENSEL_PATT_SCRATCH:
@@ -439,7 +451,7 @@ static void gensel_declare_regs(gensel_clause_t clauses, gensel_option_t options
 			}
 			pattern = pattern->next;
 		}
-		if((regs + imms + others) > MAX_INPUT)
+		if((regs + imms + locals + others) > MAX_INPUT)
 		{
 			gensel_error(
 				clauses->filename,
@@ -460,6 +472,10 @@ static void gensel_declare_regs(gensel_clause_t clauses, gensel_option_t options
 		if(max_imms < imms)
 		{
 			max_imms = imms;
+		}
+		if(max_locals < locals)
+		{
+			max_locals = locals;
 		}
 		clauses = clauses->next;
 	}
@@ -511,9 +527,17 @@ static void gensel_declare_regs(gensel_clause_t clauses, gensel_option_t options
 		printf("\tjit_nint imm_value, imm_value2, imm_value3;\n");
 		break;
 	}
-	if(have_local)
+	switch(max_locals)
 	{
+	case 1:
 		printf("\tjit_nint local_offset;\n");
+		break;
+	case 2:
+		printf("\tjit_nint local_offset, local_offset2;\n");
+		break;
+	case 3:
+		printf("\tjit_nint local_offset, local_offset2, local_offset3;\n");
+		break;
 	}
 	if(have_regset)
 	{
@@ -521,14 +545,90 @@ static void gensel_declare_regs(gensel_clause_t clauses, gensel_option_t options
 	}
 }
 
+/*
+ * Check if the pattern contains any registers.
+ */
+static int
+gensel_contains_registers(gensel_option_t pattern)
+{
+	while(pattern)
+	{
+		switch(pattern->option)
+		{
+		case GENSEL_PATT_REG:
+		case GENSEL_PATT_FREG:
+		case GENSEL_PATT_LREG:
+		case GENSEL_PATT_SCRATCH:
+		case GENSEL_PATT_CLOBBER:
+			return 1;
+		}
+		pattern = pattern->next;
+	}
+	return 0;
+}
+
+/*
+ * Check if the pattern contains the dest register and if it is
+ * defined correctly.
+ */
+static int
+gensel_contains_free_dest(gensel_clause_t clauses, gensel_option_t pattern)
+{
+	int found, index;
+
+	found = 0;
+	index = 0;
+	while(pattern)
+	{
+		switch(pattern->option)
+		{
+		case GENSEL_PATT_REG:
+		case GENSEL_PATT_FREG:
+		case GENSEL_PATT_LREG:
+		case GENSEL_PATT_LOCAL:
+			if(pattern->flags == GENSEL_FLAG_DEST)
+			{
+				if(index != 0)
+				{
+					gensel_error(
+						clauses->filename,
+						clauses->linenum,
+						"The destination must be the first pattern element.");
+				}
+				found = 1;
+			}
+			++index;
+			break;
+
+		case GENSEL_PATT_ANY:
+		case GENSEL_PATT_IMMZERO:
+		case GENSEL_PATT_IMM:
+		case GENSEL_PATT_IMMS8:
+		case GENSEL_PATT_IMMU8:
+		case GENSEL_PATT_IMMS16:
+		case GENSEL_PATT_IMMU16:
+			++index;
+			break;
+		}
+		pattern = pattern->next;
+	}
+	return found;
+}
+
 static void
-gensel_init_names(char *names[9], char *other_names[9])
+gensel_init_names(int count, char *names[], char *other_names[])
 {
 	int index;
-	for(index = 0; index < 9; index++)
+	for(index = 0; index < count; index++)
 	{
-		names[index] = "undefined";
-		other_names[index] = "undefined";
+		if(names)
+		{
+			names[index] = "undefined";
+		}
+		if(other_names)
+		{
+			other_names[index] = "undefined";
+		}
 	}
 
 }
@@ -536,12 +636,68 @@ gensel_init_names(char *names[9], char *other_names[9])
 static void
 gensel_build_arg_index(
 	gensel_option_t pattern,
-	char *names[9], char *other_names[9],
-	int ternary)
+	int count,
+	char *names[],
+	char *other_names[],
+	int ternary,
+	int free_dest)
 {
 	int index;
 
-	gensel_init_names(names, other_names);
+	gensel_init_names(count, names, other_names);
+
+	index = 0;
+	while(pattern)
+	{
+		switch(pattern->option)
+		{
+		case GENSEL_PATT_ANY:
+			++index;
+			break;
+
+		case GENSEL_PATT_REG:
+		case GENSEL_PATT_FREG:
+		case GENSEL_PATT_LREG:
+		case GENSEL_PATT_LOCAL:
+		case GENSEL_PATT_IMMZERO:
+		case GENSEL_PATT_IMM:
+		case GENSEL_PATT_IMMS8:
+		case GENSEL_PATT_IMMU8:
+		case GENSEL_PATT_IMMS16:
+		case GENSEL_PATT_IMMU16:
+			if(ternary || free_dest)
+			{
+				if(index < 3)
+				{
+					names[index] = gensel_args[index];
+				}
+			}
+			else
+			{
+				if(index < 2)
+				{
+					names[index] = gensel_args[index + 1];
+				}
+			}
+			++index;
+			break;
+		}
+		pattern = pattern->next;
+	}
+}
+
+static void
+gensel_build_imm_arg_index(
+	gensel_option_t pattern,
+	int count,
+	char *names[],
+	char *other_names[],
+	int ternary,
+	int free_dest)
+{
+	int index;
+
+	gensel_init_names(count, names, other_names);
 
 	index = 0;
 	while(pattern)
@@ -562,7 +718,7 @@ gensel_build_arg_index(
 		case GENSEL_PATT_IMMU8:
 		case GENSEL_PATT_IMMS16:
 		case GENSEL_PATT_IMMU16:
-			if(ternary)
+			if(ternary || free_dest)
 			{
 				if(index < 3)
 				{
@@ -587,15 +743,19 @@ gensel_build_arg_index(
  * Build index of input value names.
  */
 static void
-gensel_build_var_index(gensel_option_t pattern, char *names[9], char *other_names[9])
+gensel_build_var_index(
+	gensel_option_t pattern,
+	char *names[MAX_PATTERN],
+	char *other_names[MAX_PATTERN])
 {
 	gensel_value_t values;
-	int regs, imms, index;
+	int regs, imms, locals, index;
 
-	gensel_init_names(names, other_names);
+	gensel_init_names(MAX_PATTERN, names, other_names);
 
 	regs = 0;
 	imms = 0;
+	locals = 0;
 	index = 0;
 	while(pattern)
 	{
@@ -634,7 +794,8 @@ gensel_build_var_index(gensel_option_t pattern, char *names[9], char *other_name
 			break;
 
 		case GENSEL_PATT_LOCAL:
-			names[index] = "local_offset";
+			names[index] = gensel_local_names[locals];
+			++locals;
 			++index;
 			break;
 
@@ -658,7 +819,9 @@ gensel_build_var_index(gensel_option_t pattern, char *names[9], char *other_name
 static void
 gensel_output_code(
 	gensel_option_t pattern,
-	char *code, char *names[9], char *other_names[9],
+	char *code,
+	char *names[MAX_PATTERN],
+	char *other_names[MAX_PATTERN],
 	int in_line)
 {
 	int index;
@@ -704,10 +867,15 @@ gensel_output_code(
  * Output the code within a clause.
  */
 static void
-gensel_output_clause_code(gensel_clause_t clause, char *names[9], char *other_names[9])
+gensel_output_clause_code(
+	gensel_clause_t clause,
+	char *names[MAX_PATTERN],
+	char *other_names[MAX_PATTERN])
 {
 	/* Output the line number information from the original file */
+#if 0
 	printf("#line %ld \"%s\"\n", clause->linenum, clause->filename);
+#endif
 
 	gensel_output_code(clause->pattern, clause->code, names, other_names, 0);
 }
@@ -717,7 +885,8 @@ gensel_output_clause_code(gensel_clause_t clause, char *names[9], char *other_na
  */
 static void gensel_output_clause(
 	gensel_clause_t clause,
-	char *names[9], char *other_names[9],
+	char *names[MAX_PATTERN],
+	char *other_names[MAX_PATTERN],
 	gensel_option_t options)
 {
 	gensel_option_t space, more_space;
@@ -770,41 +939,20 @@ static void gensel_output_clause(
 	}
 }
 
-static int
-clause_contains_registers(gensel_clause_t clause)
-{
-	gensel_option_t pattern;
-	pattern = clause->pattern;
-	while(pattern)
-	{
-		switch(pattern->option)
-		{
-		case GENSEL_PATT_REG:
-		case GENSEL_PATT_FREG:
-		case GENSEL_PATT_LREG:
-		case GENSEL_PATT_SCRATCH:
-		case GENSEL_PATT_CLOBBER:
-			return 1;
-		}
-		pattern = pattern->next;
-	}
-	return 0;
-}
-
 /*
  * Output the clauses for a rule.
  */
 static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t options)
 {
 	char *args[MAX_INPUT];
-	char *names[9];
-	char *other_names[9];
+	char *names[MAX_PATTERN];
+	char *other_names[MAX_PATTERN];
 	gensel_clause_t clause;
 	gensel_option_t pattern;
 	gensel_value_t values, child;
 	int first, seen_option;
-	int regs, imms, scratch, index;
-	int clobber_all, ternary;
+	int regs, imms, locals, scratch, index;
+	int clobber_all, ternary, free_dest;
 	int contains_registers;
 
 	/* If the clause is manual, then output it as-is */
@@ -814,7 +962,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 		{
 			printf("\t_jit_regs_spill_all(gen);\n");
 		}
-		gensel_init_names(names, other_names);
+		gensel_init_names(MAX_PATTERN, names, other_names);
 		gensel_output_clause_code(clauses, names, other_names);
 		return;
 	}
@@ -823,7 +971,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 	contains_registers = 0;
 	while(clause)
 	{
-		contains_registers = clause_contains_registers(clause);
+		contains_registers = gensel_contains_registers(clause->pattern);
 		if(contains_registers)
 		{
 			break;
@@ -842,27 +990,34 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 		printf("\t_jit_regs_spill_all(gen);\n");
 	}
 
-	/* Determine the location of this instruction's arguments */
-	if(gensel_search_option(options, GENSEL_OPT_TERNARY))
-	{
-		ternary = 1;
-		args[0] = "dest";
-		args[1] = "value1";
-		args[2] = "value2";
-	}
-	else
-	{
-		ternary = 0;
-		args[0] = "value1";
-		args[1] = "value2";
-		args[2] = "??";
-	}
+	ternary = (0 != gensel_search_option(options, GENSEL_OPT_TERNARY));
 
 	/* Output the clause checking and dispatching code */
 	clause = clauses;
 	first = 1;
 	while(clause)
 	{
+		contains_registers = gensel_contains_registers(clause->pattern);
+		free_dest = gensel_contains_free_dest(clauses, clause->pattern);
+
+		clobber_all = 0;
+		pattern = gensel_search_option(clause->pattern, GENSEL_PATT_CLOBBER);
+		if(pattern)
+		{
+			values = pattern->values;
+			while(values)
+			{
+				if(values->value && strcmp(values->value, "*") == 0)
+				{
+					clobber_all = 1;
+					break;
+				}
+				values = values->next;
+			}
+		}
+
+		gensel_build_arg_index(clause->pattern, 3, args, 0, ternary, free_dest);
+
 		if(clause->next)
 		{
 			if(first)
@@ -984,9 +1139,9 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 						printf(" && ");
 					}
 					printf("(");
-					gensel_build_arg_index(
-						clause->pattern,
-						names, other_names, ternary);
+					gensel_build_imm_arg_index(
+						clause->pattern, MAX_PATTERN,
+						names, other_names, ternary, free_dest);
 					gensel_output_code(
 						clause->pattern,
 						pattern->values->value,
@@ -1023,24 +1178,6 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			printf("\t\t}\n");
 		}
 
-		clobber_all = 0;
-		pattern = gensel_search_option(clause->pattern, GENSEL_PATT_CLOBBER);
-		if(pattern)
-		{
-			values = pattern->values;
-			while(values)
-			{
-				if(values->value && strcmp(values->value, "*") == 0)
-				{
-					clobber_all = 1;
-					break;
-				}
-				values = values->next;
-			}
-		}
-
-		contains_registers = clause_contains_registers(clause);
-
 		if(gensel_search_option(options, GENSEL_OPT_BINARY_BRANCH)
 		   || gensel_search_option(options, GENSEL_OPT_UNARY_BRANCH))
 		{
@@ -1064,7 +1201,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				seen_option = 1;
 				printf("_JIT_REGS_CLOBBER_ALL");
 			}
-			if(gensel_search_option(options, GENSEL_OPT_TERNARY))
+			if(ternary)
 			{
 				if(seen_option)
 				{
@@ -1075,6 +1212,18 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 					seen_option = 1;
 				}
 				printf("_JIT_REGS_TERNARY");
+			}
+			if(free_dest)
+			{
+				if(seen_option)
+				{
+					printf(" | ");
+				}
+				else
+				{
+					seen_option = 1;
+				}
+				printf("_JIT_REGS_FREE_DEST");
 			}
 			if(gensel_search_option(options, GENSEL_OPT_BINARY_BRANCH)
 			   || gensel_search_option(options, GENSEL_OPT_UNARY_BRANCH))
@@ -1155,7 +1304,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			}
 			printf(");\n");
 
-			if(!(gensel_search_option(options, GENSEL_OPT_TERNARY)
+			if(!(ternary || free_dest
 			     || gensel_search_option(options, GENSEL_OPT_BINARY_NOTE)
 			     || gensel_search_option(options, GENSEL_OPT_BINARY_BRANCH)
 			     || gensel_search_option(options, GENSEL_OPT_UNARY_NOTE)
@@ -1326,6 +1475,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 
 		regs = 0;
 		imms = 0;
+		locals = 0;
 		index = 0;
 		scratch = 0;
 		pattern = clause->pattern;
@@ -1370,9 +1520,10 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				break;
 
 			case GENSEL_PATT_LOCAL:
-				printf("\t\tlocal_offset = insn->%s->frame_offset;\n",
-				       args[index]);
-				index++;
+				printf("\t\t%s = insn->%s->frame_offset;\n",
+				       gensel_local_names[locals], args[index]);
+				++locals;
+				++index;
 				break;
 
 			case GENSEL_PATT_SCRATCH:
@@ -1548,7 +1699,7 @@ static void gensel_output_supported(void)
 %type <code>			CODE_BLOCK
 %type <name>			IDENTIFIER LITERAL
 %type <name>			IfClause IdentifierList Literal
-%type <tag>			OptionTag InputTag RegTag LRegTag RegFlag
+%type <tag>			OptionTag InputTag RegTag LRegTag RegFlag LocalTag LocalFlag
 %type <clauses>			Clauses Clause
 %type <options>			Options OptionList Pattern Pattern2
 %type <option>			Option PatternElement Scratch Clobber If Space
@@ -1694,6 +1845,9 @@ Pattern2
 PatternElement
 	: InputTag			{
 			$$ = gensel_create_option($1, 0);
+		}
+	| LocalFlag LocalTag		{
+			$$ = gensel_create_option_2($2, $1, 0);
 		}
 	| RegFlag RegTag		{
 			$$ = gensel_create_option_2($2, $1, 0);
@@ -1842,8 +1996,11 @@ InputTag
 	| K_IMMU8			{ $$ = GENSEL_PATT_IMMU8; }
 	| K_IMMS16			{ $$ = GENSEL_PATT_IMMS16; }
 	| K_IMMU16			{ $$ = GENSEL_PATT_IMMU16; }
-	| K_LOCAL			{ $$ = GENSEL_PATT_LOCAL; }
 	| K_ANY				{ $$ = GENSEL_PATT_ANY; }
+	;
+
+LocalTag
+	: K_LOCAL			{ $$ = GENSEL_PATT_LOCAL; }
 	;
 
 RegTag
@@ -1855,8 +2012,14 @@ LRegTag
 	: K_LREG			{ $$ = GENSEL_PATT_LREG; }
 	;
 
+LocalFlag
+	: /* empty */			{ $$ = 0; }
+	| '='				{ $$ = GENSEL_FLAG_DEST; }
+	;
+
 RegFlag
 	: /* empty */			{ $$ = 0; }
+	| '='				{ $$ = GENSEL_FLAG_DEST; }
 	| '*'				{ $$ = GENSEL_FLAG_CLOBBER; }
 	| '+'				{ $$ = GENSEL_FLAG_EARLY_CLOBBER; }
 	;
