@@ -1,3 +1,10 @@
+2006-05-25  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.c (use_cheapest_register): fix cost calculation
+	that sometimes caused overlooking free registers. This was a serious
+	problem as there are some 'spill_before' rules that assume that the
+	allocator will always choose EAX as the first free register.
+
 2006-05-21  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.h: add _JIT_REGS_FREE_DEST flag to be used in

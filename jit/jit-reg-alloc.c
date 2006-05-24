@@ -2504,7 +2504,7 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 		}
 		else
 		{
-			cost = 10 + compute_spill_cost(gen, regs, reg, other_reg);
+			cost = compute_spill_cost(gen, regs, reg, other_reg);
 		}
 
 		if(cost < suitable_cost
@@ -3562,6 +3562,7 @@ _jit_regs_init(_jit_regs_t *regs, int flags)
 	regs->on_stack = (flags & _JIT_REGS_STACK) != 0;
 	regs->x87_arith = (flags & _JIT_REGS_X87_ARITH) != 0;
 	regs->reversible = (flags & _JIT_REGS_REVERSIBLE) != 0;
+	regs->free_dest = (flags & _JIT_REGS_FREE_DEST) != 0;
 
 	regs->no_pop = 0;
 	regs->reverse_dest = 0;
