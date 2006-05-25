@@ -1,6 +1,13 @@
 2006-05-25  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c (use_cheapest_register): fix cost calculation
+	again for 'spill_before' rules. The last patch did not work for
+	values stored in global registers. Now both global and non-global
+	values should be copied to EAX.
+
+2006-05-25  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.c (use_cheapest_register): fix cost calculation
 	that sometimes caused overlooking free registers. This was a serious
 	problem as there are some 'spill_before' rules that assume that the
 	allocator will always choose EAX as the first free register.

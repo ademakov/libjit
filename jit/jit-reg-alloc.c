@@ -2391,7 +2391,7 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 	int suitable_reg;
 	int suitable_cost;
 	int suitable_age;
-	int cost;
+	int move, cost;
 
 	if(index >= 0)
 	{
@@ -2426,71 +2426,51 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 			continue;
 		}
 
-		if(need_pair)
-		{
-			other_reg = OTHER_REG(reg);
-		}
-		else
-		{
-			other_reg = -1;
-		}
-
 		if(!jit_reg_is_used(regset, reg)
 		   || jit_reg_is_used(gen->inhibit, reg)
 		   || jit_reg_is_used(regs->assigned, reg))
 		{
 			continue;
 		}
-		if(other_reg >= 0)
+
+		if(!desc)
 		{
-			if(jit_reg_is_used(gen->inhibit, other_reg)
-			   || jit_reg_is_used(regs->assigned, other_reg))
+			if(jit_reg_is_used(gen->permanent, reg))
 			{
 				continue;
 			}
-		}
-
-		if(jit_reg_is_used(gen->permanent, reg))
-		{
-			/* We can use a global register only if it is the register
-			   that contains the value itself and it is not clobbered. */
-			if(desc
-			   && desc->value->has_global_register
-			   && desc->value->global_reg == reg
-			   && !clobbers_register(gen, regs, index, reg, other_reg))
+			else if(thrashes_register(gen, regs, desc, reg, -1))
 			{
-				if(output || desc->value->in_global_register)
-				{
-					cost = 0;
-				}
-				else
-				{
-					cost = 1;
-				}
+				continue;
 			}
-			else
+			move = 0;
+			cost = compute_spill_cost(gen, regs, reg, -1);
+		}
+		else if(desc->value->has_global_register)
+		{
+			if(reg == desc->value->global_reg)
 			{
-				cost = COST_TOO_MUCH;
-			}
-		}
-		else if(other_reg >= 0 && jit_reg_is_used(gen->permanent, other_reg))
-		{
-			cost = COST_TOO_MUCH;
-		}
-		else if(thrashes_register(gen, regs, desc, reg, other_reg))
-		{
-			cost = COST_TOO_MUCH;
-		}
-		else if(desc && desc->value->in_register)
-		{
-			if(reg == desc->value->reg)
-			{
-				if(clobbers_register(gen, regs, index, reg, other_reg)
-				   && !(jit_reg_is_used(regs->clobber, reg)
-					|| (other_reg >= 0
-					    && jit_reg_is_used(regs->clobber, other_reg))))
+				if(clobbers_register(gen, regs, index, reg, -1))
 				{
-					cost = compute_spill_cost(gen, regs, reg, other_reg);
+					continue;
+				}
+				move = ((output | desc->value->in_global_register) == 0);
+				cost = 0;
+			}
+			else if(jit_reg_is_used(gen->permanent, reg))
+			{
+				continue;
+			}
+			else if(thrashes_register(gen, regs, desc, reg, -1))
+			{
+				continue;
+			}
+			else if(desc->value->in_register && reg == desc->value->reg)
+			{
+				move = ((output | desc->value->in_global_register) != 0);
+				if(clobbers_register(gen, regs, index, reg, -1))
+				{
+					cost = compute_spill_cost(gen, regs, reg, -1);
 				}
 				else
 				{
@@ -2499,21 +2479,78 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 			}
 			else
 			{
-				cost = 1 + compute_spill_cost(gen, regs, reg, other_reg);
+				move = 1;
+				cost = compute_spill_cost(gen, regs, reg, -1);
 			}
 		}
 		else
 		{
-			cost = compute_spill_cost(gen, regs, reg, other_reg);
+			if(jit_reg_is_used(gen->permanent, reg))
+			{
+				continue;
+			}
+
+			if(need_pair)
+			{
+				other_reg = OTHER_REG(reg);
+
+				if(jit_reg_is_used(gen->inhibit, other_reg)
+				   || jit_reg_is_used(regs->assigned, other_reg))
+				{
+					continue;
+				}
+				if(jit_reg_is_used(gen->permanent, other_reg))
+				{
+					continue;
+				}
+			}
+			else
+			{
+				other_reg = -1;
+			}
+
+			if(thrashes_register(gen, regs, desc, reg, other_reg))
+			{
+				continue;
+			}
+			if(desc->value->in_register)
+			{
+				if(reg == desc->value->reg)
+				{
+					if(clobbers_register(gen, regs, index, reg, other_reg)
+					   && !(jit_reg_is_used(regs->clobber, reg)
+						|| (other_reg >= 0
+						    && jit_reg_is_used(regs->clobber, other_reg))))
+					{
+						move = 0;
+						cost = compute_spill_cost(gen, regs, reg, other_reg);
+					}
+					else
+					{
+						move = 0;
+						cost = 0;
+					}
+				}
+				else
+				{
+					move = 1;
+					cost = compute_spill_cost(gen, regs, reg, other_reg);
+				}
+			}
+			else
+			{
+				move = 0;
+				cost = compute_spill_cost(gen, regs, reg, other_reg);
+			}
 		}
 
-		if(cost < suitable_cost
-		   || (cost > 0 && cost == suitable_cost
+		if((move + cost) < suitable_cost
+		   || (cost > 0 && (move + cost) == suitable_cost
 		       && gen->contents[reg].age < suitable_age))
 		{
 			/* This is the oldest suitable register of this type */
 			suitable_reg = reg;
-			suitable_cost = cost;
+			suitable_cost = move + cost;
 			suitable_age = gen->contents[reg].age;
 		}
 	}
