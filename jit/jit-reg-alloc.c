@@ -1641,6 +1641,12 @@ void _jit_regs_get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
 /* The cost value that precludes using the register in question. */
 #define COST_TOO_MUCH		1000000
 
+#define COST_COPY		4
+#define COST_SPILL_DIRTY	16
+#define COST_SPILL_DIRTY_GLOBAL	2
+#define COST_SPILL_CLEAN	1
+#define COST_SPILL_CLEAN_GLOBAL	1
+
 /* Value usage flags. */
 #define VALUE_INPUT		1
 #define VALUE_USED		2
@@ -2077,28 +2083,28 @@ collect_register_info(jit_gencode_t gen, _jit_regs_t *regs, int index)
 		return 1;
 	}
 
-	if(desc->value->has_global_register)
-	{
-		if(desc->value->global_reg != desc->reg
-		   && !(desc->value->in_register && desc->value->reg == desc->reg))
-		{
-			desc->copy = 1;
-		}
-	}
-	else
-	{
-		if(!desc->value->in_register)
-		{
-			desc->load = 1;
-		}
-		else if(desc->value->reg != desc->reg)
-		{
-			desc->copy = 1;
-		}
-	}
-
 	if(index > 0 || regs->ternary)
 	{
+		if(desc->value->has_global_register)
+		{
+			if(desc->value->global_reg != desc->reg
+			   && !(desc->value->in_register && desc->value->reg == desc->reg))
+			{
+				desc->copy = 1;
+			}
+		}
+		else
+		{
+			if(!desc->value->in_register)
+			{
+				desc->load = 1;
+			}
+			else if(desc->value->reg != desc->reg)
+			{
+				desc->copy = 1;
+			}
+		}
+
 		if(desc->value->is_constant)
 		{
 			desc->kill = 1;
@@ -2178,6 +2184,11 @@ collect_register_info(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	printf("value = ");
 	jit_dump_value(stdout, jit_value_get_function(desc->value), desc->value, 0);
 	printf("\n");
+	printf("value->in_register = %d\n", desc->value->in_register);
+	printf("value->reg = %d\n", desc->value->reg);
+	printf("value->in_global_register = %d\n", desc->value->in_global_register);
+	printf("value->global_reg = %d\n", desc->value->global_reg);
+	printf("value->in_frame = %d\n", desc->value->in_frame);
 	printf("reg = %d\n", desc->reg);
 	printf("other_reg = %d\n", desc->other_reg);
 	printf("live = %d\n", desc->live);
@@ -2282,16 +2293,24 @@ compute_spill_cost(jit_gencode_t gen, _jit_regs_t *regs, int reg, int other_reg)
 		}
 		if(value->has_global_register)
 		{
-			if(!value->in_global_register)
+			if(value->in_global_register)
 			{
-				cost += 1;
+				cost += COST_SPILL_CLEAN_GLOBAL;
+			}
+			else
+			{
+				cost += COST_SPILL_DIRTY_GLOBAL;
 			}
 		}
 		else
 		{
-			if(!value->in_frame)
+			if(value->in_frame)
 			{
-				cost += 10;
+				cost += COST_SPILL_CLEAN;
+			}
+			else
+			{
+				cost += COST_SPILL_DIRTY;
 			}
 		}
 	}
@@ -2388,10 +2407,10 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 	int type;
 	int need_pair;
 	int reg, other_reg;
+	int cost, copy_cost;
 	int suitable_reg;
 	int suitable_cost;
 	int suitable_age;
-	int move, cost;
 
 	if(index >= 0)
 	{
@@ -2443,7 +2462,7 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 			{
 				continue;
 			}
-			move = 0;
+			copy_cost = 0;
 			cost = compute_spill_cost(gen, regs, reg, -1);
 		}
 		else if(desc->value->has_global_register)
@@ -2454,7 +2473,7 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 				{
 					continue;
 				}
-				move = ((output | desc->value->in_global_register) == 0);
+				copy_cost = ((output | desc->value->in_global_register) == 0);
 				cost = 0;
 			}
 			else if(jit_reg_is_used(gen->permanent, reg))
@@ -2467,7 +2486,7 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 			}
 			else if(desc->value->in_register && reg == desc->value->reg)
 			{
-				move = ((output | desc->value->in_global_register) != 0);
+				copy_cost = ((output | desc->value->in_global_register) != 0);
 				if(clobbers_register(gen, regs, index, reg, -1))
 				{
 					cost = compute_spill_cost(gen, regs, reg, -1);
@@ -2479,7 +2498,7 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 			}
 			else
 			{
-				move = 1;
+				copy_cost = 1;
 				cost = compute_spill_cost(gen, regs, reg, -1);
 			}
 		}
@@ -2522,35 +2541,41 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 						|| (other_reg >= 0
 						    && jit_reg_is_used(regs->clobber, other_reg))))
 					{
-						move = 0;
+						copy_cost = 0;
 						cost = compute_spill_cost(gen, regs, reg, other_reg);
 					}
 					else
 					{
-						move = 0;
+						copy_cost = 0;
 						cost = 0;
 					}
 				}
 				else
 				{
-					move = 1;
+					copy_cost = 1;
 					cost = compute_spill_cost(gen, regs, reg, other_reg);
 				}
 			}
 			else
 			{
-				move = 0;
+				copy_cost = 0;
 				cost = compute_spill_cost(gen, regs, reg, other_reg);
 			}
 		}
 
-		if((move + cost) < suitable_cost
-		   || (cost > 0 && (move + cost) == suitable_cost
+#if COST_COPY != 1
+		if(copy_cost)
+		{
+			copy_cost = COST_COPY;
+		}
+#endif
+		if((cost + copy_cost) < suitable_cost
+		   || (cost > 0 && (cost + copy_cost) == suitable_cost
 		       && gen->contents[reg].age < suitable_age))
 		{
 			/* This is the oldest suitable register of this type */
 			suitable_reg = reg;
-			suitable_cost = move + cost;
+			suitable_cost = cost + copy_cost;
 			suitable_age = gen->contents[reg].age;
 		}
 	}
@@ -3098,7 +3123,7 @@ free_value(jit_gencode_t gen, jit_value_t value, int reg, int other_reg)
 #endif
 
 	/* Never free global registers. */
-	if(value->has_global_register)
+	if(value->has_global_register && value->global_reg == reg)
 	{
 		return;
 	}
@@ -3130,10 +3155,20 @@ save_value(jit_gencode_t gen, jit_value_t value, int reg, int other_reg, int fre
 	/* First take care of values that reside in global registers. */
 	if(value->has_global_register)
 	{
-		if(value->global_reg != reg && !value->in_global_register)
+		/* Never free global registers. */
+		if(value->global_reg == reg)
+		{
+			return;
+		}
+
+		if(!value->in_global_register)
 		{
 			_jit_gen_spill_reg(gen, reg, other_reg, value);
 			value->in_global_register = 1;
+		}
+		if(free)
+		{
+			unbind_value(gen, value, reg, other_reg);
 		}
 		return;
 	}
@@ -3534,7 +3569,8 @@ commit_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	printf("\n");
 	printf("value->in_register = %d\n", desc->value->in_register);
 	printf("value->reg = %d\n", desc->value->reg);
-	printf("value->in_gloable_register = %d\n", desc->value->in_global_register);
+	printf("value->in_global_register = %d\n", desc->value->in_global_register);
+	printf("value->global_reg = %d\n", desc->value->global_reg);
 	printf("value->in_frame = %d\n", desc->value->in_frame);
 #endif
 }
@@ -3581,7 +3617,8 @@ commit_output_value(jit_gencode_t gen, _jit_regs_t *regs)
 	printf("\n");
 	printf("value->in_register = %d\n", desc->value->in_register);
 	printf("value->reg = %d\n", desc->value->reg);
-	printf("value->in_gloable_register = %d\n", desc->value->in_global_register);
+	printf("value->in_global_register = %d\n", desc->value->in_global_register);
+	printf("value->global_reg = %d\n", desc->value->global_reg);
 	printf("value->in_frame = %d\n", desc->value->in_frame);
 #endif
 }
@@ -4181,7 +4218,7 @@ _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs)
 	}
 
 #ifdef JIT_REG_DEBUG
-	dump_regs(gen, "enter _jit_regs_commit");
+	dump_regs(gen, "leave _jit_regs_commit");
 #endif
 }
 

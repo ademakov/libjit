@@ -1,3 +1,14 @@
+2006-05-27  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.c (free_value, save_value): the value that has
+	a global register and is also associated with a local register
+	needs to be unbound from the local one.
+
+	* jit/jit-reg-alloc.c (compute_spill_cost): assume that the spill
+	cost for clean values is not zero. This keeps them in registers
+	as long as there are free registers and thus reduces the number of
+	loads.
+	
 2006-05-25  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c (use_cheapest_register): fix cost calculation
