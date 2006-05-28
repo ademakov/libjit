@@ -7000,6 +7000,7 @@ static int initialize_setjmp_block(jit_function_t func)
 #if !defined(JIT_BACKEND_INTERP)
 	jit_label_t start_label = jit_label_undefined;
 	jit_label_t end_label = jit_label_undefined;
+	jit_label_t code_label = jit_label_undefined;
 	jit_label_t rethrow_label = jit_label_undefined;
 	jit_type_t type;
 	jit_value_t args[2];
@@ -7105,7 +7106,7 @@ static int initialize_setjmp_block(jit_function_t func)
 #endif	/* !HAVE_SIGSETJMP */
 
 	/* Branch to the end of the init code if "setjmp" returned zero */
-	if(!jit_insn_branch_if_not(func, value, &end_label))
+	if(!jit_insn_branch_if_not(func, value, &code_label))
 	{
 		return 0;
 	}
@@ -7175,6 +7176,12 @@ static int initialize_setjmp_block(jit_function_t func)
 		 (void *)_jit_unwind_pop_and_rethrow, type, 0, 0,
 		 JIT_CALL_NOTHROW | JIT_CALL_NORETURN);
 	jit_type_free(type);
+
+	/* Insert the target to jump to the normal code. */
+	if(!jit_insn_label(func, &code_label))
+	{
+		return 0;
+	}
 
 	/* Force the start of a new block to mark the end of the init code */
 	if(!jit_insn_label(func, &end_label))

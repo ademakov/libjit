@@ -1,3 +1,10 @@
+2006-05-28  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-insn.c: Add a code_label in initialize_setjmp_block just
+	before the end_label that is moved with the block to the start of
+	the function as jump target to the code. Otherwise other blocks
+	moved to the start after this block will never be executed.
+
 2006-05-27  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c (free_value, save_value): the value that has
