@@ -186,6 +186,10 @@ int _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs);
 int _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs);
 int _jit_regs_select(_jit_regs_t *regs);
 void _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs);
+void _jit_regs_abort(jit_gencode_t gen, _jit_regs_t *regs);
+unsigned char *_jit_regs_inst_ptr(jit_gencode_t gen, int space);
+unsigned char *_jit_regs_begin(jit_gencode_t gen, _jit_regs_t *regs, int space);
+void _jit_regs_end(jit_gencode_t gen, _jit_regs_t *regs, unsigned char *inst);
 
 int _jit_regs_dest(_jit_regs_t *regs);
 int _jit_regs_value1(_jit_regs_t *regs);

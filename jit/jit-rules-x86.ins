@@ -1707,19 +1707,16 @@ JIT_OP_RETURN_LONG: unary_branch
 
 JIT_OP_RETURN_FLOAT32: unary_note, stack, only
 	[freg] -> {
-		_jit_regs_free_reg(gen, reg, 1);
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
 JIT_OP_RETURN_FLOAT64: unary_note, stack, only
 	[freg] -> {
-		_jit_regs_free_reg(gen, reg, 1);
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
 JIT_OP_RETURN_NFLOAT: unary_note, stack, only
 	[freg] -> {
-		_jit_regs_free_reg(gen, reg, 1);
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
@@ -2135,10 +2132,9 @@ JIT_OP_PUSH_FLOAT32: unary_note, stack
 		x86_push_membase(inst, X86_EBP, $1);
 		gen->stack_changed = 1;
 	}
-	[reg] -> {
+	[freg] -> {
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float32));
 		x86_fst_membase(inst, X86_ESP, 0, 0, 1);
-		_jit_regs_free_reg(gen, reg, 1);
 		gen->stack_changed = 1;
 	}
 
@@ -2154,10 +2150,9 @@ JIT_OP_PUSH_FLOAT64: unary_note, stack
 		x86_push_membase(inst, X86_EBP, $1);
 		gen->stack_changed = 1;
 	}
-	[reg] -> {
+	[freg] -> {
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float64));
 		x86_fst_membase(inst, X86_ESP, 0, 1, 1);
-		_jit_regs_free_reg(gen, reg, 1);
 		gen->stack_changed = 1;
 	}
 
@@ -2192,7 +2187,6 @@ JIT_OP_PUSH_NFLOAT: unary_note, stack
 			x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float64));
 			x86_fst_membase(inst, X86_ESP, 0, 1, 1);
 		}
-		_jit_regs_free_reg(gen, reg, 1);
 		gen->stack_changed = 1;
 	}
 

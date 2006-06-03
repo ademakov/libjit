@@ -456,7 +456,8 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 #ifdef _JIT_COMPILE_DEBUG
 		unsigned char *p1, *p2;
 		p1 = gen->posn.ptr;
-		printf("Insn %5d: 0x%04x - ", func->builder->insn_count++, insn->opcode);
+		printf("Insn: %5d, Opcode: 0x%04x\n", func->builder->insn_count++, insn->opcode);
+		printf("Start of binary code: 0x%08x\n",  p1);
 #endif
 
 		switch(insn->opcode)
@@ -553,7 +554,7 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 
 #ifdef _JIT_COMPILE_DEBUG
 		p2 = gen->posn.ptr;
-		printf("%d\n", p2 - p1);
+		printf("Length of binary code: %d\n\n", p2 - p1);
 #endif
 	}
 }

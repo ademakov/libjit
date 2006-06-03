@@ -881,65 +881,6 @@ gensel_output_clause_code(
 }
 
 /*
- * Output a single clause for a rule.
- */
-static void gensel_output_clause(
-	gensel_clause_t clause,
-	char *names[MAX_PATTERN],
-	char *other_names[MAX_PATTERN],
-	gensel_option_t options)
-{
-	gensel_option_t space, more_space;
-
-	/* Cache the instruction pointer into "inst" */
-	if(gensel_new_inst_type)
-	{
-		printf("\t\tjit_gen_load_inst_ptr(gen, inst);\n");
-	}
-	else
-	{
-		space = gensel_search_option(clause->pattern, GENSEL_PATT_SPACE);
-		more_space = gensel_search_option(options, GENSEL_OPT_MORE_SPACE);
-
-		printf("\t\tinst = (%s)(gen->posn.ptr);\n", gensel_inst_type);
-		printf("\t\tif(!jit_cache_check_for_n(&(gen->posn), ");
-		if(space && space->values && space->values->value)
-		{
-			printf("(");
-			gensel_output_code(
-				clause->pattern,
-				space->values->value,
-				names, other_names, 1);
-			printf(")");
-		}
-		else
-		{
-			printf("%d", ((more_space == 0)
-				      ? gensel_reserve_space
-				      : gensel_reserve_more_space));
-		}
-		printf("))\n");
-		printf("\t\t{\n");
-		printf("\t\t\tjit_cache_mark_full(&(gen->posn));\n");
-		printf("\t\t\treturn;\n");
-		printf("\t\t}\n");
-	}
-
-	/* Output the clause code */
-	gensel_output_clause_code(clause, names, other_names);
-
-	/* Copy "inst" back into the generation context */
-	if(gensel_new_inst_type)
-	{
-		printf("\t\tjit_gen_save_inst_ptr(gen, inst);\n");
-	}
-	else
-	{
-		printf("\t\tgen->posn.ptr = (unsigned char *)inst;\n");
-	}
-}
-
-/*
  * Output the clauses for a rule.
  */
 static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t options)
@@ -949,6 +890,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 	char *other_names[MAX_PATTERN];
 	gensel_clause_t clause;
 	gensel_option_t pattern;
+	gensel_option_t space, more_space;
 	gensel_value_t values, child;
 	int first, seen_option;
 	int regs, imms, locals, scratch, index;
@@ -1461,17 +1403,70 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			pattern = pattern->next;
 		}
 
-		if(contains_registers)
+		if(gensel_new_inst_type)
 		{
-			printf("\t\tif(!_jit_regs_assign(gen, &regs))\n");
-			printf("\t\t{\n");
-			printf("\t\t\treturn;\n");
-			printf("\t\t}\n");
-			printf("\t\tif(!_jit_regs_gen(gen, &regs))\n");
-			printf("\t\t{\n");
-			printf("\t\t\treturn;\n");
-			printf("\t\t}\n");
+			if(contains_registers)
+			{
+				printf("\t\tif(!_jit_regs_assign(gen, &regs))\n");
+				printf("\t\t{\n");
+				printf("\t\t\treturn;\n");
+				printf("\t\t}\n");
+				printf("\t\tif(!_jit_regs_gen(gen, &regs))\n");
+				printf("\t\t{\n");
+				printf("\t\t\treturn;\n");
+				printf("\t\t}\n");
+			}
+			printf("\t\tjit_gen_load_inst_ptr(gen, inst);\n");
 		}
+		else
+		{
+			space = gensel_search_option(clause->pattern, GENSEL_PATT_SPACE);
+			more_space = gensel_search_option(options, GENSEL_OPT_MORE_SPACE);
+
+			if(contains_registers)
+			{
+				printf("\t\tif(!(inst = (%s)_jit_regs_begin(gen, &regs, ", gensel_inst_type);
+			}
+			else
+			{
+				printf("\t\tinst = (%s)(gen->posn.ptr);\n", gensel_inst_type);
+				printf("\t\tif(!jit_cache_check_for_n(&(gen->posn), ");
+			}
+			if(space && space->values && space->values->value)
+			{
+				printf("(");
+				gensel_build_imm_arg_index(
+					clause->pattern, MAX_PATTERN,
+					names, other_names, ternary, free_dest);
+				gensel_output_code(
+					clause->pattern,
+					space->values->value,
+					names, other_names, 1);
+				printf(")");
+			}
+			else
+			{
+				printf("%d", ((more_space == 0)
+					      ? gensel_reserve_space
+					      : gensel_reserve_more_space));
+			}
+			if(contains_registers)
+			{
+				printf(")))\n");
+				printf("\t\t{\n");
+				printf("\t\t\treturn;\n");
+				printf("\t\t}\n");
+			}
+			else
+			{
+				printf("))\n");
+				printf("\t\t{\n");
+				printf("\t\t\tjit_cache_mark_full(&(gen->posn));\n");
+				printf("\t\t\treturn;\n");
+				printf("\t\t}\n");
+			}
+		}
+
 
 		regs = 0;
 		imms = 0;
@@ -1543,11 +1538,24 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 		}
 
 		gensel_build_var_index(clause->pattern, names, other_names);
-		gensel_output_clause(clause, names, other_names, options);
+		gensel_output_clause_code(clause, names, other_names);
 
-		if(contains_registers)
+		/* Copy "inst" back into the generation context */
+		if(gensel_new_inst_type)
 		{
-			printf("\t\t_jit_regs_commit(gen, &regs);\n");
+			printf("\t\tjit_gen_save_inst_ptr(gen, inst);\n");
+			if(contains_registers)
+			{
+				printf("\t\t_jit_regs_commit(gen, &regs);\n");
+			}
+		}
+		else if(contains_registers)
+		{
+			printf("\t\t_jit_regs_end(gen, &regs, (unsigned char *)inst);\n");
+		}
+		else
+		{
+			printf("\t\tgen->posn.ptr = (unsigned char *)inst;\n");
 		}
 
 		printf("\t}\n");

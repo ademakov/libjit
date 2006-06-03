@@ -344,7 +344,15 @@ static void spill_all_stack(jit_gencode_t gen, int reg)
 @*/
 void _jit_regs_spill_all(jit_gencode_t gen)
 {
+#ifdef JIT_REG_DEBUG
+	printf("enter _jit_regs_spill_all\n");
+#endif
+
 	spill_all_between(gen, 0, JIT_NUM_REGS - 1);
+
+#ifdef JIT_REG_DEBUG
+	printf("leave _jit_regs_spill_all\n");
+#endif
 }
 
 /*
@@ -636,7 +644,15 @@ int _jit_regs_want_reg(jit_gencode_t gen, int reg, int for_long)
 @*/
 void _jit_regs_free_reg(jit_gencode_t gen, int reg, int value_used)
 {
+#ifdef JIT_REG_DEBUG
+	printf("enter _jit_regs_free_reg(reg = %d, value_used = %d)\n", reg, value_used);
+#endif
+
 	free_reg_and_spill(gen, reg, value_used, 0);
+
+#ifdef JIT_REG_DEBUG
+	printf("leave _jit_regs_free_reg\n");
+#endif
 }
 
 /*@
@@ -1646,6 +1662,9 @@ void _jit_regs_get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
 #define COST_SPILL_DIRTY_GLOBAL	2
 #define COST_SPILL_CLEAN	1
 #define COST_SPILL_CLEAN_GLOBAL	1
+#define COST_CLOBBER_GLOBAL	1000
+
+#define ALLOW_CLOBBER_GLOBAL	1
 
 /* Value usage flags. */
 #define VALUE_INPUT		1
@@ -1831,6 +1850,10 @@ is_register_alive(jit_gencode_t gen, _jit_regs_t *regs, int reg)
 
 	if(reg >= 0)
 	{
+		if(jit_reg_is_used(gen->permanent, reg))
+		{
+			return 1;
+		}
 		for(index = 0; index < gen->contents[reg].num_values; index++)
 		{
 			usage = value_usage(regs, gen->contents[reg].values[index]);
@@ -2083,12 +2106,31 @@ collect_register_info(jit_gencode_t gen, _jit_regs_t *regs, int index)
 		return 1;
 	}
 
+	if(desc->value->in_register)
+	{
+		reg = desc->value->reg;
+		if(gen->contents[reg].is_long_start)
+		{
+			other_reg = OTHER_REG(reg);
+		}
+		else
+		{
+			other_reg = -1;
+		}
+	}
+	else
+	{
+		reg = -1;
+		other_reg = -1;
+	}
+
 	if(index > 0 || regs->ternary)
 	{
+		/* See if the value needs to be loaded or copied or none. */
 		if(desc->value->has_global_register)
 		{
 			if(desc->value->global_reg != desc->reg
-			   && !(desc->value->in_register && desc->value->reg == desc->reg))
+			   && !(desc->value->in_register && reg == desc->reg))
 			{
 				desc->copy = 1;
 			}
@@ -2099,28 +2141,21 @@ collect_register_info(jit_gencode_t gen, _jit_regs_t *regs, int index)
 			{
 				desc->load = 1;
 			}
-			else if(desc->value->reg != desc->reg)
+			else if(reg != desc->reg)
 			{
 				desc->copy = 1;
 			}
 		}
 
+		/* See if the input value needs to be saved before the
+		   instruction and if it stays or not in the register
+		   after the instruction. */
 		if(desc->value->is_constant)
 		{
 			desc->kill = 1;
 		}
 		else if(desc->value->in_register)
 		{
-			reg = desc->value->reg;
-			if(gen->contents[reg].is_long_start)
-			{
-				other_reg = OTHER_REG(reg);
-			}
-			else
-			{
-				other_reg = -1;
-			}
-
 			if(desc->used)
 			{
 				if(jit_reg_is_used(regs->clobber, reg)
@@ -2156,6 +2191,16 @@ collect_register_info(jit_gencode_t gen, _jit_regs_t *regs, int index)
 				desc->kill = 1;
 			}
 		}
+	}
+
+	/* See if the value clobbers a global register. In this case the global
+	   register is pushed onto stack before the instruction and popped back
+	   after it. */
+	if((!desc->value->has_global_register || desc->value->global_reg != desc->reg)
+	   && (jit_reg_is_used(gen->permanent, desc->reg)
+	       || (desc->other_reg >= 0 && jit_reg_is_used(gen->permanent, desc->other_reg))))
+	{
+		desc->kill = 1;
 	}
 
 	if(IS_STACK_REG(desc->reg))
@@ -2518,10 +2563,12 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 				{
 					continue;
 				}
+#if !ALLOW_CLOBBER_GLOBAL
 				if(jit_reg_is_used(gen->permanent, other_reg))
 				{
 					continue;
 				}
+#endif
 			}
 			else
 			{
@@ -2561,6 +2608,12 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 				copy_cost = 0;
 				cost = compute_spill_cost(gen, regs, reg, other_reg);
 			}
+#if ALLOW_CLOBBER_GLOBAL
+			if(other_reg >= 0 && jit_reg_is_used(gen->permanent, other_reg))
+			{
+				cost += COST_CLOBBER_GLOBAL;
+			}
+#endif
 		}
 
 #if COST_COPY != 1
@@ -3512,6 +3565,46 @@ move_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index)
 }
 
 static void
+abort_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index)
+{
+	_jit_regdesc_t *desc;
+	int reg, other_reg;
+
+#ifdef JIT_REG_DEBUG
+	printf("abort_input_value(%d)\n", index);
+#endif
+
+	desc = &regs->descs[index];
+	if(!desc->value || desc->duplicate)
+	{
+		return;
+	}
+
+	if(desc->load && desc->value->in_register)
+	{
+		reg = desc->value->reg;
+		if(gen->contents[reg].is_long_start)
+		{
+			other_reg = OTHER_REG(reg);
+		}
+		else
+		{
+			other_reg = -1;
+		}
+
+		if(IS_STACK_REG(reg))
+		{
+			unbind_value(gen, desc->value, reg, -1);
+			remap_stack_down(gen, regs->stack_start, reg);
+		}
+		else
+		{
+			unbind_value(gen, desc->value, reg, other_reg);
+		}
+	}
+}
+
+static void
 commit_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index)
 {
 	_jit_regdesc_t *desc;
@@ -3609,6 +3702,10 @@ commit_output_value(jit_gencode_t gen, _jit_regs_t *regs)
 		{
 			free_value(gen, desc->value, desc->reg, desc->other_reg);
 		}
+	}
+	else if(desc->kill)
+	{
+		save_value(gen, desc->value, desc->reg, desc->other_reg, 1);
 	}
 
 #ifdef JIT_REG_DEBUG
@@ -4040,13 +4137,16 @@ _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs)
 		if(jit_reg_is_used(gen->permanent, reg))
 		{
 			/* Oops, global register. */
+#ifdef JIT_REG_DEBUG
+			printf("*** Spill global register: %d ***\n", reg);
+#endif
 			if(regs->branch)
 			{
 				/* After the branch is taken there is no way
 				   to load global register back. */
 				return 0;
 			}
-			_jit_gen_spill_global(gen, reg, gen->contents[reg].values[0]);
+			_jit_gen_spill_global(gen, reg, 0);
 			continue;
 		}
 
@@ -4213,13 +4313,69 @@ _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs)
 	{
 		if(jit_reg_is_used(regs->spill, reg) && jit_reg_is_used(gen->permanent, reg))
 		{
-			_jit_gen_load_global(gen, reg, gen->contents[reg].values[0]);
+			_jit_gen_load_global(gen, reg, 0);
 		}
 	}
 
 #ifdef JIT_REG_DEBUG
 	dump_regs(gen, "leave _jit_regs_commit");
 #endif
+}
+
+void
+_jit_regs_abort(jit_gencode_t gen, _jit_regs_t *regs)
+{
+	if(regs->ternary)
+	{
+		abort_input_value(gen, regs, 0);
+	}
+	abort_input_value(gen, regs, 1);
+	abort_input_value(gen, regs, 2);
+}
+
+unsigned char *
+_jit_regs_inst_ptr(jit_gencode_t gen, int space)
+{
+	unsigned char *inst;
+
+	inst = (unsigned char *)(gen->posn.ptr);
+	if(!jit_cache_check_for_n(&(gen->posn), space))
+	{
+		jit_cache_mark_full(&(gen->posn));
+		return 0;
+	}
+
+	return inst;
+}
+
+unsigned char *
+_jit_regs_begin(jit_gencode_t gen, _jit_regs_t *regs, int space)
+{
+	unsigned char *inst;
+
+	if(!_jit_regs_assign(gen, regs))
+	{
+		return 0;
+	}
+	if(!_jit_regs_gen(gen, regs))
+	{
+		return 0;
+	}
+
+	inst = _jit_regs_inst_ptr(gen, space);
+	if(!inst)
+	{
+		_jit_regs_abort(gen, regs);
+	}
+
+	return inst;
+}
+
+void
+_jit_regs_end(jit_gencode_t gen, _jit_regs_t *regs, unsigned char *inst)
+{
+	gen->posn.ptr = inst;
+	_jit_regs_commit(gen, regs);
 }
 
 /*@

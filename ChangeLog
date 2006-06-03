@@ -1,3 +1,37 @@
+2006-06-03  avd  <avd@buzz.wiraqocha.local>
+
+	* jit/jit-rules-x86.ins: remove _jit_regs_free_reg() call from
+	JIT_OP_RETURN_FLOAT32, JIT_OP_PUSH_FLOAT32, JIT_OP_RETURN_FLOAT64,
+	JIT_OP_RETURN_NFLOAT, JIT_OP_PUSH_FLOAT64, and JIT_OP_PUSH_NFLOAT
+	rules. With new ``gen-rules'' tool it frees wrong register and
+	the right register is anyway freed automatically by the new
+	allocator.
+
+	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c (_jit_regs_abort): add
+	function to unbind values from registers if the code generation
+	failed. This is required because new allocator may temporary bind
+	constants to registers and if neither _jit_regs_commit() nor
+	_jit_regs_abort() is called the constant value will be left in
+	inconsistent state. The problem shows up when the end of a cache
+	block has been reached and the compilation is restarted with a new
+	block.
+
+	* jit/jit-reg-alloc.c (_jit_regs_begin, _jit_regs_end):	add
+	convenience functions.
+
+	* tools/gen-rules-parser.y (gensel_output_clauses): make generated
+	code more readable by using _jit_regs_begin() and _jit_regs_end()
+	where appropriate.
+
+	* jit/jit-reg-alloc.c: allow to load the second part of a register
+	pair to a global register. This is because x86 long arithmetics
+	use 4 registers at once: EAX:EDX and ECX:EBX. At the same time
+	EBX is the global register candidate. If the instruction clobbers
+	the global register, the new allocator automatically pushes it on
+	the stack before and pops after the instruction.
+
+	* jit/jit-function.c (compile_block): modify trace messages.
+
 2006-05-28  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-insn.c: Add a code_label in initialize_setjmp_block just
