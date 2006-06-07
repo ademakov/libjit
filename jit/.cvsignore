@@ -4,6 +4,7 @@ Makefile.in
 .libs
 jit-apply-rules.h
 jit-interp-labels.h
+*.inc
 *.slc
 *.lo
 *.la
