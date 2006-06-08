@@ -2402,11 +2402,9 @@ JIT_OP_STORE_RELATIVE_INT: ternary
 	}
 
 JIT_OP_STORE_RELATIVE_LONG: ternary
-	[reg, imm, imm, scratch("?")] -> {
-		x86_mov_reg_mem(inst, $4, $2, 4);
-		x86_mov_membase_reg(inst, $1, $3, $4, 4);
-		x86_mov_reg_mem(inst, $4, $2 + 4, 4);
-		x86_mov_membase_reg(inst, $1, $3 + 4, $4, 4);
+	[reg, imm, imm] -> {
+		x86_mov_membase_imm(inst, $1, $3, *(int *)($2), 4);
+		x86_mov_membase_imm(inst, $1, $3 + 4, *(int *)($2 + 4), 4);
 	}
 	[reg, local, imm, scratch("?")] -> {
 		x86_mov_reg_membase(inst, $4, X86_EBP, $2, 4);
@@ -2653,11 +2651,9 @@ JIT_OP_STORE_ELEMENT_INT: ternary
 	}
 
 JIT_OP_STORE_ELEMENT_LONG: ternary
-	[reg, reg, imm, scratch("?")] -> {
-		x86_mov_reg_mem(inst, $4, $3, 4);
-		x86_mov_memindex_reg(inst, $1, 0, $2, 3, $4, 4);
-		x86_mov_reg_mem(inst, $4, $3 + 4, 4);
-		x86_mov_memindex_reg(inst, $1, 4, $2, 3, $4, 4);
+	[reg, reg, imm] -> {
+		x86_mov_memindex_imm(inst, $1, 0, $2, 3, *(int *)($3), 4);
+		x86_mov_memindex_imm(inst, $1, 4, $2, 3, *(int *)($3 + 4), 4);
 	}
 	[reg, reg, local, scratch("?")] -> {
 		x86_mov_reg_membase(inst, $4, X86_EBP, $3, 4);
