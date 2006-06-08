@@ -1,4 +1,13 @@
-2006-06-03  avd  <avd@buzz.wiraqocha.local>
+2006-06-09  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.ins: rewrite JIT_OP_STORE_RELATIVE_BYTE,
+	JIT_OP_STORE_RELATIVE_SHORT, JIT_OP_STORE_RELATIVE_LONG,
+	JIT_OP_STORE_RELATIVE_FLOAT32, JIT_OP_STORE_RELATIVE_FLOAT64,
+	JIT_OP_STORE_RELATIVE_NFLOAT, JIT_OP_STORE_ELEMENT_LONG,
+	JIT_OP_STORE_ELEMENT_NFLOAT rules to use regular pattern
+	syntax instead of manual.
+
+2006-06-03  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.ins: remove _jit_regs_free_reg() call from
 	JIT_OP_RETURN_FLOAT32, JIT_OP_PUSH_FLOAT32, JIT_OP_RETURN_FLOAT64,

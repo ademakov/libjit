@@ -2359,151 +2359,32 @@ JIT_OP_LOAD_RELATIVE_STRUCT: unary_branch, more_space
 						   jit_type_get_size(jit_value_get_type(insn->dest)));
 	}
 
-JIT_OP_STORE_RELATIVE_BYTE: manual
-	[] -> {
-		unsigned char *inst;
-		int reg, reg2;
-		if(insn->dest->is_constant)
-		{
-			reg = insn->dest->address + insn->value2->address;
-			if(insn->value1->is_constant)
-			{
-				inst = gen->posn.ptr;
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
-				x86_mov_mem_imm(inst, reg, insn->value1->address, 1);
-			}
-			else
-			{
-				reg2 = _jit_regs_load_value
-					(gen, insn->value1, 0,
-					 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-					 				 JIT_INSN_VALUE1_LIVE)));
-				inst = gen->posn.ptr;
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
-				reg2 = _jit_reg_info[reg2].cpu_reg;
-				x86_mov_mem_reg(inst, reg, reg2, 1);
-			}
-			gen->posn.ptr = inst;
-		}
-		else
-		{
-			reg = _jit_regs_load_value
-				(gen, insn->dest, 0,
-				 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-				 				 JIT_INSN_DEST_LIVE)));
-			if(!(insn->value1->is_constant))
-			{
-				reg2 = _jit_regs_load_value
-					(gen, insn->value1, 0,
-					 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-					 				 JIT_INSN_VALUE1_LIVE)));
-				inst = gen->posn.ptr;
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
-				reg  = _jit_reg_info[reg].cpu_reg;
-				reg2 = _jit_reg_info[reg2].cpu_reg;
-				inst = mov_membase_reg_byte
-					(inst, reg, insn->value2->address, reg2);
-				gen->posn.ptr = inst;
-			}
-			else
-			{
-				inst = gen->posn.ptr;
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
-				reg = _jit_reg_info[reg].cpu_reg;
-				x86_mov_membase_imm(inst, reg, insn->value2->address,
-									insn->value1->address, 1);
-				gen->posn.ptr = inst;
-			}
-		}
+JIT_OP_STORE_RELATIVE_BYTE: ternary
+	[imm, imm, imm] -> {
+		x86_mov_mem_imm(inst, $1 + $3, $2, 1);
+	}
+	[imm, reg("eax"|"ecx"|"edx"|"ebx"), imm] -> {
+		x86_mov_mem_reg(inst, $1 + $3, $2, 1);
+	}
+	[reg, imm, imm] -> {
+		x86_mov_membase_imm(inst, $1, $3, $2, 1);
+	}
+	[reg, reg("eax"|"ecx"|"edx"|"ebx"), imm] -> {
+		x86_mov_membase_reg(inst, $1, $3, $2, 1);
 	}
 
-JIT_OP_STORE_RELATIVE_SHORT: manual
-	[] -> {
-		unsigned char *inst;
-		int reg, reg2;
-		if(insn->dest->is_constant)
-		{
-			reg = insn->dest->address + insn->value2->address;
-			if(insn->value1->is_constant)
-			{
-				inst = gen->posn.ptr;
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
-				x86_mov_mem_imm(inst, reg, insn->value1->address, 2);
-			}
-			else
-			{
-				reg2 = _jit_regs_load_value
-					(gen, insn->value1, 0,
-					 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-					 				 JIT_INSN_VALUE1_LIVE)));
-				inst = gen->posn.ptr;
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
-				reg2 = _jit_reg_info[reg2].cpu_reg;
-				x86_mov_mem_reg(inst, reg, reg2, 2);
-			}
-			gen->posn.ptr = inst;
-		}
-		else
-		{
-			reg = _jit_regs_load_value
-				(gen, insn->dest, 0,
-				 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-				 				 JIT_INSN_DEST_LIVE)));
-			if(!(insn->value1->is_constant))
-			{
-				reg2 = _jit_regs_load_value
-					(gen, insn->value1, 0,
-					 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-					 				 JIT_INSN_VALUE1_LIVE)));
-				inst = gen->posn.ptr;
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
-				reg  = _jit_reg_info[reg].cpu_reg;
-				reg2 = _jit_reg_info[reg2].cpu_reg;
-				x86_mov_membase_reg(inst, reg, insn->value2->address, reg2, 2);
-				gen->posn.ptr = inst;
-			}
-			else
-			{
-				inst = gen->posn.ptr;
-				if(!jit_cache_check_for_n(&(gen->posn), 32))
-				{
-					jit_cache_mark_full(&(gen->posn));
-					return;
-				}
-				reg = _jit_reg_info[reg].cpu_reg;
-				x86_mov_membase_imm(inst, reg, insn->value2->address,
-									insn->value1->address, 2);
-				gen->posn.ptr = inst;
-			}
-		}
+JIT_OP_STORE_RELATIVE_SHORT: ternary
+	[imm, imm, imm] -> {
+		x86_mov_mem_imm(inst, $1 + $3, $2, 2);
+	}
+	[imm, reg, imm] -> {
+		x86_mov_mem_reg(inst, $1 + $3, $2, 2);
+	}
+	[reg, imm, imm] -> {
+		x86_mov_membase_imm(inst, $1, $3, $2, 2);
+	}
+	[reg, reg, imm] -> {
+		x86_mov_membase_reg(inst, $1, $3, $2, 2);
 	}
 
 JIT_OP_STORE_RELATIVE_INT: ternary
@@ -2520,182 +2401,58 @@ JIT_OP_STORE_RELATIVE_INT: ternary
 		x86_mov_membase_reg(inst, $1, $3, $2, 4);
 	}
 
-JIT_OP_STORE_RELATIVE_LONG: manual
-	[] -> {
-		unsigned char *inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->dest, 0,
-			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-			 				 JIT_INSN_DEST_LIVE)));
-		int reg2, reg3;
-		int frame_offset;
-		if(!(insn->value1->is_constant))
-		{
-			_jit_regs_get_reg_pair(gen, reg, -1, -1, &reg2, &reg3);
-			_jit_gen_fix_value(insn->value1);
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
-			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
-			}
-			reg  = _jit_reg_info[reg].cpu_reg;
-			reg2 = _jit_reg_info[reg2].cpu_reg;
-			reg3 = _jit_reg_info[reg3].cpu_reg;
-			frame_offset = insn->value1->frame_offset;
-			x86_mov_reg_membase(inst, reg2, X86_EBP, frame_offset, 4);
-			x86_mov_reg_membase(inst, reg3, X86_EBP, frame_offset + 4, 4);
-			x86_mov_membase_reg(inst, reg, insn->value2->address, reg2, 4);
-			x86_mov_membase_reg(inst, reg, insn->value2->address + 4, reg3, 4);
-			gen->posn.ptr = inst;
-		}
-		else
-		{
-			jit_long const_value = jit_value_get_long_constant(insn->value1);
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
-			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
-			}
-			reg = _jit_reg_info[reg].cpu_reg;
-			x86_mov_membase_imm
-				(inst, reg, insn->value2->address,
-				 (jit_int)(const_value & jit_max_uint), 4);
-			x86_mov_membase_imm
-				(inst, reg, insn->value2->address + 4,
-				 (jit_int)((const_value >> 32) & jit_max_uint), 4);
-			gen->posn.ptr = inst;
-		}
+JIT_OP_STORE_RELATIVE_LONG: ternary
+	[reg, imm, imm, scratch("?")] -> {
+		x86_mov_reg_mem(inst, $4, $2, 4);
+		x86_mov_membase_reg(inst, $1, $3, $4, 4);
+		x86_mov_reg_mem(inst, $4, $2 + 4, 4);
+		x86_mov_membase_reg(inst, $1, $3 + 4, $4, 4);
+	}
+	[reg, local, imm, scratch("?")] -> {
+		x86_mov_reg_membase(inst, $4, X86_EBP, $2, 4);
+		x86_mov_membase_reg(inst, $1, $3, $4, 4);
+		x86_mov_reg_membase(inst, $4, X86_EBP, $2 + 4, 4);
+		x86_mov_membase_reg(inst, $1, $3 + 4, $4, 4);
+	}
+	[reg, lreg, imm] -> {
+		x86_mov_membase_reg(inst, $1, $3, $2, 4);
+		x86_mov_membase_reg(inst, $1, $3 + 4, %2, 4);
 	}
 
-JIT_OP_STORE_RELATIVE_FLOAT32: manual
-	[] -> {
-		unsigned char *inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->dest, 0,
-			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-			 				 JIT_INSN_DEST_LIVE)));
-		if(!(insn->value1->is_constant))
-		{
-			_jit_regs_load_to_top
-				(gen, insn->value1,
-				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-				 				 JIT_INSN_VALUE1_LIVE)), 8);
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
-			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
-			}
-			reg = _jit_reg_info[reg].cpu_reg;
-			x86_fst_membase(inst, reg, insn->value2->address, 0, 1);
-			gen->posn.ptr = inst;
-		}
-		else
-		{
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
-			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
-			}
-			reg = _jit_reg_info[reg].cpu_reg;
-			x86_mov_membase_imm(inst, reg, insn->value2->address,
-								*((int *)(insn->value1->address)), 4);
-			gen->posn.ptr = inst;
-		}
+JIT_OP_STORE_RELATIVE_FLOAT32: ternary
+	[reg, imm, imm] -> {
+		x86_mov_membase_imm(inst, $1, $3, ((int *)($2))[0], 4);
+	}
+	[reg, freg, imm] -> {
+		x86_fst_membase(inst, $1, $3, 0, 1);
 	}
 
-JIT_OP_STORE_RELATIVE_FLOAT64: manual
-	[] -> {
-		unsigned char *inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->dest, 0,
-			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-			 				 JIT_INSN_DEST_LIVE)));
-		if(!(insn->value1->is_constant))
-		{
-			_jit_regs_load_to_top
-				(gen, insn->value1,
-				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-				 				 JIT_INSN_VALUE1_LIVE)), 8);
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
-			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
-			}
-			reg = _jit_reg_info[reg].cpu_reg;
-			x86_fst_membase(inst, reg, insn->value2->address, 1, 1);
-			gen->posn.ptr = inst;
-		}
-		else
-		{
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
-			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
-			}
-			reg = _jit_reg_info[reg].cpu_reg;
-			x86_mov_membase_imm(inst, reg, insn->value2->address,
-								((int *)(insn->value1->address))[0], 4);
-			x86_mov_membase_imm(inst, reg, insn->value2->address + 4,
-								((int *)(insn->value1->address))[1], 4);
-			gen->posn.ptr = inst;
-		}
+JIT_OP_STORE_RELATIVE_FLOAT64: ternary
+	[reg, imm, imm] -> {
+		x86_mov_membase_imm(inst, $1, $3, ((int *)($2))[0], 4);
+		x86_mov_membase_imm(inst, $1, $3 + 4, ((int *)($2))[1], 4);
+	}
+	[reg, freg, imm] -> {
+		x86_fst_membase(inst, $1, $3, 1, 1);
 	}
 
-JIT_OP_STORE_RELATIVE_NFLOAT: manual
-	[] -> {
-		unsigned char *inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->dest, 0,
-			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-			 				 JIT_INSN_DEST_LIVE)));
-		if(!(insn->value1->is_constant))
+JIT_OP_STORE_RELATIVE_NFLOAT: ternary
+	[reg, imm, imm] -> {
+		x86_mov_membase_imm(inst, $1, $3, ((int *)($2))[0], 4);
+		x86_mov_membase_imm(inst, $1, $3 + 4, ((int *)($2))[1], 4);
+		if(sizeof(jit_nfloat) != sizeof(jit_float64))
 		{
-			_jit_regs_load_to_top
-				(gen, insn->value1,
-				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-				 				 JIT_INSN_VALUE1_LIVE)), 8);
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
-			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
-			}
-			reg = _jit_reg_info[reg].cpu_reg;
-			if(sizeof(jit_nfloat) != sizeof(jit_float64))
-			{
-				x86_fst80_membase(inst, reg, insn->value2->address);
-			}
-			else
-			{
-				x86_fst_membase(inst, reg, insn->value2->address, 1, 1);
-			}
-			gen->posn.ptr = inst;
+			x86_mov_membase_imm(inst, $1, $3 + 8, ((int *)($2))[2], 4);
+		}
+	}
+	[reg, freg, imm] -> {
+		if(sizeof(jit_nfloat) != sizeof(jit_float64))
+		{
+			x86_fst80_membase(inst, $1, $3);
 		}
 		else
 		{
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
-			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
-			}
-			reg = _jit_reg_info[reg].cpu_reg;
-			x86_mov_membase_imm(inst, reg, insn->value2->address,
-								((int *)(insn->value1->address))[0], 4);
-			x86_mov_membase_imm(inst, reg, insn->value2->address + 4,
-								((int *)(insn->value1->address))[1], 4);
-			if(sizeof(jit_nfloat) != sizeof(jit_float64))
-			{
-				x86_mov_membase_imm(inst, reg, insn->value2->address + 8,
-									((int *)(insn->value1->address))[2], 4);
-			}
-			gen->posn.ptr = inst;
+			x86_fst_membase(inst, $1, $3, 1, 1);
 		}
 	}
 
@@ -2895,42 +2652,22 @@ JIT_OP_STORE_ELEMENT_INT: ternary
 		x86_mov_memindex_reg(inst, $1, 0, $2, 2, $3, 4);
 	}
 
-JIT_OP_STORE_ELEMENT_LONG: manual
-	[] -> {
-		unsigned char *inst;
-		int reg, reg2, reg3, reg4;
-		int frame_offset;
-
-		_jit_regs_force_out(gen, insn->value2, 1);
-		_jit_gen_fix_value(insn->value2);
-		reg = _jit_regs_load_value
-			(gen, insn->dest, 0,
-			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-			 				 JIT_INSN_DEST_LIVE)));
-		reg2 = _jit_regs_load_value
-			(gen, insn->value1, 0,
-			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-			 				 JIT_INSN_VALUE1_LIVE)));
-		_jit_regs_get_reg_pair(gen, reg, reg2, -1, &reg3, &reg4);
-
-		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
-		reg = _jit_reg_info[reg].cpu_reg;
-		reg2 = _jit_reg_info[reg2].cpu_reg;
-		reg3 = _jit_reg_info[reg3].cpu_reg;
-		reg4 = _jit_reg_info[reg4].cpu_reg;
-		frame_offset = insn->value2->frame_offset;
-
-		x86_mov_reg_membase(inst, reg3, X86_EBP, frame_offset, 4);
-		x86_mov_reg_membase(inst, reg4, X86_EBP, frame_offset + 4, 4);
-		x86_mov_memindex_reg(inst, reg, 0, reg2, 3, reg3, 4);
-		x86_mov_memindex_reg(inst, reg, 4, reg2, 3, reg4, 4);
-
-		gen->posn.ptr = inst;
+JIT_OP_STORE_ELEMENT_LONG: ternary
+	[reg, reg, imm, scratch("?")] -> {
+		x86_mov_reg_mem(inst, $4, $3, 4);
+		x86_mov_memindex_reg(inst, $1, 0, $2, 3, $4, 4);
+		x86_mov_reg_mem(inst, $4, $3 + 4, 4);
+		x86_mov_memindex_reg(inst, $1, 4, $2, 3, $4, 4);
+	}
+	[reg, reg, local, scratch("?")] -> {
+		x86_mov_reg_membase(inst, $4, X86_EBP, $3, 4);
+		x86_mov_memindex_reg(inst, $1, 0, $2, 3, $4, 4);
+		x86_mov_reg_membase(inst, $4, X86_EBP, $3 + 4, 4);
+		x86_mov_memindex_reg(inst, $1, 4, $2, 3, $4, 4);
+	}
+	[reg, reg, lreg] -> {
+		x86_mov_memindex_reg(inst, $1, 0, $2, 3, $3, 4);
+		x86_mov_memindex_reg(inst, $1, 4, $2, 3, %3, 4);
 	}
 
 JIT_OP_STORE_ELEMENT_FLOAT32: ternary
@@ -2943,44 +2680,15 @@ JIT_OP_STORE_ELEMENT_FLOAT64: ternary
 		x86_fst_memindex(inst, $1, 0, $2, 3, 1, 1);
 	}
 
-JIT_OP_STORE_ELEMENT_NFLOAT: manual
-	[] -> {
-		unsigned char *inst;
-		int reg, reg2, reg3;
-
-		reg = _jit_regs_load_value
-			(gen, insn->dest, 0,
-			 (insn->flags & (JIT_INSN_DEST_NEXT_USE | JIT_INSN_DEST_LIVE)));
-		reg2 = _jit_regs_load_value
-			(gen, insn->value1, sizeof(jit_nfloat) != sizeof(jit_float64),
-			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE | JIT_INSN_VALUE1_LIVE)));
-		reg3 = _jit_regs_load_value
-			(gen, insn->value2, 0,
-			 (insn->flags & (JIT_INSN_VALUE2_NEXT_USE | JIT_INSN_VALUE2_LIVE)));
-
-		inst = (unsigned char *)(gen->posn.ptr);
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
-
-		reg = _jit_reg_info[reg].cpu_reg;
-		reg2 = _jit_reg_info[reg2].cpu_reg;
-
-		if(sizeof(jit_nfloat) != sizeof(jit_float64))
-		{
-        		/* lea reg2, [reg2 + reg2 * 2]  */
-			x86_lea_memindex(inst, reg2, reg2, 0, reg2, 1);
-			/* fst [reg2 * 4] */
-			x86_fst80_memindex(inst, reg, 0, reg2, 2);
-		}
-		else
-		{
-			x86_fst_memindex(inst, reg, 0, reg2, 3, 1, 1);
-		}
-
-		gen->posn.ptr = (unsigned char *)inst;
+JIT_OP_STORE_ELEMENT_NFLOAT: ternary
+	[reg, +reg, freg, if("sizeof(jit_nfloat) != sizeof(jit_float64)")] -> {
+    		/* lea reg2, [reg2 + reg2 * 2]  */
+		x86_lea_memindex(inst, $2, $2, 0, $2, 1);
+		/* fst [reg2 * 4] */
+		x86_fst80_memindex(inst, $1, 0, $2, 2);
+	}
+	[reg, reg, freg, if("sizeof(jit_nfloat) == sizeof(jit_float64)")] -> {
+		x86_fst_memindex(inst, $1, 0, $2, 3, 1, 1);
 	}
 
 /*
