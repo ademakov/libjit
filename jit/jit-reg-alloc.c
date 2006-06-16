@@ -2735,7 +2735,7 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 				{
 					continue;
 				}
-#if !ALLOW_LONGS_USE_GLOBAL
+#if !ALLOW_CLOBBER_GLOBAL
 				if(other_reg >= 0 && jit_reg_is_used(gen->permanent, other_reg))
 				{
 					continue;
@@ -2750,7 +2750,7 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 				{
 					cost = compute_spill_cost(gen, regs, reg, other_reg);
 				}
-#if ALLOW_LONGS_USE_GLOBAL
+#if ALLOW_CLOBBER_GLOBAL
 				if(other_reg >= 0 && jit_reg_is_used(gen->permanent, other_reg))
 				{
 					cost += COST_CLOBBER_GLOBAL;
