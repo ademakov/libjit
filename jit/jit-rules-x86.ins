@@ -449,8 +449,9 @@ JIT_OP_IDIV: binary, spill_before, more_space
 			{
 				/* Dividing by -1 gives an exception if the argument
 				   is minint, or simply negates for other values */
-				unsigned char *patch = inst;
+				unsigned char *patch;
 				x86_alu_reg_imm(inst, X86_CMP, $1, jit_min_int);
+				patch = inst;
 				x86_branch8(inst, X86_CC_NE, 0, 0);
 				inst = throw_builtin(inst, func, JIT_RESULT_ARITHMETIC);
 				x86_patch(patch, inst);
@@ -911,8 +912,9 @@ JIT_OP_IREM: binary, spill_before, more_space
 			{
 				/* Dividing by -1 gives an exception if the argument
 				   is minint, or simply gives a remainder of zero */
-				unsigned char *patch = inst;
+				unsigned char *patch;
 				x86_alu_reg_imm(inst, X86_CMP, $1, jit_min_int);
+				patch = inst;
 				x86_branch8(inst, X86_CC_NE, 0, 0);
 				inst = throw_builtin(inst, func, JIT_RESULT_ARITHMETIC);
 				x86_patch(patch, inst);

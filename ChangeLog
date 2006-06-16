@@ -1,3 +1,8 @@
+2006-06-16  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.sel, jit/jit-rules-x86.ins: fix JIT_OP_IDIV	and
+	JIT_OP_IREM rules for the divisor value of -1.
+
 2006-06-09  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.ins: rewrite JIT_OP_STORE_RELATIVE_BYTE,
