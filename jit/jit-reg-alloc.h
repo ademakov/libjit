@@ -116,6 +116,7 @@ typedef struct
 	unsigned	clobber : 1;
 	unsigned	early_clobber : 1;
 	unsigned	duplicate : 1;
+	unsigned	thrash : 1;
 	unsigned	save : 1;
 	unsigned	load : 1;
 	unsigned	copy : 1;
@@ -158,7 +159,6 @@ typedef struct
 
 	jit_regused_t	assigned;
 	jit_regused_t	clobber;
-	jit_regused_t	spill;
 
 	int		stack_start;
 	int		current_stack_top;
@@ -166,16 +166,16 @@ typedef struct
 	int		loaded_stack_count;
 } _jit_regs_t;
 
-void _jit_regs_init(_jit_regs_t *regs, int flags);
+void _jit_regs_init(jit_gencode_t gen, _jit_regs_t *regs, int flags);
 void _jit_regs_init_dest(_jit_regs_t *regs, jit_insn_t insn, int flags);
 void _jit_regs_init_value1(_jit_regs_t *regs, jit_insn_t insn, int flags);
 void _jit_regs_init_value2(_jit_regs_t *regs, jit_insn_t insn, int flags);
 
-void _jit_regs_set_dest(_jit_regs_t *regs, int reg, int other_reg);
-void _jit_regs_set_value1(_jit_regs_t *regs, int reg, int other_reg);
-void _jit_regs_set_value2(_jit_regs_t *regs, int reg, int other_reg);
-void _jit_regs_add_scratch(_jit_regs_t *regs, int reg);
-void _jit_regs_set_clobber(_jit_regs_t *regs, int reg);
+void _jit_regs_set_dest(jit_gencode_t gen, _jit_regs_t *regs, int reg, int other_reg);
+void _jit_regs_set_value1(jit_gencode_t gen, _jit_regs_t *regs, int reg, int other_reg);
+void _jit_regs_set_value2(jit_gencode_t gen, _jit_regs_t *regs, int reg, int other_reg);
+void _jit_regs_add_scratch(jit_gencode_t gen, _jit_regs_t *regs, int reg);
+void _jit_regs_set_clobber(jit_gencode_t gen, _jit_regs_t *regs, int reg);
 
 void _jit_regs_set_dest_from(_jit_regs_t *regs, jit_regused_t regset);
 void _jit_regs_set_value1_from(_jit_regs_t *regs, jit_regused_t regset);
@@ -187,6 +187,7 @@ int _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs);
 int _jit_regs_select(_jit_regs_t *regs);
 void _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs);
 void _jit_regs_abort(jit_gencode_t gen, _jit_regs_t *regs);
+
 unsigned char *_jit_regs_inst_ptr(jit_gencode_t gen, int space);
 unsigned char *_jit_regs_begin(jit_gencode_t gen, _jit_regs_t *regs, int space);
 void _jit_regs_end(jit_gencode_t gen, _jit_regs_t *regs, unsigned char *inst);

@@ -1,3 +1,19 @@
+2006-06-17  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c: implement support of the
+	JIT_REGS_FREE_DEST flag for 3-argument instructions. Tweak reg alloc
+	API.
+
+	* tools/gen-rules-parser.y: adjust for reg alloc API changes. Use
+	'$0' pattern element to refer to destination register in 3-argument
+	instructions.
+
+	* jit/jit-rules-x86.ins: rewrite JIT_OP_IDIV, JIT_OP_IDIV_UN,
+	JIT_OP_IREM, JIT_OP_IREM_UN, JIT_OP_ADDRESS_OF_LABEL,
+	JIT_OP_LOAD_RELATIVE_FLOAT32, JIT_OP_LOAD_RELATIVE_FLOAT32,
+	JIT_OP_LOAD_RELATIVE_NFLOAT, JIT_OP_LOAD_ELEMENT_FLOAT32,
+	JIT_OP_LOAD_ELEMENT_FLOAT64, JIT_OP_LOAD_ELEMENT_NFLOAT rules.
+
 2006-06-16  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.sel, jit/jit-rules-x86.ins: fix JIT_OP_IDIV	and

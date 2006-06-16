@@ -431,230 +431,38 @@ JIT_OP_IMUL: binary
 		x86_imul_reg_reg(inst, $1, $2);
 	}
 
-/* Spill before division to ensure that the arguments end up in
-   EAX and ECX, and that EDX is free */
-JIT_OP_IDIV: binary, spill_before, more_space
-	[reg, imm] -> {
-		switch($2)
-		{
-			case 0:
-			{
-				inst = throw_builtin(inst, func, JIT_RESULT_DIVISION_BY_ZERO);
-			}
-			break;
-
-			case 1: break;
-
-			case -1:
-			{
-				/* Dividing by -1 gives an exception if the argument
-				   is minint, or simply negates for other values */
-				unsigned char *patch;
-				x86_alu_reg_imm(inst, X86_CMP, $1, jit_min_int);
-				patch = inst;
-				x86_branch8(inst, X86_CC_NE, 0, 0);
-				inst = throw_builtin(inst, func, JIT_RESULT_ARITHMETIC);
-				x86_patch(patch, inst);
-				x86_neg_reg(inst, $1);
-			}
-			break;
-
-			case 2:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 1);
-			}
-			break;
-
-			case 4:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 2);
-			}
-			break;
-
-			case 8:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 3);
-			}
-			break;
-
-			case 16:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 4);
-			}
-			break;
-
-			case 32:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 5);
-			}
-			break;
-
-			case 64:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 6);
-			}
-			break;
-
-			case 128:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 7);
-			}
-			break;
-
-			case 256:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 8);
-			}
-			break;
-
-			case 512:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 9);
-			}
-			break;
-
-			case 1024:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 10);
-			}
-			break;
-
-			case 2048:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 11);
-			}
-			break;
-
-			case 4096:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 12);
-			}
-			break;
-
-			case 8192:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 13);
-			}
-			break;
-
-			case 16384:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 14);
-			}
-			break;
-
-			case 32768:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 15);
-			}
-			break;
-
-			case 65536:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 16);
-			}
-			break;
-
-			case 0x00020000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 17);
-			}
-			break;
-
-			case 0x00040000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 18);
-			}
-			break;
-
-			case 0x00080000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 19);
-			}
-			break;
-
-			case 0x00100000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 20);
-			}
-			break;
-
-			case 0x00200000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 21);
-			}
-			break;
-
-			case 0x00400000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 22);
-			}
-			break;
-
-			case 0x00800000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 23);
-			}
-			break;
-
-			case 0x01000000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 24);
-			}
-			break;
-
-			case 0x02000000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 25);
-			}
-			break;
-
-			case 0x04000000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 26);
-			}
-			break;
-
-			case 0x08000000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 27);
-			}
-			break;
-
-			case 0x10000000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 28);
-			}
-			break;
-
-			case 0x20000000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 29);
-			}
-			break;
-
-			case 0x40000000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 30);
-			}
-			break;
-
-			case (jit_nint)0x80000000:
-			{
-				x86_shift_reg_imm(inst, X86_SAR, $1, 31);
-			}
-			break;
-
-			default:
-			{
-				x86_mov_reg_imm(inst, X86_ECX, $2);
-				x86_cdq(inst);
-				x86_div_reg(inst, X86_ECX, 1);
-			}
-			break;
-		}
+JIT_OP_IDIV: more_space
+	[any, immzero] -> {
+		inst = throw_builtin(inst, func, JIT_RESULT_DIVISION_BY_ZERO);
 	}
-	[reg, reg] -> {
+	[reg, imm, if("$2 == 1")] -> {
+	}
+	[reg, imm, if("$2 == -1")] -> {
+		/* Dividing by -1 gives an exception if the argument
+		   is minint, or simply negates for other values */
+		unsigned char *patch;
+		x86_alu_reg_imm(inst, X86_CMP, $1, jit_min_int);
+		patch = inst;
+		x86_branch8(inst, X86_CC_NE, 0, 0);
+		inst = throw_builtin(inst, func, JIT_RESULT_ARITHMETIC);
+		x86_patch(patch, inst);
+		x86_neg_reg(inst, $1);
+	}
+	[reg, imm, if("(((jit_nuint)$2) & (((jit_nuint)$2) - 1)) == 0")] -> {
+		/* x & (x - 1) is equal to zero if x is a power of 2  */
+		jit_nuint shift, value;
+		for(shift = 0, value = $2; value; value >>= 1)
+		{
+		    ++shift;
+		}
+		x86_shift_reg_imm(inst, X86_SAR, $1, shift);
+	}
+	[reg("eax"), imm, scratch("?", "edx")] -> {
+		x86_mov_reg_imm(inst, $3, $2);
+		x86_cdq(inst);
+		x86_div_reg(inst, $3, 1);
+	}
+	[reg("eax"), reg, scratch("edx")] -> {
 		unsigned char *patch, *patch2;
 		x86_alu_reg_reg(inst, X86_OR, $2, $2);
 		patch = inst;
@@ -674,214 +482,27 @@ JIT_OP_IDIV: binary, spill_before, more_space
 		x86_div_reg(inst, $2, 1);
 	}
 
-JIT_OP_IDIV_UN: binary, spill_before, more_space
-	[reg, imm] -> {
-		switch($2)
-		{
-			case 0:
-			{
-				inst = throw_builtin(inst, func, JIT_RESULT_DIVISION_BY_ZERO);
-			}
-			break;
-
-			case 1: break;
-
-			case 2:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 1);
-			}
-			break;
-
-			case 4:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 2);
-			}
-			break;
-
-			case 8:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 3);
-			}
-			break;
-
-			case 16:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 4);
-			}
-			break;
-
-			case 32:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 5);
-			}
-			break;
-
-			case 64:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 6);
-			}
-			break;
-
-			case 128:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 7);
-			}
-			break;
-
-			case 256:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 8);
-			}
-			break;
-
-			case 512:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 9);
-			}
-			break;
-
-			case 1024:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 10);
-			}
-			break;
-
-			case 2048:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 11);
-			}
-			break;
-
-			case 4096:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 12);
-			}
-			break;
-
-			case 8192:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 13);
-			}
-			break;
-
-			case 16384:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 14);
-			}
-			break;
-
-			case 32768:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 15);
-			}
-			break;
-
-			case 65536:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 16);
-			}
-			break;
-
-			case 0x00020000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 17);
-			}
-			break;
-
-			case 0x00040000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 18);
-			}
-			break;
-
-			case 0x00080000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 19);
-			}
-			break;
-
-			case 0x00100000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 20);
-			}
-			break;
-
-			case 0x00200000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 21);
-			}
-			break;
-
-			case 0x00400000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 22);
-			}
-			break;
-
-			case 0x00800000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 23);
-			}
-			break;
-
-			case 0x01000000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 24);
-			}
-			break;
-
-			case 0x02000000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 25);
-			}
-			break;
-
-			case 0x04000000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 26);
-			}
-			break;
-
-			case 0x08000000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 27);
-			}
-			break;
-
-			case 0x10000000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 28);
-			}
-			break;
-
-			case 0x20000000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 29);
-			}
-			break;
-
-			case 0x40000000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 30);
-			}
-			break;
-
-			case (jit_nint)0x80000000:
-			{
-				x86_shift_reg_imm(inst, X86_SHR, $1, 31);
-			}
-			break;
-
-			default:
-			{
-				x86_mov_reg_imm(inst, X86_ECX, $2);
-				x86_clear_reg(inst, X86_EDX);
-				x86_div_reg(inst, X86_ECX, 0);
-			}
-			break;
-		}
+JIT_OP_IDIV_UN: more_space
+	[any, immzero] -> {
+		inst = throw_builtin(inst, func, JIT_RESULT_DIVISION_BY_ZERO);
 	}
-	[reg, reg] -> {
+	[reg, imm, if("$2 == 1")] -> {
+	}
+	[reg, imm, if("(((jit_nuint)$2) & (((jit_nuint)$2) - 1)) == 0")] -> {
+		/* x & (x - 1) is equal to zero if x is a power of 2  */
+		jit_nuint shift, value;
+		for(shift = 0, value = $2; value; value >>= 1)
+		{
+		    ++shift;
+		}
+		x86_shift_reg_imm(inst, X86_SAR, $1, shift);
+	}
+	[reg("eax"), imm, scratch("?", "edx")] -> {
+		x86_mov_reg_imm(inst, $3, $2);
+		x86_clear_reg(inst, X86_EDX);
+		x86_div_reg(inst, $3, 0);
+	}
+	[reg("eax"), reg, scratch("edx")] -> {
 		unsigned char *patch;
 		x86_alu_reg_reg(inst, X86_OR, $2, $2);
 		patch = inst;
@@ -892,48 +513,30 @@ JIT_OP_IDIV_UN: binary, spill_before, more_space
 		x86_div_reg(inst, $2, 0);
 	}
 
-JIT_OP_IREM: binary, spill_before, more_space
-	[reg, imm] -> {
-		switch($2)
-		{
-			case 0:
-			{
-				inst = throw_builtin(inst, func, JIT_RESULT_DIVISION_BY_ZERO);
-			}
-			break;
-
-			case 1:
-			{
-				x86_clear_reg(inst, $1);
-			}
-			break;
-
-			case -1:
-			{
-				/* Dividing by -1 gives an exception if the argument
-				   is minint, or simply gives a remainder of zero */
-				unsigned char *patch;
-				x86_alu_reg_imm(inst, X86_CMP, $1, jit_min_int);
-				patch = inst;
-				x86_branch8(inst, X86_CC_NE, 0, 0);
-				inst = throw_builtin(inst, func, JIT_RESULT_ARITHMETIC);
-				x86_patch(patch, inst);
-				x86_clear_reg(inst, $1);
-			}
-			break;
-
-			default:
-			{
-				x86_mov_reg_imm(inst, X86_ECX, $2);
-				x86_cdq(inst);
-				x86_div_reg(inst, X86_ECX, 1);
-				/* TODO: rearrange register assignments to avoid the move */
-				x86_mov_reg_reg(inst, X86_EAX, X86_EDX, 4);
-			}
-			break;
-		}
+JIT_OP_IREM: more_space
+	[any, immzero] -> {
+		inst = throw_builtin(inst, func, JIT_RESULT_DIVISION_BY_ZERO);
 	}
-	[reg, reg] -> {
+	[reg, imm, if("$2 == 1")] -> {
+		x86_clear_reg(inst, $1);
+	}
+	[reg, imm, if("$2 == -1")] -> {
+		/* Dividing by -1 gives an exception if the argument
+		   is minint, or simply gives a remainder of zero */
+		unsigned char *patch;
+		x86_alu_reg_imm(inst, X86_CMP, $1, jit_min_int);
+		patch = inst;
+		x86_branch8(inst, X86_CC_NE, 0, 0);
+		inst = throw_builtin(inst, func, JIT_RESULT_ARITHMETIC);
+		x86_patch(patch, inst);
+		x86_clear_reg(inst, $1);
+	}
+	[=reg("edx"), *reg("eax"), imm, scratch("?")] -> {
+		x86_mov_reg_imm(inst, $3, $2);
+		x86_cdq(inst);
+		x86_div_reg(inst, $3, 1);
+	}
+	[=reg("edx"), *reg("eax"), reg] -> {
 		unsigned char *patch, *patch2;
 		x86_alu_reg_reg(inst, X86_OR, $2, $2);
 		patch = inst;
@@ -951,72 +554,25 @@ JIT_OP_IREM: binary, spill_before, more_space
 		x86_patch(patch2, inst);
 		x86_cdq(inst);
 		x86_div_reg(inst, $2, 1);
-		x86_mov_reg_reg(inst, X86_EAX, X86_EDX, 4);
 	}
 
-JIT_OP_IREM_UN: binary, spill_before, more_space
-	[reg, imm] -> {
-		switch($2)
-		{
-			case 0:
-			{
-				inst = throw_builtin(inst, func, JIT_RESULT_DIVISION_BY_ZERO);
-			}
-			break;
-
-			case 1:
-			{
-				x86_clear_reg(inst, $1);
-			}
-			break;
-
-			case 2:
-			case 4:
-			case 8:
-			case 16:
-			case 32:
-			case 64:
-			case 128:
-			case 256:
-			case 512:
-			case 1024:
-			case 2048:
-			case 4096:
-			case 8192:
-			case 16384:
-			case 32768:
-			case 65536:
-			case 0x00020000:
-			case 0x00040000:
-			case 0x00080000:
-			case 0x00100000:
-			case 0x00200000:
-			case 0x00400000:
-			case 0x00800000:
-			case 0x01000000:
-			case 0x02000000:
-			case 0x04000000:
-			case 0x08000000:
-			case 0x10000000:
-			case 0x20000000:
-			case 0x40000000:
-			case (jit_nint)0x80000000:
-			{
-				x86_alu_reg_imm(inst, X86_AND, $1, $2 - 1);
-			}
-			break;
-
-			default:
-			{
-				x86_mov_reg_imm(inst, X86_ECX, $2);
-				x86_clear_reg(inst, X86_EDX);
-				x86_div_reg(inst, X86_ECX, 0);
-				x86_mov_reg_reg(inst, X86_EAX, X86_EDX, 4);
-			}
-			break;
-		}
+JIT_OP_IREM_UN: more_space
+	[any, immzero] -> {
+		inst = throw_builtin(inst, func, JIT_RESULT_DIVISION_BY_ZERO);
 	}
-	[reg, reg] -> {
+	[reg, imm, if("$2 == 1")] -> {
+		x86_clear_reg(inst, $1);
+	}
+	[reg, imm, if("(((jit_nuint)$2) & (((jit_nuint)$2) - 1)) == 0")] -> {
+		/* x & (x - 1) is equal to zero if x is a power of 2  */
+		x86_alu_reg_imm(inst, X86_AND, $1, $2 - 1);
+	}
+	[=reg("edx"), *reg("eax"), imm, scratch("?")] -> {
+		x86_mov_reg_imm(inst, $3, $2);
+		x86_clear_reg(inst, X86_EDX);
+		x86_div_reg(inst, $3, 0);
+	}
+	[=reg("edx"), *reg("eax"), reg] -> {
 		unsigned char *patch;
 		x86_alu_reg_reg(inst, X86_OR, $2, $2);
 		patch = inst;
@@ -1025,7 +581,6 @@ JIT_OP_IREM_UN: binary, spill_before, more_space
 		x86_patch(patch, inst);
 		x86_clear_reg(inst, X86_EDX);
 		x86_div_reg(inst, $2, 0);
-		x86_mov_reg_reg(inst, X86_EAX, X86_EDX, 4);
 	}
 
 JIT_OP_INEG: unary
@@ -1916,35 +1471,19 @@ JIT_OP_CALL_FILTER_RETURN: manual
 		TODO();
 	}
 
-JIT_OP_ADDRESS_OF_LABEL: manual
-	[] -> {
-		unsigned char *inst;
-		jit_block_t block;
-		int reg;
-
-		reg = _jit_regs_dest_value(gen, insn->dest);
-
-		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
-		reg = _jit_reg_info[reg].cpu_reg;
-
+JIT_OP_ADDRESS_OF_LABEL:
+	[=reg] -> {
 		block = jit_block_from_label(func, (jit_label_t)(insn->value1));
 		if(block->address)
 		{
-			x86_mov_reg_imm(inst, reg, block->address);
+			x86_mov_reg_imm(inst, $0, block->address);
 		}
 		else
 		{
 			/* Output a placeholder and record on the block's fixup list */
-			x86_mov_reg_imm(inst, reg, (int)(block->fixup_absolute_list));
+			x86_mov_reg_imm(inst, $0, (int)(block->fixup_absolute_list));
 			block->fixup_absolute_list = (void *)(inst - 4);
 		}
-
-		gen->posn.ptr = inst;
 	}
 
 /*
@@ -2289,68 +1828,22 @@ JIT_OP_LOAD_RELATIVE_LONG: manual
 		gen->posn.ptr = inst;
 	}
 
-JIT_OP_LOAD_RELATIVE_FLOAT32: manual
-	[] -> {
-		unsigned char *inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->value1, 0,
-			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-			 				 JIT_INSN_VALUE1_LIVE)));
-		_jit_regs_new_top(gen, insn->dest, 8);
-		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
-		reg = _jit_reg_info[reg].cpu_reg;
-		x86_fld_membase(inst, reg, insn->value2->address, 0);
-		gen->posn.ptr = inst;
+JIT_OP_LOAD_RELATIVE_FLOAT32:
+	[=freg, reg, imm] -> {
+		x86_fld_membase(inst, $1, $2, 0);
 	}
 
-JIT_OP_LOAD_RELATIVE_FLOAT64: manual
-	[] -> {
-		unsigned char *inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->value1, 0,
-			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-			 				 JIT_INSN_VALUE1_LIVE)));
-		_jit_regs_new_top(gen, insn->dest, 8);
-		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
-		reg = _jit_reg_info[reg].cpu_reg;
-		x86_fld_membase(inst, reg, insn->value2->address, 1);
-		gen->posn.ptr = inst;
+JIT_OP_LOAD_RELATIVE_FLOAT64:
+	[=freg, reg, imm] -> {
+		x86_fld_membase(inst, $1, $2, 1);
 	}
-
-JIT_OP_LOAD_RELATIVE_NFLOAT: manual
-	[] -> {
-		unsigned char *inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->value1, 0,
-			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-			 				 JIT_INSN_VALUE1_LIVE)));
-		_jit_regs_new_top(gen, insn->dest, 8);
-		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
-		reg = _jit_reg_info[reg].cpu_reg;
-		if(sizeof(jit_nfloat) != sizeof(jit_float64))
-		{
-			x86_fld80_membase(inst, reg, insn->value2->address);
-		}
-		else
-		{
-			x86_fld_membase(inst, reg, insn->value2->address, 1);
-		}
-		gen->posn.ptr = inst;
+	
+JIT_OP_LOAD_RELATIVE_NFLOAT:
+	[=freg, reg, imm, if("sizeof(jit_nfloat) != sizeof(jit_float64)")] -> {
+		x86_fld80_membase(inst, $1, $2);
+	}
+	[=freg, reg, imm, if("sizeof(jit_nfloat) == sizeof(jit_float64)")] -> {
+		x86_fld_membase(inst, $1, $2, 1);
 	}
 
 JIT_OP_LOAD_RELATIVE_STRUCT: unary_branch, more_space
@@ -2547,94 +2040,25 @@ JIT_OP_LOAD_ELEMENT_LONG: manual
 		gen->posn.ptr = inst;
 	}
 
-JIT_OP_LOAD_ELEMENT_FLOAT32: manual
-	[] -> {
-		unsigned char *inst;
-		int reg, reg2;
-
-		reg = _jit_regs_load_value(gen, insn->value1, 0,
-			(insn->flags & (JIT_INSN_VALUE1_NEXT_USE | JIT_INSN_VALUE1_LIVE)));
-		reg2 = _jit_regs_load_value(gen, insn->value2, 0,
-			 (insn->flags & (JIT_INSN_VALUE2_NEXT_USE | JIT_INSN_VALUE2_LIVE)));
-		_jit_regs_new_top(gen, insn->dest, 8);
-
-		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
-
-		reg = _jit_reg_info[reg].cpu_reg;
-		reg2 = _jit_reg_info[reg2].cpu_reg;
-
-		x86_fld_memindex(inst, reg, 0, reg2, 2, 0);
-
-		gen->posn.ptr = inst;
+JIT_OP_LOAD_ELEMENT_FLOAT32:
+	[=freg, reg, reg] -> {
+		x86_fld_memindex(inst, $1, 0, $2, 2, 0);
 	}
 
-JIT_OP_LOAD_ELEMENT_FLOAT64: manual
-	[] -> {
-		unsigned char *inst;
-		int reg, reg2, reg3;
-
-		reg = _jit_regs_load_value(gen, insn->value1, 0,
-			(insn->flags & (JIT_INSN_VALUE1_NEXT_USE | JIT_INSN_VALUE1_LIVE)));
-		reg2 = _jit_regs_load_value(gen, insn->value2, 0,
-			 (insn->flags & (JIT_INSN_VALUE2_NEXT_USE | JIT_INSN_VALUE2_LIVE)));
-		reg3 = _jit_regs_new_top(gen, insn->dest, 8);
-
-		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
-
-		reg = _jit_reg_info[reg].cpu_reg;
-		reg2 = _jit_reg_info[reg2].cpu_reg;
-
-		x86_fld_memindex(inst, reg, 0, reg2, 3, 1);
-
-		gen->posn.ptr = inst;
+JIT_OP_LOAD_ELEMENT_FLOAT64:
+	[=freg, reg, reg] -> {
+		x86_fld_memindex(inst, $1, 0, $2, 3, 1);
 	}
 
-JIT_OP_LOAD_ELEMENT_NFLOAT: manual
-	[] -> {
-		unsigned char *inst;
-		int reg, reg2, reg3;
-
-		reg = _jit_regs_load_value
-			(gen, insn->value1, 0,
-			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE | JIT_INSN_VALUE1_LIVE)));
-		reg2 = _jit_regs_load_value
-			(gen, insn->value2, sizeof(jit_nfloat) != sizeof(jit_float64),
-			 (insn->flags & (JIT_INSN_VALUE2_NEXT_USE | JIT_INSN_VALUE2_LIVE)));
-		reg3 = _jit_regs_new_top(gen, insn->dest, 8);
-
-		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
-
-		reg = _jit_reg_info[reg].cpu_reg;
-		reg2 = _jit_reg_info[reg2].cpu_reg;
-
-		if(sizeof(jit_nfloat) != sizeof(jit_float64))
-		{
-        		/* lea reg2, [reg2 + reg2 * 2]  */
-			x86_lea_memindex(inst, reg2, reg2, 0, reg2, 1);
-			/* fld [reg2 * 4] */
-			x86_fld80_memindex(inst, reg, 0, reg2, 2);
-		}
-		else
-		{
-			x86_fld_memindex(inst, reg, 0, reg2, 3, 1);
-		}
-
-		gen->posn.ptr = inst;
+JIT_OP_LOAD_ELEMENT_NFLOAT:
+	[=freg, reg, +reg, if("sizeof(jit_nfloat) != sizeof(jit_float64)")] -> {
+    		/* lea $2, [$2 + $2 * 2]  */
+		x86_lea_memindex(inst, $2, $2, 0, $2, 1);
+		/* fld [$2 * 4] */
+		x86_fld80_memindex(inst, $1, 0, $2, 2);
+	}
+	[=freg, reg, reg, if("sizeof(jit_nfloat) == sizeof(jit_float64)")] -> {
+		x86_fld_memindex(inst, $1, 0, $2, 3, 1);
 	}
 
 JIT_OP_STORE_ELEMENT_BYTE: ternary

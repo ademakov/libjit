@@ -822,8 +822,10 @@ gensel_output_code(
 	char *code,
 	char *names[MAX_PATTERN],
 	char *other_names[MAX_PATTERN],
+	int free_dest,
 	int in_line)
 {
+	char first;
 	int index;
 	
 	/* Output the clause code */
@@ -833,15 +835,16 @@ gensel_output_code(
 	}
 	while(*code != '\0')
 	{
-		if(*code == '$' && code[1] >= '1' && code[1] <= '9')
+		first = free_dest ? '0' : '1';
+		if(*code == '$' && code[1] >= first && code[1] <= (first + MAX_PATTERN))
 		{
-			index = code[1] - '1';
+			index = code[1] - first;
 			printf(names[index]);
 			code += 2;
 		}
-		else if(*code == '%' && code[1] >= '1' && code[1] <= '9')
+		else if(*code == '%' && code[1] >= first && code[1] <= (first + MAX_PATTERN))
 		{
-			index = code[1] - '1';
+			index = code[1] - first;
 			printf(other_names[index]);
 			code += 2;
 		}
@@ -870,14 +873,15 @@ static void
 gensel_output_clause_code(
 	gensel_clause_t clause,
 	char *names[MAX_PATTERN],
-	char *other_names[MAX_PATTERN])
+	char *other_names[MAX_PATTERN],
+	int free_dest)
 {
 	/* Output the line number information from the original file */
 #if 0
 	printf("#line %ld \"%s\"\n", clause->linenum, clause->filename);
 #endif
 
-	gensel_output_code(clause->pattern, clause->code, names, other_names, 0);
+	gensel_output_code(clause->pattern, clause->code, names, other_names, free_dest, 0);
 }
 
 /*
@@ -905,7 +909,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			printf("\t_jit_regs_spill_all(gen);\n");
 		}
 		gensel_init_names(MAX_PATTERN, names, other_names);
-		gensel_output_clause_code(clauses, names, other_names);
+		gensel_output_clause_code(clauses, names, other_names, 0);
 		return;
 	}
 
@@ -1087,7 +1091,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 					gensel_output_code(
 						clause->pattern,
 						pattern->values->value,
-						names, other_names, 1);
+						names, other_names, free_dest, 1);
 					printf(")");
 					seen_option = 1;
 					break;
@@ -1137,7 +1141,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 		if(contains_registers)
 		{
 			seen_option = 0;
-			printf("\t\t_jit_regs_init(&regs, ");
+			printf("\t\t_jit_regs_init(gen, &regs, ");
 			if(clobber_all)
 			{
 				seen_option = 1;
@@ -1275,7 +1279,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				{
 					if(pattern->values->type == GENSEL_VALUE_STRING)
 					{
-						printf("\t\t_jit_regs_set_%s(&regs, _jit_regs_lookup(\"%s\"), -1);\n",
+						printf("\t\t_jit_regs_set_%s(gen, &regs, _jit_regs_lookup(\"%s\"), -1);\n",
 						       args[index], pattern->values->value);
 					}
 					else
@@ -1308,12 +1312,12 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 					{
 						if(pattern->values->next && pattern->values->next->value)
 						{
-							printf("\t\t_jit_regs_set_%s(&regs, _jit_regs_lookup(\"%s\"), _jit_regs_lookup(\"%s\"));\n",
+							printf("\t\t_jit_regs_set_%s(gen, &regs, _jit_regs_lookup(\"%s\"), _jit_regs_lookup(\"%s\"));\n",
 							       args[index], pattern->values->value, pattern->values->next->value);
 						}
 						else
 						{
-							printf("\t\t_jit_regs_set_%s(&regs, _jit_regs_lookup(\"%s\"), -1);\n",
+							printf("\t\t_jit_regs_set_%s(gen, &regs, _jit_regs_lookup(\"%s\"), -1);\n",
 							       args[index], pattern->values->value);
 						}
 					}
@@ -1358,7 +1362,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 					{
 						if(values->type == GENSEL_VALUE_STRING)
 						{
-							printf("\t\t_jit_regs_add_scratch(&regs, _jit_regs_lookup(\"%s\"));\n",
+							printf("\t\t_jit_regs_add_scratch(gen, &regs, _jit_regs_lookup(\"%s\"));\n",
 							       values->value);
 						}
 						else
@@ -1379,7 +1383,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 					}
 					else
 					{
-						printf("\t\t_jit_regs_add_scratch(&regs, -1);\n");
+						printf("\t\t_jit_regs_add_scratch(gen, &regs, -1);\n");
 					}
 					++regs;
 					++index;
@@ -1393,7 +1397,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				{
 					if(values->value && strcmp(values->value, "*") != 0)
 					{
-						printf("\t\t_jit_regs_set_clobber(&regs, _jit_regs_lookup(\"%s\"));\n",
+						printf("\t\t_jit_regs_set_clobber(gen, &regs, _jit_regs_lookup(\"%s\"));\n",
 						       values->value);
 					}
 					values = values->next;
@@ -1441,7 +1445,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				gensel_output_code(
 					clause->pattern,
 					space->values->value,
-					names, other_names, 1);
+					names, other_names, free_dest, 1);
 				printf(")");
 			}
 			else
@@ -1538,7 +1542,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 		}
 
 		gensel_build_var_index(clause->pattern, names, other_names);
-		gensel_output_clause_code(clause, names, other_names);
+		gensel_output_clause_code(clause, names, other_names, free_dest);
 
 		/* Copy "inst" back into the generation context */
 		if(gensel_new_inst_type)
