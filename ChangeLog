@@ -1,3 +1,21 @@
+2006-06-27  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-insn.c (accumulate_relative_offset): add function that
+	accumulates JIT_OP_ADD_RELATIVE offsets.
+	(jit_insn_store_relative, jit_insn_load_relative)
+	(jit_insn_add_relative): use accumulate_relative_offset() instead
+	of previous_relative() to find the offset from the original address
+	and do not replace the accumulated instructions with JIT_OP_NOP as
+	it was before. The old approach is problematic because it is unknown
+	at this point if the values we accumulated are dead or they will be
+	used by instructions added later. The deadcode elimination pass
+	removes unused values just as well but with enough knowledge to	be
+	safe. The new code also does not move JIT_OP_ADDRESS_OF towards	the
+	relative instructions that uses the address. Supposedly such move
+	may be used by the code generator as a hint. However currently the
+	code generator does not use such a hint. The old code is kept for
+	reference #ifdefed out.
+
 2006-06-17  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c: implement support of the

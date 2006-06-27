@@ -1465,6 +1465,10 @@ int jit_insn_store(jit_function_t func, jit_value_t dest, jit_value_t value)
 	return 1;
 }
 
+#define ACCUMULATE_RELATIVE	1
+
+#if !ACCUMULATE_RELATIVE
+
 /*
  * Scan back through the current block, looking for a relative adjustment
  * that involves "value" as its destination.  Returns NULL if no such
@@ -1554,6 +1558,81 @@ static jit_insn_t previous_relative(jit_function_t func, jit_value_t value,
 	return 0;
 }
 
+#else
+
+static int
+accumulate_relative_offset(
+	jit_function_t func,
+	jit_value_t value,
+	jit_nint offset,
+	jit_value_t *addrof_ptr,
+	jit_value_t *value_ptr,
+	jit_nint *offset_ptr)
+{
+	jit_insn_iter_t iter;
+	jit_insn_t insn;
+
+	if(addrof_ptr)
+	{
+		*addrof_ptr = 0;
+	}
+	if(value_ptr)
+	{
+		*value_ptr = 0;
+	}
+	if(offset_ptr)
+	{
+		*offset_ptr = 0;
+	}
+
+	jit_insn_iter_init_last(&iter, func->builder->current_block);
+	while((insn = jit_insn_iter_previous(&iter)) != 0)
+	{
+		if(!(value->is_temporary))
+		{
+			break;
+		}
+		if(insn->dest != value)
+		{
+			continue;
+		}
+		if(insn->opcode == JIT_OP_ADDRESS_OF)
+		{
+			if(addrof_ptr)
+			{
+				*addrof_ptr = insn->value1;
+			}
+			break;
+		}
+		if(insn->opcode != JIT_OP_ADD_RELATIVE)
+		{
+			if((insn->flags & JIT_INSN_DEST_IS_VALUE) == 0)
+			{
+				/* This instruction modifies "value" in some way,
+				   so it blocks any previous "add_relative"
+				   instructions */
+				return 0;
+			}
+			continue;
+		}
+		offset += jit_value_get_nint_constant(insn->value2);
+		value = insn->value1;
+	}
+
+	if(value_ptr)
+	{
+		*value_ptr = value;
+	}
+	if(offset_ptr)
+	{
+		*offset_ptr = offset;
+	}
+
+	return 1;
+}
+
+#endif
+
 /*@
  * @deftypefun jit_value_t jit_insn_load_relative (jit_function_t func, jit_value_t value, jit_nint offset, jit_type_t type)
  * Load a value of the specified @code{type} from the effective address
@@ -1564,8 +1643,14 @@ jit_value_t jit_insn_load_relative
 		(jit_function_t func, jit_value_t value,
 		 jit_nint offset, jit_type_t type)
 {
+#if ACCUMULATE_RELATIVE
+	jit_value_t addrof;
+	jit_value_t new_value;
+	jit_nint new_offset;
+#else
 	jit_insn_t insn;
 	jit_insn_t addrof;
+#endif
 	if(!value)
 	{
 		return 0;
@@ -1574,6 +1659,13 @@ jit_value_t jit_insn_load_relative
 	{
 		return 0;
 	}
+#if ACCUMULATE_RELATIVE
+	if(accumulate_relative_offset(func, value, offset, &addrof, &new_value, &new_offset))
+	{
+		value = new_value;
+		offset = new_offset;
+	}
+#else
 	insn = previous_relative(func, value, &addrof);
 	if(insn)
 	{
@@ -1602,6 +1694,7 @@ jit_value_t jit_insn_load_relative
 			addrof->value2 = 0;
 		}
 	}
+#endif
 	return apply_binary
 		(func, _jit_load_opcode(JIT_OP_LOAD_RELATIVE_SBYTE, type, 0, 0), value,
 		 jit_value_create_nint_constant(func, jit_type_nint, offset), type);
@@ -1618,8 +1711,14 @@ int jit_insn_store_relative
 		 jit_nint offset, jit_value_t value)
 {
 	jit_insn_t insn;
-	jit_insn_t addrof;
 	jit_value_t offset_value;
+#if ACCUMULATE_RELATIVE
+	jit_value_t addrof;
+	jit_value_t new_dest;
+	jit_nint new_offset;
+#else
+	jit_insn_t addrof;
+#endif
 	if(!dest || !value)
 	{
 		return 0;
@@ -1628,6 +1727,13 @@ int jit_insn_store_relative
 	{
 		return 0;
 	}
+#if ACCUMULATE_RELATIVE
+	if(accumulate_relative_offset(func, dest, offset, &addrof, &new_dest, &new_offset))
+	{
+		dest = new_dest;
+		offset = new_offset;
+	}
+#else
 	insn = previous_relative(func, dest, &addrof);
 	if(insn)
 	{
@@ -1656,6 +1762,7 @@ int jit_insn_store_relative
 			addrof->value2 = 0;
 		}
 	}
+#endif
 	offset_value = jit_value_create_nint_constant(func, jit_type_nint, offset);
 	if(!offset_value)
 	{
@@ -1690,6 +1797,26 @@ int jit_insn_store_relative
 jit_value_t jit_insn_add_relative
 		(jit_function_t func, jit_value_t value, jit_nint offset)
 {
+#if ACCUMULATE_RELATIVE
+	jit_value_t new_value;
+	jit_nint new_offset;
+	if(!value)
+	{
+		return 0;
+	}
+	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+	if(accumulate_relative_offset(func, value, offset, 0, &new_value, &new_offset))
+	{
+		value = new_value;
+		offset = new_offset;
+	}
+	return apply_binary(func, JIT_OP_ADD_RELATIVE, value,
+			    jit_value_create_nint_constant(func, jit_type_nint, offset),
+			    jit_type_void_ptr);
+#else
 	jit_insn_t insn;
 	jit_insn_t addrof;
 	if(!value)
@@ -1717,6 +1844,7 @@ jit_value_t jit_insn_add_relative
 								(func, jit_type_nint, offset),
 							jit_type_void_ptr);
 	}
+#endif
 }
 
 /*@
@@ -7874,10 +8002,13 @@ int jit_insn_move_blocks_to_start
 @*/
 int jit_insn_mark_offset(jit_function_t func, jit_int offset)
 {
+#if 1
+ /*|| !USE_NEW_REG_ALLOC*/
 	if(!jit_insn_new_block(func))
 	{
 		return 0;
 	}
+#endif
 	return create_unary_note(func, JIT_OP_MARK_OFFSET,
 					   	     jit_value_create_nint_constant
 					   			(func, jit_type_int, offset));
