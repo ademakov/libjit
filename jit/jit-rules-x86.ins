@@ -532,28 +532,28 @@ JIT_OP_IREM: more_space
 		x86_clear_reg(inst, $1);
 	}
 	[=reg("edx"), *reg("eax"), imm, scratch("?")] -> {
-		x86_mov_reg_imm(inst, $3, $2);
+		x86_mov_reg_imm(inst, $4, $3);
 		x86_cdq(inst);
-		x86_div_reg(inst, $3, 1);
+		x86_div_reg(inst, $4, 1);
 	}
 	[=reg("edx"), *reg("eax"), reg] -> {
 		unsigned char *patch, *patch2;
-		x86_alu_reg_reg(inst, X86_OR, $2, $2);
+		x86_alu_reg_reg(inst, X86_OR, $3, $3);
 		patch = inst;
 		x86_branch8(inst, X86_CC_NE, 0, 0);
 		inst = throw_builtin(inst, func, JIT_RESULT_DIVISION_BY_ZERO);
 		x86_patch(patch, inst);
-		x86_alu_reg_imm(inst, X86_CMP, $2, -1);
+		x86_alu_reg_imm(inst, X86_CMP, $3, -1);
 		patch = inst;
 		x86_branch8(inst, X86_CC_NE, 0, 0);
-		x86_alu_reg_imm(inst, X86_CMP, $1, jit_min_int);
+		x86_alu_reg_imm(inst, X86_CMP, $2, jit_min_int);
 		patch2 = inst;
 		x86_branch8(inst, X86_CC_NE, 0, 0);
 		inst = throw_builtin(inst, func, JIT_RESULT_ARITHMETIC);
 		x86_patch(patch, inst);
 		x86_patch(patch2, inst);
 		x86_cdq(inst);
-		x86_div_reg(inst, $2, 1);
+		x86_div_reg(inst, $3, 1);
 	}
 
 JIT_OP_IREM_UN: more_space
@@ -568,19 +568,19 @@ JIT_OP_IREM_UN: more_space
 		x86_alu_reg_imm(inst, X86_AND, $1, $2 - 1);
 	}
 	[=reg("edx"), *reg("eax"), imm, scratch("?")] -> {
-		x86_mov_reg_imm(inst, $3, $2);
+		x86_mov_reg_imm(inst, $4, $3);
 		x86_clear_reg(inst, X86_EDX);
-		x86_div_reg(inst, $3, 0);
+		x86_div_reg(inst, $4, 0);
 	}
 	[=reg("edx"), *reg("eax"), reg] -> {
 		unsigned char *patch;
-		x86_alu_reg_reg(inst, X86_OR, $2, $2);
+		x86_alu_reg_reg(inst, X86_OR, $3, $3);
 		patch = inst;
 		x86_branch8(inst, X86_CC_NE, 0, 0);
 		inst = throw_builtin(inst, func, JIT_RESULT_DIVISION_BY_ZERO);
 		x86_patch(patch, inst);
 		x86_clear_reg(inst, X86_EDX);
-		x86_div_reg(inst, $2, 0);
+		x86_div_reg(inst, $3, 0);
 	}
 
 JIT_OP_INEG: unary
@@ -1476,12 +1476,12 @@ JIT_OP_ADDRESS_OF_LABEL:
 		block = jit_block_from_label(func, (jit_label_t)(insn->value1));
 		if(block->address)
 		{
-			x86_mov_reg_imm(inst, $0, block->address);
+			x86_mov_reg_imm(inst, $1, block->address);
 		}
 		else
 		{
 			/* Output a placeholder and record on the block's fixup list */
-			x86_mov_reg_imm(inst, $0, (int)(block->fixup_absolute_list));
+			x86_mov_reg_imm(inst, $1, (int)(block->fixup_absolute_list));
 			block->fixup_absolute_list = (void *)(inst - 4);
 		}
 	}
@@ -1830,20 +1830,20 @@ JIT_OP_LOAD_RELATIVE_LONG: manual
 
 JIT_OP_LOAD_RELATIVE_FLOAT32:
 	[=freg, reg, imm] -> {
-		x86_fld_membase(inst, $1, $2, 0);
+		x86_fld_membase(inst, $2, $3, 0);
 	}
 
 JIT_OP_LOAD_RELATIVE_FLOAT64:
 	[=freg, reg, imm] -> {
-		x86_fld_membase(inst, $1, $2, 1);
+		x86_fld_membase(inst, $2, $3, 1);
 	}
 	
 JIT_OP_LOAD_RELATIVE_NFLOAT:
 	[=freg, reg, imm, if("sizeof(jit_nfloat) != sizeof(jit_float64)")] -> {
-		x86_fld80_membase(inst, $1, $2);
+		x86_fld80_membase(inst, $2, $3);
 	}
 	[=freg, reg, imm, if("sizeof(jit_nfloat) == sizeof(jit_float64)")] -> {
-		x86_fld_membase(inst, $1, $2, 1);
+		x86_fld_membase(inst, $2, $3, 1);
 	}
 
 JIT_OP_LOAD_RELATIVE_STRUCT: unary_branch, more_space
@@ -2042,23 +2042,23 @@ JIT_OP_LOAD_ELEMENT_LONG: manual
 
 JIT_OP_LOAD_ELEMENT_FLOAT32:
 	[=freg, reg, reg] -> {
-		x86_fld_memindex(inst, $1, 0, $2, 2, 0);
+		x86_fld_memindex(inst, $2, 0, $3, 2, 0);
 	}
 
 JIT_OP_LOAD_ELEMENT_FLOAT64:
 	[=freg, reg, reg] -> {
-		x86_fld_memindex(inst, $1, 0, $2, 3, 1);
+		x86_fld_memindex(inst, $2, 0, $3, 3, 1);
 	}
 
 JIT_OP_LOAD_ELEMENT_NFLOAT:
 	[=freg, reg, +reg, if("sizeof(jit_nfloat) != sizeof(jit_float64)")] -> {
-    		/* lea $2, [$2 + $2 * 2]  */
-		x86_lea_memindex(inst, $2, $2, 0, $2, 1);
+    		/* lea $3, [$3 + $3 * 2]  */
+		x86_lea_memindex(inst, $3, $3, 0, $3, 1);
 		/* fld [$2 * 4] */
-		x86_fld80_memindex(inst, $1, 0, $2, 2);
+		x86_fld80_memindex(inst, $2, 0, $3, 2);
 	}
 	[=freg, reg, reg, if("sizeof(jit_nfloat) == sizeof(jit_float64)")] -> {
-		x86_fld_memindex(inst, $1, 0, $2, 3, 1);
+		x86_fld_memindex(inst, $2, 0, $3, 3, 1);
 	}
 
 JIT_OP_STORE_ELEMENT_BYTE: ternary
