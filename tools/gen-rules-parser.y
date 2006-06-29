@@ -835,14 +835,18 @@ gensel_output_code(
 	}
 	while(*code != '\0')
 	{
+#if 0
 		first = free_dest ? '0' : '1';
-		if(*code == '$' && code[1] >= first && code[1] <= (first + MAX_PATTERN))
+#else
+		first = '1';
+#endif
+		if(*code == '$' && code[1] >= first && code[1] < (first + MAX_PATTERN))
 		{
 			index = code[1] - first;
 			printf(names[index]);
 			code += 2;
 		}
-		else if(*code == '%' && code[1] >= first && code[1] <= (first + MAX_PATTERN))
+		else if(*code == '%' && code[1] >= first && code[1] < (first + MAX_PATTERN))
 		{
 			index = code[1] - first;
 			printf(other_names[index]);
