@@ -1,3 +1,13 @@
+2006-07-03  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.ins: add JIT_OP_LOW_WORD, JIT_OP_EXPAND_INT,
+	JIT_OP_EXPAND_UINT, JIT_OP_INT_TO_NFLOAT, JIT_OP_UINT_TO_NFLOAT,
+	JIT_OP_LONG_TO_NFLOAT, JIT_OP_ULONG_TO_NFLOAT and rewrite
+	JIT_OP_TRUNC_SBYTE, JIT_OP_TRUNC_UBYTE, JIT_OP_LOAD_PC rules.
+
+	* jit/jit-rules-x86.c (_jit_opcode_is_supported): include .inc file
+	instead of .slc if USE_NEW_REG_ALLOC is defined.
+
 2006-06-28  Aleksey Demakov  <ademakov@gmail.com>
 
 	* tools/gen-rules-parser.y (gensel_output_code): 

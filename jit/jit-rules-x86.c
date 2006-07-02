@@ -187,7 +187,11 @@ int _jit_opcode_is_supported(int opcode)
 	switch(opcode)
 	{
 		#define JIT_INCLUDE_SUPPORTED
+#if USE_NEW_REG_ALLOC
+		#include "jit-rules-x86.inc"
+#else
 		#include "jit-rules-x86.slc"
+#endif
 		#undef JIT_INCLUDE_SUPPORTED
 	}
 	return 0;
@@ -1247,6 +1251,7 @@ void _jit_gen_fix_value(jit_value_t value)
 	}
 }
 
+#if !USE_NEW_REG_ALLOC
 /*
  * Widen a byte register.
  */
@@ -1265,6 +1270,7 @@ static unsigned char *widen_byte(unsigned char *inst, int reg, int isSigned)
 	}
 	return inst;
 }
+#endif
 
 /*
  * Shift the contents of a register.

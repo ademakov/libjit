@@ -23,13 +23,13 @@
  */
 
 JIT_OP_TRUNC_SBYTE: unary
-	[reg] -> {
-		inst = widen_byte(inst, $1, 1);
+	[reg("eax"|"ecx"|"edx"|"ebx")] -> {
+		x86_widen_reg(inst, $1, $1, 1, 0);
 	}
 
 JIT_OP_TRUNC_UBYTE: unary
-	[reg] -> {
-		inst = widen_byte(inst, $1, 0);
+	[reg("eax"|"ecx"|"edx"|"ebx")] -> {
+		x86_widen_reg(inst, $1, $1, 0, 0);
 	}
 
 JIT_OP_TRUNC_SHORT: unary
@@ -101,17 +101,121 @@ JIT_OP_CHECK_INT, JIT_OP_CHECK_UINT: unary, more_space
 		inst = throw_builtin(inst, func, JIT_RESULT_OVERFLOW);
 		x86_patch(patch1, inst);
 	}
+	
+JIT_OP_LOW_WORD:
+	[=reg, imm] -> {
+		jit_uint value = ((jit_uint *)($2))[0];
+		x86_mov_reg_imm(inst, $1, value);
+	}
+	[=reg, local] -> {
+		x86_mov_reg_membase(inst, $1, X86_EBP, $2, 4);
+	}
+	[=reg, lreg] -> {
+		if($1 != $2)
+		{
+			x86_mov_reg_reg(inst, $1, $2, 4);
+		}
+	}
+	
+JIT_OP_EXPAND_INT:
+	[=lreg, imm] -> {
+		x86_mov_reg_imm(inst, $1, $2);
+		x86_mov_reg_reg(inst, %1, $1, 4);
+		x86_shift_reg_imm(inst, X86_SAR, %1, 31);
+	}
+	[=lreg, local] -> {
+		x86_mov_reg_membase(inst, $1, X86_EBP, $2, 4);
+		x86_mov_reg_reg(inst, %1, $1, 4);
+		x86_shift_reg_imm(inst, X86_SAR, %1, 31);
+	}
+	[=lreg, reg] -> {
+		if($1 != $2)
+		{
+			x86_mov_reg_reg(inst, $1, $2, 4);
+		}
+		x86_mov_reg_reg(inst, %1, $1, 4);
+		x86_shift_reg_imm(inst, X86_SAR, %1, 31);
+	}
 
-JIT_OP_NFLOAT_TO_FLOAT32: unary, stack
-	[freg] -> {
+JIT_OP_EXPAND_UINT:
+	[=lreg, imm] -> {
+		x86_mov_reg_imm(inst, $1, $2);
+		x86_clear_reg(inst, %1);
+	}
+	[=lreg, local] -> {
+		x86_mov_reg_membase(inst, $1, X86_EBP, $2, 4);
+		x86_clear_reg(inst, %1);
+	}
+	[=lreg, reg] -> {
+		if($1 != $2)
+		{
+			x86_mov_reg_reg(inst, $1, $2, 4);
+		}
+		x86_clear_reg(inst, %1);
+	}
+
+JIT_OP_INT_TO_NFLOAT:
+	[=freg, local] -> {
+		x86_fild_membase(inst, X86_EBP, $2, 0);
+	}
+	[=freg, reg] -> {
+		x86_push_reg(inst, $2);
+		x86_fild_membase(inst, X86_ESP, 0, 0);
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_nint));
+	}
+
+JIT_OP_UINT_TO_NFLOAT:
+	[=freg, reg, scratch("?")] -> {
+		x86_clear_reg(inst, $3);
+		x86_push_reg(inst, $3);
+		x86_push_reg(inst, $2);
+		x86_fild_membase(inst, X86_ESP, 0, 1);
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_long));
+	}
+
+JIT_OP_LONG_TO_NFLOAT:
+	[=freg, local] -> {
+		x86_fild_membase(inst, X86_EBP, $2, 1);
+	}
+	[=freg, lreg] -> {
+		x86_push_reg(inst, %2);
+		x86_push_reg(inst, $2);
+		x86_fild_membase(inst, X86_ESP, 0, 1);
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_long));
+	}
+
+JIT_OP_ULONG_TO_NFLOAT: more_space
+	[=freg, lreg] -> {
+		/* TODO: review wrt relocation for elf pre-compilation */
+		static float f2pow64;
+		static int inited;
+		if(!inited)
+		{
+			f2pow64 = jit_float32_pow(2.0, 64);
+			inited = 1;
+		}
+		unsigned char *patch;
+		x86_push_reg(inst, %2);
+		x86_push_reg(inst, $2);
+		x86_fild_membase(inst, X86_ESP, 0, 1);
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_long));
+		x86_test_reg_reg(inst, %2, %2);
+		patch = inst;
+		x86_branch8(inst, X86_CC_NS, 0, 1);
+		x86_fp_op_mem(inst, X86_FADD, &f2pow64, 0);
+		x86_patch(patch, inst);
+	}
+
+JIT_OP_NFLOAT_TO_FLOAT32: stack
+	[=freg, freg] -> {
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(void *));
 		x86_fst_membase(inst, X86_ESP, 0, 0, 1);
 		x86_fld_membase(inst, X86_ESP, 0, 0);
 		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(void *));
 	}
 
-JIT_OP_NFLOAT_TO_FLOAT64: unary, stack
-	[freg] -> {
+JIT_OP_NFLOAT_TO_FLOAT64: stack
+	[=freg, freg] -> {
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float64));
 		x86_fst_membase(inst, X86_ESP, 0, 1, 1);
 		x86_fld_membase(inst, X86_ESP, 0, 1);
@@ -1399,19 +1503,10 @@ JIT_OP_THROW: unary_branch
 JIT_OP_RETHROW: manual
 	[] -> { /* Not used in native code back ends */ }
 
-JIT_OP_LOAD_PC: manual
-	[] -> {
-		unsigned char *inst;
-		int reg = _jit_regs_dest_value(gen, insn->dest);
-		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+JIT_OP_LOAD_PC:
+	[=reg] -> {
 		x86_call_imm(inst, 0);
-		x86_pop_reg(inst, _jit_reg_info[reg].cpu_reg);
-		gen->posn.ptr = inst;
+		x86_pop_reg(inst, $1);
 	}
 
 JIT_OP_LOAD_EXCEPTION_PC: manual
