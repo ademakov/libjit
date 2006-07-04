@@ -1714,6 +1714,23 @@ get_stack_top(jit_gencode_t gen, int stack_start)
 }
 
 /*
+ * Find the start register of a long pair given the end register.
+ */
+static int
+get_long_pair_start(int other_reg)
+{
+	int reg;
+	for(reg = 0; reg < JIT_NUM_REGS; reg++)
+	{
+		if(other_reg == OTHER_REG(reg))
+		{
+			return reg;
+		}
+	}
+	return -1;
+}
+
+/*
  * Determine the type of register that we need.
  */
 static int
@@ -1888,6 +1905,10 @@ is_register_alive(jit_gencode_t gen, _jit_regs_t *regs, int reg)
 		if(jit_reg_is_used(gen->permanent, reg))
 		{
 			return 1;
+		}
+		if(gen->contents[reg].is_long_end)
+		{
+			reg = get_long_pair_start(reg);
 		}
 		for(index = 0; index < gen->contents[reg].num_values; index++)
 		{
@@ -2359,7 +2380,7 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 }
 
 /*
- * Check to see if loading one input value into the given register
+ * Check to see if an input value loaded into the given register
  * clobbers any other input values.
  */
 static int
@@ -2492,6 +2513,11 @@ compute_spill_cost(jit_gencode_t gen, _jit_regs_t *regs, int reg, int other_reg)
 {
 	int cost, index, usage;
 	jit_value_t value;
+
+	if(gen->contents[reg].is_long_end)
+	{
+		reg = get_long_pair_start(reg);
+	}
 
 	cost = 0;
 	for(index = 0; index < gen->contents[reg].num_values; index++)
@@ -3469,7 +3495,7 @@ save_value(jit_gencode_t gen, jit_value_t value, int reg, int other_reg, int fre
 }
 
 /*
- * Spill regualar (non-stack) register.
+ * Spill regular (non-stack) register.
  */
 static void
 spill_reg(jit_gencode_t gen, _jit_regs_t *regs, int reg)
@@ -3489,13 +3515,7 @@ spill_reg(jit_gencode_t gen, _jit_regs_t *regs, int reg)
 	else if(gen->contents[reg].is_long_end)
 	{
 		other_reg = reg;
-		for(reg = 0; reg < JIT_NUM_REGS; ++reg)
-		{
-			if(other_reg == OTHER_REG(reg))
-			{
-				break;
-			}
-		}
+		reg = get_long_pair_start(reg);
 	}
 	else
 	{
