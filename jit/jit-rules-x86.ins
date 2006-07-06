@@ -554,8 +554,8 @@ JIT_OP_IDIV: more_space
 	}
 	[reg, imm, if("(((jit_nuint)$2) & (((jit_nuint)$2) - 1)) == 0")] -> {
 		/* x & (x - 1) is equal to zero if x is a power of 2  */
-		jit_nuint shift, value;
-		for(shift = 0, value = $2; value; value >>= 1)
+		jit_nuint shift, value = $2 >> 1;
+		for(shift = 0; value; value >>= 1)
 		{
 		    ++shift;
 		}
@@ -594,12 +594,12 @@ JIT_OP_IDIV_UN: more_space
 	}
 	[reg, imm, if("(((jit_nuint)$2) & (((jit_nuint)$2) - 1)) == 0")] -> {
 		/* x & (x - 1) is equal to zero if x is a power of 2  */
-		jit_nuint shift, value;
-		for(shift = 0, value = $2; value; value >>= 1)
+		jit_nuint shift, value = $2 >> 1;
+		for(shift = 0; value; value >>= 1)
 		{
 		    ++shift;
 		}
-		x86_shift_reg_imm(inst, X86_SAR, $1, shift);
+		x86_shift_reg_imm(inst, X86_SHR, $1, shift);
 	}
 	[reg("eax"), imm, scratch("?", "edx")] -> {
 		x86_mov_reg_imm(inst, $3, $2);
