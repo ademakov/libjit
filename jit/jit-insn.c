@@ -7958,9 +7958,15 @@ int jit_insn_move_blocks_to_start
 		func->builder->init_insn = -1;
 	}
 
-	/* If the first block is just after "init_block", then nothing to do */
-	if(init_block->next == first_block)
+	/* If the first block is just after "init_block", then only move
+	   the init_block pointer ahead */
+	if(init_block == first_block || init_block->next == first_block)
 	{
+		while(init_block != 0 && init_block->label != to_label)
+		{
+			init_block = init_block->next;
+		}
+		func->builder->init_block = init_block;
 		return 1;
 	}
 
