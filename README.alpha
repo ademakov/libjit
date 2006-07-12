@@ -1,0 +1,40 @@
+As part of Google's Summer of Code, I am porting libjit to the alpha 
+architecture for the GNU Project. Please be aware that this is still 
+very much a work in progress and isn't functional yet. You can follow my 
+progress via my blog: http://mediumbagel.org/nucleus/index.php?catid=6
+
+For the first iteration, the alpha port will not implement floating-
+point arithmetic. This is done to reduce complexity and to get libjit
+working on alpha sooner. Advanced features like prefetching, hints (for 
+jmp, jsr, ret, and jsrco), and branch elimination with cmov are 
+optimizations that will be implmented once the alpha port is functional.
+
+-Thomas Cort <linuxgeek@gmail.com>
+
+During the development of the alpha port, I found the following sources 
+of information to be very useful:
+
+	Alpha Architecture Handbook
+	ftp://ftp.compaq.com/pub/products/alphaCPUdocs/alpha_arch_ref.pdf
+	http://ftp.digital.com/pub/Digital/info/semiconductor/literature/alphaahb.pdf
+
+	Compiler Writer's Guide for the 21264/21364
+	ftp://ftp.compaq.com/pub/products/alphaCPUdocs/comp_guide_v2.pdf
+
+	Assembly Language Programmer's Guide
+	http://www.cs.arizona.edu/computer.help/policy/DIGITAL_unix/AA-PS31D-TET1_html/TITLE.html
+
+	binutils source code
+	binutils-2.16.1/opcodes/alpha-opc.c
+
+	ffcall source code
+	ffcall-1.10/avcall/avcall-alpha.c
+
+	mono source code
+	mono-.1.1.15/mono/arch/alpha/*
+
+	gcc source code
+	gcc-3.4.6/gcc/config/alpha/*
+
+	ALPHA: Opcodes
+	http://www.cs.arizona.edu/alto/Doc/local/alpha.opcode.html

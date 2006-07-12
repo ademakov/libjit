@@ -1,0 +1,449 @@
+/*
+ * jit-rules-alpha.ins - Instruction selector for alpha.
+ *
+ * Copyright (C) 2006  Southern Storm Software, Pty Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+%inst_type alpha_inst
+
+/*
+ * Conversion opcodes.
+ */
+
+JIT_OP_TRUNC_SBYTE: unary
+	[reg] -> {
+		alpha_slli(code,$1,56,$1);
+		alpha_srai(code,$1,56,$1);
+	}
+
+JIT_OP_TRUNC_UBYTE: unary
+	[reg] -> {
+		alpha_li8(code,ALPHA_AT,0xff);
+		alpha_and(code,$1,ALPHA_AT,$1);
+	}
+
+JIT_OP_TRUNC_SHORT: unary
+	[reg] -> {
+		alpha_slli(code,$1,56,$1);
+		alpha_srai(code,$1,56,$1);
+	}
+
+JIT_OP_TRUNC_USHORT: unary
+	[reg] -> {
+		alpha_slli(code,$1,56,$1);
+		alpha_srli(code,$1,56,$1);
+	}
+
+/*
+ * TODO: JIT_OP_NFLOAT_TO_FLOAT32 JIT_OP_NFLOAT_TO_FLOAT64
+ * TODO: JIT_OP_FLOAT32_TO_NFLOAT JIT_OP_FLOAT64_TO_NFLOAT
+ *
+ * Requires floating-point opcodes
+ */
+
+/*
+ * Arithmetic opcodes.
+ *
+ * These operations take the two parameters [$1, $2] and perform the 
+ * operation on them and store the result in $1. The format of most of 
+ * the alpha arithmetic operations is alpha_opl(inst,sreg0,sreg1,dreg).
+ * For operations with imediate values we use alpha_liN to load the 
+ * value into ALPHA_AT, a register reserved for the assembler, before
+ * doing any operations on it.
+ *
+ * Perform an arithmetic operation on signed 32-bit integers.
+ */
+
+/* return value1 + value2; */
+JIT_OP_IADD: binary
+	[=reg, reg, imm, if("$3 == 0")] -> {
+		alpha_mov(inst,$2,$1);
+	}
+	[=reg, reg, reg] -> {
+		alpha_addl(inst,$3,$2,$1);
+	}
+
+/* return value1 - value2; */
+JIT_OP_ISUB: binary
+	[=reg, reg, imm, if("$3 == 0")] -> {
+		alpha_mov(inst,$2,$1);
+	}
+	[=reg, reg, reg] -> {
+		alpha_subl(inst,$3,$2,$1);
+	}
+
+/* return value1 * value2; */
+/* TODO add more trivial IMUL imm rules */
+JIT_OP_IMUL: binary
+	[=reg, reg, imm, if("$3 == 1")] -> {
+		alpha_mov(inst,$2,$1);
+	}
+	[=reg, reg, imm, if("$3 == 0")] -> {
+		alpha_clr(inst,$1);
+	}
+	[=reg, reg, imm, if("$3 == -1")] -> {
+		alpha_subl(inst,$1,ALPHA_ZERO,$2);
+	}
+	[=reg, reg, reg] -> {
+		alpha_mull(inst,$3,$2,$1);
+	}
+
+
+/*
+ * TODO: JIT_OP_IDIV, JIT_OP_IDIV_UN, JIT_OP_IREM, JIT_OP_IREM_UN
+ *
+ * alpha has no integer division instruction, so you have to convert the 
+ * value to a float, do floating-point division, and convert the result 
+ * back to an integer. This depends on adding floating-point instructions
+ * to jit-gen-alpha.h
+ */
+
+/* return -value1; */
+JIT_OP_INEG: unary
+	[reg] -> {
+		/* Alpha has no neg operation, do $1 = 0 - $1; instead */
+		alpha_subl(inst,ALPHA_ZERO,$1,$1);
+	}
+
+/* return value1 + value2 */
+JIT_OP_LADD: binary
+	[=lreg, lreg, lreg] -> {
+		alpha_addq(inst,$3,$2,$1);
+	}
+
+/* return value1 - value2 */
+JIT_OP_LSUB: binary
+	[=lreg, lreg, lreg] -> {
+		alpha_subq(inst,$3,$2,$1);
+	}
+
+/* return value1 * value2 */
+/* TODO add more trivial LMUL imm rules */
+JIT_OP_LMUL: binary
+	[=lreg, lreg, imm, if("$3 == 1")] -> {
+		alpha_mov(inst,$2,$1);
+	}
+	[=lreg, lreg, imm, if("$3 == 0")] -> {
+		alpha_clr(inst,$1);
+	}
+	[=lreg, lreg, imm, if("$3 == -1")] -> {
+		alpha_subq(inst,$1,ALPHA_ZERO,$2);
+	}
+	[=lreg, lreg, lreg] -> {
+		alpha_mulq(inst,$3,$2,$1);
+	}
+
+JIT_OP_LNEG: unary
+	[lreg] -> {
+		/* Alpha has no neg operation, do $1 = 0 - $1; instead */
+		alpha_subq(inst,ALPHA_ZERO,$1,$1);
+	}
+
+/*
+ * TODO: JIT_OP_FADD, JIT_OP_DADD, JIT_OP_NFADD, JIT_OP_FSUB 
+ * TODO: JIT_OP_DSUB, JIT_OP_NFSUB, JIT_OP_FMUL, JIT_OP_DMUL 
+ * TODO: JIT_OP_NFMUL, JIT_OP_FDIV, JIT_OP_DDIV, JIT_OP_NFDIV
+ * TODO: JIT_OP_FREM, JIT_OP_DREM, JIT_OP_NFREM, JIT_OP_FREM, 
+ * TODO: JIT_OP_DREM, JIT_OP_NFREM, JIT_OP_FNEG, JIT_OP_DNEG, 
+ * TODO: JIT_OP_NFNEG
+ *
+ * This depends on adding floating-point instructions to jit-gen-alpha.h
+ */
+
+/*
+ * Bitwise opcodes.
+ */
+JIT_OP_IAND: binary
+	[=reg, reg, reg] -> {
+		alpha_and(inst,$3,$2,$1);
+	}
+
+JIT_OP_IOR: binary
+	[=reg, reg, reg] -> {
+		alpha_or(inst,$3,$2,$1);
+	}
+
+JIT_OP_IXOR: binary
+	[=reg, reg, reg] -> {
+		alpha_xor(inst,$3,$2,$1);
+	}
+
+JIT_OP_INOT: unary
+	[reg] -> {
+		alpha_li32(inst,ALPHA_AT,0xffffffff);
+		alpha_xor(inst,ALPHA_AT,$1,$1);
+	}
+
+/*
+ * TODO: JIT_OP_ISHL JIT_OP_ISHR JIT_OP_ISHR_UN
+ *
+ * The machine instructions operate on 64-bit values.
+ * Some extra masking and clean up will need to be done to get
+ * these to work properly.
+ */
+
+JIT_OP_LAND: binary
+	[=reg, reg, reg] -> {
+		alpha_and(inst,$3,$2,$1);
+	}
+
+JIT_OP_LOR: binary
+	[=reg, reg, reg] -> {
+		alpha_or(inst,$3,$2,$1);
+	}
+
+JIT_OP_LXOR: binary
+	[=reg, reg, reg] -> {
+		alpha_xor(inst,$3,$2,$1);
+	}
+
+JIT_OP_LNOT: unary
+	[reg] -> {
+		alpha_li64(inst,ALPHA_AT,0xffffffff);
+		alpha_xor(inst,ALPHA_AT,$1,$1);
+	}
+
+JIT_OP_LSHL: binary
+	[=reg, reg, reg] -> {
+		alpha_sll(inst,$3,$2,$1);
+	}
+
+JIT_OP_LSHR: binary
+	[=reg, reg, reg] -> {
+		alpha_srl(inst,$3,$2,$1);
+	}
+
+JIT_OP_LSHR_UN: binary
+	[=reg, reg, reg] -> {
+		alpha_sra(inst,$3,$2,$1);
+	}
+
+/*
+ * Branch opcodes
+ */
+
+JIT_OP_BR: spill_before
+	[] -> {
+		/* branch if ALPHA_ZERO is zero (this is always true) */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_ZERO);
+	}
+
+JIT_OP_BR_IFALSE: unary_branch
+	[reg] -> {
+		/* banch if $1 == 0 */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, $1);
+	}
+
+JIT_OP_BR_ITRUE: unary_branch
+	[reg] -> {
+		/* branch if $1 != 0 */
+		alpha_output_branch(func, inst, ALPHA_OP_BNE, insn, $1);
+	}
+
+JIT_OP_BR_IEQ: binary_branch
+	[reg, reg] -> {
+		/* $1 == $2 -> $at */
+		alpha_cmpeq(inst, $1, $2, ALPHA_AT);
+
+		/* branch if $at == 1 */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
+	}
+
+JIT_OP_BR_INE: binary_branch
+	[reg, reg] -> {
+		/* $1 == $2 -> $at */
+		alpha_cmpeq(inst, $1, $2, ALPHA_AT);
+
+		/* branch if $at == 0 */
+		alpha_output_branch(func, inst, ALPHA_OP_BNE, insn, ALPHA_AT);
+	}
+JIT_OP_BR_ILT: binary_branch
+	[reg, reg] -> {
+		/* $1 < $2 -> $at */
+		alpha_cmplt(inst, $1, $2, ALPHA_AT);
+
+		/* branch if $at == 1 */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
+	}
+
+JIT_OP_BR_ILT_UN: binary_branch
+	[reg, reg] -> {
+		/* $1 < $2 -> $at */
+		alpha_cmpult(inst, $1, $2, ALPHA_AT);
+
+		/* branch if $at == 1 */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
+	}
+
+JIT_OP_BR_ILE: binary_branch
+	[reg, reg] -> {
+		/* $1 <= $2 -> $at */
+		alpha_cmple(inst, $1, $2, ALPHA_AT);
+
+		/* branch if $at == 1 */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
+	}
+
+JIT_OP_BR_ILE_UN: binary_branch
+	[reg, reg] -> {
+		/* $1 <= $2 -> $at */
+		alpha_cmpule(inst, $1, $2, ALPHA_AT);
+
+		/* branch if $at == 1 */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
+	}
+
+
+JIT_OP_BR_IGT: binary_branch
+	[reg, reg] -> {
+		/* $1 > $2 -> $at */
+		alpha_cmpgt(inst, $1, $2, ALPHA_AT);
+
+		/* branch if $at == 1 */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
+	}
+
+JIT_OP_BR_IGT_UN: binary_branch
+	[reg, reg] -> {
+		/* $1 > $2 -> $at */
+		alpha_cmpugt(inst, $1, $2, ALPHA_AT);
+
+		/* branch if $at == 1 */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
+	}
+
+JIT_OP_BR_IGE: binary_branch
+	[reg, reg] -> {
+		/* $1 >= $2 -> $at */
+		alpha_cmpge(inst, $1, $2, ALPHA_AT);
+
+		/* branch if $at == 1 */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
+	}
+
+JIT_OP_BR_IGE_UN: binary_branch
+	[reg, reg] -> {
+		/* $1 => $2 -> $at */
+		alpha_cmpugt(inst, $1, $2, ALPHA_AT);
+
+		/* branch if $at == 1 */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
+	}
+
+
+/*
+ * Comparison opcodes.
+ */
+
+JIT_OP_IEQ: binary
+	[=reg, reg, reg] -> {
+		alpha_cmpeq(inst,$3,$2,$1);
+	}
+
+JIT_OP_INE: binary
+	[=reg, reg, reg] -> {
+		alpha_cmpeq(inst,$3,$2,$1);
+		alpha_cmpeq(inst,$1,ALPHA_ZERO,$1);
+	}
+
+JIT_OP_ILT: binary
+	[=reg, reg, reg] -> {
+		alpha_cmplt(inst,$3,$2,$1);
+	}
+
+
+JIT_OP_ILT_UN: binary
+	[=reg, reg, reg] -> {
+		alpha_cmpult(inst,$3,$2,$1);
+	}
+
+JIT_OP_ILE: binary
+	[=reg, reg, reg] -> {
+		alpha_cmple(inst,$3,$2,$1);
+	}
+
+JIT_OP_ILE_UN: binary
+	[=reg, reg, reg] -> {
+		alpha_cmpule(inst,$3,$2,$1);
+	}
+
+JIT_OP_IGT: binary
+	[=reg, reg, reg] -> {
+		alpha_cmpgt(inst,$3,$2,$1);
+	}
+
+JIT_OP_IGT_UN: binary
+	[=reg, reg, reg] -> {
+		alpha_cmpugt(inst,$3,$2,$1);
+	}
+
+JIT_OP_IGE: binary
+	[=reg, reg, reg] -> {
+		alpha_cmpge(inst,$3,$2,$1);
+	}
+
+JIT_OP_IGE_UN: binary
+	[=reg, reg, reg] -> {
+		alpha_cmpuge(inst,$3,$2,$1);
+	}
+
+/*
+ * Mathematical opcodes.
+ *
+ * TODO: JIT_OP_FATAN, JIT_OP_DATAN, JIT_OP_NFATAN JIT_OP_FCOS, JIT_OP_DCOS, JIT_OP_NFCOS
+ * TODO: JIT_OP_FSIN, JIT_OP_DSIN, JIT_OP_NFSIN JIT_OP_FSQRT, JIT_OP_DSQRT, JIT_OP_NFSQRT
+ * TODO: JIT_OP_FABS, JIT_OP_DABS, JIT_OP_NFABS
+ *
+ * Requires floating-point opcodes
+ */
+
+/*
+ * Pointer check opcodes.
+ */
+
+/* TODO: JIT_OP_CHECK_NULL: unary_note */
+
+/*
+ * Function calls.
+ */
+
+JIT_OP_CALL:
+	[] -> {
+		jit_function_t func = (jit_function_t)(insn->dest);
+		alpha_call(inst, func->closure_entry);
+	}
+
+/* TODO: JIT_OP_CALL_TAIL, JIT_OP_CALL_INDIRECT, JIT_OP_CALL_VTABLE_PTR */
+
+JIT_OP_RETURN:
+	[] -> {
+		jump_to_epilog(gen, inst, block);
+	}
+
+JIT_OP_RETURN_INT: unary_branch
+	[reg] -> {
+		alpha_mov(inst,$1,ALPHA_V0);
+		jump_to_epilog(gen, inst, block);
+	}
+
+JIT_OP_RETURN_LONG: unary_branch
+	[reg] -> {
+		alpha_mov(inst,$1,ALPHA_V0);
+		jump_to_epilog(gen, inst, block);
+	}
+
+/* TODO: JIT_OP_RETURN_FLOAT32 JIT_OP_RETURN_FLOAT64 JIT_OP_RETURN_NFLOAT */

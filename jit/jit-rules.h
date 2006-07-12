@@ -37,6 +37,9 @@ extern	"C" {
 #elif defined(__i386) || defined(__i386__) || defined(_M_IX86)
 	#define JIT_BACKEND_X86			1
 	#define	JIT_HAVE_BACKEND		1
+#elif defined(__alpha) || defined(__alpha__)
+	#define JIT_BACKEND_ALPHA		1
+	#define	JIT_HAVE_BACKEND		1
 #endif
 /*#define	JIT_BACKEND_ARM		1*/
 #if !defined(JIT_HAVE_BACKEND)
@@ -83,6 +86,8 @@ typedef struct
 	#include "jit-rules-x86.h"
 #elif defined(JIT_BACKEND_ARM)
 	#include "jit-rules-arm.h"
+#elif defined(JIT_BACKEND_ALPHA)
+	#include "jit-rules-alpha.h"
 #else
 	#error "unknown jit backend type"
 #endif

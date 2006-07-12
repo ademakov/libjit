@@ -256,6 +256,10 @@ typedef struct
    pick large random numbers (0x8523, 0xa7f2, etc.) to minimize the
    chances of collision with official or non-GNU unofficial values.  */
 
+/*
+ * This is an interim value that will be used until the committee comes
+ * up with a final number. - include/linux/elf.h
+ */
 #define EM_ALPHA	0x9026
 
 /* Legal values for e_version (version).  */

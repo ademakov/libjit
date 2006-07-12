@@ -5,6 +5,8 @@ libjit_la_SOURCES = \
 		jit-alloc.c \
 		jit-apply.c \
 		jit-apply-func.h \
+		jit-apply-alpha.h \
+		jit-apply-alpha.c \
 		jit-apply-arm.h \
 		jit-apply-arm.c \
 		jit-apply-x86.h \
@@ -23,6 +25,7 @@ libjit_la_SOURCES = \
 		jit-elf-write.c \
 		jit-except.c \
 		jit-function.c \
+		jit-gen-alpha.h \
 		jit-gen-arm.h \
 		jit-gen-arm.c \
 		jit-gen-x86.h \
@@ -43,6 +46,8 @@ libjit_la_SOURCES = \
 		jit-rules.h \
 		jit-rules.c \
 		jit-rules-interp.c \
+		jit-rules-alpha.h \
+		jit-rules-alpha.c \
 		jit-rules-arm.h \
 		jit-rules-arm.c \
 		jit-rules-x86.h \
@@ -82,4 +87,11 @@ jit-rules-arm.slc: jit-rules-arm.sel $(top_builddir)/tools/gen-sel$(EXEEXT)
 	$(top_builddir)/tools/gen-sel$(EXEEXT) $(srcdir)/jit-rules-arm.sel \
 			>jit-rules-arm.slc
 
-CLEANFILES = jit-interp-labels.h jit-rules-x86.slc jit-rules-arm.slc
+jit-rules-alpha.lo: jit-rules-alpha.inc
+
+jit-rules-alpha.inc: jit-rules-alpha.ins $(top_builddir)/tools/gen-rules$(EXEEXT)
+	$(top_builddir)/tools/gen-rules$(EXEEXT) $(srcdir)/jit-rules-alpha.ins \
+			>jit-rules-alpha.inc
+
+CLEANFILES = jit-interp-labels.h jit-rules-x86.slc jit-rules-arm.slc \
+		jit-rules-alpha.slc
