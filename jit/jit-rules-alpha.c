@@ -114,31 +114,37 @@ void _jit_gen_get_elf_info(jit_elf_info_t *info) {
  */
 void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf) {
 	unsigned int prolog[JIT_PROLOG_SIZE];
+	unsigned int offset = 0;
 	alpha_inst inst = prolog;
-	short int savereg_space = 0;
-	unsigned char reg;
 
-	/* NOT IMPLEMENTED YET */
+	/* Allocate space for a new stack frame. (1 instruction) */
+	alpha_lda(inst,ALPHA_SP,ALPHA_SP,-(64));
 
-	/* Determine which registers need to be preserved and push them onto the stack */
-	for (reg = 0; reg < 32; reg++) {
-		if(jit_reg_is_used(gen->touched, reg) && (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0) {
-			/* store the register value on the stack */
-			alpha_stq(inst,ALPHA_SP,reg,savereg_space);
-			savereg_space -= 8;
-		}
-	}
+	/* Save the return address. (1 instruction) */
+	alpha_stq(inst,ALPHA_RA,ALPHA_SP,offset); offset += 8;
 
-	/* adjust the stack pointer to point to the 'top' of the stack */
-	alpha_li(inst,ALPHA_AT,savereg_space);
-	alpha_addq(inst,ALPHA_SP,ALPHA_AT,ALPHA_SP);
+	/* Save the frame pointer. (1 instruction) */
+	alpha_stq(inst,ALPHA_FP,ALPHA_SP,offset); offset += 8;
 
-	/* TODO see if ALPHA_RA needs to be saved or was saved above -----^ */
+	/* Save the integer save registers (6 instructions) */
+	alpha_stq(inst,ALPHA_S0,ALPHA_SP,offset); offset += 8;
+	alpha_stq(inst,ALPHA_S1,ALPHA_SP,offset); offset += 8;
+	alpha_stq(inst,ALPHA_S2,ALPHA_SP,offset); offset += 8;
+	alpha_stq(inst,ALPHA_S3,ALPHA_SP,offset); offset += 8;
+	alpha_stq(inst,ALPHA_S4,ALPHA_SP,offset); offset += 8;
+	alpha_stq(inst,ALPHA_S5,ALPHA_SP,offset); offset += 8;
 
-	/* Copy the prolog into place and return the adjusted entry position */
-	reg = (int)(inst - prolog);
-	jit_memcpy(((unsigned char *)buf) + JIT_PROLOG_SIZE - reg, prolog, reg);
-	return (void *)(((unsigned char *)buf) + JIT_PROLOG_SIZE - reg);
+	/* Set the frame pointer (1 instruction) */
+	alpha_mov(inst,ALPHA_SP,ALPHA_FP);
+
+	/* TODO: Save the floating point save registers ; requires fp support */
+
+	/* Force any pending hardware exceptions to be raised. (1 instruction) */
+	alpha_trapb(inst);
+
+	/* Copy the prolog into place and return the entry position */
+	jit_memcpy(buf, prolog, JIT_PROLOG_SIZE);
+	return (void *) buf;
 }
 
 /*
@@ -151,29 +157,13 @@ void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf) {
  * epilog until the full function has been processed. 
  */
 void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func) {
-	short int savereg_space = 0;
-	unsigned char reg;
-
 	alpha_inst inst;
 	void **fixup, **next;
-
-	/* NOT IMPLEMENTED YET */;
+	unsigned int offset = 0;
 
 	inst = (alpha_inst) gen->posn.ptr;
 
-	/* Determine which registers need to be restored when we return and restore them */
-	for (reg = 0; reg < 32; reg++) {
-		if (jit_reg_is_used(gen->touched, reg) && (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0) {
-			/* store the register value on the stack */
-			alpha_ldq(inst,reg,ALPHA_SP,savereg_space);
-			savereg_space += 8;
-		}
-	}
-
-	/* adjust the stack pointer to point to the 'top' of the stack */
-	alpha_li(inst,ALPHA_AT,savereg_space);
-	alpha_addq(inst,ALPHA_SP,ALPHA_AT,ALPHA_SP);
-
+	/* Perform fixups on any blocks that jump to the epilog */
 	fixup = (void **)(gen->epilog_fixup);
 	while (fixup) {
 		next     = (void **)(fixup[0]);
@@ -181,7 +171,29 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func) {
 		fixup    = next;
 	}
 
-	/* Return from the current function */
+	/* Set the stack pointer */
+	alpha_mov(inst,ALPHA_FP,ALPHA_SP);
+
+	/* Restore the return address. (1 instruction) */
+	alpha_ldq(inst,ALPHA_RA,ALPHA_SP,offset); offset += 8;
+
+	/* Restore the frame pointer. (1 instruction) */
+	alpha_ldq(inst,ALPHA_FP,ALPHA_SP,offset); offset += 8;
+
+	/* Restore the integer save registers (6 instructions) */
+	alpha_ldq(inst,ALPHA_S0,ALPHA_SP,offset); offset += 8;
+	alpha_ldq(inst,ALPHA_S1,ALPHA_SP,offset); offset += 8;
+	alpha_ldq(inst,ALPHA_S2,ALPHA_SP,offset); offset += 8;
+	alpha_ldq(inst,ALPHA_S3,ALPHA_SP,offset); offset += 8;
+	alpha_ldq(inst,ALPHA_S4,ALPHA_SP,offset); offset += 8;
+	alpha_ldq(inst,ALPHA_S5,ALPHA_SP,offset); offset += 8;
+
+	/* TODO: Restore the floating point save registers ; requires fp support */
+
+	/* Force any pending hardware exceptions to be raised. (1 instruction) */
+	alpha_trapb(inst);
+
+	/* Return from the current function (1 instruction) */
 	alpha_ret(inst,ALPHA_RA,1);
 }
 

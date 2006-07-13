@@ -152,10 +152,8 @@ extern	"C" {
 /*
  * The maximum number of bytes to allocate for the prolog.
  * This may be shortened once we know the true prolog size.
- *
- * Use the prolog size mono uses. See mono/arch/alpha/tramp.c
  */
-#define JIT_PROLOG_SIZE			24
+#define JIT_PROLOG_SIZE			(13 /* instructions */ * 4 /* bytes per instruction */)
 
 /*
  * Preferred alignment for the start of functions.

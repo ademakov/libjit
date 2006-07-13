@@ -67,7 +67,7 @@ typedef enum {
 	ALPHA_R26 = 26,	ALPHA_RA = ALPHA_R26,	/* Return address */
 
 	ALPHA_R27 = 27,	ALPHA_T12 = ALPHA_R27,	/* ALPHA_R27 can hold either a temp value */
-			ALPHA_PV  = ALPHA_R27,
+			ALPHA_PV  = ALPHA_R27,  /* or the procedure value                 */
 
 	ALPHA_R28 = 28, ALPHA_AT = ALPHA_R28,	/* Reeserved for the assembler */
 
@@ -247,6 +247,7 @@ typedef unsigned int * alpha_inst;
 #define ALPHA_OP_UMULH		0x13
 #define ALPHA_OP_MULLV		0x13
 #define ALPHA_OP_MULLQV		0x13
+#define ALPHA_OP_TRAPB		0x18
 #define ALPHA_OP_JMP		0x1a
 #define ALPHA_OP_JSR		0x1a
 #define ALPHA_OP_RET		0x1a
@@ -370,6 +371,9 @@ typedef unsigned int * alpha_inst;
 #define ALPHA_FUNC_UMULH	0x30
 #define ALPHA_FUNC_MULLV	0x40
 #define ALPHA_FUNC_MULQV	0x60
+
+/* trap barrier -- use with ALPHA_OP_* == 0x18 */
+#define ALPHA_FUNC_TRAPB	0x0
 
 /* branching operations -- use with ALPHA_OP_* == 0x1a */
 #define ALPHA_FUNC_JMP		0x0
@@ -558,6 +562,9 @@ typedef unsigned int * alpha_inst;
 #define alpha_jsr(inst,dreg,sreg,hint)		alpha_encode_mem_branch(inst,ALPHA_OP_JSR,ALPHA_FUNC_JSR,dreg,sreg,hint)
 #define alpha_ret(inst,sreg,hint)		alpha_encode_mem_branch(inst,ALPHA_OP_RET,ALPHA_FUNC_RET,ALPHA_ZERO,sreg,hint)
 #define alpha_jsrco(inst,dreg,sreg,hint)	alpha_encode_mem_branch(inst,ALPHA_OP_JSRCO,ALPHA_FUNC_JSRCO,dreg,sreg,hint)
+
+/* trap barrier */
+#define alpha_trapb(inst)			alpha_encode_mem_branch(inst,ALPHA_OP_TRAPB,ALPHA_FUNC_TRAPB,0,0,0)
 
 /* memory operations */
 #define alpha_ldf(inst,dreg,sreg,offset)	alpha_encode_mem(inst,ALPHA_OP_LDF,dreg,sreg,offset)
