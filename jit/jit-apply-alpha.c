@@ -32,7 +32,7 @@ void _jit_create_closure(unsigned char *buf, void *func, void *closure, void *_t
 	alpha_lda( inst,ALPHA_GP,ALPHA_GP,0);
 
 	/* Allocate space for a new stack frame. */
-	alpha_lda(inst,ALPHA_SP,ALPHA_SP,-(14*8));
+	alpha_lda(inst,ALPHA_SP,ALPHA_SP,-(13*8));
 
 	/* Save the return address. */
 	alpha_stq(inst,ALPHA_RA,ALPHA_SP,0*8);
@@ -76,7 +76,7 @@ void _jit_create_closure(unsigned char *buf, void *func, void *closure, void *_t
 	alpha_ldt(inst,ALPHA_FA5,ALPHA_SP,12*8);
 
 	/* restore the stack pointer */
-	alpha_lda(inst,ALPHA_SP,ALPHA_SP,(8*13));
+	alpha_lda(inst,ALPHA_SP,ALPHA_SP,(13*8));
 }
 
 void *_jit_create_redirector(unsigned char *buf, void *func, void *user_data, int abi) {
