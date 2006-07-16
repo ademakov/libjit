@@ -687,10 +687,10 @@ do {								\
  * Call a subroutine at a specific target location.
  */
 
-#define alpha_call(inst,target)			\
-do {						\
-	int __call_offset = target - (inst+4);	\
-	alpha_bsr(inst,ALPHA_RA,__call_offset);	\
+#define alpha_call(inst,target)					\
+do {								\
+	alpha_li(inst,ALPHA_AT,(unsigned long)target);		\
+	alpha_jsr(inst,ALPHA_RA,ALPHA_AT,1);			\
 } while (0)
 
 #ifdef __cplusplus
