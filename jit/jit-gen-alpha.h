@@ -21,6 +21,8 @@
 #ifndef	_JIT_GEN_ALPHA_H
 #define	_JIT_GEN_ALPHA_H
 
+#include "jit-rules.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -139,6 +141,10 @@ typedef enum {
 
 typedef unsigned int * alpha_inst;
 
+/* misc function prototypes */
+void alpha_output_branch(jit_function_t, alpha_inst, int, jit_insn_t, int);
+void jump_to_epilog(jit_gencode_t, alpha_inst, jit_block_t);
+
 #define ALPHA_REG_MASK		0x1f
 #define ALPHA_REGA_SHIFT	0x15
 #define ALPHA_REGB_SHIFT	0x10
@@ -179,6 +185,7 @@ typedef unsigned int * alpha_inst;
 #define ALPHA_OP_CMPBGE		0x10
 #define ALPHA_OP_S8ADDL		0x10
 #define ALPHA_OP_S8SUBL		0x10
+#define ALPHA_OP_CMPLT		0x10
 #define ALPHA_OP_CMPULT		0x10
 #define ALPHA_OP_ADDQ		0x10
 #define ALPHA_OP_S4ADDQ		0x10

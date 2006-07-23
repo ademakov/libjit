@@ -26,26 +26,26 @@
 
 JIT_OP_TRUNC_SBYTE: unary
 	[reg] -> {
-		alpha_slli(code,$1,56,$1);
-		alpha_srai(code,$1,56,$1);
+		alpha_slli(inst,$1,56,$1);
+		alpha_srai(inst,$1,56,$1);
 	}
 
 JIT_OP_TRUNC_UBYTE: unary
 	[reg] -> {
-		alpha_li8(code,ALPHA_AT,0xff);
-		alpha_and(code,$1,ALPHA_AT,$1);
+		_alpha_li8(inst,ALPHA_AT,0xff);
+		alpha_and(inst,$1,ALPHA_AT,$1);
 	}
 
 JIT_OP_TRUNC_SHORT: unary
 	[reg] -> {
-		alpha_slli(code,$1,56,$1);
-		alpha_srai(code,$1,56,$1);
+		alpha_slli(inst,$1,56,$1);
+		alpha_srai(inst,$1,56,$1);
 	}
 
 JIT_OP_TRUNC_USHORT: unary
 	[reg] -> {
-		alpha_slli(code,$1,56,$1);
-		alpha_srli(code,$1,56,$1);
+		alpha_slli(inst,$1,56,$1);
+		alpha_srli(inst,$1,56,$1);
 	}
 
 /*
@@ -184,7 +184,7 @@ JIT_OP_IXOR: binary
 
 JIT_OP_INOT: unary
 	[reg] -> {
-		alpha_li32(inst,ALPHA_AT,0xffffffff);
+		_alpha_li32(inst,ALPHA_AT,0xffffffff);
 		alpha_xor(inst,ALPHA_AT,$1,$1);
 	}
 
@@ -213,7 +213,7 @@ JIT_OP_LXOR: binary
 
 JIT_OP_LNOT: unary
 	[reg] -> {
-		alpha_li64(inst,ALPHA_AT,0xffffffff);
+		_alpha_li64(inst,ALPHA_AT,0xffffffff);
 		alpha_xor(inst,ALPHA_AT,$1,$1);
 	}
 
@@ -308,41 +308,8 @@ JIT_OP_BR_ILE_UN: binary_branch
 	}
 
 
-JIT_OP_BR_IGT: binary_branch
-	[reg, reg] -> {
-		/* $1 > $2 -> $at */
-		alpha_cmpgt(inst, $1, $2, ALPHA_AT);
-
-		/* branch if $at == 1 */
-		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
-	}
-
-JIT_OP_BR_IGT_UN: binary_branch
-	[reg, reg] -> {
-		/* $1 > $2 -> $at */
-		alpha_cmpugt(inst, $1, $2, ALPHA_AT);
-
-		/* branch if $at == 1 */
-		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
-	}
-
-JIT_OP_BR_IGE: binary_branch
-	[reg, reg] -> {
-		/* $1 >= $2 -> $at */
-		alpha_cmpge(inst, $1, $2, ALPHA_AT);
-
-		/* branch if $at == 1 */
-		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
-	}
-
-JIT_OP_BR_IGE_UN: binary_branch
-	[reg, reg] -> {
-		/* $1 => $2 -> $at */
-		alpha_cmpugt(inst, $1, $2, ALPHA_AT);
-
-		/* branch if $at == 1 */
-		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
-	}
+/* TODO: JIT_OP_BR_IGT JIT_OP_BR_IGT_UN */
+/* TODO: JIT_OP_BR_IGE JIT_OP_BR_IGE_UN */
 
 
 /*
@@ -381,25 +348,7 @@ JIT_OP_ILE_UN: binary
 		alpha_cmpule(inst,$3,$2,$1);
 	}
 
-JIT_OP_IGT: binary
-	[=reg, reg, reg] -> {
-		alpha_cmpgt(inst,$3,$2,$1);
-	}
-
-JIT_OP_IGT_UN: binary
-	[=reg, reg, reg] -> {
-		alpha_cmpugt(inst,$3,$2,$1);
-	}
-
-JIT_OP_IGE: binary
-	[=reg, reg, reg] -> {
-		alpha_cmpge(inst,$3,$2,$1);
-	}
-
-JIT_OP_IGE_UN: binary
-	[=reg, reg, reg] -> {
-		alpha_cmpuge(inst,$3,$2,$1);
-	}
+/* TODO: JIT_OP_IGT JIT_OP_IGT_UN JIT_OP_IGE JIT_OP_IGE_UN */
 
 /*
  * Mathematical opcodes.

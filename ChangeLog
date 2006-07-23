@@ -1,3 +1,10 @@
+2006-07-23  Thomas Cort  <linuxgeek@gmail.com>
+
+	* jit/jit-apply-alpha.c jit/jit-apply-alpha.h jit/jit-apply-func.h
+	jit/jit-gen-alpha.h jit/jit-rules-alpha.c jit/jit-rules-alpha.h
+	jit/jit-rules-alpha.ins Implement the redirector for alpha. 
+	Continue to implement more functions in jit/jit-rules-alpha.c.
+
 2006-07-15  Thomas Cort  <linuxgeek@gmail.com>
 
 	* jit/jit-apply-alpha.c jit/jit-gen-alpha.h jit/jit-rules-alpha.h

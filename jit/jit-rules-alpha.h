@@ -96,16 +96,16 @@ extern	"C" {
 	{   "gp", 29, -1, JIT_REG_FIXED}, \
 	{   "sp", 30, -1, JIT_REG_FIXED | JIT_REG_STACK_PTR}, \
 	{ "zero", 31, -1, JIT_REG_FIXED}, \
-	{  "fv0",  0, -1, JIT_REG_FIXED}, \
-	{  "fv1",  1, -1, JIT_REG_FIXED}, \
-	{  "fs0",  2, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
-	{  "fs1",  3, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
-	{  "fs2",  4, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
-	{  "fs3",  5, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
-	{  "fs4",  6, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
-	{  "fs5",  7, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
-	{  "fs6",  8, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
-	{  "fs7",  9, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
+	{  "fv0", 0, -1, JIT_REG_FIXED}, \
+	{  "fv1", 1, -1, JIT_REG_FIXED}, \
+	{  "fs0", 2, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
+	{  "fs1", 3, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
+	{  "fs2", 4, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
+	{  "fs3", 5, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
+	{  "fs4", 6, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
+	{  "fs5", 7, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
+	{  "fs6", 8, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
+	{  "fs7", 9, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_GLOBAL}, \
 	{  "ft0", 10, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_CALL_USED}, \
 	{  "ft1", 11, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_CALL_USED}, \
 	{  "ft2", 12, -1, JIT_REG_ALPHA_FLOAT | JIT_REG_CALL_USED}, \
@@ -200,10 +200,8 @@ extern	"C" {
  */
 #define JIT_CDECL_WORD_REG_PARAMS	{9,10,11,12,13,14,-1}
 #define JIT_MAX_WORD_REG_PARAMS		6
-
-/* TODO: find the proper values for these */
 #define JIT_INITIAL_STACK_OFFSET	0
-#define JIT_INITIAL_FRAME_SIZE 		0
+#define JIT_INITIAL_FRAME_SIZE 		(14*8)
 
 #ifdef	__cplusplus
 };

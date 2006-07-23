@@ -67,6 +67,13 @@ int _alpha_has_ieeefp() {
 }
 
 /*
+ * Round a size up to a multiple of the stack word size.
+ */
+#define ROUND_STACK(size)       \
+	(((size) + (sizeof(alpha_inst) - 1)) & ~(sizeof(alpha_inst) - 1))
+
+
+/*
  * Setup or teardown the alpha code output process.
  */
 #define jit_cache_setup_output(needed)				\
@@ -78,6 +85,19 @@ int _alpha_has_ieeefp() {
 
 #define jit_cache_end_output()  \
 	gen->posn.ptr = (char*) inst
+
+/*
+ * Load the instruction pointer from the generation context.
+ */
+#define jit_gen_load_inst_ptr(gen,inst) \
+	inst = (alpha_inst) (gen)->posn.ptr;
+
+/*
+ * Save the instruction pointer back to the generation context.
+ */
+#define jit_gen_save_inst_ptr(gen,inst) \
+	(gen)->posn.ptr = (unsigned char *) inst;
+
 
 /*
  * Initialize the backend. This is normally used to configure registers 
@@ -168,10 +188,9 @@ void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf) {
  * epilog until the full function has been processed. 
  */
 void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func) {
-	alpha_inst inst;
 	void **fixup, **next;
 
-	inst = (alpha_inst) gen->posn.ptr;
+	jit_cache_setup_output(20);
 
 	/* Perform fixups on any blocks that jump to the epilog */
 	fixup = (void **)(gen->epilog_fixup);
@@ -181,7 +200,7 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func) {
 		fixup    = next;
 	}
 
-	/* Set the stack pointer */
+	/* Set the stack pointer (1 instruction) */
 	alpha_mov(inst,ALPHA_FP,ALPHA_SP);
 
 	/* Restore the return address. (1 instruction) */
@@ -216,6 +235,8 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func) {
 
 	/* Return from the current function (1 instruction) */
 	alpha_ret(inst,ALPHA_RA,1);
+
+	jit_cache_end_output();
 }
 
 /*
@@ -230,8 +251,37 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func) {
  * signature alone; especially if the called function is vararg. 
  */
 int _jit_create_call_return_insns(jit_function_t func, jit_type_t signature, jit_value_t *args, unsigned int num_args, jit_value_t return_value, int is_nested) {
-	/* NOT IMPLEMENTED YET */
-	return 0;
+	jit_type_t return_type;
+	int ptr_return;
+
+	return_type = jit_type_normalize(jit_type_get_return(signature));
+	ptr_return  = jit_type_return_via_pointer(return_type);
+
+	/* Bail out now if we don't need to worry about return values */
+	if (!return_value || ptr_return) {
+		return 0;
+	}
+
+	/*
+	 * Structure values must be flushed into the frame, and
+	 * everything else ends up in a register
+	 */
+	if (jit_type_is_struct(return_type) || jit_type_is_union(return_type)) {
+		if (!jit_insn_flush_struct(func, return_value)) {
+			return 0;
+		}
+	} else if (return_type->kind == JIT_TYPE_FLOAT32 || return_type->kind == JIT_TYPE_FLOAT64 || return_type->kind == JIT_TYPE_NFLOAT) {
+		if (!jit_insn_return_reg(func, return_value, 32 /* fv0 */)) {
+			return 0;
+		}
+	} else if (return_type->kind != JIT_TYPE_VOID) {
+		if (!jit_insn_return_reg(func, return_value, 0 /* v0 */)) {
+			return 0;
+		}
+	}
+
+	/* Everything is back where it needs to be */
+	return 1;
 }
 
 /*
@@ -265,7 +315,36 @@ void _jit_gen_spill_global(jit_gencode_t gen, int reg, jit_value_t value) {
  * position, and will then generate the appropriate spill instructions. 
  */
 void _jit_gen_spill_reg(jit_gencode_t gen, int reg, int other_reg, jit_value_t value) {
-	/* NOT IMPLEMENTED YET */;
+	int offset;
+
+	/* Make sure that we have sufficient space */
+	jit_cache_setup_output(32);
+
+	/* If the value is associated with a global register, then copy to that */
+	if (value->has_global_register) {
+		alpha_mov(inst,_jit_reg_info[reg].cpu_reg,_jit_reg_info[value->global_reg].cpu_reg);
+		jit_cache_end_output();
+		return;
+	}
+
+	/* Fix the value in place within the local variable frame */
+	_jit_gen_fix_value(value);
+
+	/* Output an appropriate instruction to spill the value */
+	offset = (int)(value->frame_offset);
+
+	if (reg < 32) {		/* if integer register */
+		alpha_stq(inst,reg,ALPHA_FP,offset);
+		if (other_reg != -1) {
+			offset += sizeof(void *);
+			alpha_stq(inst,other_reg,ALPHA_FP,offset);
+		}
+	} else /* floating point register */ {
+		/* TODO requires floating point support */
+	}
+
+	jit_cache_end_output();
+	return;
 }
 
 /*
@@ -362,6 +441,7 @@ void _jit_gen_end_block(jit_gencode_t gen, jit_block_t block) {
  * _jit_gen_fix_value.
  */
 void _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value) {
+	short int offset;
 
 	/* Make sure that we have sufficient space */
 	jit_cache_setup_output(32);
@@ -399,7 +479,47 @@ void _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t 
 		/* mov from value->reg to _jit_reg_info[reg].cpu_reg */
 		alpha_mov(inst,value->reg,_jit_reg_info[reg].cpu_reg);
 
-	} /* TODO else load from mem */
+	} else {
+
+		/* Fix the position of the value in the stack frame */
+		_jit_gen_fix_value(value);
+		offset = (int)(value->frame_offset);
+
+		/* Load the value into the specified register */
+		switch (jit_type_normalize(value->type)->kind) {
+
+			case JIT_TYPE_SBYTE:
+/* TODO add alpha_ldb		alpha_ldb(inst,_jit_reg_info[reg].cpu_reg,ALPHA_SP,offset);
+ */				break;
+			case JIT_TYPE_UBYTE:
+				alpha_ldbu(inst,_jit_reg_info[reg].cpu_reg,ALPHA_SP,offset);
+				break;
+			case JIT_TYPE_SHORT:
+/* TODO add alpha_ldw		alpha_ldw(inst,_jit_reg_info[reg].cpu_reg,ALPHA_SP,offset);
+ */				break;
+			case JIT_TYPE_USHORT:
+				alpha_ldwu(inst,_jit_reg_info[reg].cpu_reg,ALPHA_SP,offset);
+				break;
+			case JIT_TYPE_INT:
+				alpha_ldl(inst,_jit_reg_info[reg].cpu_reg,ALPHA_SP,offset);
+				break;
+			case JIT_TYPE_UINT:
+/* TODO add alpha_ldlu		alpha_ldlu(inst,_jit_reg_info[reg].cpu_reg,ALPHA_SP,offset);
+*/				break;
+			case JIT_TYPE_LONG:
+				alpha_ldq(inst,_jit_reg_info[reg].cpu_reg,ALPHA_SP,offset);
+				break;
+			case JIT_TYPE_ULONG:
+/* TODO add alpha_ldqu		alpha_ldqu(inst,_jit_reg_info[reg].cpu_reg,ALPHA_SP,offset);
+*/				break;
+
+			/* TODO requires floating-point support */
+			case JIT_TYPE_FLOAT32:
+			case JIT_TYPE_FLOAT64:
+			case JIT_TYPE_NFLOAT:
+				break;
+		}
+	}
 
 	jit_cache_end_output();
 }
@@ -430,7 +550,16 @@ void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func) {
  * for the result to be placed in an appropriate register or memory destination.
  */
 void _jit_gen_insn(jit_gencode_t gen, jit_function_t func, jit_block_t block, jit_insn_t insn) {
-	/* NOT IMPLEMENTED YET */;
+
+	switch (insn->opcode) {
+		#define JIT_INCLUDE_RULES
+			#include "jit-rules-alpha.inc"
+		#undef JIT_INCLUDE_RULES
+
+		default:
+			fprintf(stderr, "TODO(%x) at %s, %d\n", (int)(insn->opcode), __FILE__, (int)__LINE__);
+			break;
+	}
 }
 
 /*
@@ -438,6 +567,16 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func, jit_block_t block, ji
  */
 void _jit_gen_exch_top(jit_gencode_t gen, int reg, int pop) {
 	/* NOT IMPLEMENTED YET */;
+}
+
+void _jit_gen_fix_value(jit_value_t value) {
+
+	if (!(value->has_frame_offset) && !(value->is_constant)) {
+		jit_nint size = (jit_nint)(ROUND_STACK(jit_type_get_size(value->type)));
+		value->block->func->builder->frame_size += size;
+		value->frame_offset = -(value->block->func->builder->frame_size);
+		value->has_frame_offset = 1;
+	}
 }
 
 /*
@@ -473,7 +612,7 @@ void alpha_output_branch(jit_function_t func, alpha_inst inst, int opcode, jit_i
 /*
  * Jump to the current function's epilog.
  */
-void alpha_jump_to_epilog(jit_gencode_t gen, alpha_inst inst, jit_block_t block) {
+void jump_to_epilog(jit_gencode_t gen, alpha_inst inst, jit_block_t block) {
 	short int offset;
 
 	/*
