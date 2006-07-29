@@ -1923,14 +1923,30 @@ is_register_alive(jit_gencode_t gen, _jit_regs_t *regs, int reg)
 }
 
 /*
- * Determine the effect of assigning a value to a register on the values
- * the register contains. The following factors are taken into account:
- for
- * the instruction
- *. It
- * checks if the register contains any other values that might be clobbered
- * by using the register or if the value in question is clobbered itself by
- * the instruction.
+ * Determine the effect of using a register for a value. This includes the
+ * following:
+ *  - whether the value is clobbered by the instruction;
+ *  - whether the previous contents of the register is clobbered.
+ *
+ * The value is clobbered by the instruction if it is used as input value
+ * and the output value will go to the same register and these two values
+ * are not equal. Or the instruction has a side effect that destroy the
+ * input value regardless of the output. This is indicated with the
+ * CLOBBER_INPUT_VALUE flag.
+ *
+ * The previous content is clobbered if the register contains any non-dead
+ * values that are destroyed by loading the input value, by computing the
+ * output value, or as a side effect of the instruction.
+ *
+ * The previous content is not clobbered if the register contains only dead
+ * values or it is used for input value that is already in the register so
+ * there is no need to load it and at the same time the instruction has no
+ * side effects that destroy the input value or the register is used for
+ * output value and the only value it contained before is the same value.
+ *
+ * The flag CLOBBER_REG indicates if the previous content of the register is
+ * clobbered. The flag CLOBBER_OTHER_REG indicates that the other register
+ * in a long pair is clobbered.
  */
 static int
 clobbers_register(jit_gencode_t gen, _jit_regs_t *regs, int index, int reg, int other_reg)
@@ -2323,7 +2339,8 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	/* See if the value clobbers a global register. In this case the global
 	   register is pushed onto stack before the instruction and popped back
 	   after it. */
-	if((!desc->value->has_global_register || desc->value->global_reg != desc->reg)
+	if(!desc->copy
+	   && (!desc->value->has_global_register || desc->value->global_reg != desc->reg)
 	   && (jit_reg_is_used(gen->permanent, desc->reg)
 	       || (desc->other_reg >= 0 && jit_reg_is_used(gen->permanent, desc->other_reg))))
 	{
@@ -2731,11 +2748,11 @@ use_cheapest_register(jit_gencode_t gen, _jit_regs_t *regs, int index, jit_regus
 			{
 				continue;
 			}
-			else if(thrashes_register(gen, regs, index, reg, -1))
-			{
-				continue;
-			}
 			cost = compute_spill_cost(gen, regs, reg, -1);
+			if(thrashes_register(gen, regs, index, reg, -1))
+			{
+				cost += COST_THRASH;
+			}
 			copy_cost = 0;
 		}
 		else

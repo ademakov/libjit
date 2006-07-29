@@ -1,3 +1,15 @@
+2006-07-29  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.c (use_cheapest_register): allow a register that
+	contains an input value to be used as a scratch register. The input
+	value in this case is copied to another register. This resolves the
+	problem with JIT_OP_IREM rule that failed to allocate a scratch reg
+	in a very specific case (all EBX, ESI, EDI regs are used as global,
+	dividend is initially in ECX and copied to EAX:EDX pair where x86
+	idiv expects it to be).
+
+	* jit/jit-reg-alloc.c (set_regdesc_flags): fix a bug.
+
 2006-07-23  Thomas Cort  <linuxgeek@gmail.com>
 
 	* jit/jit-apply-alpha.c jit/jit-apply-alpha.h jit/jit-apply-func.h
@@ -32,7 +44,6 @@
 	jit/jit-rules-alpha.c jit/jit-rules-alpha.h 
 	jit/jit-rules-alpha.ins /jit/jit-rules.h: Initial import of the
 	code for the alpha port.
-
 
 2006-07-06  Aleksey Demakov  <ademakov@gmail.com>
 
