@@ -195,8 +195,12 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func) {
 	/* Perform fixups on any blocks that jump to the epilog */
 	fixup = (void **)(gen->epilog_fixup);
 	while (fixup) {
+		alpha_inst code = (alpha_inst) fixup;
 		next     = (void **)(fixup[0]);
-		fixup[0] = (void*) ((jit_nint) inst - (jit_nint) fixup - 4);
+
+		_alpha_li64(code,ALPHA_AT,inst);
+		alpha_jmp(code,ALPHA_ZERO,ALPHA_AT,1);
+
 		fixup    = next;
 	}
 
@@ -420,8 +424,12 @@ void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block) {
 	fixup = (void **)(block->fixup_list);
 
 	while (fixup) {
+		alpha_inst code = (alpha_inst) fixup;
 		next     = (void **)(fixup[0]);
-		fixup[0] = (void*) ((jit_nint) block->address - (jit_nint) fixup - 4);
+
+		_alpha_li64(code,ALPHA_AT,(gen->posn.ptr));
+		alpha_jmp(code,ALPHA_ZERO,ALPHA_AT,1);
+
 		fixup    = next;
 	}
 
@@ -584,28 +592,28 @@ void _jit_gen_fix_value(jit_value_t value) {
  */
 void alpha_output_branch(jit_function_t func, alpha_inst inst, int opcode, jit_insn_t insn, int reg) {
 	jit_block_t block;
-	short int offset;
 
 	if (!(block = jit_block_from_label(func, (jit_label_t)(insn->dest))))
 		return;
 
 	if (block->address) {
 		/* We already know the address of the block */
-
-		offset = ((unsigned long) block->address - (unsigned long) inst);
+		short offset = ((unsigned long) block->address - (unsigned long) inst);
 		alpha_encode_branch(inst,opcode,reg,offset);
 
 	} else {
+		long *addr = (void*) inst;
+
 		/* Output a placeholder and record on the block's fixup list */
+		*addr = (long) block->fixup_list;
+		inst++; inst++;
 
-		if(block->fixup_list) {
-			offset = (short int) ((unsigned long int) inst - (unsigned long int) block->fixup_list);
-		} else {
-			offset = 0;
-		}
-
-		alpha_encode_branch(inst,opcode,reg,offset);
-		block->fixup_list = inst - 4;
+		alpha_nop(inst);
+		alpha_nop(inst);
+		alpha_nop(inst);
+		alpha_nop(inst);
+		alpha_nop(inst);
+		alpha_nop(inst);
 	}
 }
 
@@ -613,7 +621,7 @@ void alpha_output_branch(jit_function_t func, alpha_inst inst, int opcode, jit_i
  * Jump to the current function's epilog.
  */
 void jump_to_epilog(jit_gencode_t gen, alpha_inst inst, jit_block_t block) {
-	short int offset;
+	long *addr = (void*) inst;
 
 	/*
 	 * If the epilog is the next thing that we will output,
@@ -628,15 +636,30 @@ void jump_to_epilog(jit_gencode_t gen, alpha_inst inst, jit_block_t block) {
 	if (!block)
 		return;
 
-	/* Output a placeholder for the jump and add it to the fixup list */
-	if (gen->epilog_fixup) {
-		offset = (short int) ((unsigned long int) inst - (unsigned long int) gen->epilog_fixup);
-	} else {
-		offset = 0;
-	}
+	/*
+	 * fixups are slightly strange for the alpha port. On alpha you 
+	 * cannot use an address stored in memory for jumps. The address 
+	 * has to stored in a register.
+	 *
+	 * The fixups need the address stored in memory so that they can
+	 * be 'fixed up' later. So what we do here is output the address
+	 * and some nops. When it gets 'fixed up' we replace the address
+	 * and 4 no-ops with opcodes to load the address into a register.
+	 * Then we overwrite the last no-op with a jump opcode.
+	 */
 
-	alpha_br(inst, ALPHA_ZERO, offset);
-	gen->epilog_fixup = inst - 4;
+	/* Output a placeholder for the jump and add it to the fixup list */
+	*addr = (long) gen->epilog_fixup;
+	inst++; inst++;
+
+	alpha_nop(inst);
+	alpha_nop(inst);
+	alpha_nop(inst);
+	alpha_nop(inst);
+	alpha_nop(inst);
+	alpha_nop(inst);	/* to be overwritten later with jmp */
+
+	(gen)->posn.ptr = (char*) inst;
 }
 
 #endif /* JIT_BACKEND_ALPHA */

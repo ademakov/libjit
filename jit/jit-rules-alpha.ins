@@ -396,3 +396,9 @@ JIT_OP_RETURN_LONG: unary_branch
 	}
 
 /* TODO: JIT_OP_RETURN_FLOAT32 JIT_OP_RETURN_FLOAT64 JIT_OP_RETURN_NFLOAT */
+
+JIT_OP_CALL_EXTERNAL:
+	[] -> {
+		alpha_call(inst, (insn->dest));
+	}
+

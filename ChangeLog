@@ -1,3 +1,8 @@
+2006-08-11  Thomas Cort  <linuxgeek@gmail.com>
+
+	* jit/jit-rules-alpha.c jit/jit-rules-alpha.ins Properly handle
+	fixups on alpha. Implement JIT_OP_CALL_EXTERNAL for alpha.
+
 2006-07-29  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c (use_cheapest_register): allow a register that
