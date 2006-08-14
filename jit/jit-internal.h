@@ -651,6 +651,15 @@ extern struct _jit_type const _jit_type_void_ptr_def;
  */
 #define	JIT_CALL_NATIVE		(1 << 14)
 
+#ifdef JIT_USE_SIGNALS
+
+/*
+ * Initialize the signal handlers.
+ */
+void _jit_signal_init(void);
+
+#endif
+
 #ifdef	__cplusplus
 };
 #endif

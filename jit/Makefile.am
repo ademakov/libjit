@@ -52,6 +52,7 @@ libjit_la_SOURCES = \
 		jit-rules-arm.c \
 		jit-rules-x86.h \
 		jit-rules-x86.c \
+		jit-signal.c \
 		jit-string.c \
 		jit-symbol.c \
 		jit-thread.c \

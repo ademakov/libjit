@@ -1,3 +1,11 @@
+2006-08-15  Kirill Kononenko  <Kirill.Kononenko@gmail.com>
+
+	* configure.in: add --enable-signals option;
+	* jit/Makefile.am: add jit/jit-signal.c;
+	* jit/jit-signal.c, jit/jit-internal.h: add _jit_signal_init();
+	* jit/jit-init.c: call _jit_signal_init() if JIT_USE_SIGNALS is
+	defined.
+
 2006-08-11  Thomas Cort  <linuxgeek@gmail.com>
 
 	* jit/jit-rules-alpha.c jit/jit-rules-alpha.ins Properly handle

@@ -40,6 +40,11 @@ void jit_init(void)
 	/* Make sure that the thread subsystem is initialized */
 	_jit_thread_init();
 
+#ifdef JIT_USE_SIGNALS
+	/* Initialize the signal handlers */
+	_jit_signal_init();
+#endif
+
 	/* Initialize the backend */
 	_jit_init_backend();
 }
