@@ -108,6 +108,12 @@ void _jit_init_backend(void) {
 	/* Nothing to do here */;
 }
 
+#define TODO()          \
+        do { \
+                fprintf(stderr, "TODO at %s, %d\n", __FILE__, (int)__LINE__); \
+        } while (0)
+
+
 /*
  * Get the ELF machine and ABI type information for this platform. The 
  * machine field should be set to one of the EM_* values in 
@@ -198,7 +204,7 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func) {
 		alpha_inst code = (alpha_inst) fixup;
 		next     = (void **)(fixup[0]);
 
-		_alpha_li64(code,ALPHA_AT,inst);
+		_alpha_li64(code,ALPHA_AT,(long int)inst);
 		alpha_jmp(code,ALPHA_ZERO,ALPHA_AT,1);
 
 		fixup    = next;
@@ -293,7 +299,7 @@ int _jit_create_call_return_insns(jit_function_t func, jit_type_t signature, jit
  * stack location for a subsequent indirect call.
  */
 int _jit_setup_indirect_pointer(jit_function_t func, jit_value_t value) {
-	/* NOT IMPLEMENTED YET */
+	TODO();
 	return 0;
 }
 
@@ -301,14 +307,14 @@ int _jit_setup_indirect_pointer(jit_function_t func, jit_value_t value) {
  * TODO: write what this function is supposed to do
  */
 void _jit_gen_spill_top(jit_gencode_t gen, int reg, jit_value_t value, int pop) {
-	/* NOT IMPLEMENTED YET */;
+	TODO();
 }
 
 /*
  * TODO: write what this function is supposed to do
  */
 void _jit_gen_spill_global(jit_gencode_t gen, int reg, jit_value_t value) {
-	/* NOT IMPLEMENTED YET */;
+	TODO();
 }
 
 /*
@@ -427,7 +433,7 @@ void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block) {
 		alpha_inst code = (alpha_inst) fixup;
 		next     = (void **)(fixup[0]);
 
-		_alpha_li64(code,ALPHA_AT,(gen->posn.ptr));
+		_alpha_li64(code,ALPHA_AT,(long int)(gen->posn.ptr));
 		alpha_jmp(code,ALPHA_ZERO,ALPHA_AT,1);
 
 		fixup    = next;
@@ -533,11 +539,7 @@ void _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t 
 }
 
 void _jit_gen_load_global(jit_gencode_t gen, int reg, jit_value_t value) {
-/*
-	NOT IMPLEMENTED YET!
-	jit_cache_setup_output();
-	jit_cache_end_output();
-*/
+	TODO();
 }
 
 
@@ -548,8 +550,20 @@ void _jit_gen_load_global(jit_gencode_t gen, int reg, jit_value_t value) {
  * version after recompilation.
  */
 void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func) {
-	/* NOT IMPLEMENTED YET */
-	return NULL;
+	void *ptr, *entry;
+	alpha_inst inst = (alpha_inst) gen->posn.ptr;
+
+	if (!jit_cache_check_for_n(&(gen->posn), 8*6)) {
+		jit_cache_mark_full(&(gen->posn));
+		return NULL;
+	}
+
+	ptr = (void *)&(func->entry_point);
+	entry = gen->posn.ptr;
+
+	alpha_call(inst, ptr);
+
+	return entry;
 }
 
 /*
@@ -574,7 +588,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func, jit_block_t block, ji
  * TODO: write what this function is supposed to do
  */
 void _jit_gen_exch_top(jit_gencode_t gen, int reg, int pop) {
-	/* NOT IMPLEMENTED YET */;
+	TODO();
 }
 
 void _jit_gen_fix_value(jit_value_t value) {

@@ -1,3 +1,10 @@
+2006-08-15  Thomas Cort  <linuxgeek@gmail.com>
+	* jit/jit-rules-alpha.c jit/jit-rules-alpha.h jit/jit-rules-alpha.ins
+	Add a TODO() macro to print unimplemented warnings. Fix some 
+	casting warnings. Implement _jit_gen_redirector(...). Fix
+	JIT_CDECL_WORD_REG_PARAMS to use the correct parameter 
+	registers. Add some stack push and pop instructions.
+
 2006-08-15  Kirill Kononenko  <Kirill.Kononenko@gmail.com>
 
 	* configure.in: add --enable-signals option;

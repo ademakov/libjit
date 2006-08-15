@@ -198,10 +198,10 @@ extern	"C" {
 /*
  * Parameter passing rules.
  */
-#define JIT_CDECL_WORD_REG_PARAMS	{9,10,11,12,13,14,-1}
+#define JIT_CDECL_WORD_REG_PARAMS	{16,17,18,19,20,21,-1}
 #define JIT_MAX_WORD_REG_PARAMS		6
-#define JIT_INITIAL_STACK_OFFSET	0
-#define JIT_INITIAL_FRAME_SIZE 		(14*8)
+#define JIT_INITIAL_STACK_OFFSET	(14*8)
+#define JIT_INITIAL_FRAME_SIZE 		(sizeof(void*))
 
 #ifdef	__cplusplus
 };

@@ -402,3 +402,38 @@ JIT_OP_CALL_EXTERNAL:
 		alpha_call(inst, (insn->dest));
 	}
 
+/*
+ * Stack pushes and pops.
+ */
+
+JIT_OP_RETURN_REG: manual
+        [] -> {
+		/* Nothing to do here */;
+	}
+
+JIT_OP_PUSH_INT: unary_note
+	[imm] -> {
+		alpha_li(inst,ALPHA_AT,$1);
+		alpha_stq(inst,ALPHA_AT,ALPHA_SP,0);
+		alpha_lda(inst,ALPHA_SP,ALPHA_SP,-8);
+	}
+	[reg] -> {
+		alpha_stq(inst,$1,ALPHA_SP,0);
+		alpha_lda(inst,ALPHA_SP,ALPHA_SP,-8);
+	}
+
+JIT_OP_PUSH_LONG: unary_note
+	[imm] -> {
+		alpha_li(inst,ALPHA_AT,$1);
+		alpha_stq(inst,ALPHA_AT,ALPHA_SP,0);
+		alpha_lda(inst,ALPHA_SP,ALPHA_SP,-8);
+	}
+	[reg] -> {
+		alpha_stq(inst,$1,ALPHA_SP,0);
+		alpha_lda(inst,ALPHA_SP,ALPHA_SP,-8);
+	}
+
+JIT_OP_POP_STACK:
+	[] -> {
+		alpha_lda(inst,ALPHA_SP,ALPHA_SP,insn->value1->address);
+	}
