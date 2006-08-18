@@ -1,3 +1,9 @@
+2006-08-19  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.c (set_regdesc_flags): fix a problem with the
+	clobber	flag being ignored. The problem was introduced by the patch
+	from 2006-06-17.
+
 2006-08-15  Thomas Cort  <linuxgeek@gmail.com>
 	* jit/jit-rules-alpha.c jit/jit-rules-alpha.h jit/jit-rules-alpha.ins
 	Add a TODO() macro to print unimplemented warnings. Fix some 

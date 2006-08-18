@@ -2165,8 +2165,8 @@ static int
 set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 {
   	_jit_regdesc_t *desc;
-	int reg, other_reg;
-	int clobber, stack_start;
+	int reg, other_reg, stack_start;
+	int clobber, clobber_input;
 
 #ifdef JIT_REG_DEBUG
 	printf("set_regdesc_flags(index = %d)\n", index);
@@ -2199,6 +2199,18 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 
 	/* See if the value clobbers the register it is assigned to. */
 	clobber = clobbers_register(gen, regs, index, desc->reg, desc->other_reg);
+	if(jit_reg_is_used(regs->clobber, desc->reg))
+	{
+		clobber_input = 1;
+	}
+	else if(desc->other_reg >= 0 && jit_reg_is_used(regs->clobber, desc->other_reg))
+	{
+		clobber_input = 1;
+	}
+	else
+	{
+		clobber_input = (clobber & CLOBBER_INPUT_VALUE) != 0;
+	}
 	if((clobber & CLOBBER_REG) != 0)
 	{
 		jit_reg_set_used(regs->clobber, desc->reg);
@@ -2235,7 +2247,7 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 				{
 					if(desc->value != regs->descs[0].value)
 					{
-	   					clobber |= CLOBBER_INPUT_VALUE;
+	   					clobber_input = 1;
 					}
 				}
 			}
@@ -2305,7 +2317,7 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 		{
 			if(desc->used)
 			{
-				if(!desc->copy && (clobber & CLOBBER_INPUT_VALUE) != 0)
+				if(!desc->copy && clobber_input)
 				{
 					desc->save = 1;
 					desc->kill = 1;
@@ -2324,7 +2336,7 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 		{
 			if(desc->used)
 			{
-				if((clobber & CLOBBER_INPUT_VALUE) != 0)
+				if(clobber_input)
 				{
 					desc->kill = 1;
 				}
