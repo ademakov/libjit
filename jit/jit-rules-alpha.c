@@ -147,31 +147,13 @@ void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf) {
         alpha_lda( inst,ALPHA_GP,ALPHA_GP,0);
 
 	/* Allocate space for a new stack frame. (1 instruction) */
-	alpha_lda(inst,ALPHA_SP,ALPHA_SP,-(16*8));
+	alpha_lda(inst,ALPHA_SP,ALPHA_SP,-(2*8));
 
 	/* Save the return address. (1 instruction) */
 	alpha_stq(inst,ALPHA_RA,ALPHA_SP,0*8);
 
 	/* Save the frame pointer. (1 instruction) */
 	alpha_stq(inst,ALPHA_FP,ALPHA_SP,1*8);
-
-	/* Save the integer save registers (6 instructions) */
-	alpha_stq(inst,ALPHA_S0,ALPHA_SP,2*8);
-	alpha_stq(inst,ALPHA_S1,ALPHA_SP,3*8);
-	alpha_stq(inst,ALPHA_S2,ALPHA_SP,4*8);
-	alpha_stq(inst,ALPHA_S3,ALPHA_SP,5*8);
-	alpha_stq(inst,ALPHA_S4,ALPHA_SP,6*8);
-	alpha_stq(inst,ALPHA_S5,ALPHA_SP,7*8);
-
-	/* Save the floating point save registers (8 instructions) */
-	alpha_stt(inst,ALPHA_FS0,ALPHA_SP, 8*8);
-	alpha_stt(inst,ALPHA_FS1,ALPHA_SP, 9*8);
-	alpha_stt(inst,ALPHA_FS2,ALPHA_SP,10*8);
-	alpha_stt(inst,ALPHA_FS3,ALPHA_SP,11*8);
-	alpha_stt(inst,ALPHA_FS4,ALPHA_SP,12*8);
-	alpha_stt(inst,ALPHA_FS5,ALPHA_SP,13*8);
-	alpha_stt(inst,ALPHA_FS6,ALPHA_SP,14*8);
-	alpha_stt(inst,ALPHA_FS7,ALPHA_SP,15*8);
 
 	/* Set the frame pointer (1 instruction) */
 	alpha_mov(inst,ALPHA_SP,ALPHA_FP);
@@ -218,24 +200,6 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func) {
 
 	/* Restore the frame pointer. (1 instruction) */
 	alpha_ldq(inst,ALPHA_FP,ALPHA_SP,1*8);
-
-	/* Restore the integer save registers (6 instructions) */
-	alpha_ldq(inst,ALPHA_S0,ALPHA_SP,2*8);
-	alpha_ldq(inst,ALPHA_S1,ALPHA_SP,3*8);
-	alpha_ldq(inst,ALPHA_S2,ALPHA_SP,4*8);
-	alpha_ldq(inst,ALPHA_S3,ALPHA_SP,5*8);
-	alpha_ldq(inst,ALPHA_S4,ALPHA_SP,6*8);
-	alpha_ldq(inst,ALPHA_S5,ALPHA_SP,7*8);
-
-	/* Restore the floating point save registers (8 instructions) */
-	alpha_ldt(inst,ALPHA_FS0,ALPHA_SP, 8*8);
-	alpha_ldt(inst,ALPHA_FS1,ALPHA_SP, 9*8);
-	alpha_ldt(inst,ALPHA_FS2,ALPHA_SP,10*8);
-	alpha_ldt(inst,ALPHA_FS3,ALPHA_SP,11*8);
-	alpha_ldt(inst,ALPHA_FS4,ALPHA_SP,12*8);
-	alpha_ldt(inst,ALPHA_FS5,ALPHA_SP,13*8);
-	alpha_ldt(inst,ALPHA_FS6,ALPHA_SP,14*8);
-	alpha_ldt(inst,ALPHA_FS7,ALPHA_SP,15*8);
 
 	/* Restore the stack pointer (1 instruction) */
 	alpha_lda(inst,ALPHA_SP,ALPHA_SP,16*8);

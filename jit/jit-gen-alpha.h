@@ -500,6 +500,19 @@ void jump_to_epilog(jit_gencode_t, alpha_inst, jit_block_t);
 #define alpha_subqv(inst,sreg0,sreg1,dreg)	alpha_encode_regops(inst,ALPHA_OP_SUBQV,ALPHA_FUNC_SUBQV,sreg0,sreg1,dreg)
 #define alpha_cmple(inst,sreg0,sreg1,dreg)	alpha_encode_regops(inst,ALPHA_OP_CMPLE,ALPHA_FUNC_CMPLE,sreg0,sreg1,dreg)
 
+/*
+ * pseudo comparison operations
+ *
+ * Alpha doesn't have all possible comparison opcodes. For example, we
+ * have cmple for A <= B, but no cmpge for A >= B. So we make cmpge by 
+ * using cmple with the operands switched. Example, A >= B becomes B <= A
+ */
+#define alpha_cmpble(inst,sreg0,sreg1,dreg)	alpha_encode_regops(inst,ALPHA_OP_CMPBGE,ALPHA_FUNC_CMPBGE,sreg1,sreg0,dreg)
+#define alpha_cmpugt(inst,sreg0,sreg1,dreg)	alpha_encode_regops(inst,ALPHA_OP_CMPULT,ALPHA_FUNC_CMPULT,sreg1,sreg0,dreg)
+#define alpha_cmpuge(inst,sreg0,sreg1,dreg)	alpha_encode_regops(inst,ALPHA_OP_CMPULE,ALPHA_FUNC_CMPULE,sreg1,sreg0,dreg)
+#define alpha_cmpgt(inst,sreg0,sreg1,dreg)	alpha_encode_regops(inst,ALPHA_OP_CMPLT,ALPHA_FUNC_CMPLT,sreg1,sreg0,dreg)
+#define alpha_cmpge(inst,sreg0,sreg1,dreg)	alpha_encode_regops(inst,ALPHA_OP_CMPLE,ALPHA_FUNC_CMPLE,sreg1,sreg0,dreg)
+
 /* bitwise / move operations */
 #define alpha_and(inst,sreg0,sreg1,dreg)	alpha_encode_regops(inst,ALPHA_OP_AND,ALPHA_FUNC_AND,sreg0,sreg1,dreg)
 #define alpha_bic(inst,sreg0,sreg1,dreg)	alpha_encode_regops(inst,ALPHA_OP_BIC,ALPHA_FUNC_BIC,sreg0,sreg1,dreg)

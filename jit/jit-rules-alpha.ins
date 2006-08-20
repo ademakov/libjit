@@ -307,9 +307,41 @@ JIT_OP_BR_ILE_UN: binary_branch
 		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
 	}
 
+JIT_OP_BR_IGT:
+	[reg, reg] -> {
+		/* $1 <= $2 -> $at */
+		alpha_cmpgt(inst, $1, $2, ALPHA_AT);
 
-/* TODO: JIT_OP_BR_IGT JIT_OP_BR_IGT_UN */
-/* TODO: JIT_OP_BR_IGE JIT_OP_BR_IGE_UN */
+		/* branch if $at == 1 */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
+	}
+
+JIT_OP_BR_IGT_UN:
+	[reg, reg] -> {
+		/* $1 > $2 -> $at */
+		alpha_cmpugt(inst, $1, $2, ALPHA_AT);
+
+		/* branch if $at == 1 */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
+	}
+
+JIT_OP_BR_IGE:
+	[reg, reg] -> {
+		/* $1 >= $2 -> $at */
+		alpha_cmpge(inst, $1, $2, ALPHA_AT);
+
+		/* branch if $at == 1 */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
+	}
+
+JIT_OP_BR_IGE_UN:
+	[reg, reg] -> {
+		/* $1 >= $2 -> $at */
+		alpha_cmpuge(inst, $1, $2, ALPHA_AT);
+
+		/* branch if $at == 1 */
+		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
+	}
 
 
 /*

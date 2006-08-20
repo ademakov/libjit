@@ -153,7 +153,7 @@ extern	"C" {
  * The maximum number of bytes to allocate for the prolog.
  * This may be shortened once we know the true prolog size.
  */
-#define JIT_PROLOG_SIZE			(21 /* instructions */ * 4 /* bytes per instruction */)
+#define JIT_PROLOG_SIZE			(7 /* instructions */ * 4 /* bytes per instruction */)
 
 /*
  * Preferred alignment for the start of functions.

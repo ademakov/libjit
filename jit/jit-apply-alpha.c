@@ -27,17 +27,17 @@
 void _jit_create_closure(unsigned char *buf, void *func, void *closure, void *_type) {
 	alpha_inst inst = (alpha_inst) buf;
 
-	/* Compute and load the global pointer */
+	/* Compute and load the global pointer (2 instructions) */
 	alpha_ldah(inst,ALPHA_GP,ALPHA_PV,0);
 	alpha_lda( inst,ALPHA_GP,ALPHA_GP,0);
 
-	/* Allocate space for a new stack frame. */
+	/* Allocate space for a new stack frame. (1 instruction) */
 	alpha_lda(inst,ALPHA_SP,ALPHA_SP,-(13*8));
 
-	/* Save the return address. */
+	/* Save the return address. (1 instruction) */
 	alpha_stq(inst,ALPHA_RA,ALPHA_SP,0*8);
 
-	/* Save integer register arguments as local variables */
+	/* Save integer register arguments as local variables (6 instructions) */
 	alpha_stq(inst,ALPHA_A0,ALPHA_SP,1*8);
 	alpha_stq(inst,ALPHA_A1,ALPHA_SP,2*8);
 	alpha_stq(inst,ALPHA_A2,ALPHA_SP,3*8);
@@ -45,7 +45,7 @@ void _jit_create_closure(unsigned char *buf, void *func, void *closure, void *_t
 	alpha_stq(inst,ALPHA_A4,ALPHA_SP,5*8);
 	alpha_stq(inst,ALPHA_A5,ALPHA_SP,6*8);
 
-	/* Save floating-point register arguments as local variables */
+	/* Save floating-point register arguments as local variables (8 instructions) */
 	alpha_stt(inst,ALPHA_FA0,ALPHA_SP, 7*8);
 	alpha_stt(inst,ALPHA_FA1,ALPHA_SP, 8*8);
 	alpha_stt(inst,ALPHA_FA2,ALPHA_SP, 9*8);
@@ -53,13 +53,13 @@ void _jit_create_closure(unsigned char *buf, void *func, void *closure, void *_t
 	alpha_stt(inst,ALPHA_FA4,ALPHA_SP,11*8);
 	alpha_stt(inst,ALPHA_FA5,ALPHA_SP,12*8);
 
-	/* Call the closure handling function */
+	/* Call the closure handling function (1 instruction) */
 	alpha_call(inst,func);
 
-	/* Restore the return address */
+	/* Restore the return address (1 instruction) */
 	alpha_ldq(inst,ALPHA_RA,ALPHA_SP,0*8);
 
-	/* Restore integer register arguments */
+	/* Restore integer register arguments (6 instructions) */
 	alpha_ldq(inst,ALPHA_A0,ALPHA_SP,1*8);
 	alpha_ldq(inst,ALPHA_A1,ALPHA_SP,2*8);
 	alpha_ldq(inst,ALPHA_A2,ALPHA_SP,3*8);
@@ -67,7 +67,7 @@ void _jit_create_closure(unsigned char *buf, void *func, void *closure, void *_t
 	alpha_ldq(inst,ALPHA_A4,ALPHA_SP,5*8);
 	alpha_ldq(inst,ALPHA_A5,ALPHA_SP,6*8);
 
-	/* Restore floating-point register arguments */
+	/* Restore floating-point register arguments (8 instructions) */
 	alpha_ldt(inst,ALPHA_FA0,ALPHA_SP, 7*8);
 	alpha_ldt(inst,ALPHA_FA1,ALPHA_SP, 8*8);
 	alpha_ldt(inst,ALPHA_FA2,ALPHA_SP, 9*8);
@@ -75,7 +75,7 @@ void _jit_create_closure(unsigned char *buf, void *func, void *closure, void *_t
 	alpha_ldt(inst,ALPHA_FA4,ALPHA_SP,11*8);
 	alpha_ldt(inst,ALPHA_FA5,ALPHA_SP,12*8);
 
-	/* restore the stack pointer */
+	/* restore the stack pointer (1 instruction) */
 	alpha_lda(inst,ALPHA_SP,ALPHA_SP,(13*8));
 }
 
@@ -112,62 +112,15 @@ void *_jit_create_redirector(unsigned char *buf, void *func, void *user_data, in
 	/* Set the frame pointer (1 instruction) */
 	alpha_mov(inst,ALPHA_SP,ALPHA_FP);
 
-	/* Force any pending hardware exceptions to be raised. (1 instruction) */
-	alpha_trapb(inst);
-
-	/* Compute and load the global pointer */
+	/* Compute and load the global pointer (2 instructions) */
 	alpha_ldah(inst,ALPHA_GP,ALPHA_PV,0);
 	alpha_lda( inst,ALPHA_GP,ALPHA_GP,0);
 
-	/* Allocate space for a new stack frame. */
-	alpha_lda(inst,ALPHA_SP,ALPHA_SP,-(13*8));
+	/* Force any pending hardware exceptions to be raised. (1 instruction) */
+	alpha_trapb(inst);
 
-	/* Save the return address. */
-	alpha_stq(inst,ALPHA_RA,ALPHA_SP,0*8);
-
-	/* Save integer register arguments as local variables */
-	alpha_stq(inst,ALPHA_A0,ALPHA_SP,1*8);
-	alpha_stq(inst,ALPHA_A1,ALPHA_SP,2*8);
-	alpha_stq(inst,ALPHA_A2,ALPHA_SP,3*8);
-	alpha_stq(inst,ALPHA_A3,ALPHA_SP,4*8);
-	alpha_stq(inst,ALPHA_A4,ALPHA_SP,5*8);
-	alpha_stq(inst,ALPHA_A5,ALPHA_SP,6*8);
-
-	/* Save floating-point register arguments as local variables */
-	alpha_stt(inst,ALPHA_FA0,ALPHA_SP, 7*8);
-	alpha_stt(inst,ALPHA_FA1,ALPHA_SP, 8*8);
-	alpha_stt(inst,ALPHA_FA2,ALPHA_SP, 9*8);
-	alpha_stt(inst,ALPHA_FA3,ALPHA_SP,10*8);
-	alpha_stt(inst,ALPHA_FA4,ALPHA_SP,11*8);
-	alpha_stt(inst,ALPHA_FA5,ALPHA_SP,12*8);
-
-	/* Call the redirector handling function */
+	/* Call the redirector handling function (1 instruction) */
 	alpha_call(inst, func);
-
-	/* Restore the return address */
-	alpha_ldq(inst,ALPHA_RA,ALPHA_SP,0*8);
-
-	/* Restore integer register arguments */
-	alpha_ldq(inst,ALPHA_A0,ALPHA_SP,1*8);
-	alpha_ldq(inst,ALPHA_A1,ALPHA_SP,2*8);
-	alpha_ldq(inst,ALPHA_A2,ALPHA_SP,3*8);
-	alpha_ldq(inst,ALPHA_A3,ALPHA_SP,4*8);
-	alpha_ldq(inst,ALPHA_A4,ALPHA_SP,5*8);
-	alpha_ldq(inst,ALPHA_A5,ALPHA_SP,6*8);
-
-	/* Restore floating-point register arguments */
-	alpha_ldt(inst,ALPHA_FA0,ALPHA_SP, 7*8);
-	alpha_ldt(inst,ALPHA_FA1,ALPHA_SP, 8*8);
-	alpha_ldt(inst,ALPHA_FA2,ALPHA_SP, 9*8);
-	alpha_ldt(inst,ALPHA_FA3,ALPHA_SP,10*8);
-	alpha_ldt(inst,ALPHA_FA4,ALPHA_SP,11*8);
-	alpha_ldt(inst,ALPHA_FA5,ALPHA_SP,12*8);
-
-	/* restore the stack pointer */
-	alpha_lda(inst,ALPHA_SP,ALPHA_SP,(13*8));
-
-	/* Set the stack pointer */
-	alpha_mov(inst,ALPHA_FP,ALPHA_SP);
 
 	/* Restore the return address. (1 instruction) */
 	alpha_ldq(inst,ALPHA_RA,ALPHA_SP,0*8);
@@ -199,7 +152,7 @@ void *_jit_create_redirector(unsigned char *buf, void *func, void *user_data, in
 	/* Force any pending hardware exceptions to be raised. (1 instruction) */
 	alpha_trapb(inst);
 
-	/* Jump to the function that the redirector indicated */
+	/* Jump to the function that the redirector indicated (1 instruction) */
 	alpha_jsr(inst,ALPHA_RA,ALPHA_V0,1);
 
 	/* Return the start of the buffer as the redirector entry point */

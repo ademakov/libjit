@@ -25,14 +25,14 @@
  * The maximum number of bytes that are needed to represent a closure,
  * and the alignment to use for the closure.
  */
-#define jit_closure_size                (32 /* instructions */ * 4 /* bytes per instruction */)
+#define jit_closure_size                (35 /* instructions */ * 4 /* bytes per instruction */)
 #define jit_closure_align 		32
 
 /*
  * The number of bytes that are needed for a redirector stub.
  * This includes any extra bytes that are needed for alignment.
  */
-#define jit_redirector_size             (100 /* instructions */ * 4 /* bytes per instruction */)
+#define jit_redirector_size             (41 /* instructions */ * 4 /* bytes per instruction */)
 
 /*
  * We should pad unused code space with NOP's.

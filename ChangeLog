@@ -1,3 +1,10 @@
+2006-08-20  Thomas Cort  <linuxgeek@gmail.com>
+
+	* jit/jit-apply-alpha.c jit/jit-apply-alpha.h jit/jit-rules-alpha.h
+	jit/jit-rules-alpha.ins jit/jit-rules-alpha.c jit/jit-gen-alpha.h:
+	Remove unnecessary code from the prolog, epilog, redirector, and
+	closure. Implement > and >= opcodes for signed and unsigned values.
+
 2006-08-19  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c (set_regdesc_flags): fix a problem with the
