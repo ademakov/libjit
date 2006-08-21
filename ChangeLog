@@ -1,3 +1,7 @@
+2006-08-21  Thomas Cort  <linuxgeek@gmail.com>
+	* jit/jit-rules-alpha.c jit/jit-gen-alpha.h: Add macros for
+	int to fp and fp to int conversions. Use _jit_pad_bufer.
+
 2006-08-20  Thomas Cort  <linuxgeek@gmail.com>
 
 	* jit/jit-apply-alpha.c jit/jit-apply-alpha.h jit/jit-rules-alpha.h

@@ -586,12 +586,7 @@ void alpha_output_branch(jit_function_t func, alpha_inst inst, int opcode, jit_i
 		*addr = (long) block->fixup_list;
 		inst++; inst++;
 
-		alpha_nop(inst);
-		alpha_nop(inst);
-		alpha_nop(inst);
-		alpha_nop(inst);
-		alpha_nop(inst);
-		alpha_nop(inst);
+		_jit_pad_buffer((char*)inst,6);
 	}
 }
 
@@ -630,12 +625,7 @@ void jump_to_epilog(jit_gencode_t gen, alpha_inst inst, jit_block_t block) {
 	*addr = (long) gen->epilog_fixup;
 	inst++; inst++;
 
-	alpha_nop(inst);
-	alpha_nop(inst);
-	alpha_nop(inst);
-	alpha_nop(inst);
-	alpha_nop(inst);
-	alpha_nop(inst);	/* to be overwritten later with jmp */
+	_jit_pad_buffer((char*)inst,6); /* to be overwritten later with jmp */
 
 	(gen)->posn.ptr = (char*) inst;
 }

@@ -157,6 +157,7 @@ void jump_to_epilog(jit_gencode_t, alpha_inst, jit_block_t);
 #define ALPHA_LIT_SHIFT		0x0d
 
 #define ALPHA_FUNC_MASK		0x7f
+#define ALPHA_FP_FUNC_MASK	0x7ff
 #define ALPHA_FUNC_SHIFT	0x5
 
 #define ALPHA_FUNC_MEM_BRANCH_MASK	0x3
@@ -254,11 +255,16 @@ void jump_to_epilog(jit_gencode_t, alpha_inst, jit_block_t);
 #define ALPHA_OP_UMULH		0x13
 #define ALPHA_OP_MULLV		0x13
 #define ALPHA_OP_MULLQV		0x13
+#define ALPHA_OP_ITOFS		0x14
+#define ALPHA_OP_ITOFF		0x14
+#define ALPHA_OP_ITOFT		0x14
 #define ALPHA_OP_TRAPB		0x18
 #define ALPHA_OP_JMP		0x1a
 #define ALPHA_OP_JSR		0x1a
 #define ALPHA_OP_RET		0x1a
 #define ALPHA_OP_JSRCO		0x1a
+#define ALPHA_OP_FTOIT		0x1c
+#define ALPHA_OP_FTOIS		0x1c
 #define ALPHA_OP_LDF		0x20
 #define ALPHA_OP_LDG		0x21
 #define ALPHA_OP_LDS		0x22
@@ -379,6 +385,11 @@ void jump_to_epilog(jit_gencode_t, alpha_inst, jit_block_t);
 #define ALPHA_FUNC_MULLV	0x40
 #define ALPHA_FUNC_MULQV	0x60
 
+/* integer to floating point operations -- use with ALPHA_OP_* == 0x14 */
+#define ALPHA_FUNC_ITOFS	0x4
+#define ALPHA_FUNC_ITOFF	0x14
+#define ALPHA_FUNC_ITOFT	0x24
+
 /* trap barrier -- use with ALPHA_OP_* == 0x18 */
 #define ALPHA_FUNC_TRAPB	0x0
 
@@ -388,6 +399,9 @@ void jump_to_epilog(jit_gencode_t, alpha_inst, jit_block_t);
 #define ALPHA_FUNC_RET		0x2
 #define ALPHA_FUNC_JSRCO	0x3
 
+/* floating point to integer operations -- use with ALPHA_OP_* == 0x1c */
+#define ALPHA_FUNC_FTOIT	0x70
+#define ALPHA_FUNC_FTOIS	0x78
 
 /* encode registers */
 #define alpha_encode_reg_a(reg) \
@@ -411,6 +425,9 @@ void jump_to_epilog(jit_gencode_t, alpha_inst, jit_block_t);
 #define alpha_encode_func(func) \
 	((func & ALPHA_FUNC_MASK) << ALPHA_FUNC_SHIFT)
 
+#define alpha_encode_fp_func(func) \
+	((func & ALPHA_FP_FUNC_MASK) << ALPHA_FUNC_SHIFT)
+
 #define alpha_encode_func_mem_branch(func,hint) \
 	(((func & ALPHA_FUNC_MEM_BRANCH_MASK) << ALPHA_FUNC_MEM_BRANCH_SHIFT) | \
 		(hint & ALPHA_HINT_MASK))
@@ -427,6 +444,11 @@ void jump_to_epilog(jit_gencode_t, alpha_inst, jit_block_t);
 	*(inst)++ = (alpha_encode_op(op) | alpha_encode_reg_a(sreg0) | \
 		alpha_encode_reg_b(sreg1)| alpha_encode_reg_c(dreg)  | \
 		alpha_encode_func(func))
+
+#define alpha_encode_fpops(inst,op,func,sreg0,sreg1,dreg) \
+	*(inst)++ = (alpha_encode_op(op) | alpha_encode_reg_a(sreg0) | \
+		alpha_encode_reg_b(sreg1)| alpha_encode_reg_c(dreg)  | \
+		alpha_encode_fp_func(func))
 
 #define alpha_encode_mem_branch(inst,op,func,dreg,sreg,hint) \
 	*(inst)++ = (alpha_encode_op(op) | alpha_encode_reg_a(dreg) | \
@@ -621,10 +643,15 @@ void jump_to_epilog(jit_gencode_t, alpha_inst, jit_block_t);
 #define alpha_bge(inst,reg,offset)		alpha_encode_branch(inst,ALPHA_OP_BGE,reg,offset)
 #define alpha_bgt(inst,reg,offset)		alpha_encode_branch(inst,ALPHA_OP_BGT,reg,offset)
 
-/*
- * load immediate pseudo instruction.
- */
+/* Floating point conversion instructions */
+#define alpha_ftoit(inst,fsreg,dreg)		alpha_encode_fpop(inst,ALPHA_OP_FTOIT,ALPHA_FUNC_FTOIT,fsreg,ALPHA_ZERO,dreg)
+#define alpha_ftois(inst,fsreg,dreg)		alpha_encode_fpop(inst,ALPHA_OP_FTOIS,ALPHA_FUNC_FTOIS,fsreg,ALPHA_ZERO,dreg)
 
+#define alpha_itofs(inst,sreg,fdreg)		alpha_encode_fpop(inst,ALPHA_OP_ITOFS,ALPHA_FUNC_ITOFS,sreg,ALPHA_ZERO,fdreg)
+#define alpha_itoff(inst,sreg,fdreg)		alpha_encode_fpop(inst,ALPHA_OP_ITOFF,ALPHA_FUNC_ITOFF,sreg,ALPHA_ZERO,fdreg)
+#define alpha_itoft(inst,sreg,fdreg)		alpha_encode_fpop(inst,ALPHA_OP_ITOFT,ALPHA_FUNC_ITOFT,sreg,ALPHA_ZERO,fdreg)
+
+/* load immediate pseudo instruction. */
 #define _alpha_li64(code,dreg,val)				\
 do {								\
 	unsigned long c1 = val;					\
