@@ -40,6 +40,21 @@
 	#include <windows.h>
 	#include <io.h>
 #endif
+#if defined(HAVE_SYS_MMAN_H) && defined(HAVE_MMAP) && defined(HAVE_MUNMAP)
+/*
+ * Make sure that "MAP_ANONYMOUS" is correctly defined, because it
+ * may not exist on some variants of Unix.
+ */
+#ifndef MAP_ANONYMOUS
+    #ifdef MAP_ANON
+        #define MAP_ANONYMOUS        MAP_ANON
+    #endif
+#endif
+#ifdef MAP_ANONYMOUS
+#define JIT_USE_MMAP
+#endif
+#endif
+
 
 /*@
  * @section Memory allocation
@@ -126,7 +141,18 @@ void jit_free(void *ptr)
 @*/
 void *jit_malloc_exec(unsigned int size)
 {
+#ifdef JIT_USE_MMAP
+	void *ptr = mmap(0, size, PROT_READ | PROT_WRITE | PROT_EXEC,
+							  MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+	if(ptr == (void *)-1)
+	{
+		return (void *)0;
+	}
+	return ptr;
+#else
 	return malloc(size);
+#endif
 }
 
 /*@
@@ -141,7 +167,11 @@ void jit_free_exec(void *ptr, unsigned int size)
 {
 	if(ptr)
 	{
+	#ifdef JIT_USE_MMAP
+		munmap(ptr, size);
+	#else
 		free(ptr);
+	#endif
 	}
 }
 

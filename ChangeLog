@@ -1,3 +1,9 @@
+2006-08-22  Klaus treichel  <ktreichel@web.de>
+
+	* jit/jit-alloc.c: Use mmap and munmap to allocate executable memory
+	where available because memory allocated with malloc is not executable
+	on some archs/distros.
+
 2006-08-23  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c: improve handling of three-address op codes.
