@@ -635,12 +635,12 @@ JIT_OP_IREM: more_space
 		x86_patch(patch, inst);
 		x86_clear_reg(inst, $1);
 	}
-	[=reg("edx"), *reg("eax"), imm, scratch("?")] -> {
+	[=reg("edx"), *reg("eax"), imm, scratch("?", "edx")] -> {
 		x86_mov_reg_imm(inst, $4, $3);
 		x86_cdq(inst);
 		x86_div_reg(inst, $4, 1);
 	}
-	[=reg("edx"), *reg("eax"), reg] -> {
+	[=reg("edx"), *reg("eax"), reg, scratch("edx")] -> {
 		unsigned char *patch, *patch2;
 		x86_alu_reg_reg(inst, X86_OR, $3, $3);
 		patch = inst;
@@ -671,12 +671,12 @@ JIT_OP_IREM_UN: more_space
 		/* x & (x - 1) is equal to zero if x is a power of 2  */
 		x86_alu_reg_imm(inst, X86_AND, $1, $2 - 1);
 	}
-	[=reg("edx"), *reg("eax"), imm, scratch("?")] -> {
+	[=reg("edx"), *reg("eax"), imm, scratch("?", "edx")] -> {
 		x86_mov_reg_imm(inst, $4, $3);
 		x86_clear_reg(inst, X86_EDX);
 		x86_div_reg(inst, $4, 0);
 	}
-	[=reg("edx"), *reg("eax"), reg] -> {
+	[=reg("edx"), *reg("eax"), reg, scratch("edx")] -> {
 		unsigned char *patch;
 		x86_alu_reg_reg(inst, X86_OR, $3, $3);
 		patch = inst;
@@ -1869,58 +1869,43 @@ JIT_OP_FLUSH_SMALL_STRUCT:
  * Pointer-relative loads and stores.
  */
 
-JIT_OP_LOAD_RELATIVE_SBYTE: unary
-	[reg] -> {
-		x86_widen_membase(inst, $1, $1, insn->value2->address, 1, 0);
+JIT_OP_LOAD_RELATIVE_SBYTE:
+	[=reg, reg, imm] -> {
+		x86_widen_membase(inst, $1, $2, $3, 1, 0);
 	}
 
-JIT_OP_LOAD_RELATIVE_UBYTE: unary
-	[reg] -> {
-		x86_widen_membase(inst, $1, $1, insn->value2->address, 0, 0);
+JIT_OP_LOAD_RELATIVE_UBYTE:
+	[=reg, reg, imm] -> {
+		x86_widen_membase(inst, $1, $2, $3, 0, 0);
 	}
 
-JIT_OP_LOAD_RELATIVE_SHORT: unary
-	[reg] -> {
-		x86_widen_membase(inst, $1, $1, insn->value2->address, 1, 1);
+JIT_OP_LOAD_RELATIVE_SHORT:
+	[=reg, reg, imm] -> {
+		x86_widen_membase(inst, $1, $2, $3, 1, 1);
 	}
 
-JIT_OP_LOAD_RELATIVE_USHORT: unary
-	[reg] -> {
-		x86_widen_membase(inst, $1, $1, insn->value2->address, 0, 1);
+JIT_OP_LOAD_RELATIVE_USHORT:
+	[=reg, reg, imm] -> {
+		x86_widen_membase(inst, $1, $2, $3, 0, 1);
 	}
 
-JIT_OP_LOAD_RELATIVE_INT: unary
-	[reg] -> {
-		x86_mov_reg_membase(inst, $1, $1, insn->value2->address, 4);
+JIT_OP_LOAD_RELATIVE_INT:
+	[=reg, reg, imm] -> {
+		x86_mov_reg_membase(inst, $1, $2, $3, 4);
 	}
 
-JIT_OP_LOAD_RELATIVE_LONG: manual
-	[] -> {
-		unsigned char *inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->value1, 0,
-			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-			 				 JIT_INSN_VALUE1_LIVE)));
-		int reg2, reg3;
-		int frame_offset;
-		_jit_gen_fix_value(insn->dest);
-		_jit_regs_get_reg_pair(gen, reg, -1, -1, &reg2, &reg3);
-		reg  = _jit_reg_info[reg].cpu_reg;
-		reg2 = _jit_reg_info[reg2].cpu_reg;
-		reg3 = _jit_reg_info[reg3].cpu_reg;
-		frame_offset = insn->dest->frame_offset;
-		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
+JIT_OP_LOAD_RELATIVE_LONG:
+	[=lreg, reg, imm] -> {
+		if($1 == $2)
 		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
+			x86_mov_reg_membase(inst, %1, $2, $3 + 4, 4);
+			x86_mov_reg_membase(inst, $1, $2, $3, 4);
 		}
-		x86_mov_reg_membase(inst, reg2, reg, insn->value2->address, 4);
-		x86_mov_reg_membase(inst, reg3, reg, insn->value2->address + 4, 4);
-		x86_mov_membase_reg(inst, X86_EBP, frame_offset, reg2, 4);
-		x86_mov_membase_reg(inst, X86_EBP, frame_offset + 4, reg3, 4);
-		insn->dest->in_frame = 1;
-		gen->posn.ptr = inst;
+		else
+		{
+			x86_mov_reg_membase(inst, $1, $2, $3, 4);
+			x86_mov_reg_membase(inst, %1, $2, $3 + 4, 4);
+		}
 	}
 
 JIT_OP_LOAD_RELATIVE_FLOAT32:
@@ -2078,61 +2063,43 @@ JIT_OP_ADD_RELATIVE: unary
  * Array element loads and stores.
  */
 
-JIT_OP_LOAD_ELEMENT_SBYTE: binary
-	[reg, reg] -> {
-		x86_widen_memindex(inst, $1, $1, 0, $2, 0, 1, 0);
+JIT_OP_LOAD_ELEMENT_SBYTE:
+	[=reg, reg, reg] -> {
+		x86_widen_memindex(inst, $1, $2, 0, $3, 0, 1, 0);
 	}
 
-JIT_OP_LOAD_ELEMENT_UBYTE: binary
-	[reg, reg] -> {
-		x86_widen_memindex(inst, $1, $1, 0, $2, 0, 0, 0);
+JIT_OP_LOAD_ELEMENT_UBYTE:
+	[=reg, reg, reg] -> {
+		x86_widen_memindex(inst, $1, $2, 0, $3, 0, 0, 0);
 	}
 
-JIT_OP_LOAD_ELEMENT_SHORT: binary
-	[reg, reg] -> {
-		x86_widen_memindex(inst, $1, $1, 0, $2, 1, 1, 1);
+JIT_OP_LOAD_ELEMENT_SHORT:
+	[=reg, reg, reg] -> {
+		x86_widen_memindex(inst, $1, $2, 0, $3, 1, 1, 1);
 	}
 
-JIT_OP_LOAD_ELEMENT_USHORT: binary
-	[reg, reg] -> {
-		x86_widen_memindex(inst, $1, $1, 0, $2, 1, 0, 1);
+JIT_OP_LOAD_ELEMENT_USHORT:
+	[=reg, reg, reg] -> {
+		x86_widen_memindex(inst, $1, $2, 0, $3, 1, 0, 1);
 	}
 
-JIT_OP_LOAD_ELEMENT_INT: binary
-	[reg, reg] -> {
-		x86_mov_reg_memindex(inst, $1, $1, 0, $2, 2, 4);
+JIT_OP_LOAD_ELEMENT_INT:
+	[=reg, reg, reg] -> {
+		x86_mov_reg_memindex(inst, $1, $2, 0, $3, 2, 4);
 	}
 
-JIT_OP_LOAD_ELEMENT_LONG: manual
-	[] -> {
-		unsigned char *inst;
-		int reg, reg2, temp_reg, offset;
-		_jit_regs_force_out(gen, insn->dest, 1);
-		_jit_gen_fix_value(insn->dest);
-		reg = _jit_regs_load_value
-			(gen, insn->value1, 0,
-			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-			 				 JIT_INSN_VALUE1_LIVE)));
-		reg2 = _jit_regs_load_value
-			(gen, insn->value2, 1,
-			 (insn->flags & (JIT_INSN_VALUE2_NEXT_USE |
-			 				 JIT_INSN_VALUE2_LIVE)));
-		_jit_regs_get_reg_pair(gen, reg, reg2, -1, &temp_reg, 0);
-		offset = insn->dest->frame_offset;
-		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
+JIT_OP_LOAD_ELEMENT_LONG:
+	[=lreg, reg, reg] -> {
+		if($1 == $2 || $1 == $3)
 		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
+			x86_mov_reg_memindex(inst, %1, $2, 4, $3, 3, 4);
+			x86_mov_reg_memindex(inst, $1, $2, 0, $3, 3, 4);
 		}
-		reg = _jit_reg_info[reg].cpu_reg;
-		reg2 = _jit_reg_info[reg2].cpu_reg;
-		temp_reg = _jit_reg_info[temp_reg].cpu_reg;
-		x86_mov_reg_memindex(inst, temp_reg, reg, 0, reg2, 3, 4);
-		x86_mov_reg_memindex(inst, reg2, reg, 4, reg2, 3, 4);
-		x86_mov_membase_reg(inst, X86_EBP, offset, temp_reg, 4);
-		x86_mov_membase_reg(inst, X86_EBP, offset + 4, reg2, 4);
-		gen->posn.ptr = inst;
+		else
+		{
+			x86_mov_reg_memindex(inst, $1, $2, 0, $3, 3, 4);
+			x86_mov_reg_memindex(inst, %1, $2, 4, $3, 3, 4);
+		}
 	}
 
 JIT_OP_LOAD_ELEMENT_FLOAT32:

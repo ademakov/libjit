@@ -1,3 +1,16 @@
+2006-08-23  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.c: improve handling of three-address op codes.
+	Now the dest register may re-use one of the input registers while
+	previously it was always assigned to a separate register. Also
+	restructure the code that will be used for better selection of x87
+	instructions (this code was not used before and still is not but
+	this is about to change).
+
+	* jit/jit-rules-x86.ins: rewrite all LOAD_RELATIVE and LOAD_ELEMENT
+	ops for x86 as three-address. Adjust IREM ops so that they work
+	correctly together with the latest allocator changes.
+
 2006-08-21  Thomas Cort  <linuxgeek@gmail.com>
 	* jit/jit-rules-alpha.c jit/jit-gen-alpha.h: Add macros for
 	int to fp and fp to int conversions. Use _jit_pad_bufer.

@@ -157,6 +157,8 @@ typedef struct
 	_jit_scratch_t	scratch[_JIT_REGS_SCRATCH_MAX];
 	int		num_scratch;
 
+	int		dest_input_index;
+
 	jit_regused_t	assigned;
 	jit_regused_t	clobber;
 
@@ -164,6 +166,7 @@ typedef struct
 	int		current_stack_top;
 	int		wanted_stack_count;
 	int		loaded_stack_count;
+
 } _jit_regs_t;
 
 void _jit_regs_init(jit_gencode_t gen, _jit_regs_t *regs, int flags);
