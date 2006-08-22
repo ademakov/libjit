@@ -4,7 +4,10 @@
 	redirector and indirector fields from char array to pointer.
 	* jit/jit-function.c (jit_function_create): allocate the redirector
 	and indirector buffers in the code cache. Call jit_flush_exec on
-	these buffers.
+	these buffers. This fixes problems on alpha and some x86 linux
+	distros. [This one is based on the initial solution suggested by
+	Kirill Kononenko <Kirill.Kononenko@gmail.com>].
+
 	* jit/jit-rules-x86.c (_jit_gen_redirector): ifdef out as this
 	function is not used with the x86 backend.
 
