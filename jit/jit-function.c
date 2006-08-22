@@ -46,6 +46,9 @@
 jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
 {
 	jit_function_t func;
+#if defined(jit_redirector_size) || defined(jit_indirector_size)
+	jit_cache_t cache;
+#endif
 
 	/* Allocate memory for the function and clear it */
 	func = jit_cnew(struct _jit_function);
@@ -53,6 +56,46 @@ jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
 	{
 		return 0;
 	}
+
+#if defined(jit_redirector_size) || defined(jit_indirector_size)
+	/* TODO: if the function is destroyed the redirector and indirector memory
+	   is leaked */
+
+	/* We need the cache lock while we are allocating redirector and indirector */
+	jit_mutex_lock(&(context->cache_lock));
+
+	/* Get the method cache */
+	cache = _jit_context_get_cache(context);
+	if(!cache)
+	{
+		jit_mutex_unlock(&(context->cache_lock));
+		jit_free(func);
+		return 0;
+	}
+
+# if defined(jit_redirector_size)
+	/* Allocate redirector buffer */
+	func->redirector = _jit_cache_alloc_no_method(cache, jit_redirector_size, 1);
+	if(!func->redirector)
+	{
+		jit_mutex_unlock(&(context->cache_lock));
+		jit_free(func);
+		return 0;
+	}
+# endif
+# if defined(jit_indirector_size)
+	/* Allocate indirector buffer */
+	func->indirector = _jit_cache_alloc_no_method(cache, jit_indirector_size, 1);
+	if(!func->indirector)
+	{
+		jit_mutex_unlock(&(context->cache_lock));
+		jit_free(func);
+		return 0;
+	}
+# endif
+
+	jit_mutex_unlock(&(context->cache_lock));
+#endif
 
 	/* Initialize the function block */
 	func->context = context;
@@ -65,9 +108,11 @@ jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
 	func->entry_point = _jit_create_redirector
 		(func->redirector, (void *)_jit_function_compile_on_demand,
 		 func, jit_type_get_abi(signature));
+	jit_flush_exec(func->redirector, jit_redirector_size);
 # if defined(jit_indirector_size)
 	func->closure_entry = _jit_create_indirector
 		(func->indirector, (void**) &(func->entry_point));
+	jit_flush_exec(func->indirector, jit_indirector_size);
 # else
 	func->closure_entry = func->entry_point;
 # endif

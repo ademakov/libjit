@@ -1,10 +1,12 @@
-2006-08-22  Klaus treichel  <ktreichel@web.de>
-
-	* jit/jit-alloc.c: Use mmap and munmap to allocate executable memory
-	where available because memory allocated with malloc is not executable
-	on some archs/distros.
-
 2006-08-23  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-internal.h (struct _jit_function): change the type of
+	redirector and indirector fields from char array to pointer.
+	* jit/jit-function.c (jit_function_create): allocate the redirector
+	and indirector buffers in the code cache. Call jit_flush_exec on
+	these buffers.
+	* jit/jit-rules-x86.c (_jit_gen_redirector): ifdef out as this
+	function is not used with the x86 backend.
 
 	* jit/jit-reg-alloc.c: improve handling of three-address op codes.
 	Now the dest register may re-use one of the input registers while
@@ -16,6 +18,12 @@
 	* jit/jit-rules-x86.ins: rewrite all LOAD_RELATIVE and LOAD_ELEMENT
 	ops for x86 as three-address. Adjust IREM ops so that they work
 	correctly together with the latest allocator changes.
+
+2006-08-22  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-alloc.c: Use mmap and munmap to allocate executable memory
+	where available because memory allocated with malloc is not executable
+	on some archs/distros.
 
 2006-08-21  Thomas Cort  <linuxgeek@gmail.com>
 	* jit/jit-rules-alpha.c jit/jit-gen-alpha.h: Add macros for

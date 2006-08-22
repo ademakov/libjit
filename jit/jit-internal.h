@@ -401,13 +401,13 @@ struct _jit_function
 #ifdef jit_redirector_size
 	/* Buffer that contains the redirector for this function.
 	   Redirectors are used to support on-demand compilation */
-	unsigned char		redirector[jit_redirector_size];
+	unsigned char		*redirector;
 #endif
 #ifdef jit_indirector_size
 	/* Buffer that contains the indirector for this function.
 	   The indirector is used to jump either to the function
 	   redirector or the compiled function itself. */
-	unsigned char		indirector[jit_indirector_size];
+	unsigned char		*indirector;
 #endif
 };
 

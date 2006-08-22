@@ -377,6 +377,11 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	gen->posn.ptr = inst;
 }
 
+#if 0
+/*
+ * The x86 backend does not need this function because it uses
+ * _jit_create_indirector() instead.
+ */
 void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func)
 {
 	void *ptr, *entry;
@@ -390,6 +395,7 @@ void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func)
 	x86_jump_mem(gen->posn.ptr, ptr);
 	return entry;
 }
+#endif
 
 /*
  * Setup or teardown the x86 code output process.
