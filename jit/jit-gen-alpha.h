@@ -258,6 +258,15 @@ void jump_to_epilog(jit_gencode_t, alpha_inst, jit_block_t);
 #define ALPHA_OP_ITOFS		0x14
 #define ALPHA_OP_ITOFF		0x14
 #define ALPHA_OP_ITOFT		0x14
+#define ALPHA_OP_ADDS		0x16
+#define ALPHA_OP_SUBS		0x16
+#define ALPHA_OP_ADDT		0x16
+#define ALPHA_OP_SUBT		0x16
+#define ALPHA_OP_MULT		0x16
+#define ALPHA_OP_DIVT		0x16
+#define ALPHA_OP_CPYS		0x17
+#define ALPHA_OP_CPYSN		0x17
+#define ALPHA_OP_CPYSE		0x17
 #define ALPHA_OP_TRAPB		0x18
 #define ALPHA_OP_JMP		0x1a
 #define ALPHA_OP_JSR		0x1a
@@ -389,6 +398,19 @@ void jump_to_epilog(jit_gencode_t, alpha_inst, jit_block_t);
 #define ALPHA_FUNC_ITOFS	0x4
 #define ALPHA_FUNC_ITOFF	0x14
 #define ALPHA_FUNC_ITOFT	0x24
+
+/* floating point arithmetic operations -- use with ALPHA_OP_* == 0x16 */
+#define ALPHA_FUNC_ADDS		0x80
+#define ALPHA_FUNC_SUBS		0x81
+#define ALPHA_FUNC_ADDT		0xA0
+#define ALPHA_FUNC_SUBT		0xA1
+#define ALPHA_FUNC_MULT		0xA2
+#define ALPHA_FUNC_DIVT		0xA3
+
+/* floating point sign copy operations -- use with ALPHA_OP_* == 0x17 */
+#define ALPHA_FUNC_CPYS		0x20
+#define ALPHA_FUNC_CPYSN	0x21
+#define ALPHA_FUNC_CPYSE	0x22
 
 /* trap barrier -- use with ALPHA_OP_* == 0x18 */
 #define ALPHA_FUNC_TRAPB	0x0
@@ -650,6 +672,19 @@ void jump_to_epilog(jit_gencode_t, alpha_inst, jit_block_t);
 #define alpha_itofs(inst,sreg,fdreg)		alpha_encode_fpop(inst,ALPHA_OP_ITOFS,ALPHA_FUNC_ITOFS,sreg,ALPHA_ZERO,fdreg)
 #define alpha_itoff(inst,sreg,fdreg)		alpha_encode_fpop(inst,ALPHA_OP_ITOFF,ALPHA_FUNC_ITOFF,sreg,ALPHA_ZERO,fdreg)
 #define alpha_itoft(inst,sreg,fdreg)		alpha_encode_fpop(inst,ALPHA_OP_ITOFT,ALPHA_FUNC_ITOFT,sreg,ALPHA_ZERO,fdreg)
+
+/* Floating point arithmetic instructions */
+#define alpha_adds(inst,fsreg0,fsreg1,fdreg)	 alpha_encode_fpop(inst,ALPHA_OP_ADDS,ALPHA_FUNC_ADDS,fsreg0,fsreg1,fdreg)
+#define alpha_subs(inst,fsreg0,fsreg1,fdreg)	 alpha_encode_fpop(inst,ALPHA_OP_SUBS,ALPHA_FUNC_SUBS,fsreg0,fsreg1,fdreg)
+#define alpha_addt(inst,fsreg0,fsreg1,fdreg)	 alpha_encode_fpop(inst,ALPHA_OP_ADDT,ALPHA_FUNC_ADDT,fsreg0,fsreg1,fdreg)
+#define alpha_subt(inst,fsreg0,fsreg1,fdreg)	 alpha_encode_fpop(inst,ALPHA_OP_SUBT,ALPHA_FUNC_SUBT,fsreg0,fsreg1,fdreg)
+#define alpha_mult(inst,fsreg0,fsreg1,fdreg)	 alpha_encode_fpop(inst,ALPHA_OP_MULT,ALPHA_FUNC_MULT,fsreg0,fsreg1,fdreg)
+#define alpha_divt(inst,fsreg0,fsreg1,fdreg)	 alpha_encode_fpop(inst,ALPHA_OP_DIVT,ALPHA_FUNC_DIVT,fsreg0,fsreg1,fdreg)
+
+/* Floating point sign copy instructions */
+#define alpha_cpys(inst,fsreg0,fsreg1,fdreg)	alpha_encode_fpop(inst,ALPHA_OP_CPYS,ALPHA_FUNC_CPYS,fsreg0,fsreg1,fdreg)
+#define alpha_cpysn(inst,fsreg0,fsreg1,fdreg)	alpha_encode_fpop(inst,ALPHA_OP_CPYSN,ALPHA_FUNC_CPYSN,fsreg0,fsreg1,fdreg)
+#define alpha_cpyse(inst,fsreg0,fsreg1,fdreg)	alpha_encode_fpop(inst,ALPHA_OP_CPYSE,ALPHA_FUNC_CPYSE,fsreg0,fsreg1,fdreg)
 
 /* load immediate pseudo instruction. */
 #define _alpha_li64(code,dreg,val)				\

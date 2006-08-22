@@ -32,7 +32,7 @@
  * The number of bytes that are needed for a redirector stub.
  * This includes any extra bytes that are needed for alignment.
  */
-#define jit_redirector_size             (41 /* instructions */ * 4 /* bytes per instruction */)
+#define jit_redirector_size             (46 /* instructions */ * 4 /* bytes per instruction */)
 
 /*
  * We should pad unused code space with NOP's.

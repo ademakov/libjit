@@ -267,18 +267,17 @@ int _jit_setup_indirect_pointer(jit_function_t func, jit_value_t value) {
 	return 0;
 }
 
-/*
- * TODO: write what this function is supposed to do
- */
-void _jit_gen_spill_top(jit_gencode_t gen, int reg, jit_value_t value, int pop) {
-	TODO();
+void _jit_gen_exch_top(jit_gencode_t gen, int reg, int pop) {
+	/* not used by alpha */;
 }
 
-/*
- * TODO: write what this function is supposed to do
- */
+
+void _jit_gen_spill_top(jit_gencode_t gen, int reg, jit_value_t value, int pop) {
+	/* not used by alpha */;
+}
+
 void _jit_gen_spill_global(jit_gencode_t gen, int reg, jit_value_t value) {
-	TODO();
+	/* not used by alpha */;
 }
 
 /*
@@ -546,13 +545,6 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func, jit_block_t block, ji
 			fprintf(stderr, "TODO(%x) at %s, %d\n", (int)(insn->opcode), __FILE__, (int)__LINE__);
 			break;
 	}
-}
-
-/*
- * TODO: write what this function is supposed to do
- */
-void _jit_gen_exch_top(jit_gencode_t gen, int reg, int pop) {
-	TODO();
 }
 
 void _jit_gen_fix_value(jit_value_t value) {

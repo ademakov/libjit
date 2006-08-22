@@ -1,3 +1,12 @@
+2006-08-23  Thomas Cort  <linuxgeek@gmail.com>
+
+	* jit/jit-apply-alpha.c jit/jit-apply-alpha.h: Fix jit_redirector_size.
+	alpha_call is 6 instructions, not 1. 5 to load the addr, 1 to call.
+
+	* jit/jit-gen-alpha.h: add macros for fp sign copy and arithmetic.
+
+	* jit/jit-rules-alpha.c: remove TODO() from unused functions.
+
 2006-08-23  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-internal.h (struct _jit_function): change the type of

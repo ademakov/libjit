@@ -119,7 +119,7 @@ void *_jit_create_redirector(unsigned char *buf, void *func, void *user_data, in
 	/* Force any pending hardware exceptions to be raised. (1 instruction) */
 	alpha_trapb(inst);
 
-	/* Call the redirector handling function (1 instruction) */
+	/* Call the redirector handling function (6 instruction) */
 	alpha_call(inst, func);
 
 	/* Restore the return address. (1 instruction) */
