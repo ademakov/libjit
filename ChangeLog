@@ -1,3 +1,9 @@
+
+2006-08-28  Klaus Treichel  <ktreichel@web.de>
+
+	* dpas/Makefile.am, jit/Makefile.am, tests/Makefile.am: Add missing
+	sources to fix creation of tarballs (make dist).
+
 2006-08-25  Yan Burman  <yan_952@hotmail.com>
 
 	* jitdynamic/jit-cpp-mangle.c (mangle_type_gcc3): fix typo in

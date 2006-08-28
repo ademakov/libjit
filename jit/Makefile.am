@@ -11,9 +11,13 @@ libjit_la_SOURCES = \
 		jit-apply-arm.c \
 		jit-apply-x86.h \
 		jit-apply-x86.c \
+		jit-apply-x86-64.h \
+		jit-bitset.h \
 		jit-bitset.c \
 		jit-block.c \
+		jit-cache.h \
 		jit-cache.c \
+		jit-cfg.h \
 		jit-cfg.c \
 		jit-context.c \
 		jit-cpuid-x86.h \
@@ -32,6 +36,7 @@ libjit_la_SOURCES = \
 		jit-insn.c \
 		jit-init.c \
 		jit-internal.h \
+		jit-interp.h \
 		jit-interp.c \
 		jit-intrinsic.c \
 		jit-live.c \
@@ -52,17 +57,26 @@ libjit_la_SOURCES = \
 		jit-rules-arm.c \
 		jit-rules-x86.h \
 		jit-rules-x86.c \
+		jit-setjmp.h \
 		jit-signal.c \
 		jit-string.c \
 		jit-symbol.c \
 		jit-thread.c \
+		jit-thread.h \
 		jit-type.c \
 		jit-value.c \
 		jit-walk.c
 
+EXTRA_DIST = \
+		mklabel.sh \
+		jit-rules-alpha.ins \
+		jit-rules-arm.sel \
+		jit-rules-x86.ins \
+		jit-rules-x86.sel
+
 AM_CFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include -I. -I$(srcdir)
 
-libjit_la_LDFLAGS = -version-info $(LIBJIT_VERSION)
+libjit_la_LDFLAGS = -version-info $(LIBJIT_VERSION) -no-undefined
 
 jit-interp.lo: jit-interp-labels.h
 

@@ -8,6 +8,7 @@ dpas_SOURCES = \
 	dpas-function.c \
 	dpas-parser.y \
 	dpas-scanner.l \
+	dpas-semantics.h \
 	dpas-scope.c \
 	dpas-scope.h \
 	dpas-types.c \
