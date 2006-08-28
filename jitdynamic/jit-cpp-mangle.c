@@ -846,7 +846,7 @@ static void mangle_type_gcc3(jit_mangler_t mangler, jit_type_t type)
 			/* Will only happen if the primitive numeric type
 			   does not correspond to one of the system types */
 			jit_nuint size = jit_type_get_size(type);
-			if(is_unsigned)
+			if(is_unsigned(type))
 				add_string(mangler, "uU");
 			else
 				add_string(mangler, "uI");
