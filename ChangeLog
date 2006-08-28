@@ -1,3 +1,11 @@
+2006-08-29  Aleksey Demakov  <ademakov@gmail.com>
+
+	* include/jit/jit-opcode.h:
+	* jit/jit-opcode.c: add JIT_OPCODE_IS_JUMP_TABLE flag to mark the
+	JIT_OP_JUMP_TABLE opcode.
+
+	* jit/jit-dump.c (jit_dump_insn, dump_interp_code): add jump table
+	dumping.
 
 2006-08-28  Klaus Treichel  <ktreichel@web.de>
 

@@ -419,6 +419,22 @@ void jit_dump_insn(FILE *stream, jit_function_t func, jit_insn_t insn)
 				(long)(jit_insn_get_label(insn)));
 		return;
 	}
+	else if((flags & JIT_OPCODE_IS_JUMP_TABLE) != 0)
+	{
+		jit_label_t *labels;
+		jit_nint num_labels, label;
+		labels = (jit_label_t *)jit_value_get_nint_constant(jit_insn_get_value1(insn));
+		num_labels = jit_value_get_nint_constant(jit_insn_get_value2(insn));
+		fprintf(stream, "jump_table ");
+		dump_value(stream, func, jit_insn_get_dest(insn), flags & JIT_OPCODE_DEST_MASK);
+		printf(" : {");
+		for(label = 0; label < num_labels; label++)
+		{
+			printf(" .L%ld", (long) labels[label]);
+		}
+		printf(" }");
+		return;
+	}
 
 	/* Output the destination information */
 	if((flags & JIT_OPCODE_DEST_MASK) != JIT_OPCODE_DEST_EMPTY &&
@@ -628,6 +644,17 @@ static void dump_interp_code(FILE *stream, void **pc, void **end)
 					fprintf(stream, " 0x%lX, %ld",
 							(long)(jit_nint)(pc[1]), (long)(jit_nint)(pc[2]));
 					pc += 3;
+				}
+				else if((info->flags & JIT_OPCODE_IS_JUMP_TABLE) != 0)
+				{
+					jit_nint label, num_labels;
+					num_labels = (jit_nint)pc[0];
+					for(label = 1; label <= num_labels; label++)
+					{
+						fprintf(stream,	" %lX",
+							(long)(jit_nint)pc[label]);
+					}
+					pc += 1 + num_labels;
 				}
 			}
 			break;
