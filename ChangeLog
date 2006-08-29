@@ -1,5 +1,10 @@
 2006-08-29  Aleksey Demakov  <ademakov@gmail.com>
 
+	* jit/jit-rules.h, jit/jit-rules-alpha.c, jit/jit-rules-arm.c,
+	* jit/jit-rules-interp.c, jit/jit-rules-x86.c, jit/jit-reg-alloc.c:
+	move part of the _jit_gen_exch_top() functionality into a separate
+	_jit_gen_move_top() function.
+
 	* include/jit/jit-opcode.h:
 	* jit/jit-opcode.c: add JIT_OPCODE_IS_JUMP_TABLE flag to mark the
 	JIT_OP_JUMP_TABLE opcode.

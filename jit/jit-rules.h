@@ -200,7 +200,8 @@ void _jit_gen_load_value
 	(jit_gencode_t gen, int reg, int other_reg, jit_value_t value);
 void _jit_gen_spill_global(jit_gencode_t gen, int reg, jit_value_t value);
 void _jit_gen_load_global(jit_gencode_t gen, int reg, jit_value_t value);
-void _jit_gen_exch_top(jit_gencode_t gen, int reg, int pop);
+void _jit_gen_exch_top(jit_gencode_t gen, int reg);
+void _jit_gen_move_top(jit_gencode_t gen, int reg);
 void _jit_gen_spill_top(jit_gencode_t gen, int reg, jit_value_t value, int pop);
 void _jit_gen_fix_value(jit_value_t value);
 void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,

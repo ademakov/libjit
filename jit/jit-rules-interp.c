@@ -932,12 +932,46 @@ void _jit_gen_load_global(jit_gencode_t gen, int reg, jit_value_t value)
 	/* Global registers are not used in the interpreted back end */
 }
 
-void _jit_gen_exch_top(jit_gencode_t gen, int reg, int pop)
+/*@
+ * @deftypefun void _jit_gen_exch_top (jit_gencode_t gen, int reg)
+ * Generate instructions to exchange the contents of the top stack register
+ * with a stack register specified by the @code{reg} argument.
+ *
+ * It needs to be implemented only by backends that support stack registers.
+ * @end deftypefun
+@*/
+void _jit_gen_exch_top(jit_gencode_t gen, int reg)
 {
+	/* Stack registers are not used in the interpreted back end */
 }
 
+/*@
+ * @deftypefun void _jit_gen_move_top (jit_gencode_t gen, int reg)
+ * Generate instructions to copy the contents of the top stack register
+ * into a stack register specified by the @code{reg} argument and pop
+ * the top register after this. If @code{reg} is equal to the top register
+ * then the top register is just popped without copying it.
+ *
+ * It needs to be implemented only by backends that support stack registers.
+ * @end deftypefun
+@*/
+void _jit_gen_move_top(jit_gencode_t gen, int reg)
+{
+	/* Stack registers are not used in the interpreted back end */
+}
+
+/*@
+ * @deftypefun _jit_gen_spill_top (jit_gencode_t gen, int reg, jit_value_t value, int pop)
+ * Generate instructions to spill the top stack register to the local
+ * variable frame. The @code{pop} argument indicates if the top register
+ * is popped from the stack.
+ *
+ * It needs to be implemented only by backends that support stack registers.
+ * @end deftypefun
+@*/
 void _jit_gen_spill_top(jit_gencode_t gen, int reg, jit_value_t value, int pop)
 {
+	/* Stack registers are not used in the interpreted back end */
 }
 
 /*@

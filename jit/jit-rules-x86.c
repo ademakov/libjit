@@ -778,19 +778,23 @@ fp_stack_index(jit_gencode_t gen, int reg)
 }
 
 void
-_jit_gen_exch_top(jit_gencode_t gen, int reg, int pop)
+_jit_gen_exch_top(jit_gencode_t gen, int reg)
 {
 	if(IS_FLOAT_REG(reg))
 	{
 		jit_cache_setup_output(2);
-		if(pop)
-		{
-			x86_fstp(inst, fp_stack_index(gen, reg));
-		}
-		else
-		{
-			x86_fxch(inst, fp_stack_index(gen, reg));
-		}
+		x86_fxch(inst, fp_stack_index(gen, reg));
+		jit_cache_end_output();
+	}
+}
+
+void
+ _jit_gen_move_top(jit_gencode_t gen, int reg)
+{
+	if(IS_FLOAT_REG(reg))
+	{
+		jit_cache_setup_output(2);
+		x86_fstp(inst, fp_stack_index(gen, reg));
 		jit_cache_end_output();
 	}
 }

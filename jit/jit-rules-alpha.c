@@ -267,10 +267,13 @@ int _jit_setup_indirect_pointer(jit_function_t func, jit_value_t value) {
 	return 0;
 }
 
-void _jit_gen_exch_top(jit_gencode_t gen, int reg, int pop) {
+void _jit_gen_exch_top(jit_gencode_t gen, int reg) {
 	/* not used by alpha */;
 }
 
+void _jit_gen_move_top(jit_gencode_t gen, int reg) {
+	/* not used by alpha */;
+}
 
 void _jit_gen_spill_top(jit_gencode_t gen, int reg, jit_value_t value, int pop) {
 	/* not used by alpha */;

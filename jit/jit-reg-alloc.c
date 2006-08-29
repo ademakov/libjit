@@ -3341,11 +3341,16 @@ exch_stack_top(jit_gencode_t gen, int reg, int pop)
 	stack_start = get_stack_start(reg);
 	top = get_stack_top(gen, stack_start);
 
-	/* Generate exchange instruction. */
-	_jit_gen_exch_top(gen, reg, pop);
 	if(pop)
 	{
+		/* Generate move/pop-top instruction. */
+		_jit_gen_move_top(gen, reg);
 		remap_stack_down(gen, stack_start, top);
+	}
+	else
+	{
+		/* Generate exchange instruction. */
+		_jit_gen_exch_top(gen, reg);
 	}
 
 	/* Update information about the contents of the registers.  */

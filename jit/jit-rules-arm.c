@@ -774,7 +774,11 @@ void _jit_gen_load_global(jit_gencode_t gen, int reg, jit_value_t value)
 	jit_cache_end_output();
 }
 
-void _jit_gen_exch_top(jit_gencode_t gen, int reg, int pop)
+void _jit_gen_exch_top(jit_gencode_t gen, int reg)
+{
+}
+
+void _jit_gen_move_top(jit_gencode_t gen, int reg)
 {
 }
 
