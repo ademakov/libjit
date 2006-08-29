@@ -1,5 +1,9 @@
 2006-08-29  Aleksey Demakov  <ademakov@gmail.com>
 
+	* jit/jit-insn.c (jit_insn_return, jit_insn_return_ptr): do not pop
+	the setjmp context for the interpreter backend because it takes care
+	of this by itself.
+
 	* jit/jit-rules.h, jit/jit-rules-alpha.c, jit/jit-rules-arm.c,
 	* jit/jit-rules-interp.c, jit/jit-rules-x86.c, jit/jit-reg-alloc.c:
 	move part of the _jit_gen_exch_top() functionality into a separate

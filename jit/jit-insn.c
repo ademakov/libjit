@@ -6737,6 +6737,7 @@ int jit_insn_return(jit_function_t func, jit_value_t value)
 		return 0;
 	}
 
+#if !defined(JIT_BACKEND_INTERP)
 	/* We need to pop the "setjmp" context */
 	if(func->has_try)
 	{
@@ -6751,6 +6752,7 @@ int jit_insn_return(jit_function_t func, jit_value_t value)
 			 (void *)_jit_unwind_pop_setjmp, type, 0, 0, JIT_CALL_NOTHROW);
 		jit_type_free(type);
 	}
+#endif
 
 	/* This function has an ordinary return path */
 	func->builder->ordinary_return = 1;
@@ -6905,6 +6907,7 @@ int jit_insn_return_ptr
 		return 0;
 	}
 
+#if !defined(JIT_BACKEND_INTERP)
 	/* We need to pop the "setjmp" context */
 	if(func->has_try)
 	{
@@ -6919,6 +6922,7 @@ int jit_insn_return_ptr
 			 (void *)_jit_unwind_pop_setjmp, type, 0, 0, JIT_CALL_NOTHROW);
 		jit_type_free(type);
 	}
+#endif
 
 	/* This function has an ordinary return path */
 	func->builder->ordinary_return = 1;
@@ -8009,7 +8013,7 @@ int jit_insn_move_blocks_to_start
 int jit_insn_mark_offset(jit_function_t func, jit_int offset)
 {
 #if 1
- /*|| !USE_NEW_REG_ALLOC*/
+/*!USE_NEW_REG_ALLOC*/
 	if(!jit_insn_new_block(func))
 	{
 		return 0;
