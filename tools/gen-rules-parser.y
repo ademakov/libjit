@@ -141,11 +141,12 @@ static int gensel_first_stack_reg = 8;	/* st0 under x86 */
 #define	GENSEL_PATT_IMMS16			8
 #define	GENSEL_PATT_IMMU16			9
 #define	GENSEL_PATT_LOCAL			10
-#define	GENSEL_PATT_SCRATCH			11
-#define	GENSEL_PATT_CLOBBER			12
-#define	GENSEL_PATT_IF				13
-#define	GENSEL_PATT_SPACE			14
-#define GENSEL_PATT_ANY				15
+#define	GENSEL_PATT_FRAME			11
+#define	GENSEL_PATT_SCRATCH			12
+#define	GENSEL_PATT_CLOBBER			13
+#define	GENSEL_PATT_IF				14
+#define	GENSEL_PATT_SPACE			15
+#define GENSEL_PATT_ANY				16
 
 /*
  * Register flags.
@@ -434,6 +435,7 @@ static void gensel_declare_regs(gensel_clause_t clauses, gensel_option_t options
 				break;
 
 			case GENSEL_PATT_LOCAL:
+			case GENSEL_PATT_FRAME:
 				++locals;
 				break;
 
@@ -586,6 +588,7 @@ gensel_contains_free_dest(gensel_clause_t clauses, gensel_option_t pattern)
 		case GENSEL_PATT_FREG:
 		case GENSEL_PATT_LREG:
 		case GENSEL_PATT_LOCAL:
+		case GENSEL_PATT_FRAME:
 			if(pattern->flags == GENSEL_FLAG_DEST)
 			{
 				if(index != 0)
@@ -659,6 +662,7 @@ gensel_build_arg_index(
 		case GENSEL_PATT_FREG:
 		case GENSEL_PATT_LREG:
 		case GENSEL_PATT_LOCAL:
+		case GENSEL_PATT_FRAME:
 		case GENSEL_PATT_IMMZERO:
 		case GENSEL_PATT_IMM:
 		case GENSEL_PATT_IMMS8:
@@ -709,6 +713,7 @@ gensel_build_imm_arg_index(
 		case GENSEL_PATT_FREG:
 		case GENSEL_PATT_LREG:
 		case GENSEL_PATT_LOCAL:
+		case GENSEL_PATT_FRAME:
 		case GENSEL_PATT_IMMZERO:
 			++index;
 			break;
@@ -794,6 +799,7 @@ gensel_build_var_index(
 			break;
 
 		case GENSEL_PATT_LOCAL:
+		case GENSEL_PATT_FRAME:
 			names[index] = gensel_local_names[locals];
 			++locals;
 			++index;
@@ -1077,8 +1083,18 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 					{
 						printf(" && ");
 					}
-					printf("insn->%s->in_frame && !(insn->%s->in_register)",
+					printf("insn->%s->in_frame && !insn->%s->in_register",
 					       args[index], args[index]);
+					seen_option = 1;
+					++index;
+					break;
+
+				case GENSEL_PATT_FRAME:
+					if(seen_option)
+					{
+						printf(" && ");
+					}
+					printf("!insn->%s->is_constant", args[index]);
 					seen_option = 1;
 					++index;
 					break;
@@ -1356,6 +1372,14 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				++index;
 				break;
 
+			case GENSEL_PATT_FRAME:
+				printf("\t\t_jit_regs_force_out(gen, insn->%s, %d);\n",
+				       args[index], (pattern->flags == GENSEL_FLAG_DEST));
+				printf("\t\t_jit_gen_fix_value(insn->%s);\n",
+				       args[index]);
+				++index;
+				break;
+
 			case GENSEL_PATT_SCRATCH:
 				values = pattern->values;
 				while(values)
@@ -1475,7 +1499,6 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			}
 		}
 
-
 		regs = 0;
 		imms = 0;
 		locals = 0;
@@ -1523,6 +1546,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				break;
 
 			case GENSEL_PATT_LOCAL:
+			case GENSEL_PATT_FRAME:
 				printf("\t\t%s = insn->%s->frame_offset;\n",
 				       gensel_local_names[locals], args[index]);
 				++locals;
@@ -1684,6 +1708,7 @@ static void gensel_output_supported(void)
 %token K_IMMS16			"immediate signed 16-bit value"
 %token K_IMMU16			"immediate unsigned 16-bit value"
 %token K_LOCAL			"local variable"
+%token K_FRAME			"local variable forced out into the stack frame"
 %token K_BINARY			"`binary'"
 %token K_UNARY			"`unary'"
 %token K_UNARY_BRANCH		"`unary_branch'"
@@ -2017,6 +2042,7 @@ InputTag
 
 LocalTag
 	: K_LOCAL			{ $$ = GENSEL_PATT_LOCAL; }
+	| K_FRAME			{ $$ = GENSEL_PATT_FRAME; }
 	;
 
 RegTag

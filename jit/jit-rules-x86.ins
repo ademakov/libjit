@@ -1629,95 +1629,25 @@ JIT_OP_COPY_STRUCT: manual, spill_before
 		gen->posn.ptr = inst;
 	}
 
-JIT_OP_COPY_STORE_BYTE: manual
-	[] -> {
-		unsigned char *inst;
-		int reg;
-		_jit_regs_force_out(gen, insn->dest, 1);
-		_jit_gen_fix_value(insn->dest);
-		if(!(insn->value1->is_constant))
-		{
-			reg = _jit_regs_load_value
-				(gen, insn->value1, 0,
-				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-				 				 JIT_INSN_VALUE1_LIVE)));
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
-			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
-			}
-			inst = mov_membase_reg_byte
-				(inst, X86_EBP, insn->dest->frame_offset,
-				 _jit_reg_info[reg].cpu_reg);
-			gen->posn.ptr = inst;
-		}
-		else
-		{
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
-			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
-			}
-			x86_mov_membase_imm(inst, X86_EBP, insn->dest->frame_offset,
-								insn->value1->address, 1);
-			gen->posn.ptr = inst;
-		}
+JIT_OP_COPY_STORE_BYTE:
+	[=frame, imm] -> {
+		x86_mov_membase_imm(inst, X86_EBP, $1, $2, 1);
+	}
+	[=frame, reg("eax"|"ecx"|"edx"|"edx")] -> {
+		x86_mov_membase_reg(inst, X86_EBP, $1, $2, 1);
 	}
 
-JIT_OP_COPY_STORE_SHORT: manual
-	[] -> {
-		unsigned char *inst;
-		int reg;
-		_jit_regs_force_out(gen, insn->dest, 1);
-		_jit_gen_fix_value(insn->dest);
-		if(!(insn->value1->is_constant))
-		{
-			reg = _jit_regs_load_value
-				(gen, insn->value1, 0,
-				 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-				 				 JIT_INSN_VALUE1_LIVE)));
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
-			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
-			}
-			x86_mov_membase_reg(inst, X86_EBP, insn->dest->frame_offset,
-								_jit_reg_info[reg].cpu_reg, 2);
-			gen->posn.ptr = inst;
-		}
-		else
-		{
-			inst = gen->posn.ptr;
-			if(!jit_cache_check_for_n(&(gen->posn), 32))
-			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
-			}
-			x86_mov_membase_imm(inst, X86_EBP, insn->dest->frame_offset,
-								insn->value1->address, 2);
-			gen->posn.ptr = inst;
-		}
+JIT_OP_COPY_STORE_SHORT:
+	[=frame, imm] -> {
+		x86_mov_membase_imm(inst, X86_EBP, $1, $2, 2);
+	}
+	[=frame, reg] -> {
+		x86_mov_membase_reg(inst, X86_EBP, $1, $2, 2);
 	}
 
-JIT_OP_ADDRESS_OF: manual
-	[] -> {
-		unsigned char *inst;
-		int reg;
-		_jit_regs_force_out(gen, insn->value1, 0);
-		_jit_gen_fix_value(insn->value1);
-		reg = _jit_regs_dest_value(gen, insn->dest);
-		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 32))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
-		reg = _jit_reg_info[reg].cpu_reg;
-		x86_lea_membase(inst, reg, X86_EBP, insn->value1->frame_offset);
-		gen->posn.ptr = inst;
+JIT_OP_ADDRESS_OF:
+	[=reg, frame] -> {
+		x86_lea_membase(inst, $1, X86_EBP, $2);
 	}
 
 /*

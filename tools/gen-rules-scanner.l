@@ -94,6 +94,7 @@ WHITE			[ \t\v\r\f]
 "imms16"		{ RETURNTOK(K_IMMS16); }
 "immu16"		{ RETURNTOK(K_IMMU16); }
 "local"			{ RETURNTOK(K_LOCAL); }
+"frame"			{ RETURNTOK(K_FRAME); }
 "binary"		{ RETURNTOK(K_BINARY); }
 "unary"			{ RETURNTOK(K_UNARY); }
 "unary_branch"		{ RETURNTOK(K_UNARY_BRANCH); }
