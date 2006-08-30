@@ -1,4 +1,21 @@
+2006-08-30  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-interp.h, jit/jit-interp.c, jit/jit-opcode.c,
+	jit/jit-rules-interp.h, jit/jit-rules-interp.c: major change in the
+	internal interpreter instruction set. Now the stack is used only for
+	function arguments. There are three pseudo-registers used instead of
+	the stack for operands. One is used for the destination value, two
+	others are used for the source values. The destination register is
+	spilled after each instruction. This scheme obviates the need for
+	register allocation for the interpreter backend.
+
+	* jit/jit-function.c (jit_function_compile, compile_block): do not
+	make register allocator calls if JIT_BACKEND_INTERP is defined.
+
 2006-08-29  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-function.c (jit_function_from_pc): fix problem with wrong
+	exception handler address for interpreter.
 
 	* jit/jit-insn.c (jit_insn_return, jit_insn_return_ptr): do not pop
 	the setjmp context for the interpreter backend because it takes care

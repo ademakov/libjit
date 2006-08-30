@@ -519,6 +519,7 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 			}
 			break;
 
+#ifndef JIT_BACKEND_INTERP
 			case JIT_OP_INCOMING_REG:
 			{
 				/* Assign a register to an incoming value */
@@ -527,6 +528,7 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 					 insn->value1);
 			}
 			break;
+#endif
 
 			case JIT_OP_INCOMING_FRAME_POSN:
 			{
@@ -547,6 +549,7 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 			}
 			break;
 
+#ifndef JIT_BACKEND_INTERP
 			case JIT_OP_OUTGOING_REG:
 			{
 				/* Copy a value into an outgoing register */
@@ -555,6 +558,7 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 					 insn->value1);
 			}
 			break;
+#endif
 
 			case JIT_OP_OUTGOING_FRAME_POSN:
 			{
@@ -569,6 +573,7 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 			}
 			break;
 
+#ifndef JIT_BACKEND_INTERP
 			case JIT_OP_RETURN_REG:
 			{
 				/* Assign a register to a return value */
@@ -578,6 +583,7 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 				_jit_gen_insn(gen, func, block, insn);
 			}
 			break;
+#endif
 
 			case JIT_OP_MARK_OFFSET:
 			{
@@ -681,7 +687,9 @@ int jit_function_compile(jit_function_t func)
 	_jit_function_compute_liveness(func);
 
 	/* Allocate global registers to variables within the function */
+#ifndef JIT_BACKEND_INTERP
 	_jit_regs_alloc_global(&gen, func);
+#endif
 
 	/* We may need to perform output twice, if the first attempt fails
 	   due to a lack of space in the current method cache page */
@@ -725,7 +733,9 @@ int jit_function_compile(jit_function_t func)
 #endif
 
 		/* Clear the register assignments for the first block */
+#ifndef JIT_BACKEND_INTERP
 		_jit_regs_init_for_block(&gen);
+#endif
 
 		/* Generate code for the blocks in the function */
 		block = 0;
@@ -742,15 +752,19 @@ int jit_function_compile(jit_function_t func)
 	
 			/* Generate the block's code */
 			compile_block(&gen, func, block);
-	
+
 			/* Spill all live register values back to their frame positions */
+#ifndef JIT_BACKEND_INTERP
 			_jit_regs_spill_all(&gen);
+#endif
 
 			/* Notify the back end that the block is finished */
 			_jit_gen_end_block(&gen, block);
 	
 			/* Clear the local register assignments, ready for the next block */
+#ifndef JIT_BACKEND_INTERP
 			_jit_regs_init_for_block(&gen);
+#endif
 		}
 
 		/* Output the function epilog.  All return paths will jump to here */
@@ -1072,6 +1086,7 @@ jit_function_t jit_function_from_pc
 	/* Convert the cookie into a handler address */
 	if(handler)
 	{
+#if 0
 		if(cookie)
 		{
 			*handler = ((jit_cache_eh_t)cookie)->handler;
@@ -1080,6 +1095,9 @@ jit_function_t jit_function_from_pc
 		{
 			*handler = 0;
 		}
+#else
+		*handler = cookie;
+#endif
 	}
 	return func;
 }
