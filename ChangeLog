@@ -8,6 +8,12 @@
 	JIT_OP_ADDRESS_OF, and JIT_OP_COPY_STORE_SHORT rules using the
 	"frame" keyword.
 
+	* jit/Makefile.am, jit/jit-rules-x86.c: remove all references to
+	jit-rules-x86.sel and jit-rules-x86.slc.
+
+	* jit/jit-rules-x86.c: remove mov_memindex_reg_byte() and
+	widen_byte() functions.
+
 2006-08-30  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-interp.h, jit/jit-interp.c, jit/jit-opcode.c,

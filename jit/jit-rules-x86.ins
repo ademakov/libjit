@@ -1633,7 +1633,7 @@ JIT_OP_COPY_STORE_BYTE:
 	[=frame, imm] -> {
 		x86_mov_membase_imm(inst, X86_EBP, $1, $2, 1);
 	}
-	[=frame, reg("eax"|"ecx"|"edx"|"edx")] -> {
+	[=frame, reg("eax"|"ecx"|"edx"|"ebx")] -> {
 		x86_mov_membase_reg(inst, X86_EBP, $1, $2, 1);
 	}
 
@@ -2054,8 +2054,8 @@ JIT_OP_LOAD_ELEMENT_NFLOAT:
 	}
 
 JIT_OP_STORE_ELEMENT_BYTE: ternary
-	[reg, reg, reg] -> {
-		inst = mov_memindex_reg_byte(inst, $1, 0, $2, $3);
+	[reg, reg, reg("eax"|"ecx"|"edx"|"ebx")] -> {
+		x86_mov_memindex_reg(inst, $1, 0, $2, 0, $3, 1);
 	}
 
 JIT_OP_STORE_ELEMENT_SHORT: ternary

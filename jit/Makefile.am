@@ -71,8 +71,7 @@ EXTRA_DIST = \
 		mklabel.sh \
 		jit-rules-alpha.ins \
 		jit-rules-arm.sel \
-		jit-rules-x86.ins \
-		jit-rules-x86.sel
+		jit-rules-x86.ins
 
 AM_CFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include -I. -I$(srcdir)
 
@@ -86,11 +85,7 @@ jit-interp-labels.h: $(top_srcdir)/include/jit/jit-opcode.h \
 		$(top_srcdir)/include/jit/jit-opcode.h \
 		$(top_srcdir)/jit/jit-interp.h >jit-interp-labels.h
 
-jit-rules-x86.lo: jit-rules-x86.slc jit-rules-x86.inc
-
-jit-rules-x86.slc: jit-rules-x86.sel $(top_builddir)/tools/gen-sel$(EXEEXT)
-	$(top_builddir)/tools/gen-sel$(EXEEXT) $(srcdir)/jit-rules-x86.sel \
-			>jit-rules-x86.slc
+jit-rules-x86.lo: jit-rules-x86.inc
 
 jit-rules-x86.inc: jit-rules-x86.ins $(top_builddir)/tools/gen-rules$(EXEEXT)
 	$(top_builddir)/tools/gen-rules$(EXEEXT) $(srcdir)/jit-rules-x86.ins \
@@ -108,5 +103,8 @@ jit-rules-alpha.inc: jit-rules-alpha.ins $(top_builddir)/tools/gen-rules$(EXEEXT
 	$(top_builddir)/tools/gen-rules$(EXEEXT) $(srcdir)/jit-rules-alpha.ins \
 			>jit-rules-alpha.inc
 
-CLEANFILES = jit-interp-labels.h jit-rules-x86.slc jit-rules-arm.slc \
-		jit-rules-alpha.slc
+CLEANFILES = \
+	jit-interp-labels.h \
+	jit-rules-alpha.inc \
+	jit-rules-arm.slc \
+	jit-rules-x86.inc

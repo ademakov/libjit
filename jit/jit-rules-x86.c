@@ -186,13 +186,9 @@ int _jit_opcode_is_supported(int opcode)
 {
 	switch(opcode)
 	{
-		#define JIT_INCLUDE_SUPPORTED
-#if USE_NEW_REG_ALLOC
-		#include "jit-rules-x86.inc"
-#else
-		#include "jit-rules-x86.slc"
-#endif
-		#undef JIT_INCLUDE_SUPPORTED
+	#define JIT_INCLUDE_SUPPORTED
+	#include "jit-rules-x86.inc"
+	#undef JIT_INCLUDE_SUPPORTED
 	}
 	return 0;
 }
@@ -1261,27 +1257,6 @@ void _jit_gen_fix_value(jit_value_t value)
 	}
 }
 
-#if !USE_NEW_REG_ALLOC
-/*
- * Widen a byte register.
- */
-static unsigned char *widen_byte(unsigned char *inst, int reg, int isSigned)
-{
-	if(reg == X86_EAX || reg == X86_EBX || reg == X86_ECX || reg == X86_EDX)
-	{
-		x86_widen_reg(inst, reg, reg, isSigned, 0);
-	}
-	else
-	{
-		x86_push_reg(inst, X86_EAX);
-		x86_mov_reg_reg(inst, X86_EAX, reg, 4);
-		x86_widen_reg(inst, reg, X86_EAX, isSigned, 0);
-		x86_pop_reg(inst, X86_EAX);
-	}
-	return inst;
-}
-#endif
-
 /*
  * Shift the contents of a register.
  */
@@ -1447,43 +1422,6 @@ static unsigned char *jump_to_epilog
 }
 
 /*
- * Store a byte value to a memindex address.
- */
-static unsigned char *mov_memindex_reg_byte
-		(unsigned char *inst, int basereg,
-		 unsigned offset, int indexreg, int srcreg)
-{
-	if(srcreg == X86_EAX || srcreg == X86_EBX ||
-	   srcreg == X86_ECX || srcreg == X86_EDX)
-	{
-		x86_mov_memindex_reg(inst, basereg, offset, indexreg,
-							 0, srcreg, 1);
-	}
-	else
-	{
-		int tempreg;
-		if(basereg != X86_EAX && indexreg != X86_EAX)
-		{
-			tempreg = X86_EAX;
-		}
-		else if(basereg != X86_ECX && indexreg != X86_ECX)
-		{
-			tempreg = X86_ECX;
-		}
-		else
-		{
-			tempreg = X86_EDX;
-		}
-		x86_push_reg(inst, tempreg);
-		x86_mov_reg_reg(inst, tempreg, srcreg, 4);
-		x86_mov_memindex_reg(inst, basereg, offset, indexreg,
-							 0, tempreg, 1);
-		x86_pop_reg(inst, tempreg);
-	}
-	return inst;
-}
-
-/*
  * Throw a builtin exception.
  */
 static unsigned char *throw_builtin
@@ -1601,18 +1539,14 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 {
 	switch(insn->opcode)
 	{
-		#define JIT_INCLUDE_RULES
-#if USE_NEW_REG_ALLOC
-		#include "jit-rules-x86.inc"
-#else
-		#include "jit-rules-x86.slc"
-#endif
-		#undef JIT_INCLUDE_RULES
+	#define JIT_INCLUDE_RULES
+	#include "jit-rules-x86.inc"
+	#undef JIT_INCLUDE_RULES
 
-		default:
+	default:
 		{
 			fprintf(stderr, "TODO(%x) at %s, %d\n",
-					(int)(insn->opcode), __FILE__, (int)__LINE__);
+				(int)(insn->opcode), __FILE__, (int)__LINE__);
 		}
 		break;
 	}
