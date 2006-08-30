@@ -1,3 +1,11 @@
+2006-08-31  Klaus Treichel  <ktreichel@web.de>
+
+	* configure.in: Replace the deprecated AM_PROG_LIBTOOL with the current
+	AC_PROG_LIBTOOL.
+
+	* jitdynamic/Makefile.am, jitplus/Makefile.am: Add -no-undefined to the
+	LDFLAGS to enable building cygwin/mingw dlls.
+
 2006-08-31  Aleksey Demakov  <ademakov@gmail.com>
 
 	* tools/gen-rules-scanner.l, tools/gen-rules-parser.y: add "frame"
