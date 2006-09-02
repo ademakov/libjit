@@ -1103,7 +1103,6 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	case JIT_OP_BR_ITRUE:
 	case JIT_OP_BR_LFALSE:
 	case JIT_OP_BR_LTRUE:
-	case JIT_OP_CALL_FILTER:
 		/* Unary branch */
 		load_value(gen, insn->value1, 1);
 		/* Fall through */
@@ -1111,6 +1110,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	case JIT_OP_BR:
 	case JIT_OP_CALL_FINALLY:
 		/* Unconditional branch */
+	branch:
 		label = (jit_label_t)(insn->dest);
 		pc = (void **)(gen->posn.ptr);
 		jit_cache_opcode(&(gen->posn), insn->opcode);
@@ -1131,6 +1131,12 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 			block->fixup_list = (void *)pc;
 		}
 		break;
+
+	case JIT_OP_CALL_FILTER:
+		/* Branch to a filter subroutine, load the filter
+		   parameter to the r0 register */
+		load_value(gen, insn->value1, 0);
+		goto branch;
 
 	case JIT_OP_JUMP_TABLE:
 	{
@@ -1191,13 +1197,6 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		}
 		store_value(gen, insn->dest, 0);
 		break;
-
-#if 0
-	case JIT_OP_OUTGOING_REG:
-		/* Load a value to a register */
-		load_value(gen, insn->value1, insn->value2->address);
-		break;
-#endif
 
 	case JIT_OP_CALL:
 	case JIT_OP_CALL_TAIL:
@@ -1272,12 +1271,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		break;
 
 	case JIT_OP_IMPORT:
-		/* TODO!!! */
 		/* Import a local variable from an outer nested scope */
-		if(_jit_regs_num_used(gen, 0) >= JIT_NUM_REGS)
-		{
-			_jit_regs_spill_all(gen);
-		}
 		_jit_gen_fix_value(insn->value1);
 		if(insn->value1->frame_offset >= 0)
 		{
@@ -1291,8 +1285,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 			jit_cache_native(&(gen->posn), -(insn->value1->frame_offset + 1));
 			jit_cache_native(&(gen->posn), jit_value_get_nint_constant(insn->value2));
 		}
-		reg = _jit_regs_new_top(gen, insn->dest, 0);
-		adjust_working(gen, 1);
+		store_value(gen, insn->dest, 0);
 		break;
 
 	case JIT_OP_THROW:
@@ -1309,10 +1302,8 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		break;
 
 	case JIT_OP_CALL_FILTER_RETURN:
-		/* TODO!!! */
-		/* The top of stack currently contains "dest" */
-		_jit_regs_set_value(gen, 0, insn->dest, 0);
-		adjust_working(gen, 1);
+		/* The r0 register currently contains "dest" */
+		store_value(gen, insn->dest, 0);
 		break;
 
 	case JIT_OP_ENTER_FINALLY:
@@ -1326,24 +1317,16 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		break;
 
 	case JIT_OP_ENTER_FILTER:
-		/* TODO!!! */
-		/* The top of stack contains "dest" and a return address */
+		/* The top of the stack contains the return address,
+		   the r0 register contains the "dest" (filter parameter). */
 		++(gen->extra_working_space);
-		_jit_regs_set_value(gen, 0, insn->dest, 0);
-		adjust_working(gen, 1);
+		store_value(gen, insn->dest, 0);
 		break;
 
 	case JIT_OP_LEAVE_FILTER:
-		/* TODO!!! */
 		/* Leave a filter clause, returning a particular value */
-		if(!_jit_regs_is_top(gen, insn->value1) ||
-		   _jit_regs_num_used(gen, 0) != 1)
-		{
-			_jit_regs_spill_all(gen);
-		}
-		reg = _jit_regs_load_to_top(gen, insn->value1, 0, 0);
+		load_value(gen, insn->value1, 0);
 		jit_cache_opcode(&(gen->posn), insn->opcode);
-		_jit_regs_free_reg(gen, reg, 1);
 		break;
 
 	case JIT_OP_RETURN_REG:

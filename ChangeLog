@@ -1,3 +1,9 @@
+2006-09-02  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-interp.c (_jit_run_function): 
+	* jit/jit-rules-interp.c (_jit_gen_insn): remove last traces of
+	register allocation from the interpreter.
+
 2006-08-31  Klaus Treichel  <ktreichel@web.de>
 
 	* configure.in: Replace the deprecated AM_PROG_LIBTOOL with the current

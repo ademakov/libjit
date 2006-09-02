@@ -3532,8 +3532,8 @@ restart_tail:
 				tempptr2 = ((jit_item *)tempptr2)[1].ptr_value;
 				--temparg;
 			}
-			VM_STK_PTRP = ((jit_item *)tempptr) + VM_NINT_ARG;
-			VM_MODIFY_PC_AND_STACK(3, -1);
+			VM_R0_PTR = ((jit_item *)tempptr) + VM_NINT_ARG;
+			VM_MODIFY_PC(3);
 		}
 		VMBREAK;
 
@@ -3548,8 +3548,8 @@ restart_tail:
 				tempptr = ((jit_item *)tempptr)[1].ptr_value;
 				--temparg;
 			}
-			VM_STK_PTRP = ((jit_item *)tempptr) + VM_NINT_ARG;
-			VM_MODIFY_PC_AND_STACK(3, -1);
+			VM_R0_PTR = ((jit_item *)tempptr) + VM_NINT_ARG;
+			VM_MODIFY_PC(3);
 		}
 		VMBREAK;
 
@@ -3665,20 +3665,16 @@ restart_tail:
 
 		VMCASE(JIT_OP_LEAVE_FILTER):
 		{
-			/* TODO!!! */
-			/* Return from a "filter" handler: pc and value on stack */
-			pc = (void **)(stacktop[1].ptr_value);
-			stacktop[1] = stacktop[0];
+			/* Return from a "filter" handler: pc on stack */
+			pc = (void **)(stacktop[0].ptr_value);
 			VM_MODIFY_STACK(1);
 		}
 		VMBREAK;
 
 		VMCASE(JIT_OP_CALL_FILTER):
 		{
-			/* TODO!!! */
 			/* Call a "filter" handler with pc and value on stack */
-			stacktop[-1] = stacktop[0];
-			stacktop[0].ptr_value = (void *)(pc + 2);
+			stacktop[-1].ptr_value = (void *)(pc + 2);
 			VM_MODIFY_STACK(-1);
 			pc = VM_BR_TARGET;
 		}
