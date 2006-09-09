@@ -86,6 +86,7 @@ void _jit_regs_get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
 #define _JIT_REGS_COMMUTATIVE		0x0040
 #define _JIT_REGS_REVERSIBLE		0x0080
 #define _JIT_REGS_FREE_DEST		0x0100
+#define _JIT_REGS_CLOBBER_STACK		0x0200
 
 /*
  * Flags for _jit_regs_init_dest(), _jit_regs_init_value1(), and
@@ -140,6 +141,7 @@ typedef struct
 typedef struct
 {
 	unsigned	clobber_all : 1;
+	unsigned	clobber_stack : 1;
 	unsigned	ternary : 1;
 	unsigned	branch : 1;
 	unsigned	copy : 1;

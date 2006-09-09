@@ -88,11 +88,6 @@ static int gensel_reserve_space = 32;
 static int gensel_reserve_more_space = 128;
 
 /*
- * First register in a stack arrangement.
- */
-static int gensel_first_stack_reg = 8;	/* st0 under x86 */
-
-/*
  * Maximal number of input values in a pattern.
  */
 #define MAX_INPUT				3
@@ -1133,17 +1128,6 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			printf("\telse\n\t{\n");
 		}
 
-		if(gensel_search_option(options, GENSEL_OPT_STACK)
-		   && gensel_search_option(options, GENSEL_OPT_ONLY))
-		{
-			printf("\t\tif(!_jit_regs_is_top(gen, insn->value1) ||\n");
-			printf("\t\t   _jit_regs_num_used(gen, %d) != 1)\n",
-			       gensel_first_stack_reg);
-			printf("\t\t{\n");
-			printf("\t\t\t_jit_regs_spill_all(gen);\n");
-			printf("\t\t}\n");
-		}
-
 		if(gensel_search_option(options, GENSEL_OPT_BINARY_BRANCH)
 		   || gensel_search_option(options, GENSEL_OPT_UNARY_BRANCH))
 		{
@@ -1227,6 +1211,18 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 					seen_option = 1;
 				}
 				printf("_JIT_REGS_STACK");
+			}
+			if(gensel_search_option(options, GENSEL_OPT_ONLY))
+			{
+				if(seen_option)
+				{
+					printf(" | ");
+				}
+				else
+				{
+					seen_option = 1;
+				}
+				printf("_JIT_REGS_CLOBBER_STACK");
 			}
 			if(gensel_search_option(options, GENSEL_OPT_X87ARITH))
 			{

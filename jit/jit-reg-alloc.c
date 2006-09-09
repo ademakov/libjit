@@ -2801,9 +2801,9 @@ choose_input_order(jit_gencode_t gen, _jit_regs_t *regs)
 	}
 
 	if(regs->descs[2].value
-		&& regs->descs[2].value->in_register
-		&& regs->descs[2].value->reg == regs->descs[0].reg
-		&& regs->descs[2].value != regs->descs[1].value)
+	   && regs->descs[2].value->in_register
+	   && regs->descs[2].value->reg == regs->descs[0].reg
+	   && regs->descs[2].value != regs->descs[1].value)
 	{
 		if(regs->on_stack && regs->x87_arith)
 		{
@@ -2832,10 +2832,9 @@ choose_input_order(jit_gencode_t gen, _jit_regs_t *regs)
 	}
 
 	/* Choose between pop and no-pop instructions. */
-	if(regs->on_stack && regs->x87_arith
-	   && !regs->no_pop && !regs->clobber_all
-	   && regs->descs[1].value
-	   && regs->descs[2].value)
+	if(regs->on_stack && regs->x87_arith && !regs->no_pop
+	   && !regs->clobber_all && !regs->clobber_stack
+	   && regs->descs[1].value && regs->descs[2].value)
 	{
 		/* Determine if we might want to keep either of input values
 		   in registers after the instruction completion. */
@@ -3971,6 +3970,7 @@ _jit_regs_init(jit_gencode_t gen, _jit_regs_t *regs, int flags)
 	int index;
 
 	regs->clobber_all = (flags & _JIT_REGS_CLOBBER_ALL) != 0;
+	regs->clobber_stack = (flags & _JIT_REGS_CLOBBER_STACK) != 0;
 	regs->ternary = (flags & _JIT_REGS_TERNARY) != 0;
 	regs->branch = (flags & _JIT_REGS_BRANCH) != 0;
 	regs->copy = (flags & _JIT_REGS_COPY) != 0;
@@ -3998,7 +3998,7 @@ _jit_regs_init(jit_gencode_t gen, _jit_regs_t *regs, int flags)
 
 	/* Set clobber flags. */
 	regs->clobber = jit_regused_init;
-	if(regs->clobber_all)
+	if(regs->clobber_all || regs->clobber_stack)
 	{
 		for(index = 0; index < JIT_NUM_REGS; index++)
 		{
@@ -4007,7 +4007,10 @@ _jit_regs_init(jit_gencode_t gen, _jit_regs_t *regs, int flags)
 			{
 				continue;
 			}
-			jit_reg_set_used(regs->clobber, index);
+			if(regs->clobber_all || IS_STACK_REG(index))
+			{
+				jit_reg_set_used(regs->clobber, index);
+			}
 		}
 	}
 

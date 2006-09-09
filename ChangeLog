@@ -1,3 +1,10 @@
+2006-09-09  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c:
+	* tools/gen-rules-parser.y: add _JIT_REGS_CLOBBER_STACK flag and use
+	it in the code genearted for "only" rules instead of the explicit
+	stack top check followed by the _jit_regs_spill_all() call.
+
 2006-09-02  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-interp.c (_jit_run_function): 
