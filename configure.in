@@ -63,18 +63,6 @@ if test x$interp = xtrue; then
 	AC_DEFINE(USE_LIBJIT_INTERPRETER, 1, [Define if you want to use the libjit interpreter])
 fi
 
-dnl The "--enable-new-reg-alloc" option forces the use of new register allocator.
-AC_ARG_ENABLE(new-reg-alloc,
-[  --enable-new-reg-alloc    Enable new register allocator],
-[case "${enableval}" in
-  yes) new_reg_alloc=true ;;
-  no)  new_reg_alloc=false ;;
-  *) AC_MSG_ERROR(bad value ${enableval} for --enable-new-reg-alloc) ;;
-esac],[new_reg_alloc=true])
-if test x$new_reg_alloc = xtrue; then
-	AC_DEFINE(USE_NEW_REG_ALLOC, 1, [Define if you want to use new register allocator])
-fi
-
 dnl The "--enable-signals" option forces the use of the OS signals for exception handling.
 AC_ARG_ENABLE(signals,
 [  --enable-signals	    Enable OS signal handling],
