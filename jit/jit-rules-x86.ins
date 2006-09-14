@@ -1344,25 +1344,13 @@ JIT_OP_RETURN:
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_INT: unary_branch
+JIT_OP_RETURN_INT: unary_note
 	[reg("eax")] -> {
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_LONG: unary_branch
-	[imm] -> {
-		x86_mov_reg_imm(inst, X86_EAX,
-						((jit_int *)(insn->value1->address))[0]);
-		x86_mov_reg_imm(inst, X86_EDX,
-						((jit_int *)(insn->value1->address))[1]);
-		inst = jump_to_epilog(gen, inst, block);
-	}
-	[lreg] -> {
-		if($1 != X86_EAX)
-		{
-			x86_mov_reg_reg(inst, X86_EAX, $1, 4);
-			x86_mov_reg_reg(inst, X86_EDX, %1, 4);
-		}
+JIT_OP_RETURN_LONG: unary_note
+	[lreg("eax":"edx")] -> {
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
@@ -1381,11 +1369,100 @@ JIT_OP_RETURN_NFLOAT: unary_note, stack, only
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_SMALL_STRUCT: unary_branch
-	[reg] -> {
-		inst = load_small_struct
-			(inst, X86_EAX, X86_EDX, $1, 0,
-			 jit_value_get_nint_constant(insn->value2), 0);
+JIT_OP_RETURN_SMALL_STRUCT: binary_note
+	[reg, imm] -> {
+		switch($2)
+		{
+		case 1:
+			x86_widen_membase(inst, X86_EAX, $1, 0, 0, 0);
+			break;
+
+		case 2:
+			x86_widen_membase(inst, X86_EAX, $1, 0, 0, 1);
+			break;
+
+		case 3:
+			if(X86_EAX == $1)
+			{
+				x86_widen_membase(inst, X86_EDX, $1, 0, 0, 1);
+				x86_widen_membase(inst, X86_EAX, $1, 2, 0, 0);
+			}
+			else
+			{
+				x86_widen_membase(inst, X86_EAX, $1, 2, 0, 0);
+				x86_widen_membase(inst, X86_EDX, $1, 0, 0, 1);
+			}
+			x86_shift_reg_imm(inst, X86_SHL, X86_EAX, 16);
+			x86_alu_reg_reg(inst, X86_OR, X86_EAX, X86_EDX);
+			break;
+
+		case 4:
+			x86_mov_reg_membase(inst, X86_EAX, $1, 0, 4);
+			break;
+
+		case 5:
+			if(X86_EAX == $1)
+			{
+				x86_widen_membase(inst, X86_EDX, $1, 4, 0, 0);
+				x86_mov_reg_membase(inst, X86_EAX, $1, 0, 4);
+			}
+			else
+			{
+				x86_mov_reg_membase(inst, X86_EAX, $1, 0, 4);
+				x86_widen_membase(inst, X86_EDX, $1, 4, 0, 0);
+			}
+			break;
+
+		case 6:
+			if(X86_EAX == $1)
+			{
+				x86_widen_membase(inst, X86_EDX, $1, 4, 0, 1);
+				x86_mov_reg_membase(inst, X86_EAX, $1, 0, 4);
+			}
+			else
+			{
+				x86_mov_reg_membase(inst, X86_EAX, $1, 0, 4);
+				x86_widen_membase(inst, X86_EDX, $1, 4, 0, 1);
+			}
+			break;
+
+		case 7:
+			if(X86_EAX == $1)
+			{
+				x86_widen_membase(inst, X86_ECX, $1, 4, 0, 1);
+				x86_widen_membase(inst, X86_EDX, $1, 6, 0, 0);
+				x86_mov_reg_membase(inst, X86_EAX, $1, 0, 4);
+			}
+			else if(X86_ECX == $1)
+			{
+				x86_mov_reg_membase(inst, X86_EAX, $1, 0, 4);
+				x86_widen_membase(inst, X86_EDX, $1, 6, 0, 0);
+				x86_widen_membase(inst, X86_ECX, $1, 4, 0, 1);
+			}
+			else
+			{
+				x86_mov_reg_membase(inst, X86_EAX, $1, 0, 4);
+				x86_widen_membase(inst, X86_ECX, $1, 4, 0, 1);
+				x86_widen_membase(inst, X86_EDX, $1, 6, 0, 0);
+			}
+			x86_shift_reg_imm(inst, X86_SHL, X86_EDX, 16);
+			x86_alu_reg_reg(inst, X86_OR, X86_EDX, X86_ECX);
+			break;
+
+		case 8:
+			if(X86_EAX == $1)
+			{
+				x86_mov_reg_membase(inst, X86_EDX, $1, 4, 4);
+				x86_mov_reg_membase(inst, X86_EAX, $1, 0, 4);
+			}
+			else
+			{
+				x86_mov_reg_membase(inst, X86_EAX, $1, 0, 4);
+				x86_mov_reg_membase(inst, X86_EDX, $1, 4, 4);
+			}
+			break;
+		}
+
 		inst = jump_to_epilog(gen, inst, block);
 	}
 

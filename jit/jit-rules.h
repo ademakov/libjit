@@ -70,10 +70,8 @@ typedef struct
 #define	JIT_REG_STACK_PTR	(1 << 6)	/* Contains CPU stack pointer */
 #define	JIT_REG_FIXED		(1 << 7)	/* Fixed use; not for allocation */
 #define	JIT_REG_CALL_USED	(1 << 8)	/* Destroyed by a call */
-#define	JIT_REG_START_STACK	(1 << 9)	/* Stack of stack-like allocation */
-#define	JIT_REG_END_STACK	(1 << 10)	/* End of stack-like allocation */
-#define	JIT_REG_IN_STACK	(1 << 11)	/* Middle of stack-like allocation */
-#define	JIT_REG_GLOBAL		(1 << 12)	/* Candidate for global allocation */
+#define	JIT_REG_IN_STACK	(1 << 9)	/* Middle of stack-like allocation */
+#define	JIT_REG_GLOBAL		(1 << 10)	/* Candidate for global allocation */
 #define	JIT_REG_ALL	(JIT_REG_WORD | JIT_REG_LONG | JIT_REG_FLOAT32 | \
 					 JIT_REG_FLOAT64 | JIT_REG_NFLOAT)
 
@@ -120,7 +118,10 @@ struct jit_regcontents
 {
 	/* List of values that are currently stored in this register */
 	jit_value_t		values[JIT_MAX_REG_VALUES];
-	short			num_values;
+	int			num_values;
+
+	/* Current age of this register.  Older registers are reclaimed first */
+	int			age;
 
 	/* Flag that indicates if this register is holding the first
 	   word of a double-word long value (32-bit platforms only) */
@@ -130,15 +131,9 @@ struct jit_regcontents
 	   word of a double-word long value (32-bit platforms only) */
 	char			is_long_end;
 
-	/* Current age of this register.  Older registers are reclaimed first */
-	int				age;
-
-	/* Remapped version of this register, when used in a stack */
-	short			remap;
-
 	/* Flag that indicates if the register holds a valid value,
 	   but there are no actual "jit_value_t" objects associated */
-	short			used_for_temp;
+	char			used_for_temp;
 };
 
 /*
@@ -152,13 +147,15 @@ struct jit_gencode
 	jit_regused_t		inhibit;	/* Temporarily inhibited registers */
 	jit_cache_posn		posn;		/* Current cache output position */
 	jit_regcontents_t	contents[JIT_NUM_REGS]; /* Contents of each register */
-	int					current_age;/* Current age value for registers */
-	int					stack_map[JIT_NUM_REGS]; /* Reverse stack mappings */
+	int			current_age;	/* Current age value for registers */
+#ifdef JIT_REG_STACK
+	int			reg_stack_top;	/* Current register stack top */
+#endif
 #ifdef jit_extra_gen_state
 	jit_extra_gen_state;			/* CPU-specific extra information */
 #endif
-	void			   *epilog_fixup; /* Fixup list for function epilogs */
-	int					stack_changed; /* Stack top changed since entry */
+	void			*epilog_fixup;	/* Fixup list for function epilogs */
+	int			stack_changed;	/* Stack top changed since entry */
 };
 
 /*

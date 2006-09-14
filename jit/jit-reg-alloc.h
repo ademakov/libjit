@@ -27,43 +27,6 @@
 extern	"C" {
 #endif
 
-void _jit_regs_init_for_block(jit_gencode_t gen);
-int _jit_regs_needs_long_pair(jit_type_t type);
-int _jit_regs_get_cpu(jit_gencode_t gen, int reg, int *other_reg);
-void _jit_regs_spill_all(jit_gencode_t gen);
-int _jit_regs_want_reg(jit_gencode_t gen, int reg, int for_long);
-void _jit_regs_free_reg(jit_gencode_t gen, int reg, int value_used);
-void _jit_regs_set_value
-	(jit_gencode_t gen, int reg, jit_value_t value, int still_in_frame);
-void _jit_regs_set_incoming(jit_gencode_t gen, int reg, jit_value_t value);
-void _jit_regs_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value);
-int _jit_regs_is_top(jit_gencode_t gen, jit_value_t value);
-int _jit_regs_is_top_two
-	(jit_gencode_t gen, jit_value_t value1, jit_value_t value2);
-int _jit_regs_load_value
-	(jit_gencode_t gen, jit_value_t value, int destroy, int used_again);
-int _jit_regs_dest_value(jit_gencode_t gen, jit_value_t value);
-int _jit_regs_load_to_top
-	(jit_gencode_t gen, jit_value_t value, int used_again, int type_reg);
-int _jit_regs_load_to_top_two
-	(jit_gencode_t gen, jit_value_t value, jit_value_t value2,
-	 int used_again1, int used_again2, int type_reg);
-void _jit_regs_load_to_top_three
-	(jit_gencode_t gen, jit_value_t value, jit_value_t value2,
-	 jit_value_t value3, int used_again1, int used_again2,
-	 int used_again3, int type_reg);
-int _jit_regs_num_used(jit_gencode_t gen, int type_reg);
-int _jit_regs_new_top(jit_gencode_t gen, jit_value_t value, int type_reg);
-void _jit_regs_force_out(jit_gencode_t gen, jit_value_t value, int is_dest);
-void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func);
-void _jit_regs_get_reg_pair(jit_gencode_t gen, int not_this1, int not_this2,
-			    int not_this3, int *reg, int *reg2);
-
-
-/*
- * New Reg Alloc API
- */
-
 /*
  * The maximum number of values per instruction.
  */
@@ -140,6 +103,10 @@ typedef struct
  */
 typedef struct
 {
+	_jit_regdesc_t	descs[_JIT_REGS_VALUE_MAX];
+	_jit_scratch_t	scratch[_JIT_REGS_SCRATCH_MAX];
+	int		num_scratch;
+
 	unsigned	clobber_all : 1;
 	unsigned	clobber_stack : 1;
 	unsigned	ternary : 1;
@@ -155,21 +122,32 @@ typedef struct
 	unsigned	reverse_dest : 1;
 	unsigned	reverse_args : 1;
 
-	_jit_regdesc_t	descs[_JIT_REGS_VALUE_MAX];
-	_jit_scratch_t	scratch[_JIT_REGS_SCRATCH_MAX];
-	int		num_scratch;
-
+	/* The input value index that is going to be overwritten
+	   by the destination value. For ordinary binary and unary
+	   opcodes it is equal to 1, for notes and three-address
+	   opcodes it is equal to 0, and for some x87 instructions
+	   it could be equal to 2.  */
 	int		dest_input_index;
 
 	jit_regused_t	assigned;
 	jit_regused_t	clobber;
 
-	int		stack_start;
-	int		current_stack_top;
 	int		wanted_stack_count;
 	int		loaded_stack_count;
 
 } _jit_regs_t;
+
+int _jit_regs_lookup(char *name);
+int _jit_regs_needs_long_pair(jit_type_t type);
+int _jit_regs_get_cpu(jit_gencode_t gen, int reg, int *other_reg);
+
+void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func);
+void _jit_regs_init_for_block(jit_gencode_t gen);
+void _jit_regs_spill_all(jit_gencode_t gen);
+void _jit_regs_set_incoming(jit_gencode_t gen, int reg, jit_value_t value);
+void _jit_regs_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value);
+void _jit_regs_force_out(jit_gencode_t gen, jit_value_t value, int is_dest);
+int _jit_regs_load_value(jit_gencode_t gen, jit_value_t value, int destroy, int used_again);
 
 void _jit_regs_init(jit_gencode_t gen, _jit_regs_t *regs, int flags);
 void _jit_regs_init_dest(_jit_regs_t *regs, jit_insn_t insn, int flags);
@@ -204,8 +182,6 @@ int _jit_regs_dest_other(_jit_regs_t *regs);
 int _jit_regs_value1_other(_jit_regs_t *regs);
 int _jit_regs_value2_other(_jit_regs_t *regs);
 int _jit_regs_scratch(_jit_regs_t *regs, int index);
-
-int _jit_regs_lookup(char *name);
 
 #ifdef	__cplusplus
 };
