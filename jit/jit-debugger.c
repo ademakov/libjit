@@ -125,6 +125,12 @@ of the event is set to the value of @code{stop_immediately} for the call.
 A thread called @code{jit_debugger_detach_self}.
 @end table
 
+@deftypefun int jit_insn_mark_breakpoint_variable (jit_function_t func, jit_value_t data1, jit_value_t data2)
+This function is similar to @code{jit_insn_mark_breakpoint} except that values
+in @code{data1} and @code{data2} can be computed at runtime. You can use this
+function for example to get address of local variable.
+@end deftypefun
+
 @*/
 
 /*

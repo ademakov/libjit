@@ -8024,9 +8024,9 @@ int jit_insn_mark_offset(jit_function_t func, jit_int offset)
 					   			(func, jit_type_int, offset));
 }
 
-/* Documentation is in jit-debug.c */
-int jit_insn_mark_breakpoint
-	(jit_function_t func, jit_nint data1, jit_nint data2)
+/* Documentation is in jit-debugger.c */
+int jit_insn_mark_breakpoint_variable
+	(jit_function_t func, jit_value_t data1, jit_value_t data2)
 {
 #if defined(JIT_BACKEND_INTERP)
 	/* Use the "mark_breakpoint" instruction for the interpreter */
@@ -8034,11 +8034,7 @@ int jit_insn_mark_breakpoint
 	{
 		return 0;
 	}
-	return create_note(func, JIT_OP_MARK_BREAKPOINT,
-				       jit_value_create_nint_constant
-							(func, jit_type_nint, data1),
-				       jit_value_create_nint_constant
-							(func, jit_type_nint, data2));
+	return create_note(func, JIT_OP_MARK_BREAKPOINT, data1, data2);
 #else
 	/* Insert a call to "_jit_debugger_hook" on native platforms */
 	jit_type_t params[3];
@@ -8059,23 +8055,33 @@ int jit_insn_mark_breakpoint
 		jit_type_free(signature);
 		return 0;
 	}
-	if((values[1] = jit_value_create_nint_constant
-			(func, jit_type_nint, data1)) == 0)
-	{
-		jit_type_free(signature);
-		return 0;
-	}
-	if((values[2] = jit_value_create_nint_constant
-			(func, jit_type_nint, data2)) == 0)
-	{
-		jit_type_free(signature);
-		return 0;
-	}
+	values[1] = data1;
+	values[2] = data2;
 	jit_insn_call_native(func, "_jit_debugger_hook", (void *)_jit_debugger_hook,
 						 signature, values, 3, JIT_CALL_NOTHROW);
 	jit_type_free(signature);
 	return 1;
 #endif
+}
+
+/* Documentation is in jit-debugger.c */
+int jit_insn_mark_breakpoint
+	(jit_function_t func, jit_nint data1, jit_nint data2)
+{
+	jit_value_t value1;
+	jit_value_t value2;
+
+	value1 = jit_value_create_nint_constant(func, jit_type_nint, data1);
+	value2 = jit_value_create_nint_constant(func, jit_type_nint, data2);
+
+	if(value1 && value2)
+	{
+		return jit_insn_mark_breakpoint_variable(func, value1, value2);
+	}
+	else
+	{
+		return 0;
+	}
 }
 
 /*@

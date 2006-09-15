@@ -317,6 +317,8 @@ int jit_insn_mark_offset
 	(jit_function_t func, jit_int offset) JIT_NOTHROW;
 int jit_insn_mark_breakpoint
 	(jit_function_t func, jit_nint data1, jit_nint data2) JIT_NOTHROW;
+int jit_insn_mark_breakpoint_variable
+	(jit_function_t func, jit_value_t data1, jit_value_t data2) JIT_NOTHROW;
 
 void jit_insn_iter_init(jit_insn_iter_t *iter, jit_block_t block) JIT_NOTHROW;
 void jit_insn_iter_init_last

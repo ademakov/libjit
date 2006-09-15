@@ -1,3 +1,8 @@
+2006-09-15  Radek Polak <psonek2@seznam.cz>
+
+        * include/jit/jit-insn.h, jit/jit-insn.c, jit/jit-debugger.c: new
+        instruction jit_insn_mark_breakpoint_variable.
+
 2006-09-14  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c: remove "old" register
