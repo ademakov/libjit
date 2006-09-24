@@ -12,6 +12,19 @@ dnl Set the version number for the shared libraries.
 AC_SUBST(LIBJIT_VERSION)
 LIBJIT_VERSION=0:0:0
 
+dnl Determine the architecture.
+AC_MSG_CHECKING([architecture])
+AC_SUBST(JIT_ARCH)
+case "$host" in
+	i[[3456789]]86-*-*)
+		JIT_ARCH=x86
+		;;
+	*)
+		JIT_ARCH=generic
+		;;
+esac
+AC_MSG_RESULT($JIT_ARCH)
+
 dnl Turn off the cygwin library if building for Win32.
 dnl Note: We have to include <stdlib.h> if we will be using "__int64"
 dnl because otherwise the mingw32 compiler won't define it correctly.

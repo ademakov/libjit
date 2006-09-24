@@ -1,3 +1,21 @@
+2006-09-25  Aleksey Demakov  <ademakov@gmail.com>
+
+	* include/jit/jit-arch-x86.h, include/jit/jit-arch-generic.h: add
+	headers for architecture-specific definitions.
+	(_JIT_ARCH_GET_CURRENT_FRAME): add macro to find the stack frame
+	pointer.
+
+	* include/jit/Makefile.am: create jit-arch.h as a symlink to one of
+	the jit-arch-*.h files depending on the JIT_ARCH value.
+	* configure.in: set JIT_ARCH according to the system architecture.
+
+	* include/jit/jit-walk.h (jit_get_current_frame):
+	* jit/jit-walk.c (jit_get_starting_frame):
+	* tools/gen-apply.c (find_return_offset, detect_frame_offsets): use
+	_JIT_ARCH_GET_CURRENT_FRAME macro if available. This resolves the
+	problem	with gcc 4.1.* where __builtin_frame_address() function is
+	broken (thanks Klaus for identifing the problem).
+
 2006-09-15  Radek Polak <psonek2@seznam.cz>
 
         * include/jit/jit-insn.h, jit/jit-insn.c, jit/jit-debugger.c: new

@@ -21,6 +21,8 @@
 #ifndef	_JIT_WALK_H
 #define	_JIT_WALK_H
 
+#include <jit/jit-arch.h>
+
 #ifdef	__cplusplus
 extern	"C" {
 #endif
@@ -32,7 +34,7 @@ extern	"C" {
 void *_jit_get_frame_address(void *start, unsigned int n);
 #if defined(__GNUC__)
 #define	jit_get_frame_address(n)	\
-		(_jit_get_frame_address(__builtin_frame_address(0), (n)))
+	(_jit_get_frame_address(jit_get_current_frame(), (n)))
 #else
 #define	jit_get_frame_address(n)	(_jit_get_frame_address(0, (n)))
 #endif
@@ -40,9 +42,21 @@ void *_jit_get_frame_address(void *start, unsigned int n);
 /*
  * Get the frame address for the current frame.  May be more efficient
  * than using "jit_get_frame_address(0)".
+ *
+ * Note: some gcc vestions have broken __builtin_frame_address() so use
+ * _JIT_ARCH_GET_CURRENT_FRAME() if available. 
  */
 #if defined(__GNUC__)
+#if defined(_JIT_ARCH_GET_CURRENT_FRAME)
+#define	jit_get_current_frame()				\
+	({						\
+		void *address;				\
+		_JIT_ARCH_GET_CURRENT_FRAME(address);	\
+		address;				\
+	})
+#else
 #define	jit_get_current_frame()		(__builtin_frame_address(0))
+#endif
 #else
 #define	jit_get_current_frame()		(jit_get_frame_address(0))
 #endif

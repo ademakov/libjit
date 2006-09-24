@@ -18,6 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <jit/jit-arch.h>
 #include <jit/jit-defs.h>
 #define	JIT_MEMCPY		"mem_copy"
 #include "jit-apply-func.h"
@@ -1329,7 +1330,13 @@ void find_frame_offset_inner(void *looking_for, void **frame)
 }
 void find_frame_offset_outer(void *looking_for)
 {
-	find_frame_offset_inner(looking_for, (void **)__builtin_frame_address(0));
+	void *frame_address;
+#if defined(_JIT_ARCH_GET_CURRENT_FRAME)
+	_JIT_ARCH_GET_CURRENT_FRAME(frame_address);
+#else
+	frame_address = __builtin_frame_address(0);
+#endif
+	find_frame_offset_inner(looking_for, (void **)frame_address);
 }
 void find_return_offset(void *looking_for, void **frame)
 {
@@ -1357,8 +1364,13 @@ void find_return_offset(void *looking_for, void **frame)
 }
 void detect_frame_offsets(void)
 {
-	void *frame_address = __builtin_frame_address(0);
-	void *return_address = __builtin_return_address(0);
+	void *frame_address, *return_address;
+#if defined(_JIT_ARCH_GET_CURRENT_FRAME)
+	_JIT_ARCH_GET_CURRENT_FRAME(frame_address);
+#else
+	frame_address = __builtin_frame_address(0);
+#endif
+	return_address = __builtin_return_address(0);
 	find_frame_offset_outer(frame_address);
 	find_return_offset(return_address, frame_address);
 	if(parent_frame_offset == 0 && return_address_offset == 0)

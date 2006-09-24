@@ -1,6 +1,8 @@
+ARCH_HEADER = jit-arch-@JIT_ARCH@.h
 
 libjitincludedir = $(includedir)/jit
 libjitinclude_HEADERS = jit.h \
+						jit-arch.h \
 						jit-apply.h \
 						jit-block.h \
 						jit-common.h \
@@ -25,4 +27,10 @@ libjitinclude_HEADERS = jit.h \
 						jit-value.h \
 						jit-walk.h
 
-DISTCLEANFILES = jit-defs.h
+noinst_HEADERS = jit-arch-generic.h jit-arch-x86.h
+
+DISTCLEANFILES = jit-arch.h jit-defs.h
+
+jit-arch.h: $(ARCH_HEADER)
+	rm -f $@
+	$(LN_S) $(srcdir)/$(ARCH_HEADER) $@

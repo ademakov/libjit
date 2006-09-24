@@ -72,8 +72,21 @@
  * Fetch the starting frame address if the caller did not supply it
  * (probably because the caller wasn't compiled with gcc).  The address
  * that we want is actually one frame out from where we are at the moment.
+ *
+ * Note: some gcc vestions have broken __builtin_frame_address() so use
+ * _JIT_ARCH_GET_CURRENT_FRAME() if available. 
  */
 #if defined(__GNUC__)
+#if defined(_JIT_ARCH_GET_CURRENT_FRAME)
+#define	jit_get_starting_frame()	\
+	do { \
+		_JIT_ARCH_GET_CURRENT_FRAME(start); \
+		if(start) \
+		{ \
+			start = jit_next_frame_pointer(start); \
+		} \
+	} while (0)
+#else
 #define	jit_get_starting_frame()	\
 	do { \
 		start = __builtin_frame_address(0); \
@@ -82,6 +95,7 @@
 			start = jit_next_frame_pointer(start); \
 		} \
 	} while (0)
+#endif
 #elif defined(_MSC_VER) && defined(_M_IX86)
 #define	jit_get_starting_frame()	\
 	__asm \
