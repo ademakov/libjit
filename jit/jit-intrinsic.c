@@ -944,7 +944,7 @@ jit_ulong jit_ulong_sub(jit_ulong value1, jit_ulong value2)
 
 jit_ulong jit_ulong_mul(jit_ulong value1, jit_ulong value2)
 {
-	return value1 - value2;
+	return value1 * value2;
 }
 
 jit_int jit_ulong_div(jit_ulong *result, jit_ulong value1, jit_ulong value2)

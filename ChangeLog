@@ -1,3 +1,7 @@
+2006-10-02  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-intrinsic.c: Fix a copy bug in jit_ulong_mul (replace - by *).
+
 2006-09-25  Aleksey Demakov  <ademakov@gmail.com>
 
 	* include/jit/jit-arch-x86.h, include/jit/jit-arch-generic.h: add
