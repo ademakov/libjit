@@ -592,7 +592,7 @@ int _jit_create_call_return_insns
 	/* Bail out now if we don't need to worry about return values */
 	if(!return_value || ptr_return)
 	{
-		return 0;
+		return 1;
 	}
 
 	/* Structure values must be flushed into the frame, and

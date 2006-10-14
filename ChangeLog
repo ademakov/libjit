@@ -1,3 +1,12 @@
+2006-10-14  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-interp.c (_jit_create_call_return_insns): fix return
+	code in case of no return value or struct returned via pointer (this
+	is just like 2006-02-20 fix for x86).
+
+	* jit/jit-cfg.c (create_value_entry): an uninitialized value was
+	used (thanks Klaus for spotting).
+
 2006-10-02  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-intrinsic.c: Fix a copy bug in jit_ulong_mul (replace - by *).

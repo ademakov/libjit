@@ -467,7 +467,7 @@ create_value_entry(_jit_cfg_t cfg, jit_value_t value)
 		}
 		else
 		{
-			max_values += max_values / 2;
+			max_values = cfg->max_values * 2;
 			values = jit_realloc(cfg->values, max_values * sizeof(struct _jit_value_entry));
 		}
 		if(!values)
