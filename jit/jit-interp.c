@@ -3592,8 +3592,17 @@ restart_tail:
 		{
 			/* Push a structure value onto the stack, given a pointer to it */
 			temparg = VM_NINT_ARG;
-			stacktop -= (JIT_NUM_ITEMS_IN_STRUCT(temparg) - 1);
+			stacktop -= JIT_NUM_ITEMS_IN_STRUCT(temparg);
 			jit_memcpy(stacktop, VM_R1_PTR, (unsigned int)temparg);
+			VM_MODIFY_PC(2);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_FLUSH_SMALL_STRUCT):
+		{
+#if JIT_APPLY_MAX_STRUCT_IN_REG != 0
+			jit_memcpy(VM_R0_PTR, return_area->struct_value, VM_NINT_ARG);
+#endif
 			VM_MODIFY_PC(2);
 		}
 		VMBREAK;
@@ -3698,6 +3707,18 @@ restart_tail:
 		VMBREAK;
 
 		/******************************************************************
+		 * Data manipulation.
+		 ******************************************************************/
+
+		VMCASE(JIT_OP_COPY_STRUCT):
+		{
+			/* Copy a structure from one address to another */
+			jit_memcpy(VM_R0_PTR, VM_R1_PTR, VM_NINT_ARG);
+			VM_MODIFY_PC(2);
+		}
+		VMBREAK;
+
+		/******************************************************************
 		 * Pointer-relative loads and stores.
 		 ******************************************************************/
 
@@ -3776,7 +3797,7 @@ restart_tail:
 		VMCASE(JIT_OP_LOAD_RELATIVE_STRUCT):
 		{
 			/* Load a structure from a relative pointer */
-			jit_memcpy(&r0, VM_REL(void, VM_R1_PTR), VM_NINT_ARG2);
+			jit_memcpy(VM_R0_PTR, VM_REL(void, VM_R1_PTR), VM_NINT_ARG2);
 			VM_MODIFY_PC(3);
 		}
 		VMBREAK;
@@ -3840,7 +3861,7 @@ restart_tail:
 		VMCASE(JIT_OP_STORE_RELATIVE_STRUCT):
 		{
 			/* Store a structure value to a relative pointer */
-			jit_memcpy(VM_REL(void, VM_R0_PTR), &r1, VM_NINT_ARG2);
+			jit_memcpy(VM_REL(void, VM_R0_PTR), VM_R1_PTR, VM_NINT_ARG2);
 			VM_MODIFY_PC(3);
 		}
 		VMBREAK;
@@ -4114,15 +4135,6 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_0_STRUCT):
-		{
-			/* Load a structure argument into the register 0 */
-			temparg = VM_NINT_ARG2;
-			jit_memcpy(&r0, VM_ARG(void), temparg);
-			VM_MODIFY_PC(3);
-		}
-		VMBREAK;
-
 		VMCASE(JIT_OP_LDAA_0):
 		{
 			/* Load the address of an argument into the register 0 */
@@ -4200,15 +4212,6 @@ restart_tail:
 			/* Load a native float argument into the register 1 */
 			VM_R1_NFLOAT = *VM_ARG(jit_nfloat);
 			VM_MODIFY_PC(2);
-		}
-		VMBREAK;
-
-		VMCASE(JIT_OP_LDA_1_STRUCT):
-		{
-			/* Load a structure argument into the register 1 */
-			temparg = VM_NINT_ARG2;
-			jit_memcpy(&r1, VM_ARG(void), temparg);
-			VM_MODIFY_PC(3);
 		}
 		VMBREAK;
 
@@ -4292,15 +4295,6 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_2_STRUCT):
-		{
-			/* Load a structure argument into the register 2 */
-			temparg = VM_NINT_ARG2;
-			jit_memcpy(&r2, VM_ARG(void), temparg);
-			VM_MODIFY_PC(3);
-		}
-		VMBREAK;
-
 		VMCASE(JIT_OP_LDAA_2):
 		{
 			/* Load the address of an argument into the register 2 */
@@ -4362,15 +4356,6 @@ restart_tail:
 			/* Store a native float into an argument */
 			*VM_ARG(jit_nfloat) = VM_R0_NFLOAT;
 			VM_MODIFY_PC(2);
-		}
-		VMBREAK;
-
-		VMCASE(JIT_OP_STA_0_STRUCT):
-		{
-			/* Store a structure value into an argument */
-			temparg = VM_NINT_ARG2;
-			jit_memcpy(VM_ARG(void), &r0, temparg);
-			VM_MODIFY_PC(3);
 		}
 		VMBREAK;
 
@@ -4450,18 +4435,9 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_0_STRUCT):
-		{
-			/* Load a structure local onto the register 0 */
-			temparg = VM_NINT_ARG2;
-			jit_memcpy(&r0, VM_LOC(void), temparg);
-			VM_MODIFY_PC(3);
-		}
-		VMBREAK;
-
 		VMCASE(JIT_OP_LDLA_0):
 		{
-			/* Load the address of an local into the register 0 */
+			/* Load the address of a local into the register 0 */
 			VM_R0_PTR = VM_LOC(void);
 			VM_MODIFY_PC(2);
 		}
@@ -4539,19 +4515,10 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_1_STRUCT):
-		{
-			/* Load a structure local onto the register 1 */
-			temparg = VM_NINT_ARG2;
-			jit_memcpy(&r1, VM_LOC(void), temparg);
-			VM_MODIFY_PC(3);
-		}
-		VMBREAK;
-
 		VMCASE(JIT_OP_LDLA_1):
 		{
-			/* Load a native float local into the register 1 */
-			VM_R1_NFLOAT = *VM_LOC(jit_nfloat);
+			/* Load the address of a local into the register 1 */
+			VM_R1_PTR = VM_LOC(void);
 			VM_MODIFY_PC(2);
 		}
 		VMBREAK;
@@ -4628,19 +4595,10 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_2_STRUCT):
-		{
-			/* Load a structure local onto the register 2 */
-			temparg = VM_NINT_ARG2;
-			jit_memcpy(&r2, VM_LOC(void), temparg);
-			VM_MODIFY_PC(3);
-		}
-		VMBREAK;
-
 		VMCASE(JIT_OP_LDLA_2):
 		{
-			/* Load a native float local into the register 2 */
-			VM_R2_NFLOAT = *VM_LOC(jit_nfloat);
+			/* Load the address of a local into the register 2 */
+			VM_R2_PTR = VM_LOC(void);
 			VM_MODIFY_PC(2);
 		}
 		VMBREAK;
@@ -4698,15 +4656,6 @@ restart_tail:
 			/* Store a native float into a local */
 			*VM_LOC(jit_nfloat) = VM_R0_NFLOAT;
 			VM_MODIFY_PC(2);
-		}
-		VMBREAK;
-
-		VMCASE(JIT_OP_STL_0_STRUCT):
-		{
-			/* Store a structure value into a local */
-			temparg = VM_NINT_ARG2;
-			jit_memcpy(VM_LOC(void), &r0, temparg);
-			VM_MODIFY_PC(3);
 		}
 		VMBREAK;
 
@@ -4896,18 +4845,6 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDR_0_SMALL_STRUCT):
-		{
-			/* Load a small structure return value into the register 0 */
-			temparg = VM_NINT_ARG;
-			stacktop -= JIT_NUM_ITEMS_IN_STRUCT(temparg);
-#if JIT_APPLY_MAX_STRUCT_IN_REG != 0
-			jit_memcpy(&r0, return_area->struct_value, temparg);
-#endif
-			VM_MODIFY_PC(2);
-		}
-		VMBREAK;
-
 		/******************************************************************
 		 * Stack management.
 		 ******************************************************************/
@@ -4981,7 +4918,6 @@ restart_tail:
 		VMCASE(JIT_OP_COPY_FLOAT32):
 		VMCASE(JIT_OP_COPY_FLOAT64):
 		VMCASE(JIT_OP_COPY_NFLOAT):
-		VMCASE(JIT_OP_COPY_STRUCT):
 		VMCASE(JIT_OP_COPY_STORE_BYTE):
 		VMCASE(JIT_OP_COPY_STORE_SHORT):
 		VMCASE(JIT_OP_ADDRESS_OF):
@@ -4990,7 +4926,6 @@ restart_tail:
 		VMCASE(JIT_OP_OUTGOING_REG):
 		VMCASE(JIT_OP_OUTGOING_FRAME_POSN):
 		VMCASE(JIT_OP_RETURN_REG):
-		VMCASE(JIT_OP_FLUSH_SMALL_STRUCT):
 		VMCASE(JIT_OP_SET_PARAM_INT):
 		VMCASE(JIT_OP_SET_PARAM_LONG):
 		VMCASE(JIT_OP_SET_PARAM_FLOAT32):

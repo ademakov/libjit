@@ -558,7 +558,6 @@ jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES] = {
 	{"lda_0_float32",		JIT_OPCODE_NINT_ARG},
 	{"lda_0_float64",		JIT_OPCODE_NINT_ARG},
 	{"lda_0_nfloat",		JIT_OPCODE_NINT_ARG},
-	{"lda_0_struct",		JIT_OPCODE_NINT_ARG_TWO},
 	{"ldaa_0",			JIT_OPCODE_NINT_ARG},
 	{"lda_1_sbyte",			JIT_OPCODE_NINT_ARG},
 	{"lda_1_ubyte",			JIT_OPCODE_NINT_ARG},
@@ -569,7 +568,6 @@ jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES] = {
 	{"lda_1_float32",		JIT_OPCODE_NINT_ARG},
 	{"lda_1_float64",		JIT_OPCODE_NINT_ARG},
 	{"lda_1_nfloat",		JIT_OPCODE_NINT_ARG},
-	{"lda_1_struct",		JIT_OPCODE_NINT_ARG_TWO},
 	{"ldaa_1",			JIT_OPCODE_NINT_ARG},
 	{"lda_2_sbyte",			JIT_OPCODE_NINT_ARG},
 	{"lda_2_ubyte",			JIT_OPCODE_NINT_ARG},
@@ -580,7 +578,6 @@ jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES] = {
 	{"lda_2_float32",		JIT_OPCODE_NINT_ARG},
 	{"lda_2_float64",		JIT_OPCODE_NINT_ARG},
 	{"lda_2_nfloat",		JIT_OPCODE_NINT_ARG},
-	{"lda_2_struct",		JIT_OPCODE_NINT_ARG_TWO},
 	{"ldaa_2",			JIT_OPCODE_NINT_ARG},
 	{"sta_0_byte",			JIT_OPCODE_NINT_ARG},
 	{"sta_0_short",			JIT_OPCODE_NINT_ARG},
@@ -589,7 +586,6 @@ jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES] = {
 	{"sta_0_float32",		JIT_OPCODE_NINT_ARG},
 	{"sta_0_float64",		JIT_OPCODE_NINT_ARG},
 	{"sta_0_nfloat",		JIT_OPCODE_NINT_ARG},
-	{"sta_0_struct",		JIT_OPCODE_NINT_ARG_TWO},
 
 	/*
 	 * Local variable frame access opcodes.
@@ -603,7 +599,6 @@ jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES] = {
 	{"ldl_0_float32",		JIT_OPCODE_NINT_ARG},
 	{"ldl_0_float64",		JIT_OPCODE_NINT_ARG},
 	{"ldl_0_nfloat",		JIT_OPCODE_NINT_ARG},
-	{"ldl_0_struct",		JIT_OPCODE_NINT_ARG_TWO},
 	{"ldla_0",			JIT_OPCODE_NINT_ARG},
 	{"ldl_1_sbyte",			JIT_OPCODE_NINT_ARG},
 	{"ldl_1_ubyte",			JIT_OPCODE_NINT_ARG},
@@ -614,7 +609,6 @@ jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES] = {
 	{"ldl_1_float32",		JIT_OPCODE_NINT_ARG},
 	{"ldl_1_float64",		JIT_OPCODE_NINT_ARG},
 	{"ldl_1_nfloat",		JIT_OPCODE_NINT_ARG},
-	{"ldl_1_struct",		JIT_OPCODE_NINT_ARG_TWO},
 	{"ldla_1",			JIT_OPCODE_NINT_ARG},
 	{"ldl_2_sbyte",			JIT_OPCODE_NINT_ARG},
 	{"ldl_2_ubyte",			JIT_OPCODE_NINT_ARG},
@@ -625,7 +619,6 @@ jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES] = {
 	{"ldl_2_float32",		JIT_OPCODE_NINT_ARG},
 	{"ldl_2_float64",		JIT_OPCODE_NINT_ARG},
 	{"ldl_2_nfloat",		JIT_OPCODE_NINT_ARG},
-	{"ldl_2_struct",		JIT_OPCODE_NINT_ARG_TWO},
 	{"ldla_2",			JIT_OPCODE_NINT_ARG},
 	{"stl_0_byte",			JIT_OPCODE_NINT_ARG},
 	{"stl_0_short",			JIT_OPCODE_NINT_ARG},
@@ -634,7 +627,6 @@ jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES] = {
 	{"stl_0_float32",		JIT_OPCODE_NINT_ARG},
 	{"stl_0_float64",		JIT_OPCODE_NINT_ARG},
 	{"stl_0_nfloat",		JIT_OPCODE_NINT_ARG},
-	{"stl_0_struct",		JIT_OPCODE_NINT_ARG_TWO},
 
 	/*
 	 * Load constant values.
@@ -663,7 +655,6 @@ jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES] = {
 	{"ldr_0_float32",		0},
 	{"ldr_0_float64",		0},
 	{"ldr_0_nfloat",		0},
-	{"ldr_0_small_struct",		JIT_OPCODE_NINT_ARG},
 
 	/*
 	 * Stack management.

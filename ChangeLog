@@ -1,3 +1,16 @@
+2006-10-16  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-interp.h, jit/jit-interp.c (_jit_run_function): 
+	* jit/jit-opcode.c, jit/jit-rules-interp.c (_jit_gen_insn): Repair
+	struct handling broken since the last interpreter reorganization,
+	remove unused interpreter opcodes.
+
+	* jit/jit-rules-interp.c (_jit_gen_start_block): check if the fixup
+	position is before the cache end. This prevents segmentation fault
+	when the end of cache block is reached and jit_function_compile()
+	attempts to generate more code (it checks for the cache end way too
+	late).
+
 2006-10-14  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-interp.c (_jit_create_call_return_insns): fix return
@@ -41,7 +54,7 @@
 
 	* configure.in: remove --enable-new-reg-alloc option.
 
-	* jit/jit-rules-x86.ins: simplify  JIT_OP_RETURN_LONG rule, lift code
+	* jit/jit-rules-x86.ins: simplify JIT_OP_RETURN_LONG rule, lift code
 	from load_small_struct() function to JIT_OP_RETURN_SMALL_STRUCT rule.
 	* jit/jit-rules-x86.c: remove load_small_struct() function.
 
