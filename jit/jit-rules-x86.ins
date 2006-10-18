@@ -22,27 +22,27 @@
  * Conversion opcodes.
  */
 
-JIT_OP_TRUNC_SBYTE: unary
-	[reg("eax"|"ecx"|"edx"|"ebx")] -> {
-		x86_widen_reg(inst, $1, $1, 1, 0);
+JIT_OP_TRUNC_SBYTE:
+	[=reg, reg("eax"|"ecx"|"edx"|"ebx")] -> {
+		x86_widen_reg(inst, $1, $2, 1, 0);
 	}
 
-JIT_OP_TRUNC_UBYTE: unary
-	[reg("eax"|"ecx"|"edx"|"ebx")] -> {
-		x86_widen_reg(inst, $1, $1, 0, 0);
+JIT_OP_TRUNC_UBYTE:
+	[=reg, reg("eax"|"ecx"|"edx"|"ebx")] -> {
+		x86_widen_reg(inst, $1, $2, 0, 0);
 	}
 
-JIT_OP_TRUNC_SHORT: unary
-	[reg] -> {
-		x86_widen_reg(inst, $1, $1, 1, 1);
+JIT_OP_TRUNC_SHORT:
+	[=reg, reg] -> {
+		x86_widen_reg(inst, $1, $2, 1, 1);
 	}
 
-JIT_OP_TRUNC_USHORT: unary
-	[reg] -> {
-		x86_widen_reg(inst, $1, $1, 0, 1);
+JIT_OP_TRUNC_USHORT:
+	[=reg, reg] -> {
+		x86_widen_reg(inst, $1, $2, 0, 1);
 	}
 
-JIT_OP_CHECK_SBYTE: unary, more_space
+JIT_OP_CHECK_SBYTE: more_space
 	[reg] -> {
 		unsigned char *patch1;
 		unsigned char *patch2;
@@ -57,7 +57,7 @@ JIT_OP_CHECK_SBYTE: unary, more_space
 		x86_patch(patch2, inst);
 	}
 
-JIT_OP_CHECK_UBYTE: unary, more_space
+JIT_OP_CHECK_UBYTE: more_space
 	[reg] -> {
 		unsigned char *patch1;
 		x86_alu_reg_imm(inst, X86_CMP, $1, 256);
@@ -67,7 +67,7 @@ JIT_OP_CHECK_UBYTE: unary, more_space
 		x86_patch(patch1, inst);
 	}
 
-JIT_OP_CHECK_SHORT: unary, more_space
+JIT_OP_CHECK_SHORT: more_space
 	[reg] -> {
 		unsigned char *patch1;
 		unsigned char *patch2;
@@ -82,7 +82,7 @@ JIT_OP_CHECK_SHORT: unary, more_space
 		x86_patch(patch2, inst);
 	}
 
-JIT_OP_CHECK_USHORT: unary, more_space
+JIT_OP_CHECK_USHORT: more_space
 	[reg] -> {
 		unsigned char *patch1;
 		x86_alu_reg_imm(inst, X86_CMP, $1, 65536);
@@ -92,7 +92,7 @@ JIT_OP_CHECK_USHORT: unary, more_space
 		x86_patch(patch1, inst);
 	}
 
-JIT_OP_CHECK_INT, JIT_OP_CHECK_UINT: unary, more_space
+JIT_OP_CHECK_INT, JIT_OP_CHECK_UINT: copy, more_space
 	[reg] -> {
 		unsigned char *patch1;
 		x86_alu_reg_imm(inst, X86_CMP, $1, 0);
@@ -101,7 +101,7 @@ JIT_OP_CHECK_INT, JIT_OP_CHECK_UINT: unary, more_space
 		inst = throw_builtin(inst, func, JIT_RESULT_OVERFLOW);
 		x86_patch(patch1, inst);
 	}
-	
+
 JIT_OP_LOW_WORD:
 	[=reg, imm] -> {
 		jit_uint value = ((jit_uint *)($2))[0];
@@ -222,7 +222,7 @@ JIT_OP_NFLOAT_TO_FLOAT64: stack
 		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_float64));
 	}
 
-JIT_OP_FLOAT32_TO_NFLOAT, JIT_OP_FLOAT64_TO_NFLOAT: unary, stack
+JIT_OP_FLOAT32_TO_NFLOAT, JIT_OP_FLOAT64_TO_NFLOAT: copy, stack
 	[freg] -> {
 		/* Nothing to do: loading the value onto the FP stack is sufficient */
 	}
@@ -1662,31 +1662,31 @@ JIT_OP_ADDRESS_OF_LABEL:
  * Data manipulation.
  */
 
-JIT_OP_COPY_LOAD_SBYTE: unary
+JIT_OP_COPY_LOAD_SBYTE: copy
 	[reg] -> {}
 
-JIT_OP_COPY_LOAD_UBYTE: unary
+JIT_OP_COPY_LOAD_UBYTE: copy
 	[reg] -> {}
 
-JIT_OP_COPY_LOAD_SHORT: unary
+JIT_OP_COPY_LOAD_SHORT: copy
 	[reg] -> {}
 
-JIT_OP_COPY_LOAD_USHORT: unary
+JIT_OP_COPY_LOAD_USHORT: copy
 	[reg] -> {}
 
-JIT_OP_COPY_INT: unary
+JIT_OP_COPY_INT: copy
 	[reg] -> {}
 
-JIT_OP_COPY_LONG: unary
+JIT_OP_COPY_LONG: copy
 	[lreg] -> {}
 
-JIT_OP_COPY_FLOAT32: unary, stack
+JIT_OP_COPY_FLOAT32: copy, stack
 	[freg] -> {}
 
-JIT_OP_COPY_FLOAT64: unary, stack
+JIT_OP_COPY_FLOAT64: copy, stack
 	[freg] -> {}
 
-JIT_OP_COPY_NFLOAT: unary, stack
+JIT_OP_COPY_NFLOAT: copy, stack
 	[freg] -> {}
 
 JIT_OP_COPY_STRUCT: manual, spill_before

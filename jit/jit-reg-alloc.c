@@ -236,10 +236,8 @@ are_values_equal(_jit_regdesc_t *desc1, _jit_regdesc_t *desc2)
  * might seem that there is no chance to find any dead value on the current
  * instruction. However if the value is used by the current instruction both
  * as the input and output then it was alive after the last instruction and
- * hence was not freed. Also the old allocator might sometimes leave a dead
- * value in the register and as of this writing the old allocator is still
- * used by some rules. And just in case if some dead value may creep through
- * the new allocator...
+ * hence was not freed. And just in case if some dead values may creep through
+ * the allocator's checks...
  */
 static int
 value_usage(_jit_regs_t *regs, jit_value_t value)
@@ -408,6 +406,20 @@ clobbers_register(jit_gencode_t gen, _jit_regs_t *regs, int index, int reg, int 
 	else if(index == 0)
 	{
 		/* this is the output value of a binary or unary op */
+
+		/* special case: a copy operation. Check if we could coalesce
+		   the destination value with the source. */
+		if(regs->copy
+		   && regs->descs[1].value
+		   && regs->descs[1].value->in_register
+		   && regs->descs[1].value->reg == reg
+		   && ((regs->descs[0].value->in_register && regs->descs[0].value->reg == reg)
+		       || gen->contents[reg].num_values < JIT_MAX_REG_VALUES
+		       || !(regs->descs[1].used || regs->descs[1].live)))
+		{
+			return CLOBBER_NONE;
+		}
+
 		flags = CLOBBER_NONE;
 		if(is_register_alive(gen, regs, reg))
 		{
@@ -418,6 +430,10 @@ clobbers_register(jit_gencode_t gen, _jit_regs_t *regs, int index, int reg, int 
 			flags |= CLOBBER_OTHER_REG;
 		}
 		return flags;
+	}
+	else if(regs->copy)
+	{
+		flags = CLOBBER_NONE;
 	}
 	else if(regs->on_stack && !regs->no_pop)
 	{
@@ -586,7 +602,7 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 		return 1;
 	}
 
-	/* Find the registers the value is already in (if any). */
+	/* Find the register the value is already in (if any). */
 	if(desc->value->in_register)
 	{
 		reg = desc->value->reg;
@@ -733,14 +749,7 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 		}
 		else if(desc->load)
 		{
-			if(desc->used)
-			{
-				if(clobber_input)
-				{
-					desc->kill = 1;
-				}
-			}
-			else
+			if(!desc->used || clobber_input)
 			{
 				desc->kill = 1;
 			}
@@ -1596,8 +1605,8 @@ bind_value(jit_gencode_t gen, jit_value_t value, int reg, int other_reg, int sti
 		still_in_frame = 0;
 	}
 
-	gen->contents[reg].values[0] = value;
-	gen->contents[reg].num_values = 1;
+	gen->contents[reg].values[gen->contents[reg].num_values] = value;
+	++(gen->contents[reg].num_values);
 	gen->contents[reg].age = gen->current_age;
 	gen->contents[reg].used_for_temp = 0;
 	gen->contents[reg].is_long_end = 0;
