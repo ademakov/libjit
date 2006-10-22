@@ -1,3 +1,10 @@
+2006-10-23  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.ins: JIT_OP_EXPAND_INT and JIT_OP_EXPAND_UINT
+	rules were broken for local byte or short values. Fixed by removing
+	the local pattern altogether as the reg pattern produces the same
+	code but without the bug.
+
 2006-10-18  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c (clobbers_register, bind_value): enable

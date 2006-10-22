@@ -118,16 +118,6 @@ JIT_OP_LOW_WORD:
 	}
 	
 JIT_OP_EXPAND_INT:
-	[=lreg, imm] -> {
-		x86_mov_reg_imm(inst, $1, $2);
-		x86_mov_reg_reg(inst, %1, $1, 4);
-		x86_shift_reg_imm(inst, X86_SAR, %1, 31);
-	}
-	[=lreg, local] -> {
-		x86_mov_reg_membase(inst, $1, X86_EBP, $2, 4);
-		x86_mov_reg_reg(inst, %1, $1, 4);
-		x86_shift_reg_imm(inst, X86_SAR, %1, 31);
-	}
 	[=lreg, reg] -> {
 		if($1 != $2)
 		{
@@ -138,14 +128,6 @@ JIT_OP_EXPAND_INT:
 	}
 
 JIT_OP_EXPAND_UINT:
-	[=lreg, imm] -> {
-		x86_mov_reg_imm(inst, $1, $2);
-		x86_clear_reg(inst, %1);
-	}
-	[=lreg, local] -> {
-		x86_mov_reg_membase(inst, $1, X86_EBP, $2, 4);
-		x86_clear_reg(inst, %1);
-	}
 	[=lreg, reg] -> {
 		if($1 != $2)
 		{
