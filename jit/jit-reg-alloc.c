@@ -127,6 +127,10 @@ static void dump_regs(jit_gencode_t gen, const char *name)
 		}
 		putc('\n', stdout);
 	}
+#ifdef JIT_REG_STACK
+	printf("stack_top: %d\n", gen->reg_stack_top);
+#endif
+	fflush(stdout);
 }
 #endif
 
@@ -2274,7 +2278,7 @@ commit_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	if(desc->copy)
 	{
 #ifdef JIT_REG_STACK
-		if(IS_STACK_REG(desc->reg))
+		if(IS_STACK_REG(desc->reg) && !regs->copy)
 		{
 			--(gen->reg_stack_top);
 		}
@@ -2299,7 +2303,7 @@ commit_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index)
 		}
 		unbind_value(gen, desc->value, reg, other_reg);
 #ifdef JIT_REG_STACK
-		if(IS_STACK_REG(reg))
+		if(IS_STACK_REG(reg) && !regs->copy)
 		{
 			--(gen->reg_stack_top);
 		}
@@ -2334,7 +2338,7 @@ commit_output_value(jit_gencode_t gen, _jit_regs_t *regs)
 	}
 
 #ifdef JIT_REG_STACK
-	if(IS_STACK_REG(desc->reg))
+	if(IS_STACK_REG(desc->reg) && !regs->copy)
 	{
 		++(gen->reg_stack_top);
 	}
