@@ -1069,151 +1069,151 @@ JIT_OP_BR_IGE_UN: binary_branch
  * Comparison opcodes.
  */
 
-JIT_OP_IEQ: binary
-	[reg, immzero] -> {
-		x86_alu_reg_reg(inst, X86_OR, $1, $1);
+JIT_OP_IEQ:
+	[=reg, reg, immzero] -> {
+		x86_alu_reg_reg(inst, X86_OR, $2, $2);
 		inst = setcc_reg(inst, $1, X86_CC_EQ, 0);
 	}
-	[reg, imm] -> {
-		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+	[=reg, reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_EQ, 0);
 	}
-	[reg, local] -> {
-		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+	[=reg, reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $2, X86_EBP, $3);
 		inst = setcc_reg(inst, $1, X86_CC_EQ, 0);
 	}
-	[reg, reg] -> {
-		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+	[=reg, reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_EQ, 0);
 	}
 
-JIT_OP_INE: binary
-	[reg, immzero] -> {
-		x86_alu_reg_reg(inst, X86_OR, $1, $1);
+JIT_OP_INE:
+	[=reg, reg, immzero] -> {
+		x86_alu_reg_reg(inst, X86_OR, $2, $2);
 		inst = setcc_reg(inst, $1, X86_CC_NE, 0);
 	}
-	[reg, imm] -> {
-		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+	[=reg, reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_NE, 0);
 	}
-	[reg, local] -> {
-		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+	[=reg, reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $2, X86_EBP, $3);
 		inst = setcc_reg(inst, $1, X86_CC_NE, 0);
 	}
-	[reg, reg] -> {
-		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+	[=reg, reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_NE, 0);
 	}
 
-JIT_OP_ILT: binary
-	[reg, imm] -> {
-		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+JIT_OP_ILT:
+	[=reg, reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_LT, 1);
 	}
-	[reg, local] -> {
-		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+	[=reg, reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $2, X86_EBP, $3);
 		inst = setcc_reg(inst, $1, X86_CC_LT, 1);
 	}
-	[reg, reg] -> {
-		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+	[=reg, reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_LT, 1);
 	}
 
-JIT_OP_ILT_UN: binary
-	[reg, imm] -> {
-		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+JIT_OP_ILT_UN:
+	[=reg, reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_LT, 0);
 	}
-	[reg, local] -> {
-		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+	[=reg, reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $2, X86_EBP, $3);
 		inst = setcc_reg(inst, $1, X86_CC_LT, 0);
 	}
-	[reg, reg] -> {
-		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+	[=reg, reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_LT, 0);
 	}
 
-JIT_OP_ILE: binary
-	[reg, imm] -> {
-		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+JIT_OP_ILE:
+	[=reg, reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_LE, 1);
 	}
-	[reg, local] -> {
-		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+	[=reg, reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $2, X86_EBP, $3);
 		inst = setcc_reg(inst, $1, X86_CC_LE, 1);
 	}
-	[reg, reg] -> {
-		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+	[=reg, reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_LE, 1);
 	}
 
-JIT_OP_ILE_UN: binary
-	[reg, imm] -> {
-		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+JIT_OP_ILE_UN:
+	[=reg, reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_LE, 0);
 	}
-	[reg, local] -> {
-		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+	[=reg, reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $2, X86_EBP, $3);
 		inst = setcc_reg(inst, $1, X86_CC_LE, 0);
 	}
-	[reg, reg] -> {
-		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+	[=reg, reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_LE, 0);
 	}
 
-JIT_OP_IGT: binary
-	[reg, imm] -> {
-		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+JIT_OP_IGT:
+	[=reg, reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_GT, 1);
 	}
-	[reg, local] -> {
-		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+	[=reg, reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $2, X86_EBP, $3);
 		inst = setcc_reg(inst, $1, X86_CC_GT, 1);
 	}
-	[reg, reg] -> {
-		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+	[=reg, reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_GT, 1);
 	}
 
-JIT_OP_IGT_UN: binary
-	[reg, imm] -> {
-		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+JIT_OP_IGT_UN:
+	[=reg, reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_GT, 0);
 	}
-	[reg, local] -> {
-		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+	[=reg, reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $2, X86_EBP, $3);
 		inst = setcc_reg(inst, $1, X86_CC_GT, 0);
 	}
-	[reg, reg] -> {
-		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+	[=reg, reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_GT, 0);
 	}
 
-JIT_OP_IGE: binary
-	[reg, imm] -> {
-		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+JIT_OP_IGE:
+	[=reg, reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_GE, 1);
 	}
-	[reg, local] -> {
-		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+	[=reg, reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $2, X86_EBP, $3);
 		inst = setcc_reg(inst, $1, X86_CC_GE, 1);
 	}
-	[reg, reg] -> {
-		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+	[=reg, reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_GE, 1);
 	}
 
-JIT_OP_IGE_UN: binary
-	[reg, imm] -> {
-		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
+JIT_OP_IGE_UN:
+	[=reg, reg, imm] -> {
+		x86_alu_reg_imm(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_GE, 0);
 	}
-	[reg, local] -> {
-		x86_alu_reg_membase(inst, X86_CMP, $1, X86_EBP, $2);
+	[=reg, reg, local] -> {
+		x86_alu_reg_membase(inst, X86_CMP, $2, X86_EBP, $3);
 		inst = setcc_reg(inst, $1, X86_CC_GE, 0);
 	}
-	[reg, reg] -> {
-		x86_alu_reg_reg(inst, X86_CMP, $1, $2);
+	[=reg, reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_CMP, $2, $3);
 		inst = setcc_reg(inst, $1, X86_CC_GE, 0);
 	}
 

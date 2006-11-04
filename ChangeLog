@@ -1,3 +1,8 @@
+2006-11-04  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.ins: make comparison opcodes use three-address
+	patterns.
+
 2006-11-01  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c (commit_input_value, commit_output_value):
