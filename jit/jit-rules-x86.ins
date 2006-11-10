@@ -1248,6 +1248,27 @@ JIT_OP_FSQRT, JIT_OP_DSQRT, JIT_OP_NFSQRT: unary, stack
 		x86_fsqrt(inst);
 	}
 
+/*
+ * Absolute, minimum, maximum, and sign.
+ */
+
+JIT_OP_IABS:
+	[reg("eax"), scratch("edx")] -> {
+		x86_cdq(inst);
+		x86_alu_reg_reg(inst, X86_XOR, $1, $2);
+		x86_alu_reg_reg(inst, X86_SUB, $1, $2);
+	}
+
+JIT_OP_LABS:
+	[lreg, scratch("?")] -> {
+		x86_mov_reg_reg(inst, $2, %1, 4);
+		x86_shift_reg_imm(inst, X86_SAR, $2, 31);
+		x86_alu_reg_reg(inst, X86_XOR, $1, $2);
+		x86_alu_reg_reg(inst, X86_XOR, %1, $2);
+		x86_alu_reg_reg(inst, X86_SUB, $1, $2);
+		x86_alu_reg_reg(inst, X86_SBB, %1, $2);
+	}
+
 JIT_OP_FABS, JIT_OP_DABS, JIT_OP_NFABS: unary, stack
 	[freg] -> {
 		x86_fabs(inst);

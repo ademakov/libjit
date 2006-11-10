@@ -1,3 +1,7 @@
+2006-11-11  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.ins: add JIT_OP_IABS and JIT_OP_LABS rules.
+
 2006-11-04  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.ins: make comparison opcodes use three-address
