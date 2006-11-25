@@ -1299,7 +1299,7 @@ JIT_OP_ISIGN:
 
 JIT_OP_LSIGN:
 	[=reg, imm] -> {
-		jit_int value = ((jit_int *)($2))[0];
+		jit_int value = ((jit_int *)($2))[1];
 		if(value < 0)
 		{
 			x86_mov_reg_imm(inst, $1, -1);
@@ -1310,7 +1310,7 @@ JIT_OP_LSIGN:
 		}
 	}
 	[=reg, lreg] -> {
-		if($1 != $2)
+		if($1 != %2)
 		{
 			x86_mov_reg_reg(inst, $1, %2, 4);
 		}
