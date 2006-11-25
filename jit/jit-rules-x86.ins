@@ -722,10 +722,18 @@ JIT_OP_LSUB: binary
 
 JIT_OP_LNEG: unary
 	[lreg] -> {
-		x86_not_reg(inst, $1);
-		x86_not_reg(inst, %1);
-		x86_alu_reg_imm(inst, X86_ADD, $1, 1);
+		/* TODO: gcc generates the first variant while
+		   AoA suggests the second. Figure out if one
+		   is better than other. */
+#if 1
+		x86_neg_reg(inst, $1);
 		x86_alu_reg_imm(inst, X86_ADC, %1, 0);
+		x86_neg_reg(inst, %1);
+#else
+		x86_neg_reg(inst, %1);
+		x86_neg_reg(inst, $1);
+		x86_alu_reg_imm(inst, X86_SBB, %1, 0);
+#endif
 	}
 
 JIT_OP_FADD, JIT_OP_DADD, JIT_OP_NFADD: binary, stack
@@ -1272,6 +1280,41 @@ JIT_OP_LABS:
 JIT_OP_FABS, JIT_OP_DABS, JIT_OP_NFABS: unary, stack
 	[freg] -> {
 		x86_fabs(inst);
+	}
+
+JIT_OP_ISIGN:
+	[=reg, imm] -> {
+		if($2 < 0)
+		{
+			x86_mov_reg_imm(inst, $1, -1);
+		}
+		else
+		{
+			x86_clear_reg(inst, $1);
+		}
+	}
+	[reg] -> {
+		x86_shift_reg_imm(inst, X86_SAR, $1, 31);
+	}
+
+JIT_OP_LSIGN:
+	[=reg, imm] -> {
+		jit_int value = ((jit_int *)($2))[0];
+		if(value < 0)
+		{
+			x86_mov_reg_imm(inst, $1, -1);
+		}
+		else
+		{
+			x86_clear_reg(inst, $1);
+		}
+	}
+	[=reg, lreg] -> {
+		if($1 != $2)
+		{
+			x86_mov_reg_reg(inst, $1, %2, 4);
+		}
+		x86_shift_reg_imm(inst, X86_SAR, $1, 31);
 	}
 
 /*

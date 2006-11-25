@@ -1740,6 +1740,7 @@ exch_stack_top(jit_gencode_t gen, int reg, int pop)
 		{
 			if(value2)
 			{
+				value2->in_register = 0;
 				value2->reg = -1;
 			}
 			gen->contents[top].values[index] = 0;
@@ -1806,6 +1807,7 @@ free_value(jit_gencode_t gen, jit_value_t value, int reg, int other_reg, int tem
 		{
 			/* Free stack register. */
 			exch_stack_top(gen, reg, 1);
+			return;
 		}
 #endif
 	}

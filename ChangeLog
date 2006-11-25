@@ -1,3 +1,14 @@
+2006-11-25  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.c (exch_stack_top, free_value): fix freeing
+	stack registers.
+
+2006-11-25  Kirill Kononenko  <Kirill.Kononenko@gmail.com>
+
+	* jit/jit-rules-x86.ins: add JIT_OP_ISIGN and JIT_OP_LSIGN rules
+	(patch #5533), optimize JIT_OP_LNEG rule (patch #5555). [with
+	some modifications by Aleksey Demakov.]
+
 2006-11-11  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.ins: add JIT_OP_IABS and JIT_OP_LABS rules.
