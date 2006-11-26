@@ -322,6 +322,9 @@ struct _jit_builder
 	/* Flag that indicates that the current function contains a tail call */
 	int					has_tail_call : 1;
 
+	/* Generate position-independent code */
+	int					position_independent : 1;
+
 	/* List of all instructions in this function */
 	jit_insn_t		   *insns;
 	int					num_insns;

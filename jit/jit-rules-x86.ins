@@ -1700,15 +1700,23 @@ JIT_OP_CALL_FILTER_RETURN: manual
 JIT_OP_ADDRESS_OF_LABEL:
 	[=reg] -> {
 		block = jit_block_from_label(func, (jit_label_t)(insn->value1));
-		if(block->address)
+		if(func->builder->position_independent)
 		{
-			x86_mov_reg_imm(inst, $1, block->address);
+			/* TODO */
+			TODO();
 		}
 		else
 		{
-			/* Output a placeholder and record on the block's fixup list */
-			x86_mov_reg_imm(inst, $1, (int)(block->fixup_absolute_list));
-			block->fixup_absolute_list = (void *)(inst - 4);
+			if(block->address)
+			{
+				x86_mov_reg_imm(inst, $1, block->address);
+			}
+			else
+			{
+				/* Output a placeholder and record on the block's fixup list */
+				x86_mov_reg_imm(inst, $1, (int)(block->fixup_absolute_list));
+				block->fixup_absolute_list = (void *)(inst - 4);
+			}
 		}
 	}
 
@@ -2395,15 +2403,23 @@ JIT_OP_JUMP_TABLE: ternary
 		patch_fall_through = inst;
 		x86_branch32(inst, X86_CC_GE, 0, 1);
 
-		patch_jump_table = inst;
-		x86_jump_memindex(inst, X86_NOBASEREG, 0, $1, 2);
-		while(((jit_nint) inst & (sizeof(void*) - 1)) != 0)
+		if(func->builder->position_independent)
 		{
-			x86_nop(inst);
+			/* TODO */
+			TODO();
 		}
+		else
+		{
+			patch_jump_table = inst;
+			x86_jump_memindex(inst, X86_NOBASEREG, 0, $1, 2);
+			while(((jit_nint) inst & (sizeof(void*) - 1)) != 0)
+			{
+				x86_nop(inst);
+			}
 
-		// displacement goes after opcode. ModR/M, and SIB bytes
-		*((void **)(patch_jump_table + 3)) = inst;
+			// displacement goes after opcode. ModR/M, and SIB bytes
+			*((void **)(patch_jump_table + 3)) = inst;
+		}
 
 		for(index = 0; index < num_labels; index++)
 		{
@@ -2413,15 +2429,23 @@ JIT_OP_JUMP_TABLE: ternary
 				return;
 			}
 
-			if(block->address)
+			if(func->builder->position_independent)
 			{
-				x86_imm_emit32(inst, block->address);
+				/* TODO */
+				TODO();
 			}
 			else
 			{
-				/* Output a placeholder and record on the block's fixup list */
-				x86_imm_emit32(inst, (int)(block->fixup_absolute_list));
-				block->fixup_absolute_list = (void *)(inst - 4);
+				if(block->address)
+				{
+					x86_imm_emit32(inst, block->address);
+				}
+				else
+				{
+					/* Output a placeholder and record on the block's fixup list */
+					x86_imm_emit32(inst, (int)(block->fixup_absolute_list));
+					block->fixup_absolute_list = (void *)(inst - 4);
+				}
 			}
 		}
 

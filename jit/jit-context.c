@@ -213,6 +213,12 @@ int jit_context_set_meta
  * A numeric option that disables constant folding when it is set to a
  * non-zero value.  This is useful for debugging, as it forces @code{libjit} to
  * always execute constant expressions at run time, instead of at compile time.
+ *
+ * @vindex JIT_OPTION_POSITION_INDEPENDENT
+ * @item JIT_OPTION_POSITION_INDEPENDENT
+ * A numeric option that forces generation of position-independent code (PIC)
+ * if it is set to a non-zero value. This may be mainly useful for pre-compiled
+ * contexts.
  * @end table
  *
  * Metadata type values of 10000 or greater are reserved for internal use.

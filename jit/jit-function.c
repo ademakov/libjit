@@ -180,6 +180,11 @@ int _jit_function_ensure_builder(jit_function_t func)
 		return 0;
 	}
 
+	/* Cache the value of the JIT_OPTION_POSITION_INDEPENDENT option */
+	func->builder->position_independent
+		= jit_context_get_meta_numeric(
+			func->context, JIT_OPTION_POSITION_INDEPENDENT);
+
 	/* Initialize the function builder */
 	jit_memory_pool_init(&(func->builder->value_pool), struct _jit_value);
 	jit_memory_pool_init(&(func->builder->insn_pool), struct _jit_insn);
