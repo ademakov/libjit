@@ -984,7 +984,7 @@ static int
 choose_scratch_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 {
 	int reg, type;
-	int use_cost, spill_cost;
+	int use_cost;
 	int suitable_reg;
 	int suitable_cost;
 	int suitable_age;
@@ -1042,14 +1042,15 @@ choose_scratch_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 			use_cost += COST_THRASH;
 		}
 
-		spill_cost = compute_spill_cost(gen, regs, reg, -1);
+		use_cost += compute_spill_cost(gen, regs, reg, -1);
 
-		if((use_cost + spill_cost) < suitable_cost
-		   || (spill_cost > 0 && (use_cost + spill_cost) == suitable_cost
+		if(use_cost < suitable_cost
+		   || (use_cost == suitable_cost
+		       && gen->contents[reg].num_values > 0
 		       && gen->contents[reg].age < suitable_age))
 		{
 			suitable_reg = reg;
-			suitable_cost = use_cost + spill_cost;
+			suitable_cost = use_cost;
 			suitable_age = gen->contents[reg].age;
 		}
 	}
@@ -1068,7 +1069,7 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 {
 	int type, need_pair;
 	int reg, other_reg;
-	int use_cost, spill_cost;
+	int use_cost;
 	int suitable_reg, suitable_other_reg;
 	int suitable_cost;
 	int suitable_age;
@@ -1112,18 +1113,45 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 			other_reg = -1;
 		}
 
-		/* It is not allowed to assign an output value to a global register
-		   unless it is the very value the global register contains. */
 		if(jit_reg_is_used(gen->permanent, reg))
 		{
-			if(regs->descs[0].value->has_global_register
-			   && regs->descs[0].value->global_reg == reg)
+			if(!regs->descs[0].value->has_global_register
+			   || regs->descs[0].value->global_reg != reg)
+			{
+				/* It is not allowed to assign an output value to a global
+				   register unless it is the very value the global register
+				   contains. */
+				continue;
+			}
+			if(regs->free_dest)
 			{
 				use_cost = 0;
 			}
+			else if(regs->descs[0].value->in_global_register)
+			{
+				if(regs->descs[0].value == regs->descs[1].value)
+				{
+					use_cost = 0;
+				}
+				else if(regs->descs[0].value == regs->descs[2].value)
+				{
+					if(regs->commutative)
+					{
+						use_cost = 0;
+					}
+					else
+					{
+						continue;
+					}
+				}
+				else
+				{
+					use_cost = COST_COPY;
+				}
+			}
 			else
 			{
-				continue;
+				use_cost = COST_COPY;
 			}
 		}
 		else
@@ -1132,53 +1160,49 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 			{
 				continue;
 			}
-			if(regs->descs[0].value->has_global_register)
-			{
-				use_cost = COST_GLOBAL_BIAS;
-			}
-			else
+			if(regs->free_dest)
 			{
 				use_cost = 0;
 			}
-		}
-
-		if(regs->free_dest)
-		{
-			/* noop */
-		}
-		else if(regs->descs[1].value
-			&& regs->descs[1].value->in_register
-			&& regs->descs[1].value->reg == reg)
-		{
-			/* noop */
-		}
-		else if(regs->descs[2].value
-			&& regs->descs[2].value->in_register
-			&& regs->descs[2].value->reg == reg)
-		{
-			if(regs->commutative || regs->x87_arith)
+			else if(regs->descs[1].value
+				&& regs->descs[1].value->in_register
+				&& regs->descs[1].value->reg == reg)
 			{
-				/* noop */
+				use_cost = 0;
+			}
+			else if(regs->descs[2].value
+				&& regs->descs[2].value->in_register
+				&& regs->descs[2].value->reg == reg)
+			{
+				if(regs->commutative || regs->x87_arith)
+				{
+					use_cost = 0;
+				}
+				else
+				{
+					use_cost = COST_THRASH;
+				}
 			}
 			else
 			{
-				use_cost += COST_THRASH;
+				use_cost = COST_COPY;
+			}
+			if(regs->descs[0].value->has_global_register)
+			{
+				use_cost += COST_GLOBAL_BIAS;
 			}
 		}
-		else
-		{
-			use_cost += COST_COPY;
-		}
 
-		spill_cost = compute_spill_cost(gen, regs, reg, other_reg);
+		use_cost += compute_spill_cost(gen, regs, reg, other_reg);
 
-		if((use_cost + spill_cost) < suitable_cost
-		   || (spill_cost > 0 && (use_cost + spill_cost) == suitable_cost
+		if(use_cost < suitable_cost
+		   || (use_cost == suitable_cost
+		       && gen->contents[reg].num_values > 0
 		       && gen->contents[reg].age < suitable_age))
 		{
 			suitable_reg = reg;
 			suitable_other_reg = other_reg;
-			suitable_cost = use_cost + spill_cost;
+			suitable_cost = use_cost;
 			suitable_age = gen->contents[reg].age;
 		}
 	}
@@ -1281,7 +1305,7 @@ choose_input_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	_jit_regdesc_t *desc2;
 	int type, need_pair;
 	int reg, other_reg;
-	int use_cost, spill_cost;
+	int use_cost;
 	int suitable_reg, suitable_other_reg;
 	int suitable_cost;
 	int suitable_age;
@@ -1394,32 +1418,29 @@ choose_input_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 			if(jit_reg_is_used(regs->clobber, reg)
 			   || (other_reg >= 0 && jit_reg_is_used(regs->clobber, other_reg)))
 			{
-				spill_cost = 0;
+				/* noop */
 			}
 			else
 			{
-				spill_cost = compute_spill_cost(gen, regs, reg, other_reg);
+				use_cost += compute_spill_cost(gen, regs, reg, other_reg);
 			}
 #if ALLOW_CLOBBER_GLOBAL
 			if(other_reg >= 0 && jit_reg_is_used(gen->permanent, other_reg))
 			{
-				spill_cost += COST_CLOBBER_GLOBAL;
+				use_cost += COST_CLOBBER_GLOBAL;
 			}
 #endif
 		}
-		else
-		{
-			spill_cost = 0;
-		}
 
-		if((use_cost + spill_cost) < suitable_cost
-		   || (spill_cost > 0 && (use_cost + spill_cost) == suitable_cost
+		if(use_cost < suitable_cost
+		   || (use_cost == suitable_cost
+		       && gen->contents[reg].num_values > 0
 		       && gen->contents[reg].age < suitable_age))
 		{
 			/* This is the oldest suitable register of this type */
 			suitable_reg = reg;
 			suitable_other_reg = other_reg;
-			suitable_cost = use_cost + spill_cost;
+			suitable_cost = use_cost;
 			suitable_age = gen->contents[reg].age;
 		}
 	}

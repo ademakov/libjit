@@ -213,7 +213,7 @@ JIT_OP_FLOAT32_TO_NFLOAT, JIT_OP_FLOAT64_TO_NFLOAT: copy, stack
  * Arithmetic opcodes.
  */
 
-JIT_OP_IADD: binary
+JIT_OP_IADD: commutative
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_ADD, $1, $2);
 	}
@@ -235,7 +235,7 @@ JIT_OP_ISUB: binary
 		x86_alu_reg_reg(inst, X86_SUB, $1, $2);
 	}
 
-JIT_OP_IMUL: binary
+JIT_OP_IMUL: commutative
 	[reg, imm] -> {
 		/* Handle special cases of immediate multiplies */
 		switch($2)
@@ -674,7 +674,7 @@ JIT_OP_INEG: unary
 		x86_neg_reg(inst, $1);
 	}
 
-JIT_OP_LADD: binary
+JIT_OP_LADD: commutative
 	[lreg, imm] -> {
 		jit_int value1 = ((jit_int *)($2))[0];
 		jit_int value2 = ((jit_int *)($2))[1];
@@ -788,7 +788,7 @@ JIT_OP_FNEG, JIT_OP_DNEG, JIT_OP_NFNEG: unary, stack
  * Bitwise opcodes.
  */
 
-JIT_OP_IAND: binary
+JIT_OP_IAND: commutative
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_AND, $1, $2);
 	}
@@ -799,7 +799,7 @@ JIT_OP_IAND: binary
 		x86_alu_reg_reg(inst, X86_AND, $1, $2);
 	}
 
-JIT_OP_IOR: binary
+JIT_OP_IOR: commutative
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_OR, $1, $2);
 	}
@@ -810,7 +810,7 @@ JIT_OP_IOR: binary
 		x86_alu_reg_reg(inst, X86_OR, $1, $2);
 	}
 
-JIT_OP_IXOR: binary
+JIT_OP_IXOR: commutative
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_XOR, $1, $2);
 	}
@@ -850,7 +850,7 @@ JIT_OP_ISHR_UN: binary
 		inst = shift_reg(inst, X86_SHR, $1, $2);
 	}
 
-JIT_OP_LAND: binary
+JIT_OP_LAND: commutative
 	[lreg, imm] -> {
 		jit_int value1 = ((jit_int *)($2))[0];
 		jit_int value2 = ((jit_int *)($2))[1];
@@ -866,7 +866,7 @@ JIT_OP_LAND: binary
 		x86_alu_reg_reg(inst, X86_AND, %1, %2);
 	}
 
-JIT_OP_LOR: binary
+JIT_OP_LOR: commutative
 	[lreg, imm] -> {
 		jit_int value1 = ((jit_int *)($2))[0];
 		jit_int value2 = ((jit_int *)($2))[1];
@@ -882,7 +882,7 @@ JIT_OP_LOR: binary
 		x86_alu_reg_reg(inst, X86_OR, %1, %2);
 	}
 
-JIT_OP_LXOR: binary
+JIT_OP_LXOR: commutative
 	[lreg, imm] -> {
 		jit_int value1 = ((jit_int *)($2))[0];
 		jit_int value2 = ((jit_int *)($2))[1];
