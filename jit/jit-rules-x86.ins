@@ -550,11 +550,13 @@ JIT_OP_IDIV: more_space
 	}
 	[reg("eax"), reg, scratch("edx")] -> {
 		unsigned char *patch, *patch2;
+#ifndef JIT_USE_SIGNALS
 		x86_alu_reg_reg(inst, X86_OR, $2, $2);
 		patch = inst;
 		x86_branch8(inst, X86_CC_NE, 0, 0);
 		inst = throw_builtin(inst, func, JIT_RESULT_DIVISION_BY_ZERO);
 		x86_patch(patch, inst);
+#endif
 		x86_alu_reg_imm(inst, X86_CMP, $2, -1);
 		patch = inst;
 		x86_branch8(inst, X86_CC_NE, 0, 0);
@@ -589,12 +591,14 @@ JIT_OP_IDIV_UN: more_space
 		x86_div_reg(inst, $3, 0);
 	}
 	[reg("eax"), reg, scratch("edx")] -> {
+#ifndef JIT_USE_SIGNALS
 		unsigned char *patch;
 		x86_alu_reg_reg(inst, X86_OR, $2, $2);
 		patch = inst;
 		x86_branch8(inst, X86_CC_NE, 0, 0);
 		inst = throw_builtin(inst, func, JIT_RESULT_DIVISION_BY_ZERO);
 		x86_patch(patch, inst);
+#endif
 		x86_clear_reg(inst, X86_EDX);
 		x86_div_reg(inst, $2, 0);
 	}
@@ -624,11 +628,13 @@ JIT_OP_IREM: more_space
 	}
 	[=reg("edx"), *reg("eax"), reg, scratch("edx")] -> {
 		unsigned char *patch, *patch2;
+#ifndef JIT_USE_SIGNALS
 		x86_alu_reg_reg(inst, X86_OR, $3, $3);
 		patch = inst;
 		x86_branch8(inst, X86_CC_NE, 0, 0);
 		inst = throw_builtin(inst, func, JIT_RESULT_DIVISION_BY_ZERO);
 		x86_patch(patch, inst);
+#endif
 		x86_alu_reg_imm(inst, X86_CMP, $3, -1);
 		patch = inst;
 		x86_branch8(inst, X86_CC_NE, 0, 0);
@@ -659,12 +665,14 @@ JIT_OP_IREM_UN: more_space
 		x86_div_reg(inst, $4, 0);
 	}
 	[=reg("edx"), *reg("eax"), reg, scratch("edx")] -> {
+#ifndef JIT_USE_SIGNALS
 		unsigned char *patch;
 		x86_alu_reg_reg(inst, X86_OR, $3, $3);
 		patch = inst;
 		x86_branch8(inst, X86_CC_NE, 0, 0);
 		inst = throw_builtin(inst, func, JIT_RESULT_DIVISION_BY_ZERO);
 		x86_patch(patch, inst);
+#endif
 		x86_clear_reg(inst, X86_EDX);
 		x86_div_reg(inst, $3, 0);
 	}
