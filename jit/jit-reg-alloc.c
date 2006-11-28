@@ -1875,7 +1875,7 @@ save_value(jit_gencode_t gen, jit_value_t value, int reg, int other_reg, int fre
 	{
 		if(free)
 		{
-			free_value(gen, value, reg, other_reg, (free == 2));
+			free_value(gen, value, reg, other_reg, 0);
 		}
 		return;
 	}
@@ -1895,10 +1895,18 @@ save_value(jit_gencode_t gen, jit_value_t value, int reg, int other_reg, int fre
 			exch_stack_top(gen, reg, 0);
 		}
 
-		if(free && gen->contents[top].num_values == 1)
+		if(free)
 		{
-			_jit_gen_spill_top(gen, top, value, 1);
-			--(gen->reg_stack_top);
+			if(gen->contents[top].num_values == 1)
+			{
+				_jit_gen_spill_top(gen, top, value, 1);
+				--(gen->reg_stack_top);
+			}
+			else
+			{
+				_jit_gen_spill_top(gen, top, value, 0);
+			}
+			unbind_value(gen, value, top, 0);
 		}
 		else
 		{
@@ -1909,12 +1917,12 @@ save_value(jit_gencode_t gen, jit_value_t value, int reg, int other_reg, int fre
 #endif
 	{
 		_jit_gen_spill_reg(gen, reg, other_reg, value);
+		if(free)
+		{
+			unbind_value(gen, value, reg, other_reg);
+		}
 	}
 
-	if(free)
-	{
-		unbind_value(gen, value, reg, other_reg);
-	}
 	value->in_frame = 1;
 }
 
