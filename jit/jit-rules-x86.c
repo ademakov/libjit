@@ -1296,10 +1296,20 @@ static unsigned char *throw_builtin
 	if(func->builder->setjmp_value != 0)
 	{
 		_jit_gen_fix_value(func->builder->setjmp_value);
-		x86_call_imm(inst, 0);
-		x86_pop_membase(inst, X86_EBP,
-						func->builder->setjmp_value->frame_offset +
-						jit_jmp_catch_pc_offset);
+		if(func->builder->position_independent)
+		{
+			x86_call_imm(inst, 0);
+			x86_pop_membase(inst, X86_EBP,
+					func->builder->setjmp_value->frame_offset
+					+ jit_jmp_catch_pc_offset);
+		}
+		else
+		{
+			int pc = (int) inst;
+			x86_mov_membase_imm(inst, X86_EBP,
+					    func->builder->setjmp_value->frame_offset
+					    + jit_jmp_catch_pc_offset, pc, 4);
+		}
 	}
 
 	/* Push the exception type onto the stack */

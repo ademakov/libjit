@@ -1623,10 +1623,20 @@ JIT_OP_THROW: unary_branch
 			/* We have a "setjmp" block in the current function,
 			   so we must record the location of the throw first */
 			_jit_gen_fix_value(func->builder->setjmp_value);
-			x86_call_imm(inst, 0);
-			x86_pop_membase(inst, X86_EBP,
-							func->builder->setjmp_value->frame_offset +
-							jit_jmp_catch_pc_offset);
+			if(func->builder->position_independent)
+			{
+				x86_call_imm(inst, 0);
+				x86_pop_membase(inst, X86_EBP,
+						func->builder->setjmp_value->frame_offset
+						+ jit_jmp_catch_pc_offset);
+			}
+			else
+			{
+				int pc = (int) inst;
+				x86_mov_membase_imm(inst, X86_EBP,
+						    func->builder->setjmp_value->frame_offset
+						    + jit_jmp_catch_pc_offset, pc, 4);
+			}
 		}
 		x86_call_code(inst, (void *)jit_exception_throw);
 	}
@@ -1636,8 +1646,16 @@ JIT_OP_RETHROW: manual
 
 JIT_OP_LOAD_PC:
 	[=reg] -> {
-		x86_call_imm(inst, 0);
-		x86_pop_reg(inst, $1);
+		if(func->builder->position_independent)
+		{
+			x86_call_imm(inst, 0);
+			x86_pop_reg(inst, $1);
+		}
+		else
+		{
+			int pc = (int) inst;
+			x86_mov_reg_imm(inst, $1, pc);
+		}
 	}
 
 JIT_OP_LOAD_EXCEPTION_PC: manual

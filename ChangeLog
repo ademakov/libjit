@@ -1,3 +1,10 @@
+2006-11-27  Kirill Kononenko  <Kirill.Kononenko@gmail.com>
+
+	* jit/jit-rules-x86.c (throw_builtin):
+	* jit/jit-rules-x86.ins (JIT_OP_THROW, JIT_OP_LOAD_PC): directly use
+	the inst variable to get current PC value for the position-dependent
+	code case (patch #5503).
+
 2006-11-27  Aleksey Demakov  <ademakov@gmail.com>
 
 	* include/jit/jit-context.h: add JIT_OPTION_POSITION_INDEPENDENT
@@ -6,6 +13,11 @@
 	field.
 	* jit/jit-function.c (_jit_function_ensure_builder): initialize
 	position_independent field.
+
+	* jit/jit-rules-x86.c (throw_builtin):
+	* jit/jit-rules-x86.ins (JIT_OP_ADDRESS_OF_LABEL, JIT_OP_JUMP_TABLE)
+	(JIT_OP_THROW, JIT_OP_LOAD_PC): add position_independent check and
+	stub missing cases.
 
 2006-11-26  Kirill Kononenko  <Kirill.Kononenko@gmail.com>
 
