@@ -1139,6 +1139,34 @@ void *jit_function_to_vtable_pointer(jit_function_t func)
 }
 
 /*@
+ * @deftypefun jit_function_t jit_function_from_vtable_pointer (jit_context_t context, {void *} vtable_pointer)
+ * Convert a vtable_pointer back into a function.  Returns NULL if the
+ * vtable_pointer does not correspond to a function in the specified context.
+ * @end deftypefun
+@*/
+jit_function_t jit_function_from_vtable_pointer(jit_context_t context, void *vtable_pointer)
+{
+#ifdef JIT_BACKEND_INTERP
+	/* In the interpreted version, the function pointer is used in vtables */
+	jit_function_t func = (jit_function_t)vtable_pinter;
+
+	if(func && func->context == context)
+	{
+		return func;
+	}
+	return 0;
+#else
+	void *cookie;
+	if(!context || !(context->cache))
+	{
+		return 0;
+	}
+	return (jit_function_t)_jit_cache_get_method
+		(context->cache, vtable_pointer, &cookie);
+#endif
+}
+
+/*@
  * @deftypefun void jit_function_set_on_demand_compiler (jit_function_t func, jit_on_demand_func on_demand)
  * Specify the C function to be called when @code{func} needs to be
  * compiled on-demand.  This should be set just after the function

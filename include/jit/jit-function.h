@@ -59,6 +59,8 @@ jit_function_t jit_function_from_closure
 jit_function_t jit_function_from_pc
 	(jit_context_t context, void *pc, void **handler) JIT_NOTHROW;
 void *jit_function_to_vtable_pointer(jit_function_t func) JIT_NOTHROW;
+jit_function_t jit_function_from_vtable_pointer
+	(jit_context_t context, void *vtable_pointer) JIT_NOTHROW;
 void jit_function_set_on_demand_compiler
 		(jit_function_t func, jit_on_demand_func on_demand) JIT_NOTHROW;
 int jit_function_apply
