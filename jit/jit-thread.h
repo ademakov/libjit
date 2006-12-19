@@ -116,6 +116,11 @@ typedef int jit_mutex_t;
 #endif
 
 /*
+ * Mutex that synchronizes global data initialization.
+ */
+extern jit_mutex_t _jit_global_lock;
+
+/*
  * Define the primitive monitor operations.
  */
 

@@ -37,8 +37,19 @@
 @*/
 void jit_init(void)
 {
+	static int init_done = 0;
+
 	/* Make sure that the thread subsystem is initialized */
 	_jit_thread_init();
+
+	/* Make sure that the initialization is done only once
+	   (requires the global lock initialized above) */
+	jit_mutex_lock(&_jit_global_lock);
+	if(init_done)
+	{
+		goto done;
+	}
+	init_done = 1;
 
 #ifdef JIT_USE_SIGNALS
 	/* Initialize the signal handlers */
@@ -47,6 +58,9 @@ void jit_init(void)
 
 	/* Initialize the backend */
 	_jit_init_backend();
+
+done:
+	jit_mutex_unlock(&_jit_global_lock);
 }
 
 /*@

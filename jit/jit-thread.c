@@ -34,6 +34,11 @@
 #endif
 #include <errno.h>
 
+/*
+ * Mutex that synchronizes global data initialization.
+ */
+jit_mutex_t _jit_global_lock;
+
 #if defined(JIT_THREADS_PTHREAD)
 
 /*
@@ -46,6 +51,8 @@ static pthread_key_t control_key;
  */
 static void init_pthread(void)
 {
+	jit_mutex_create(&_jit_global_lock);
+
 	/* Allocate a thread-specific variable for the JIT's thread
 	   control object, and arrange for it to be freed when the
 	   thread exits or is otherwise terminated */
@@ -64,6 +71,8 @@ static DWORD control_key;
  */
 static void init_win32_thread(void)
 {
+	jit_mutex_create(&_jit_global_lock);
+
 	control_key = TlsAlloc();
 }
 
