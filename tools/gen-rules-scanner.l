@@ -84,9 +84,7 @@ WHITE			[ \t\v\r\f]
 
 "->"			{ RETURNTOK(K_PTR); }
 "any"			{ RETURNTOK(K_ANY); }
-"reg"			{ RETURNTOK(K_REG); }
-"lreg"			{ RETURNTOK(K_LREG); }
-"freg"			{ RETURNTOK(K_FREG); }
+"all"			{ RETURNTOK(K_ALL); }
 "imm"			{ RETURNTOK(K_IMM); }
 "immzero"		{ RETURNTOK(K_IMMZERO); }
 "imms8"			{ RETURNTOK(K_IMMS8); }
@@ -95,27 +93,24 @@ WHITE			[ \t\v\r\f]
 "immu16"		{ RETURNTOK(K_IMMU16); }
 "local"			{ RETURNTOK(K_LOCAL); }
 "frame"			{ RETURNTOK(K_FRAME); }
-"binary"		{ RETURNTOK(K_BINARY); }
-"unary"			{ RETURNTOK(K_UNARY); }
-"unary_branch"		{ RETURNTOK(K_UNARY_BRANCH); }
-"binary_branch"		{ RETURNTOK(K_BINARY_BRANCH); }
-"unary_note"		{ RETURNTOK(K_UNARY_NOTE); }
-"binary_note"		{ RETURNTOK(K_BINARY_NOTE); }
 "ternary"		{ RETURNTOK(K_TERNARY); }
-"stack"			{ RETURNTOK(K_STACK); }
-"only"			{ RETURNTOK(K_ONLY); }
+"branch"		{ RETURNTOK(K_BRANCH); }
+"note"			{ RETURNTOK(K_NOTE); }
 "copy"			{ RETURNTOK(K_COPY); }
-"x87arith"		{ RETURNTOK(K_X87ARITH); }
 "commutative"		{ RETURNTOK(K_COMMUTATIVE); }
-"reversible"		{ RETURNTOK(K_REVERSIBLE); }
 "if"			{ RETURNTOK(K_IF); }
 "clobber"		{ RETURNTOK(K_CLOBBER); }
 "scratch"		{ RETURNTOK(K_SCRATCH); }
 "space"			{ RETURNTOK(K_SPACE); }
+"stack"			{ RETURNTOK(K_STACK); }
+"x87_arith"		{ RETURNTOK(K_X87_ARITH); }
+"x87_arith_reversible"	{ RETURNTOK(K_X87_ARITH_REVERSIBLE); }
+"%inst_type"		{ RETURNTOK(K_INST_TYPE); }
+"%regclass"		{ RETURNTOK(K_REG_CLASS); }
+"%lregclass"		{ RETURNTOK(K_LREG_CLASS); }
+
 "manual"		{ RETURNTOK(K_MANUAL); }
 "more_space"		{ RETURNTOK(K_MORE_SPACE); }
-"spill_before"		{ RETURNTOK(K_SPILL_BEFORE); }
-"%inst_type"		{ RETURNTOK(K_INST_TYPE); }
 
 "!"?{IDALPHA}({DIGIT}|{IDALPHA})*	{
 			yylval.name = gensel_strdup(yytext);

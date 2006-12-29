@@ -6,6 +6,20 @@
 	* jit/jit-rules-x86.c (_jit_init_backend): initialize x86 register
 	classes.
 
+	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c: specify register class
+	for each value and scratch register. Clean up interface.
+
+	* tools/gen-rules-scanner.l, tools/gen-rules-parser.y: add register
+	class declaration; "reg", "lreg", "freg" are not keywords anymore.
+	"scratch" requires register class specification. "clobber" accepts
+	register class which means all registers in the class are clobbered.
+	Remove "only", "spill_before", "unary", and "binary" keywords.
+	Replace "unary_note" and "binary_note" with "note". Also replace
+	"unary_branch" and "binary_branch" with "branch".
+
+	* jit/jit-rules-alpha.ins, jit/jit-rules-x86.ins: update according
+	to the new rule syntax.
+
 2006-12-20  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-thread.h, jit/jit-thread.c: add _jit_global_lock mutex.

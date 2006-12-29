@@ -103,32 +103,26 @@ static int gensel_reserve_more_space = 128;
 #define MAX_PATTERN				(MAX_INPUT + MAX_SCRATCH)
 
 /*
- * Options.
+ * Rule Options.
  */
-#define	GENSEL_OPT_BINARY			1
-#define	GENSEL_OPT_UNARY			2
-#define	GENSEL_OPT_UNARY_BRANCH			3
-#define	GENSEL_OPT_BINARY_BRANCH		4
-#define	GENSEL_OPT_UNARY_NOTE			5
-#define	GENSEL_OPT_BINARY_NOTE			6
-#define	GENSEL_OPT_TERNARY			7
-#define	GENSEL_OPT_STACK			8
-#define	GENSEL_OPT_ONLY				9
-#define	GENSEL_OPT_COPY				10
-#define GENSEL_OPT_X87ARITH			11
-#define GENSEL_OPT_COMMUTATIVE			12
-#define GENSEL_OPT_REVERSIBLE			13
+#define	GENSEL_OPT_TERNARY			1
+#define GENSEL_OPT_BRANCH			2
+#define GENSEL_OPT_NOTE				3
+#define	GENSEL_OPT_COPY				4
+#define GENSEL_OPT_COMMUTATIVE			5
+#define	GENSEL_OPT_STACK			6
+#define GENSEL_OPT_X87_ARITH			7
+#define GENSEL_OPT_X87_ARITH_REVERSIBLE		8
 
-#define	GENSEL_OPT_MANUAL			14
-#define	GENSEL_OPT_MORE_SPACE			15
-#define	GENSEL_OPT_SPILL_BEFORE			16
+#define	GENSEL_OPT_MANUAL			9
+#define	GENSEL_OPT_MORE_SPACE			10
 
 /*
  * Pattern values.
  */
-#define	GENSEL_PATT_REG				1
-#define	GENSEL_PATT_LREG			2
-#define	GENSEL_PATT_FREG			3
+#define GENSEL_PATT_ANY				1
+#define	GENSEL_PATT_REG				2
+#define	GENSEL_PATT_LREG			3
 #define	GENSEL_PATT_IMM				4
 #define	GENSEL_PATT_IMMZERO			5
 #define	GENSEL_PATT_IMMS8			6
@@ -141,20 +135,27 @@ static int gensel_reserve_more_space = 128;
 #define	GENSEL_PATT_CLOBBER			13
 #define	GENSEL_PATT_IF				14
 #define	GENSEL_PATT_SPACE			15
-#define GENSEL_PATT_ANY				16
 
 /*
- * Register flags.
- */
-#define GENSEL_FLAG_DEST			1
-#define GENSEL_FLAG_CLOBBER			2
-#define GENSEL_FLAG_EARLY_CLOBBER		3
-
-/*
- * Value Type.
+ * Value types.
  */
 #define GENSEL_VALUE_STRING			1
-#define GENSEL_VALUE_CHOICE			2
+#define GENSEL_VALUE_REGCLASS			2
+#define	GENSEL_VALUE_ALL			3
+#define GENSEL_VALUE_CLOBBER			4
+#define GENSEL_VALUE_EARLY_CLOBBER		5
+
+/*
+ * Register class.
+ */
+typedef struct gensel_regclass *gensel_regclass_t;
+struct gensel_regclass
+{
+	char			*id;
+	char			*def;
+	int			is_long;
+	gensel_regclass_t	next;
+};
 
 /*
  * Option value.
@@ -163,11 +164,7 @@ typedef struct gensel_value *gensel_value_t;
 struct gensel_value
 {
 	int			type;
-	union
-	{
-		char		*value;
-		gensel_value_t	children;
-	};
+	void			*value;
 	gensel_value_t		next;
 };
 
@@ -178,7 +175,6 @@ typedef struct gensel_option *gensel_option_t;
 struct gensel_option
 {
 	int			option;
-	int			flags;
 	gensel_value_t		values;
 	gensel_option_t		next;
 };
@@ -189,6 +185,7 @@ struct gensel_option
 typedef struct gensel_clause *gensel_clause_t;
 struct gensel_clause
 {
+	int			dest;
 	gensel_option_t		pattern;
 	char			*filename;
 	long			linenum;
@@ -214,9 +211,55 @@ static char *gensel_imm_names[] = {
 static char *gensel_local_names[] = {
 	"local_offset", "local_offset2", "local_offset3"
 };
-static char *gensel_reg_flags[] = {
-	"0", "0", "_JIT_REGS_CLOBBER", "_JIT_REGS_EARLY_CLOBBER"
-};
+
+/*
+ * Register classes.
+ */
+static gensel_regclass_t gensel_regclass_list;
+
+/*
+ * Create a register class.
+ */
+static void
+gensel_create_regclass(char *id, char *def, int is_long)
+{
+	gensel_regclass_t rp;
+
+	rp = (gensel_regclass_t) malloc(sizeof(struct gensel_regclass));
+	if(!rp)
+	{
+		exit(1);
+	}
+	
+	rp->id = id;
+	rp->def = def;
+	rp->is_long = is_long;
+	rp->next = gensel_regclass_list;
+
+	gensel_regclass_list = rp;
+}
+
+gensel_regclass_t
+gensel_lookup_regclass(char *id)
+{
+	gensel_regclass_t rp;
+
+	rp = gensel_regclass_list;
+	for(;;)
+	{
+		if(!rp)
+		{
+			gensel_error(
+				gensel_filename, gensel_linenum,
+				"invalid register class");
+		}
+		if(strcmp(id, rp->id) == 0)
+		{
+			return rp;
+		}
+		rp = rp->next;
+	}
+}
 
 /*
  * Create a value.
@@ -233,7 +276,9 @@ gensel_create_value(int type)
 	}
 
 	vp->type = type;
+	vp->value = 0;
 	vp->next = 0;
+
 	return vp;
 }
 
@@ -241,25 +286,27 @@ gensel_create_value(int type)
  * Create string value.
  */
 static gensel_value_t
-gensel_create_string(char *value)
+gensel_create_string_value(char *value)
 {
 	gensel_value_t vp;
 
 	vp = gensel_create_value(GENSEL_VALUE_STRING);
 	vp->value = value;
+
 	return vp;
 }
 
 /*
- * Create choice value.
+ * Create string value.
  */
 static gensel_value_t
-gensel_create_choice(gensel_value_t children)
+gensel_create_regclass_value(char *value)
 {
 	gensel_value_t vp;
 
-	vp = gensel_create_value(GENSEL_VALUE_CHOICE);
-	vp->children = children;
+	vp = gensel_create_value(GENSEL_VALUE_REGCLASS);
+	vp->value = gensel_lookup_regclass(value);
+
 	return vp;
 }
 
@@ -267,7 +314,7 @@ gensel_create_choice(gensel_value_t children)
  * Create an option.
  */
 static gensel_option_t
-gensel_create_option_2(int option, int flags, gensel_value_t values)
+gensel_create_option(int option, gensel_value_t values)
 {
 	gensel_option_t op;
 
@@ -278,19 +325,48 @@ gensel_create_option_2(int option, int flags, gensel_value_t values)
 	}
 
 	op->option = option;
-	op->flags = flags;
 	op->values = values;
 	op->next = 0;
 	return op;
 }
 
 /*
- * Create an option with no flags.
+ * Create a register pattern element.
  */
 static gensel_option_t
-gensel_create_option(int option, gensel_value_t values)
+gensel_create_register(
+	int flags,
+	gensel_value_t value,
+	gensel_value_t values)
 {
-	return gensel_create_option_2(option, 0, values);
+	gensel_regclass_t regclass;
+
+	if(flags)
+	{
+		value->next = gensel_create_value(flags);
+		value->next->next = values;
+	}
+	else
+	{
+		value->next = values;
+	}
+
+	regclass = value->value;
+	return gensel_create_option(
+		regclass->is_long ? GENSEL_PATT_LREG : GENSEL_PATT_REG,
+		value);
+}
+
+/*
+ * Create a scratch register pattern element.
+ */
+static gensel_option_t
+gensel_create_scratch(
+	gensel_value_t regclass,
+	gensel_value_t values)
+{
+	regclass->next = values;
+	return gensel_create_option(GENSEL_PATT_SCRATCH, regclass);
 }
 
 /*
@@ -306,10 +382,6 @@ gensel_free_values(gensel_value_t values)
 		if(values->type == GENSEL_VALUE_STRING)
 		{
 			free(values->value);
-		}
-		else
-		{
-			gensel_free_values(values->children);
 		}
 		free(values);
 		values = next;
@@ -365,22 +437,20 @@ gensel_search_option(gensel_option_t options, int tag)
 /*
  * Declare the register variables that are needed for a set of clauses.
  */
-static void gensel_declare_regs(gensel_clause_t clauses, gensel_option_t options)
+static void
+gensel_declare_regs(gensel_clause_t clauses, gensel_option_t options)
 {
 	gensel_option_t pattern;
-	gensel_value_t values;
 	int regs, max_regs;
 	int other_regs_mask;
 	int imms, max_imms;
 	int locals, max_locals;
 	int scratch, others;
-	int have_regset;
 
 	max_regs = 0;
 	other_regs_mask = 0;
 	max_imms = 0;
 	max_locals = 0;
-	have_regset = 0;
 	while(clauses != 0)
 	{
 		regs = 0;
@@ -398,23 +468,12 @@ static void gensel_declare_regs(gensel_clause_t clauses, gensel_option_t options
 				break;
 
 			case GENSEL_PATT_REG:
-			case GENSEL_PATT_FREG:
 				++regs;
-				if(pattern->values
-				   && pattern->values->type != GENSEL_VALUE_STRING)
-				{
-					have_regset = 1;
-				}
 				break;
 
 			case GENSEL_PATT_LREG:
 				other_regs_mask |= (1 << regs);
 				++regs;
-				if(pattern->values
-				   && pattern->values->type != GENSEL_VALUE_STRING)
-				{
-					have_regset = 1;
-				}
 				break;
 
 			case GENSEL_PATT_IMMZERO:
@@ -435,16 +494,7 @@ static void gensel_declare_regs(gensel_clause_t clauses, gensel_option_t options
 				break;
 
 			case GENSEL_PATT_SCRATCH:
-				values = pattern->values;
-				while(values)
-				{
-					++scratch;
-					if(values->type != GENSEL_VALUE_STRING)
-					{
-						have_regset = 1;
-					}
-					values = values->next;
-				}
+				++scratch;
 			}
 			pattern = pattern->next;
 		}
@@ -536,10 +586,6 @@ static void gensel_declare_regs(gensel_clause_t clauses, gensel_option_t options
 		printf("\tjit_nint local_offset, local_offset2, local_offset3;\n");
 		break;
 	}
-	if(have_regset)
-	{
-		printf("\tjit_regused_t regset;\n");
-	}
 }
 
 /*
@@ -553,7 +599,6 @@ gensel_contains_registers(gensel_option_t pattern)
 		switch(pattern->option)
 		{
 		case GENSEL_PATT_REG:
-		case GENSEL_PATT_FREG:
 		case GENSEL_PATT_LREG:
 		case GENSEL_PATT_SCRATCH:
 		case GENSEL_PATT_CLOBBER:
@@ -565,52 +610,22 @@ gensel_contains_registers(gensel_option_t pattern)
 }
 
 /*
- * Check if the pattern contains the dest register and if it is
- * defined correctly.
+ * Returns first register in the pattern if any.
  */
-static int
-gensel_contains_free_dest(gensel_clause_t clauses, gensel_option_t pattern)
+static gensel_option_t
+gensel_get_first_register(gensel_option_t pattern)
 {
-	int found, index;
-
-	found = 0;
-	index = 0;
 	while(pattern)
 	{
 		switch(pattern->option)
 		{
 		case GENSEL_PATT_REG:
-		case GENSEL_PATT_FREG:
 		case GENSEL_PATT_LREG:
-		case GENSEL_PATT_LOCAL:
-		case GENSEL_PATT_FRAME:
-			if(pattern->flags == GENSEL_FLAG_DEST)
-			{
-				if(index != 0)
-				{
-					gensel_error(
-						clauses->filename,
-						clauses->linenum,
-						"The destination must be the first pattern element.");
-				}
-				found = 1;
-			}
-			++index;
-			break;
-
-		case GENSEL_PATT_ANY:
-		case GENSEL_PATT_IMMZERO:
-		case GENSEL_PATT_IMM:
-		case GENSEL_PATT_IMMS8:
-		case GENSEL_PATT_IMMU8:
-		case GENSEL_PATT_IMMS16:
-		case GENSEL_PATT_IMMU16:
-			++index;
-			break;
+			return pattern;
 		}
 		pattern = pattern->next;
 	}
-	return found;
+	return 0;
 }
 
 static void
@@ -654,7 +669,6 @@ gensel_build_arg_index(
 			break;
 
 		case GENSEL_PATT_REG:
-		case GENSEL_PATT_FREG:
 		case GENSEL_PATT_LREG:
 		case GENSEL_PATT_LOCAL:
 		case GENSEL_PATT_FRAME:
@@ -705,7 +719,6 @@ gensel_build_imm_arg_index(
 		{
 		case GENSEL_PATT_ANY:
 		case GENSEL_PATT_REG:
-		case GENSEL_PATT_FREG:
 		case GENSEL_PATT_LREG:
 		case GENSEL_PATT_LOCAL:
 		case GENSEL_PATT_FRAME:
@@ -748,7 +761,6 @@ gensel_build_var_index(
 	char *names[MAX_PATTERN],
 	char *other_names[MAX_PATTERN])
 {
-	gensel_value_t values;
 	int regs, imms, locals, index;
 
 	gensel_init_names(MAX_PATTERN, names, other_names);
@@ -766,7 +778,6 @@ gensel_build_var_index(
 			break;
 
 		case GENSEL_PATT_REG:
-		case GENSEL_PATT_FREG:
 			names[index] = gensel_reg_names[regs];
 			++regs;
 			++index;
@@ -801,14 +812,9 @@ gensel_build_var_index(
 			break;
 
 		case GENSEL_PATT_SCRATCH:
-			values = pattern->values;
-			while(values)
-			{
-				names[index] = gensel_reg_names[regs];
-				++regs;
-				++index;
-				values = values->next;
-			}
+			names[index] = gensel_reg_names[regs];
+			++regs;
+			++index;
 		}
 		pattern = pattern->next;
 	}
@@ -836,11 +842,7 @@ gensel_output_code(
 	}
 	while(*code != '\0')
 	{
-#if 0
-		first = free_dest ? '0' : '1';
-#else
 		first = '1';
-#endif
 		if(*code == '$' && code[1] >= first && code[1] < (first + MAX_PATTERN))
 		{
 			index = code[1] - first;
@@ -889,30 +891,75 @@ gensel_output_clause_code(
 	gensel_output_code(clause->pattern, clause->code, names, other_names, free_dest, 0);
 }
 
+static void
+gensel_output_register(char *name, gensel_regclass_t regclass, gensel_value_t values)
+{
+	printf("\t\t_jit_regs_init_%s(&regs, insn, ", name);
+	switch(values ? values->type : 0)
+	{
+	case GENSEL_VALUE_CLOBBER:
+		printf("_JIT_REGS_CLOBBER");
+		values = values->next;
+		break;
+	case GENSEL_VALUE_EARLY_CLOBBER:
+		printf("_JIT_REGS_EARLY_CLOBBER");
+		values = values->next;
+		break;
+	default:
+		printf("0");
+		break;
+	}
+	printf(", %s);\n", regclass->def);
+	if(values && values->value)
+	{
+		char *reg;
+		reg = values->value;
+		if(values->next && values->next->value)
+		{
+			char *other_reg;
+			other_reg = values->next->value;
+			printf("\t\t_jit_regs_set_%s(gen, &regs, _jit_regs_lookup(\"%s\"), _jit_regs_lookup(\"%s\"));\n",
+			       name, reg, other_reg);
+		}
+		else
+		{
+			printf("\t\t_jit_regs_set_%s(gen, &regs, _jit_regs_lookup(\"%s\"), -1);\n",
+			       name, reg);
+		}
+	}
+}
+
+/*
+ * Output value initialization code.
+ */
+static void
+gensel_output_register_pattern(char *name, gensel_option_t pattern)
+{
+	gensel_output_register(name, pattern->values->value, pattern->values->next);
+}
+
 /*
  * Output the clauses for a rule.
  */
 static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t options)
 {
+	char *name;
 	char *args[MAX_INPUT];
 	char *names[MAX_PATTERN];
 	char *other_names[MAX_PATTERN];
 	gensel_clause_t clause;
 	gensel_option_t pattern;
 	gensel_option_t space, more_space;
-	gensel_value_t values, child;
-	int first, seen_option;
+	gensel_value_t values;
 	int regs, imms, locals, scratch, index;
-	int clobber_all, ternary, free_dest;
+	int first, seen_option;
+	int ternary, free_dest;
 	int contains_registers;
+	gensel_regclass_t regclass;
 
 	/* If the clause is manual, then output it as-is */
 	if(gensel_search_option(options, GENSEL_OPT_MANUAL))
 	{
-		if(gensel_search_option(options, GENSEL_OPT_SPILL_BEFORE))
-		{
-			printf("\t_jit_regs_spill_all(gen);\n");
-		}
 		gensel_init_names(MAX_PATTERN, names, other_names);
 		gensel_output_clause_code(clauses, names, other_names, 0);
 		return;
@@ -936,10 +983,6 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 		printf("\t_jit_regs_t regs;\n");
 	}
 	gensel_declare_regs(clauses, options);
-	if(gensel_search_option(options, GENSEL_OPT_SPILL_BEFORE))
-	{
-		printf("\t_jit_regs_spill_all(gen);\n");
-	}
 
 	ternary = (0 != gensel_search_option(options, GENSEL_OPT_TERNARY));
 
@@ -949,23 +992,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 	while(clause)
 	{
 		contains_registers = gensel_contains_registers(clause->pattern);
-		free_dest = gensel_contains_free_dest(clauses, clause->pattern);
-
-		clobber_all = 0;
-		pattern = gensel_search_option(clause->pattern, GENSEL_PATT_CLOBBER);
-		if(pattern)
-		{
-			values = pattern->values;
-			while(values)
-			{
-				if(values->value && strcmp(values->value, "*") == 0)
-				{
-					clobber_all = 1;
-					break;
-				}
-				values = values->next;
-			}
-		}
+		free_dest = clause->dest;
 
 		gensel_build_arg_index(clause->pattern, 3, args, 0, ternary, free_dest);
 
@@ -989,7 +1016,6 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 
 				case GENSEL_PATT_REG:
 				case GENSEL_PATT_LREG:
-				case GENSEL_PATT_FREG:
 					/* Do not check if the value is in
 					   a register as the allocator will
 					   load them anyway as long as other
@@ -1128,55 +1154,21 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			printf("\telse\n\t{\n");
 		}
 
-		if(gensel_search_option(options, GENSEL_OPT_BINARY_BRANCH)
-		   || gensel_search_option(options, GENSEL_OPT_UNARY_BRANCH))
-		{
-			/* Spill all other registers back to their original positions */
-			if(contains_registers)
-			{
-				clobber_all = 1;
-			}
-			else
-			{
-				printf("\t\t_jit_regs_spill_all(gen);\n");
-			}
-		}
-
 		if(contains_registers)
 		{
 			seen_option = 0;
 			printf("\t\t_jit_regs_init(gen, &regs, ");
-			if(clobber_all)
-			{
-				seen_option = 1;
-				printf("_JIT_REGS_CLOBBER_ALL");
-			}
 			if(ternary)
 			{
-				if(seen_option)
-				{
-					printf(" | ");
-				}
-				else
-				{
-					seen_option = 1;
-				}
+				seen_option = 1;
 				printf("_JIT_REGS_TERNARY");
 			}
-			if(free_dest)
+			else if(free_dest)
 			{
-				if(seen_option)
-				{
-					printf(" | ");
-				}
-				else
-				{
-					seen_option = 1;
-				}
+				seen_option = 1;
 				printf("_JIT_REGS_FREE_DEST");
 			}
-			if(gensel_search_option(options, GENSEL_OPT_BINARY_BRANCH)
-			   || gensel_search_option(options, GENSEL_OPT_UNARY_BRANCH))
+			if(gensel_search_option(options, GENSEL_OPT_BRANCH))
 			{
 				if(seen_option)
 				{
@@ -1212,30 +1204,6 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				}
 				printf("_JIT_REGS_STACK");
 			}
-			if(gensel_search_option(options, GENSEL_OPT_ONLY))
-			{
-				if(seen_option)
-				{
-					printf(" | ");
-				}
-				else
-				{
-					seen_option = 1;
-				}
-				printf("_JIT_REGS_CLOBBER_STACK");
-			}
-			if(gensel_search_option(options, GENSEL_OPT_X87ARITH))
-			{
-				if(seen_option)
-				{
-					printf(" | ");
-				}
-				else
-				{
-					seen_option = 1;
-				}
-				printf("_JIT_REGS_X87_ARITH");
-			}
 			if(gensel_search_option(options, GENSEL_OPT_COMMUTATIVE))
 			{
 				if(seen_option)
@@ -1248,7 +1216,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				}
 				printf("_JIT_REGS_COMMUTATIVE");
 			}
-			if(gensel_search_option(options, GENSEL_OPT_REVERSIBLE))
+			/* x87 options */
+			if(gensel_search_option(options, GENSEL_OPT_X87_ARITH))
 			{
 				if(seen_option)
 				{
@@ -1258,7 +1227,19 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				{
 					seen_option = 1;
 				}
-				printf("_JIT_REGS_REVERSIBLE");
+				printf("_JIT_REGS_X87_ARITH");
+			}
+			else if(gensel_search_option(options, GENSEL_OPT_X87_ARITH_REVERSIBLE))
+			{
+				if(seen_option)
+				{
+					printf(" | ");
+				}
+				else
+				{
+					seen_option = 1;
+				}
+				printf("_JIT_REGS_X87_ARITH_REVERSIBLE");
 			}
 			if(!seen_option)
 			{
@@ -1267,17 +1248,17 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			printf(");\n");
 
 			if(!(ternary || free_dest
-			     || gensel_search_option(options, GENSEL_OPT_BINARY_NOTE)
-			     || gensel_search_option(options, GENSEL_OPT_BINARY_BRANCH)
-			     || gensel_search_option(options, GENSEL_OPT_UNARY_NOTE)
-			     || gensel_search_option(options, GENSEL_OPT_UNARY_BRANCH)))
+			     || gensel_search_option(options, GENSEL_OPT_NOTE)
+			     || gensel_search_option(options, GENSEL_OPT_BRANCH)))
 			{
-				printf("\t\t_jit_regs_init_dest(&regs, insn, 0);\n");
+				pattern = gensel_get_first_register(clause->pattern);
+				gensel_output_register("dest", pattern ? pattern->values->value : 0, 0);
 			}
 		}
 
 		regs = 0;
 		index = 0;
+		scratch = 0;
 		pattern = clause->pattern;
 		while(pattern)
 		{
@@ -1288,72 +1269,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				break;
 
 			case GENSEL_PATT_REG:
-			case GENSEL_PATT_FREG:
-				printf("\t\t_jit_regs_init_%s(&regs, insn, %s);\n",
-				       args[index], gensel_reg_flags[pattern->flags]);
-				if(pattern->values && pattern->values->value)
-				{
-					if(pattern->values->type == GENSEL_VALUE_STRING)
-					{
-						printf("\t\t_jit_regs_set_%s(gen, &regs, _jit_regs_lookup(\"%s\"), -1);\n",
-						       args[index], pattern->values->value);
-					}
-					else
-					{
-						printf("\t\tregset = jit_regused_init;\n");
-						child = pattern->values->children;
-						while(child)
-						{
-							printf("\t\t%s = _jit_regs_lookup(\"%s\");\n",
-							       gensel_reg_names[regs], child->value);
-							printf("\t\tif(%s >= 0)\n", gensel_reg_names[regs]);
-							printf("\t\t\tjit_reg_set_used(regset, %s);\n",
-							       gensel_reg_names[regs]);
-							child = child->next;
-						}
-						printf("\t\t_jit_regs_set_%s_from(&regs, regset);\n",
-						       args[index]);
-					}
-				}
-				++regs;
-				++index;
-				break;
-
 			case GENSEL_PATT_LREG:
-				printf("\t\t_jit_regs_init_%s(&regs, insn, %s);\n",
-				       args[index], gensel_reg_flags[pattern->flags]);
-				if(pattern->values && pattern->values->value)
-				{
-					if(pattern->values->type == GENSEL_VALUE_STRING)
-					{
-						if(pattern->values->next && pattern->values->next->value)
-						{
-							printf("\t\t_jit_regs_set_%s(gen, &regs, _jit_regs_lookup(\"%s\"), _jit_regs_lookup(\"%s\"));\n",
-							       args[index], pattern->values->value, pattern->values->next->value);
-						}
-						else
-						{
-							printf("\t\t_jit_regs_set_%s(gen, &regs, _jit_regs_lookup(\"%s\"), -1);\n",
-							       args[index], pattern->values->value);
-						}
-					}
-					else
-					{
-						printf("\t\tregset = jit_regused_init;\n");
-						child = pattern->values->children;
-						while(child)
-						{
-							printf("\t\t%s = _jit_regs_lookup(\"%s\");\n",
-							       gensel_reg_names[regs], child->value);
-							printf("\t\tif(%s >= 0)\n", gensel_reg_names[regs]);
-							printf("\t\t\tjit_reg_set_used(regset, %s);\n",
-							       gensel_reg_names[regs]);
-							child = child->next;
-						}
-						printf("\t\t_jit_regs_set_%s_from(&regs, regset);\n",
-						       args[index]);
-					}
-				}
+				gensel_output_register_pattern(args[index], pattern);
 				++regs;
 				++index;
 				break;
@@ -1370,65 +1287,71 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 
 			case GENSEL_PATT_FRAME:
 				printf("\t\t_jit_regs_force_out(gen, insn->%s, %d);\n",
-				       args[index], (pattern->flags == GENSEL_FLAG_DEST));
+				       args[index], (free_dest && index == 0));
 				printf("\t\t_jit_gen_fix_value(insn->%s);\n",
 				       args[index]);
 				++index;
 				break;
 
 			case GENSEL_PATT_SCRATCH:
-				values = pattern->values;
-				while(values)
+				regclass = pattern->values->value;
+				printf("\t\t_jit_regs_add_scratch(&regs, %s);\n",
+				       regclass->def);
+				if(pattern->values->next && pattern->values->next->value)
 				{
-					if(values->value
-					   && (values->type != GENSEL_VALUE_STRING
-					       || strcmp(values->value, "?") != 0))
-					{
-						if(values->type == GENSEL_VALUE_STRING)
-						{
-							printf("\t\t_jit_regs_add_scratch(gen, &regs, _jit_regs_lookup(\"%s\"));\n",
-							       values->value);
-						}
-						else
-						{
-							printf("\t\tregset = jit_regused_init;\n");
-							child = values->children;
-							while(child)
-							{
-								printf("\t\t%s = _jit_regs_lookup(\"%s\");\n",
-								       gensel_reg_names[regs], child->value);
-								printf("\t\tif(%s >= 0)\n", gensel_reg_names[regs]);
-								printf("\t\t\tjit_reg_set_used(regset, %s);\n",
-								       gensel_reg_names[regs]);
-								child = child->next;
-							}
-							printf("\t\t_jit_regs_add_scratch_from(&regs, regset);\n");
-						}
-					}
-					else
-					{
-						printf("\t\t_jit_regs_add_scratch(gen, &regs, -1);\n");
-					}
-					++regs;
-					++index;
-					values = values->next;
+					name = pattern->values->next->value;
+					printf("\t\t_jit_regs_set_scratch(gen, &regs, %d, _jit_regs_lookup(\"%s\"));\n",
+					       scratch, name);
 				}
+				++regs;
+				++scratch;
+				++index;
 				break;
 
 			case GENSEL_PATT_CLOBBER:
 				values = pattern->values;
 				while(values)
 				{
-					if(values->value && strcmp(values->value, "*") != 0)
+					if(!values->value)
 					{
-						printf("\t\t_jit_regs_set_clobber(gen, &regs, _jit_regs_lookup(\"%s\"));\n",
-						       values->value);
+						continue;
+					}
+					switch(values->type)
+					{
+					case GENSEL_VALUE_STRING:
+						name = values->value;
+						printf("\t\t_jit_regs_clobber(&regs, _jit_regs_lookup(\"%s\"));\n",
+						       name);
+						break;
+
+					case GENSEL_VALUE_REGCLASS:
+						regclass = values->value;
+						printf("\t\t_jit_regs_clobber_class(gen, &regs, %s);\n",
+							regclass->def);
+						break;
+
+					case GENSEL_VALUE_ALL:
+						printf("\t\t_jit_regs_clobber_all(gen, &regs);\n");
+						break;
 					}
 					values = values->next;
 				}
 				break;
 			}
 			pattern = pattern->next;
+		}
+
+		if(gensel_search_option(options, GENSEL_OPT_BRANCH))
+		{
+			/* Spill all other registers back to their original positions */
+			if(contains_registers)
+			{
+				printf("\t\t_jit_regs_clobber_all(gen, &regs);\n");
+			}
+			else
+			{
+				printf("\t\t_jit_regs_spill_all(gen);\n");
+			}
 		}
 
 		if(gensel_new_inst_type)
@@ -1510,17 +1433,16 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				break;
 
 			case GENSEL_PATT_REG:
-			case GENSEL_PATT_FREG:
-				printf("\t\t%s = _jit_reg_info[_jit_regs_%s(&regs)].cpu_reg;\n",
+				printf("\t\t%s = _jit_reg_info[_jit_regs_get_%s(&regs)].cpu_reg;\n",
 				       gensel_reg_names[regs], args[index]);
 				++regs;
 				++index;
 				break;
 
 			case GENSEL_PATT_LREG:
-				printf("\t\t%s = _jit_reg_info[_jit_regs_%s(&regs)].cpu_reg;\n",
+				printf("\t\t%s = _jit_reg_info[_jit_regs_get_%s(&regs)].cpu_reg;\n",
 				       gensel_reg_names[regs], args[index]);
-				printf("\t\t%s = _jit_reg_info[_jit_regs_%s_other(&regs)].cpu_reg;\n",
+				printf("\t\t%s = _jit_reg_info[_jit_regs_get_%s_other(&regs)].cpu_reg;\n",
 				       gensel_other_reg_names[regs], args[index]);
 				++regs;
 				++index;
@@ -1550,15 +1472,11 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				break;
 
 			case GENSEL_PATT_SCRATCH:
-				values = pattern->values;
-				while(values)
-				{
-					printf("\t\t%s = _jit_reg_info[_jit_regs_scratch(&regs, %d)].cpu_reg;\n",
-					       gensel_reg_names[regs], scratch);
-					++regs;
-					++scratch;
-					values = values->next;
-				}
+				printf("\t\t%s = _jit_reg_info[_jit_regs_get_scratch(&regs, %d)].cpu_reg;\n",
+				       gensel_reg_names[regs], scratch);
+				++regs;
+				++scratch;
+				++index;
 				break;
 
 			}
@@ -1693,10 +1611,8 @@ static void gensel_output_supported(void)
 %token CODE_BLOCK		"a code block"
 %token LITERAL			"literal string"
 %token K_PTR			"`->'"
-%token K_ANY			"any variable"
-%token K_REG			"word register"
-%token K_LREG			"long register"
-%token K_FREG			"float register"
+%token K_ANY			"any value"
+%token K_ALL			"all registers"
 %token K_IMM			"immediate value"
 %token K_IMMZERO		"immediate zero value"
 %token K_IMMS8			"immediate signed 8-bit value"
@@ -1705,30 +1621,26 @@ static void gensel_output_supported(void)
 %token K_IMMU16			"immediate unsigned 16-bit value"
 %token K_LOCAL			"local variable"
 %token K_FRAME			"local variable forced out into the stack frame"
-%token K_BINARY			"`binary'"
-%token K_UNARY			"`unary'"
-%token K_UNARY_BRANCH		"`unary_branch'"
-%token K_BINARY_BRANCH		"`binary_branch'"
-%token K_UNARY_NOTE		"`unary_note'"
-%token K_BINARY_NOTE		"`binary_note'"
+%token K_NOTE			"`note'"
 %token K_TERNARY		"`ternary'"
-%token K_STACK			"`stack'"
-%token K_ONLY			"`only'"
+%token K_BRANCH			"`branch'"
 %token K_COPY			"`copy'"
-%token K_X87ARITH		"`x87arith'"
 %token K_COMMUTATIVE		"`commutative'"
-%token K_REVERSIBLE		"`reversible'"
 %token K_IF			"`if'"
 %token K_CLOBBER		"`clobber'"
 %token K_SCRATCH		"`scratch'"
 %token K_SPACE			"`space'"
+%token K_STACK			"`stack'"
+%token K_X87_ARITH		"`x87_arith'"
+%token K_X87_ARITH_REVERSIBLE	"`x87_arith_reversible'"
 %token K_INST_TYPE		"`%inst_type'"
+%token K_REG_CLASS		"`%reg_class'"
+%token K_LREG_CLASS		"`%lreg_class'"
 
 /* deperecated keywords */
 
 %token K_MANUAL			"`manual'"
 %token K_MORE_SPACE		"`more_space'"
-%token K_SPILL_BEFORE		"`spill_before'"
 
 /*
  * Define the yylval types of the various non-terminals.
@@ -1736,12 +1648,12 @@ static void gensel_output_supported(void)
 %type <code>			CODE_BLOCK
 %type <name>			IDENTIFIER LITERAL
 %type <name>			IfClause IdentifierList Literal
-%type <tag>			OptionTag InputTag RegTag LRegTag RegFlag LocalTag LocalFlag
+%type <tag>			OptionTag InputTag DestFlag RegFlag
 %type <clauses>			Clauses Clause
-%type <options>			Options OptionList Pattern Pattern2
-%type <option>			Option PatternElement Scratch Clobber If Space
-%type <values>			ValuePair ValueList ValueChoice ValueChoiceList
-%type <value>			Value
+%type <options>			Options Pattern
+%type <option>			Option PatternElement
+%type <values>			ValuePair ClobberList ClobberSpec
+%type <value>			Value ClobberEntry RegClass
 
 %expect 0
 
@@ -1784,8 +1696,14 @@ Rule
 			gensel_add_supported($1, $2);
 		}
 	| K_INST_TYPE IDENTIFIER	{
-		    gensel_inst_type = $2;
-		    gensel_new_inst_type = 1;
+			gensel_inst_type = $2;
+			gensel_new_inst_type = 1;
+		}
+	| K_REG_CLASS IDENTIFIER IDENTIFIER {
+			gensel_create_regclass($2, $3, 0);
+		}
+	| K_LREG_CLASS IDENTIFIER IDENTIFIER {
+			gensel_create_regclass($2, $3, 1);
 		}
 	;
 
@@ -1812,16 +1730,15 @@ IfClause
 	;
 
 Options
-	: /* empty */			{ $$.head = $$.tail = 0; }
-	|  OptionList			{ $$ = $1; }
-	;
-
-OptionList
-	: Option			{
+	: /* empty */			{
+			$$.head = 0;
+			$$.tail = 0;
+		}
+	| Option			{
 			$$.head = $1;
 			$$.tail = $1;
 		}
-	| OptionList ',' Option		{
+	| Options ',' Option		{
 			$1.tail->next = $3;
 			$$.head = $1.head;
 			$$.tail = $3;
@@ -1829,7 +1746,9 @@ OptionList
 	;
 
 Option
-	: OptionTag			{ $$ = gensel_create_option($1, 0); }
+	: OptionTag			{
+			$$ = gensel_create_option($1, 0);
+		}
 	;
 
 Clauses
@@ -1842,17 +1761,18 @@ Clauses
 	;
 
 Clause
-	: '[' Pattern ']' K_PTR CODE_BLOCK	{
+	: '[' DestFlag Pattern ']' K_PTR CODE_BLOCK {
 			gensel_clause_t clause;
 			clause = (gensel_clause_t)malloc(sizeof(struct gensel_clause));
 			if(!clause)
 			{
 				exit(1);
 			}
-			clause->pattern = $2.head;
-			clause->filename = $5.filename;
-			clause->linenum = $5.linenum;
-			clause->code = $5.block;
+			clause->dest = $2;
+			clause->pattern = $3.head;
+			clause->filename = $6.filename;
+			clause->linenum = $6.linenum;
+			clause->code = $6.block;
 			clause->next = 0;
 			$$.head = clause;
 			$$.tail = clause;
@@ -1860,122 +1780,110 @@ Clause
 	;
 
 Pattern
-	: /* empty */			{ $$.head = $$.tail = 0; }
-	| Pattern2			{
-			$$.head = $1.head;
-			$$.tail = $1.tail;
+	: /* empty */			{
+			$$.head = 0;
+			$$.tail = 0;
 		}
-	;
-
-Pattern2
-	: PatternElement		{
+	| PatternElement		{
 			$$.head = $1;
 			$$.tail = $1;
 		}
-	| Pattern2 ',' PatternElement	{
+	| Pattern ',' PatternElement	{
 			$1.tail->next = $3;
 			$$.head = $1.head;
 			$$.tail = $3;
 		}
 	;
-
+	
 PatternElement
 	: InputTag			{
 			$$ = gensel_create_option($1, 0);
 		}
-	| LocalFlag LocalTag		{
-			$$ = gensel_create_option_2($2, $1, 0);
+	| RegFlag RegClass		{
+			$$ = gensel_create_register($1, $2, 0);
 		}
-	| RegFlag RegTag		{
-			$$ = gensel_create_option_2($2, $1, 0);
+	| RegFlag RegClass '(' Value ')'	{
+			$$ = gensel_create_register($1, $2, $4);
 		}
-	| RegFlag RegTag '(' Value ')'	{
-			$$ = gensel_create_option_2($2, $1, $4);
+	| RegFlag RegClass '(' ValuePair ')'	{
+			gensel_regclass_t regclass;
+			regclass = $2->value;
+			if(!regclass->is_long)
+			{
+				gensel_error(
+					gensel_filename, gensel_linenum,
+					"not a long pair register");
+			}
+			$$ = gensel_create_register($1, $2, $4.head);
 		}
-	| RegFlag RegTag '(' ValueChoice ')'	{
-			gensel_value_t cp;
-			cp = gensel_create_choice($4.head);
-			$$ = gensel_create_option_2($2, $1, cp);
+	| K_SCRATCH RegClass {
+			gensel_regclass_t regclass;
+			regclass = $2->value;
+			if(regclass->is_long)
+			{
+				gensel_error(
+					gensel_filename, gensel_linenum,
+					"scratch register cannot be a long pair");
+			}
+			$$ = gensel_create_scratch($2, 0);
 		}
-	| RegFlag LRegTag		{
-			$$ = gensel_create_option_2($2, $1, 0);
+	| K_SCRATCH RegClass '(' Value ')' {
+			gensel_regclass_t regclass;
+			regclass = $2->value;
+			if(regclass->is_long)
+			{
+				gensel_error(
+					gensel_filename, gensel_linenum,
+					"scratch register cannot be a long pair");
+			}
+			$$ = gensel_create_scratch($2, $4);
 		}
-	| RegFlag LRegTag '(' Value ')'	{
-			$$ = gensel_create_option_2($2, $1, $4);
-		}
-	| RegFlag LRegTag '(' ValuePair ')'	{
-			$$ = gensel_create_option_2($2, $1, $4.head);
-		}
-	| RegFlag LRegTag '(' ValueChoice ')'	{
-			gensel_value_t cp;
-			cp = gensel_create_choice($4.head);
-			$$ = gensel_create_option_2($2, $1, cp);
-		}
-	| Scratch
-	| Clobber
-	| If
-	| Space
-	;
-
-Scratch
-	: K_SCRATCH '(' ValueChoiceList ')'	{
-			$$ = gensel_create_option(GENSEL_PATT_SCRATCH, $3.head);
-		}
-	;
-
-Clobber
-	: K_CLOBBER '(' ValueList ')'	{
+	| K_CLOBBER '(' ClobberSpec ')'	{
 			$$ = gensel_create_option(GENSEL_PATT_CLOBBER, $3.head);
 		}
-	;
-	
-If
-	: K_IF '(' Value ')'		{
+	| K_IF '(' Value ')'		{
 			$$ = gensel_create_option(GENSEL_PATT_IF, $3);
 		}
-	;
-
-Space
-	: K_SPACE '(' Value ')'		{
+	| K_SPACE '(' Value ')'		{
 			$$ = gensel_create_option(GENSEL_PATT_SPACE, $3);
 		}
 	;
 
-ValueChoiceList
-	: Value				{
-			$$.head = $1;
-			$$.tail = $1;
+ClobberSpec
+	: K_ALL				{
+			$$.head = $$.tail = gensel_create_value(GENSEL_VALUE_ALL);
 		}
-	| ValueChoice			{
-			gensel_value_t cp;
-			cp = gensel_create_choice($1.head);
-			$$.head = cp;
-			$$.tail = cp;
-		}
-	| ValueChoiceList ',' Value		{
-			$1.tail->next = $3;
-			$$.head = $1.head;
-			$$.tail = $3;
-		}
-	| ValueChoiceList ',' ValueChoice	{
-			gensel_value_t cp;
-			cp = gensel_create_choice($3.head);
-			$1.tail->next = cp;
-			$$.head = $1.head;
-			$$.tail = cp;
+	| ClobberList			{
+			$$ = $1;
 		}
 	;
 
-ValueChoice
-	: Value	'|' Value		{
-			$1->next = $3;
+ClobberList
+	: ClobberEntry			{
 			$$.head = $1;
-			$$.tail = $3;
+			$$.tail = $1;
 		}
-	| ValueChoice '|' Value		{
+	| ClobberList ',' ClobberEntry	{
 			$1.tail->next = $3;
 			$$.head = $1.head;
 			$$.tail = $3;
+		}
+	;
+
+ClobberEntry
+	: RegClass			{ $$ = $1; }
+	| Value				{ $$ = $1; }
+	;
+
+RegClass
+	: IDENTIFIER			{
+			$$ = gensel_create_regclass_value($1);
+		}
+	;
+
+Value
+	: Literal			{
+			$$ = gensel_create_string_value($1);
 		}
 	;
 
@@ -1987,45 +1895,21 @@ ValuePair
 		}
 	;
 
-ValueList
-	: Value				{
-			$$.head = $1;
-			$$.tail = $1;
-		}
-	| ValueList ',' Value		{
-			$1.tail->next = $3;
-			$$.head = $1.head;
-			$$.tail = $3;
-		}
-	;
-
-Value
-	: Literal			{
-			$$ = gensel_create_string($1);
-		}
-	;
-
 OptionTag
-	: K_BINARY			{ $$ = GENSEL_OPT_BINARY; }
-	| K_UNARY			{ $$ = GENSEL_OPT_UNARY; }
-	| K_UNARY_BRANCH		{ $$ = GENSEL_OPT_UNARY_BRANCH; }
-	| K_BINARY_BRANCH		{ $$ = GENSEL_OPT_BINARY_BRANCH; }
-	| K_UNARY_NOTE			{ $$ = GENSEL_OPT_UNARY_NOTE; }
-	| K_BINARY_NOTE			{ $$ = GENSEL_OPT_BINARY_NOTE; }
-	| K_TERNARY			{ $$ = GENSEL_OPT_TERNARY; }
-	| K_STACK			{ $$ = GENSEL_OPT_STACK; }
-	| K_ONLY			{ $$ = GENSEL_OPT_ONLY; }
+	: K_TERNARY			{ $$ = GENSEL_OPT_TERNARY; }
+	| K_BRANCH			{ $$ = GENSEL_OPT_BRANCH; }
+	| K_NOTE			{ $$ = GENSEL_OPT_NOTE; }
 	| K_COPY			{ $$ = GENSEL_OPT_COPY; }
-	| K_X87ARITH			{ $$ = GENSEL_OPT_X87ARITH; }
 	| K_COMMUTATIVE			{ $$ = GENSEL_OPT_COMMUTATIVE; }
-	| K_REVERSIBLE			{ $$ = GENSEL_OPT_REVERSIBLE; }
+	| K_STACK			{ $$ = GENSEL_OPT_STACK; }
+	| K_X87_ARITH			{ $$ = GENSEL_OPT_X87_ARITH; }
+	| K_X87_ARITH_REVERSIBLE	{ $$ = GENSEL_OPT_X87_ARITH_REVERSIBLE; }
 
 	/* deprecated: */
 	| K_MANUAL			{ $$ = GENSEL_OPT_MANUAL; }
 	| K_MORE_SPACE			{ $$ = GENSEL_OPT_MORE_SPACE; }
-	| K_SPILL_BEFORE		{ $$ = GENSEL_OPT_SPILL_BEFORE; }
 	;
-	
+
 InputTag
 	: K_IMM				{ $$ = GENSEL_PATT_IMM; }
 	| K_IMMZERO			{ $$ = GENSEL_PATT_IMMZERO; }
@@ -2033,33 +1917,20 @@ InputTag
 	| K_IMMU8			{ $$ = GENSEL_PATT_IMMU8; }
 	| K_IMMS16			{ $$ = GENSEL_PATT_IMMS16; }
 	| K_IMMU16			{ $$ = GENSEL_PATT_IMMU16; }
+	| K_LOCAL			{ $$ = GENSEL_PATT_LOCAL; }
+	| K_FRAME			{ $$ = GENSEL_PATT_FRAME; }
 	| K_ANY				{ $$ = GENSEL_PATT_ANY; }
 	;
 
-LocalTag
-	: K_LOCAL			{ $$ = GENSEL_PATT_LOCAL; }
-	| K_FRAME			{ $$ = GENSEL_PATT_FRAME; }
-	;
-
-RegTag
-	: K_REG				{ $$ = GENSEL_PATT_REG; }
-	| K_FREG			{ $$ = GENSEL_PATT_FREG; }
-	;
-
-LRegTag
-	: K_LREG			{ $$ = GENSEL_PATT_LREG; }
-	;
-
-LocalFlag
+DestFlag
 	: /* empty */			{ $$ = 0; }
-	| '='				{ $$ = GENSEL_FLAG_DEST; }
+	| '='				{ $$ = 1; }
 	;
 
 RegFlag
 	: /* empty */			{ $$ = 0; }
-	| '='				{ $$ = GENSEL_FLAG_DEST; }
-	| '*'				{ $$ = GENSEL_FLAG_CLOBBER; }
-	| '+'				{ $$ = GENSEL_FLAG_EARLY_CLOBBER; }
+	| '*'				{ $$ = GENSEL_VALUE_CLOBBER; }
+	| '+'				{ $$ = GENSEL_VALUE_EARLY_CLOBBER; }
 	;
 
 Literal

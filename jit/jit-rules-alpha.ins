@@ -20,29 +20,32 @@
 
 %inst_type alpha_inst
 
+%regclass reg alpha_reg
+%regclass lreg alpha_reg
+
 /*
  * Conversion opcodes.
  */
 
-JIT_OP_TRUNC_SBYTE: unary
+JIT_OP_TRUNC_SBYTE:
 	[reg] -> {
 		alpha_slli(inst,$1,56,$1);
 		alpha_srai(inst,$1,56,$1);
 	}
 
-JIT_OP_TRUNC_UBYTE: unary
+JIT_OP_TRUNC_UBYTE:
 	[reg] -> {
 		_alpha_li8(inst,ALPHA_AT,0xff);
 		alpha_and(inst,$1,ALPHA_AT,$1);
 	}
 
-JIT_OP_TRUNC_SHORT: unary
+JIT_OP_TRUNC_SHORT:
 	[reg] -> {
 		alpha_slli(inst,$1,56,$1);
 		alpha_srai(inst,$1,56,$1);
 	}
 
-JIT_OP_TRUNC_USHORT: unary
+JIT_OP_TRUNC_USHORT:
 	[reg] -> {
 		alpha_slli(inst,$1,56,$1);
 		alpha_srli(inst,$1,56,$1);
@@ -69,7 +72,7 @@ JIT_OP_TRUNC_USHORT: unary
  */
 
 /* return value1 + value2; */
-JIT_OP_IADD: binary
+JIT_OP_IADD:
 	[=reg, reg, imm, if("$3 == 0")] -> {
 		alpha_mov(inst,$2,$1);
 	}
@@ -78,7 +81,7 @@ JIT_OP_IADD: binary
 	}
 
 /* return value1 - value2; */
-JIT_OP_ISUB: binary
+JIT_OP_ISUB:
 	[=reg, reg, imm, if("$3 == 0")] -> {
 		alpha_mov(inst,$2,$1);
 	}
@@ -88,7 +91,7 @@ JIT_OP_ISUB: binary
 
 /* return value1 * value2; */
 /* TODO add more trivial IMUL imm rules */
-JIT_OP_IMUL: binary
+JIT_OP_IMUL:
 	[=reg, reg, imm, if("$3 == 1")] -> {
 		alpha_mov(inst,$2,$1);
 	}
@@ -113,27 +116,27 @@ JIT_OP_IMUL: binary
  */
 
 /* return -value1; */
-JIT_OP_INEG: unary
+JIT_OP_INEG:
 	[reg] -> {
 		/* Alpha has no neg operation, do $1 = 0 - $1; instead */
 		alpha_subl(inst,ALPHA_ZERO,$1,$1);
 	}
 
 /* return value1 + value2 */
-JIT_OP_LADD: binary
+JIT_OP_LADD:
 	[=lreg, lreg, lreg] -> {
 		alpha_addq(inst,$3,$2,$1);
 	}
 
 /* return value1 - value2 */
-JIT_OP_LSUB: binary
+JIT_OP_LSUB:
 	[=lreg, lreg, lreg] -> {
 		alpha_subq(inst,$3,$2,$1);
 	}
 
 /* return value1 * value2 */
 /* TODO add more trivial LMUL imm rules */
-JIT_OP_LMUL: binary
+JIT_OP_LMUL:
 	[=lreg, lreg, imm, if("$3 == 1")] -> {
 		alpha_mov(inst,$2,$1);
 	}
@@ -147,7 +150,7 @@ JIT_OP_LMUL: binary
 		alpha_mulq(inst,$3,$2,$1);
 	}
 
-JIT_OP_LNEG: unary
+JIT_OP_LNEG:
 	[lreg] -> {
 		/* Alpha has no neg operation, do $1 = 0 - $1; instead */
 		alpha_subq(inst,ALPHA_ZERO,$1,$1);
@@ -167,22 +170,22 @@ JIT_OP_LNEG: unary
 /*
  * Bitwise opcodes.
  */
-JIT_OP_IAND: binary
+JIT_OP_IAND:
 	[=reg, reg, reg] -> {
 		alpha_and(inst,$3,$2,$1);
 	}
 
-JIT_OP_IOR: binary
+JIT_OP_IOR:
 	[=reg, reg, reg] -> {
 		alpha_or(inst,$3,$2,$1);
 	}
 
-JIT_OP_IXOR: binary
+JIT_OP_IXOR:
 	[=reg, reg, reg] -> {
 		alpha_xor(inst,$3,$2,$1);
 	}
 
-JIT_OP_INOT: unary
+JIT_OP_INOT:
 	[reg] -> {
 		_alpha_li32(inst,ALPHA_AT,0xffffffff);
 		alpha_xor(inst,ALPHA_AT,$1,$1);
@@ -196,38 +199,38 @@ JIT_OP_INOT: unary
  * these to work properly.
  */
 
-JIT_OP_LAND: binary
+JIT_OP_LAND:
 	[=reg, reg, reg] -> {
 		alpha_and(inst,$3,$2,$1);
 	}
 
-JIT_OP_LOR: binary
+JIT_OP_LOR:
 	[=reg, reg, reg] -> {
 		alpha_or(inst,$3,$2,$1);
 	}
 
-JIT_OP_LXOR: binary
+JIT_OP_LXOR:
 	[=reg, reg, reg] -> {
 		alpha_xor(inst,$3,$2,$1);
 	}
 
-JIT_OP_LNOT: unary
+JIT_OP_LNOT:
 	[reg] -> {
 		_alpha_li64(inst,ALPHA_AT,0xffffffff);
 		alpha_xor(inst,ALPHA_AT,$1,$1);
 	}
 
-JIT_OP_LSHL: binary
+JIT_OP_LSHL:
 	[=reg, reg, reg] -> {
 		alpha_sll(inst,$3,$2,$1);
 	}
 
-JIT_OP_LSHR: binary
+JIT_OP_LSHR:
 	[=reg, reg, reg] -> {
 		alpha_srl(inst,$3,$2,$1);
 	}
 
-JIT_OP_LSHR_UN: binary
+JIT_OP_LSHR_UN:
 	[=reg, reg, reg] -> {
 		alpha_sra(inst,$3,$2,$1);
 	}
@@ -236,25 +239,25 @@ JIT_OP_LSHR_UN: binary
  * Branch opcodes
  */
 
-JIT_OP_BR: spill_before
+JIT_OP_BR: branch
 	[] -> {
 		/* branch if ALPHA_ZERO is zero (this is always true) */
 		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_ZERO);
 	}
 
-JIT_OP_BR_IFALSE: unary_branch
+JIT_OP_BR_IFALSE: branch
 	[reg] -> {
 		/* banch if $1 == 0 */
 		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, $1);
 	}
 
-JIT_OP_BR_ITRUE: unary_branch
+JIT_OP_BR_ITRUE: branch
 	[reg] -> {
 		/* branch if $1 != 0 */
 		alpha_output_branch(func, inst, ALPHA_OP_BNE, insn, $1);
 	}
 
-JIT_OP_BR_IEQ: binary_branch
+JIT_OP_BR_IEQ: branch
 	[reg, reg] -> {
 		/* $1 == $2 -> $at */
 		alpha_cmpeq(inst, $1, $2, ALPHA_AT);
@@ -263,7 +266,7 @@ JIT_OP_BR_IEQ: binary_branch
 		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
 	}
 
-JIT_OP_BR_INE: binary_branch
+JIT_OP_BR_INE: branch
 	[reg, reg] -> {
 		/* $1 == $2 -> $at */
 		alpha_cmpeq(inst, $1, $2, ALPHA_AT);
@@ -271,7 +274,8 @@ JIT_OP_BR_INE: binary_branch
 		/* branch if $at == 0 */
 		alpha_output_branch(func, inst, ALPHA_OP_BNE, insn, ALPHA_AT);
 	}
-JIT_OP_BR_ILT: binary_branch
+
+JIT_OP_BR_ILT: branch
 	[reg, reg] -> {
 		/* $1 < $2 -> $at */
 		alpha_cmplt(inst, $1, $2, ALPHA_AT);
@@ -280,7 +284,7 @@ JIT_OP_BR_ILT: binary_branch
 		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
 	}
 
-JIT_OP_BR_ILT_UN: binary_branch
+JIT_OP_BR_ILT_UN: branch
 	[reg, reg] -> {
 		/* $1 < $2 -> $at */
 		alpha_cmpult(inst, $1, $2, ALPHA_AT);
@@ -289,7 +293,7 @@ JIT_OP_BR_ILT_UN: binary_branch
 		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
 	}
 
-JIT_OP_BR_ILE: binary_branch
+JIT_OP_BR_ILE: branch
 	[reg, reg] -> {
 		/* $1 <= $2 -> $at */
 		alpha_cmple(inst, $1, $2, ALPHA_AT);
@@ -298,7 +302,7 @@ JIT_OP_BR_ILE: binary_branch
 		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
 	}
 
-JIT_OP_BR_ILE_UN: binary_branch
+JIT_OP_BR_ILE_UN: branch
 	[reg, reg] -> {
 		/* $1 <= $2 -> $at */
 		alpha_cmpule(inst, $1, $2, ALPHA_AT);
@@ -307,7 +311,7 @@ JIT_OP_BR_ILE_UN: binary_branch
 		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
 	}
 
-JIT_OP_BR_IGT:
+JIT_OP_BR_IGT: branch
 	[reg, reg] -> {
 		/* $1 <= $2 -> $at */
 		alpha_cmpgt(inst, $1, $2, ALPHA_AT);
@@ -316,7 +320,7 @@ JIT_OP_BR_IGT:
 		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
 	}
 
-JIT_OP_BR_IGT_UN:
+JIT_OP_BR_IGT_UN: branch
 	[reg, reg] -> {
 		/* $1 > $2 -> $at */
 		alpha_cmpugt(inst, $1, $2, ALPHA_AT);
@@ -325,7 +329,7 @@ JIT_OP_BR_IGT_UN:
 		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
 	}
 
-JIT_OP_BR_IGE:
+JIT_OP_BR_IGE: branch
 	[reg, reg] -> {
 		/* $1 >= $2 -> $at */
 		alpha_cmpge(inst, $1, $2, ALPHA_AT);
@@ -334,7 +338,7 @@ JIT_OP_BR_IGE:
 		alpha_output_branch(func, inst, ALPHA_OP_BEQ, insn, ALPHA_AT);
 	}
 
-JIT_OP_BR_IGE_UN:
+JIT_OP_BR_IGE_UN: branch
 	[reg, reg] -> {
 		/* $1 >= $2 -> $at */
 		alpha_cmpuge(inst, $1, $2, ALPHA_AT);
@@ -348,34 +352,34 @@ JIT_OP_BR_IGE_UN:
  * Comparison opcodes.
  */
 
-JIT_OP_IEQ: binary
+JIT_OP_IEQ:
 	[=reg, reg, reg] -> {
 		alpha_cmpeq(inst,$3,$2,$1);
 	}
 
-JIT_OP_INE: binary
+JIT_OP_INE:
 	[=reg, reg, reg] -> {
 		alpha_cmpeq(inst,$3,$2,$1);
 		alpha_cmpeq(inst,$1,ALPHA_ZERO,$1);
 	}
 
-JIT_OP_ILT: binary
+JIT_OP_ILT:
 	[=reg, reg, reg] -> {
 		alpha_cmplt(inst,$3,$2,$1);
 	}
 
 
-JIT_OP_ILT_UN: binary
+JIT_OP_ILT_UN:
 	[=reg, reg, reg] -> {
 		alpha_cmpult(inst,$3,$2,$1);
 	}
 
-JIT_OP_ILE: binary
+JIT_OP_ILE:
 	[=reg, reg, reg] -> {
 		alpha_cmple(inst,$3,$2,$1);
 	}
 
-JIT_OP_ILE_UN: binary
+JIT_OP_ILE_UN:
 	[=reg, reg, reg] -> {
 		alpha_cmpule(inst,$3,$2,$1);
 	}
@@ -396,7 +400,7 @@ JIT_OP_ILE_UN: binary
  * Pointer check opcodes.
  */
 
-/* TODO: JIT_OP_CHECK_NULL: unary_note */
+/* TODO: JIT_OP_CHECK_NULL: note */
 
 /*
  * Function calls.
@@ -415,13 +419,13 @@ JIT_OP_RETURN:
 		jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_INT: unary_branch
+JIT_OP_RETURN_INT: branch
 	[reg] -> {
 		alpha_mov(inst,$1,ALPHA_V0);
 		jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_LONG: unary_branch
+JIT_OP_RETURN_LONG: branch
 	[reg] -> {
 		alpha_mov(inst,$1,ALPHA_V0);
 		jump_to_epilog(gen, inst, block);
@@ -443,7 +447,7 @@ JIT_OP_RETURN_REG: manual
 		/* Nothing to do here */;
 	}
 
-JIT_OP_PUSH_INT: unary_note
+JIT_OP_PUSH_INT: note
 	[imm] -> {
 		alpha_li(inst,ALPHA_AT,$1);
 		alpha_stq(inst,ALPHA_AT,ALPHA_SP,0);
@@ -454,7 +458,7 @@ JIT_OP_PUSH_INT: unary_note
 		alpha_lda(inst,ALPHA_SP,ALPHA_SP,-8);
 	}
 
-JIT_OP_PUSH_LONG: unary_note
+JIT_OP_PUSH_LONG: note
 	[imm] -> {
 		alpha_li(inst,ALPHA_AT,$1);
 		alpha_stq(inst,ALPHA_AT,ALPHA_SP,0);

@@ -17,18 +17,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
+ 
+%regclass reg x86_reg
+%regclass breg x86_breg
+%regclass freg x86_freg
+%lregclass lreg x86_lreg
 
 /*
  * Conversion opcodes.
  */
 
 JIT_OP_TRUNC_SBYTE:
-	[=reg, reg("eax"|"ecx"|"edx"|"ebx")] -> {
+	[=reg, breg] -> {
 		x86_widen_reg(inst, $1, $2, 1, 0);
 	}
 
 JIT_OP_TRUNC_UBYTE:
-	[=reg, reg("eax"|"ecx"|"edx"|"ebx")] -> {
+	[=reg, breg] -> {
 		x86_widen_reg(inst, $1, $2, 0, 0);
 	}
 
@@ -147,7 +152,7 @@ JIT_OP_INT_TO_NFLOAT:
 	}
 
 JIT_OP_UINT_TO_NFLOAT:
-	[=freg, reg, scratch("?")] -> {
+	[=freg, reg, scratch reg] -> {
 		x86_clear_reg(inst, $3);
 		x86_push_reg(inst, $3);
 		x86_push_reg(inst, $2);
@@ -189,7 +194,7 @@ JIT_OP_ULONG_TO_NFLOAT: more_space
 	}
 
 JIT_OP_NFLOAT_TO_FLOAT32: stack
-	[=freg, freg] -> {
+	[freg] -> {
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(void *));
 		x86_fst_membase(inst, X86_ESP, 0, 0, 1);
 		x86_fld_membase(inst, X86_ESP, 0, 0);
@@ -197,7 +202,7 @@ JIT_OP_NFLOAT_TO_FLOAT32: stack
 	}
 
 JIT_OP_NFLOAT_TO_FLOAT64: stack
-	[=freg, freg] -> {
+	[freg] -> {
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float64));
 		x86_fst_membase(inst, X86_ESP, 0, 1, 1);
 		x86_fld_membase(inst, X86_ESP, 0, 1);
@@ -224,7 +229,7 @@ JIT_OP_IADD: commutative
 		x86_alu_reg_reg(inst, X86_ADD, $1, $2);
 	}
 
-JIT_OP_ISUB: binary
+JIT_OP_ISUB:
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_SUB, $1, $2);
 	}
@@ -543,12 +548,12 @@ JIT_OP_IDIV: more_space
 		}
 		x86_shift_reg_imm(inst, X86_SAR, $1, shift);
 	}
-	[reg("eax"), imm, scratch("?", "edx")] -> {
+	[reg("eax"), imm, scratch reg, scratch reg("edx")] -> {
 		x86_mov_reg_imm(inst, $3, $2);
 		x86_cdq(inst);
 		x86_div_reg(inst, $3, 1);
 	}
-	[reg("eax"), reg, scratch("edx")] -> {
+	[reg("eax"), reg, scratch reg("edx")] -> {
 		unsigned char *patch, *patch2;
 #ifndef JIT_USE_SIGNALS
 		x86_alu_reg_reg(inst, X86_OR, $2, $2);
@@ -585,12 +590,12 @@ JIT_OP_IDIV_UN: more_space
 		}
 		x86_shift_reg_imm(inst, X86_SHR, $1, shift);
 	}
-	[reg("eax"), imm, scratch("?", "edx")] -> {
+	[reg("eax"), imm, scratch reg, scratch reg("edx")] -> {
 		x86_mov_reg_imm(inst, $3, $2);
 		x86_clear_reg(inst, X86_EDX);
 		x86_div_reg(inst, $3, 0);
 	}
-	[reg("eax"), reg, scratch("edx")] -> {
+	[reg("eax"), reg, scratch reg("edx")] -> {
 #ifndef JIT_USE_SIGNALS
 		unsigned char *patch;
 		x86_alu_reg_reg(inst, X86_OR, $2, $2);
@@ -621,12 +626,12 @@ JIT_OP_IREM: more_space
 		x86_patch(patch, inst);
 		x86_clear_reg(inst, $1);
 	}
-	[=reg("edx"), *reg("eax"), imm, scratch("?", "edx")] -> {
+	[=reg("edx"), *reg("eax"), imm, scratch reg, scratch reg("edx")] -> {
 		x86_mov_reg_imm(inst, $4, $3);
 		x86_cdq(inst);
 		x86_div_reg(inst, $4, 1);
 	}
-	[=reg("edx"), *reg("eax"), reg, scratch("edx")] -> {
+	[=reg("edx"), *reg("eax"), reg, scratch reg("edx")] -> {
 		unsigned char *patch, *patch2;
 #ifndef JIT_USE_SIGNALS
 		x86_alu_reg_reg(inst, X86_OR, $3, $3);
@@ -659,12 +664,12 @@ JIT_OP_IREM_UN: more_space
 		/* x & (x - 1) is equal to zero if x is a power of 2  */
 		x86_alu_reg_imm(inst, X86_AND, $1, $2 - 1);
 	}
-	[=reg("edx"), *reg("eax"), imm, scratch("?", "edx")] -> {
+	[=reg("edx"), *reg("eax"), imm, scratch reg, scratch reg("edx")] -> {
 		x86_mov_reg_imm(inst, $4, $3);
 		x86_clear_reg(inst, X86_EDX);
 		x86_div_reg(inst, $4, 0);
 	}
-	[=reg("edx"), *reg("eax"), reg, scratch("edx")] -> {
+	[=reg("edx"), *reg("eax"), reg, scratch reg("edx")] -> {
 #ifndef JIT_USE_SIGNALS
 		unsigned char *patch;
 		x86_alu_reg_reg(inst, X86_OR, $3, $3);
@@ -677,7 +682,7 @@ JIT_OP_IREM_UN: more_space
 		x86_div_reg(inst, $3, 0);
 	}
 
-JIT_OP_INEG: unary
+JIT_OP_INEG:
 	[reg] -> {
 		x86_neg_reg(inst, $1);
 	}
@@ -705,7 +710,7 @@ JIT_OP_LADD: commutative
 		x86_alu_reg_reg(inst, X86_ADC, %1, %2);
 	}
 
-JIT_OP_LSUB: binary
+JIT_OP_LSUB:
 	[lreg, imm] -> {
 		jit_int value1 = ((jit_int *)($2))[0];
 		jit_int value2 = ((jit_int *)($2))[1];
@@ -728,7 +733,7 @@ JIT_OP_LSUB: binary
 		x86_alu_reg_reg(inst, X86_SBB, %1, %2);
 	}
 
-JIT_OP_LNEG: unary
+JIT_OP_LNEG:
 	[lreg] -> {
 		/* TODO: gcc generates the first variant while
 		   AoA suggests the second. Figure out if one
@@ -744,36 +749,29 @@ JIT_OP_LNEG: unary
 #endif
 	}
 
-JIT_OP_FADD, JIT_OP_DADD, JIT_OP_NFADD: binary, stack
+JIT_OP_FADD, JIT_OP_DADD, JIT_OP_NFADD: stack
 	[freg, freg] -> {
 		x86_fp_op_reg(inst, X86_FADD, 1, 1);
 	}
 
-JIT_OP_FSUB, JIT_OP_DSUB, JIT_OP_NFSUB: binary, stack
+JIT_OP_FSUB, JIT_OP_DSUB, JIT_OP_NFSUB: stack
 	[freg, freg] -> {
 		x86_fp_op_reg(inst, X86_FSUB, 1, 1);
 	}
 
-JIT_OP_FMUL, JIT_OP_DMUL, JIT_OP_NFMUL: binary, stack
+JIT_OP_FMUL, JIT_OP_DMUL, JIT_OP_NFMUL: stack
 	[freg, freg] -> {
 		x86_fp_op_reg(inst, X86_FMUL, 1, 1);
 	}
 
-JIT_OP_FDIV, JIT_OP_DDIV, JIT_OP_NFDIV: binary, stack
+JIT_OP_FDIV, JIT_OP_DDIV, JIT_OP_NFDIV: stack
 	[freg, freg] -> {
 		x86_fp_op_reg(inst, X86_FDIV, 1, 1);
 	}
 
-JIT_OP_FREM, JIT_OP_DREM, JIT_OP_NFREM: binary, stack
-	[freg, freg] -> {
+JIT_OP_FREM, JIT_OP_DREM, JIT_OP_NFREM: stack
+	[freg, freg, scratch reg("eax")] -> {
 		unsigned char *label;
-		int save_eax = 0;
-		if(gen->contents[X86_REG_EAX].num_values > 0 ||
-		   gen->contents[X86_REG_EAX].used_for_temp)
-		{
-			save_eax = 1;
-			x86_push_reg(inst, X86_EAX);
-		}
 		x86_fxch(inst, 1);
 		label = inst;
 		x86_fprem(inst);
@@ -781,13 +779,9 @@ JIT_OP_FREM, JIT_OP_DREM, JIT_OP_NFREM: binary, stack
 		x86_alu_reg_imm(inst, X86_AND, X86_EAX, 0x0400);
 		x86_branch(inst, X86_CC_NZ, label, 0);
 		x86_fstp(inst, 1);
-		if(save_eax)
-		{
-			x86_pop_reg(inst, X86_EAX);
-		}
 	}
 
-JIT_OP_FNEG, JIT_OP_DNEG, JIT_OP_NFNEG: unary, stack
+JIT_OP_FNEG, JIT_OP_DNEG, JIT_OP_NFNEG: stack
 	[freg] -> {
 		x86_fchs(inst);
 	}
@@ -829,12 +823,12 @@ JIT_OP_IXOR: commutative
 		x86_alu_reg_reg(inst, X86_XOR, $1, $2);
 	}
 
-JIT_OP_INOT: unary
+JIT_OP_INOT:
 	[reg] -> {
 		x86_not_reg(inst, $1);
 	}
 
-JIT_OP_ISHL: binary
+JIT_OP_ISHL:
 	[reg, imm] -> {
 		x86_shift_reg_imm(inst, X86_SHL, $1, ($2 & 0x1F));
 	}
@@ -842,7 +836,7 @@ JIT_OP_ISHL: binary
 		inst = shift_reg(inst, X86_SHL, $1, $2);
 	}
 
-JIT_OP_ISHR: binary
+JIT_OP_ISHR:
 	[reg, imm] -> {
 		x86_shift_reg_imm(inst, X86_SAR, $1, ($2 & 0x1F));
 	}
@@ -850,7 +844,7 @@ JIT_OP_ISHR: binary
 		inst = shift_reg(inst, X86_SAR, $1, $2);
 	}
 
-JIT_OP_ISHR_UN: binary
+JIT_OP_ISHR_UN:
 	[reg, imm] -> {
 		x86_shift_reg_imm(inst, X86_SHR, $1, ($2 & 0x1F));
 	}
@@ -906,7 +900,7 @@ JIT_OP_LXOR: commutative
 		x86_alu_reg_reg(inst, X86_XOR, %1, %2);
 	}
 
-JIT_OP_LNOT: binary
+JIT_OP_LNOT:
 	[lreg] -> {
 		x86_not_reg(inst, $1);
 		x86_not_reg(inst, %1);
@@ -916,24 +910,24 @@ JIT_OP_LNOT: binary
  * Branch opcodes.
  */
 
-JIT_OP_BR: spill_before
+JIT_OP_BR: branch
 	[] -> {
 		inst = output_branch(func, inst, 0xEB /* jmp */, insn);
 	}
 
-JIT_OP_BR_IFALSE: unary_branch
+JIT_OP_BR_IFALSE: branch
 	[reg] -> {
 		x86_alu_reg_reg(inst, X86_OR, $1, $1);
 		inst = output_branch(func, inst, 0x74 /* eq */, insn);
 	}
 
-JIT_OP_BR_ITRUE: unary_branch
+JIT_OP_BR_ITRUE: branch
 	[reg] -> {
 		x86_alu_reg_reg(inst, X86_OR, $1, $1);
 		inst = output_branch(func, inst, 0x75 /* ne */, insn);
 	}
 
-JIT_OP_BR_IEQ: binary_branch
+JIT_OP_BR_IEQ: branch
 	[reg, immzero] -> {
 		x86_alu_reg_reg(inst, X86_OR, $1, $1);
 		inst = output_branch(func, inst, 0x74 /* eq */, insn);
@@ -951,7 +945,7 @@ JIT_OP_BR_IEQ: binary_branch
 		inst = output_branch(func, inst, 0x74 /* eq */, insn);
 	}
 
-JIT_OP_BR_INE: binary_branch
+JIT_OP_BR_INE: branch
 	[reg, immzero] -> {
 		x86_alu_reg_reg(inst, X86_OR, $1, $1);
 		inst = output_branch(func, inst, 0x75 /* ne */, insn);
@@ -969,7 +963,7 @@ JIT_OP_BR_INE: binary_branch
 		inst = output_branch(func, inst, 0x75 /* ne */, insn);
 	}
 
-JIT_OP_BR_ILT: binary_branch
+JIT_OP_BR_ILT: branch
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
 		inst = output_branch(func, inst, 0x7C /* lt */, insn);
@@ -983,7 +977,7 @@ JIT_OP_BR_ILT: binary_branch
 		inst = output_branch(func, inst, 0x7C /* lt */, insn);
 	}
 
-JIT_OP_BR_ILT_UN: binary_branch
+JIT_OP_BR_ILT_UN: branch
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
 		inst = output_branch(func, inst, 0x72 /* lt_un */, insn);
@@ -997,7 +991,7 @@ JIT_OP_BR_ILT_UN: binary_branch
 		inst = output_branch(func, inst, 0x72 /* lt_un */, insn);
 	}
 
-JIT_OP_BR_ILE: binary_branch
+JIT_OP_BR_ILE: branch
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
 		inst = output_branch(func, inst, 0x7E /* le */, insn);
@@ -1011,7 +1005,7 @@ JIT_OP_BR_ILE: binary_branch
 		inst = output_branch(func, inst, 0x7E /* le */, insn);
 	}
 
-JIT_OP_BR_ILE_UN: binary_branch
+JIT_OP_BR_ILE_UN: branch
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
 		inst = output_branch(func, inst, 0x76 /* le_un */, insn);
@@ -1025,7 +1019,7 @@ JIT_OP_BR_ILE_UN: binary_branch
 		inst = output_branch(func, inst, 0x76 /* le_un */, insn);
 	}
 
-JIT_OP_BR_IGT: binary_branch
+JIT_OP_BR_IGT: branch
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
 		inst = output_branch(func, inst, 0x7F /* gt */, insn);
@@ -1039,7 +1033,7 @@ JIT_OP_BR_IGT: binary_branch
 		inst = output_branch(func, inst, 0x7F /* gt */, insn);
 	}
 
-JIT_OP_BR_IGT_UN: binary_branch
+JIT_OP_BR_IGT_UN: branch
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
 		inst = output_branch(func, inst, 0x77 /* gt_un */, insn);
@@ -1053,7 +1047,7 @@ JIT_OP_BR_IGT_UN: binary_branch
 		inst = output_branch(func, inst, 0x77 /* gt_un */, insn);
 	}
 
-JIT_OP_BR_IGE: binary_branch
+JIT_OP_BR_IGE: branch
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
 		inst = output_branch(func, inst, 0x7D /* ge */, insn);
@@ -1067,7 +1061,7 @@ JIT_OP_BR_IGE: binary_branch
 		inst = output_branch(func, inst, 0x7D /* ge */, insn);
 	}
 
-JIT_OP_BR_IGE_UN: binary_branch
+JIT_OP_BR_IGE_UN: branch
 	[reg, imm] -> {
 		x86_alu_reg_imm(inst, X86_CMP, $1, $2);
 		inst = output_branch(func, inst, 0x73 /* ge_un */, insn);
@@ -1237,29 +1231,29 @@ JIT_OP_IGE_UN:
  * Mathematical opcodes.
  */
 
-JIT_OP_FATAN, JIT_OP_DATAN, JIT_OP_NFATAN: unary, stack, only
-	[freg] -> {
+JIT_OP_FATAN, JIT_OP_DATAN, JIT_OP_NFATAN: stack
+	[freg, clobber(freg)] -> {
 		x86_fld1(inst);
 		x86_fpatan(inst);
 		x86_fldz(inst);
 		x86_fp_op_reg(inst, X86_FADD, 1, 1);
 	}
 
-JIT_OP_FCOS, JIT_OP_DCOS, JIT_OP_NFCOS: unary, stack, only
-	[freg] -> {
+JIT_OP_FCOS, JIT_OP_DCOS, JIT_OP_NFCOS: stack
+	[freg, clobber(freg)] -> {
 		x86_fcos(inst);
 		x86_fldz(inst);
 		x86_fp_op_reg(inst, X86_FADD, 1, 1);
 	}
 
-JIT_OP_FSIN, JIT_OP_DSIN, JIT_OP_NFSIN: unary, stack, only
-	[freg] -> {
+JIT_OP_FSIN, JIT_OP_DSIN, JIT_OP_NFSIN: stack
+	[freg, clobber(freg)] -> {
 		x86_fsin(inst);
 		x86_fldz(inst);
 		x86_fp_op_reg(inst, X86_FADD, 1, 1);
 	}
 
-JIT_OP_FSQRT, JIT_OP_DSQRT, JIT_OP_NFSQRT: unary, stack
+JIT_OP_FSQRT, JIT_OP_DSQRT, JIT_OP_NFSQRT: stack
 	[freg] -> {
 		x86_fsqrt(inst);
 	}
@@ -1269,14 +1263,14 @@ JIT_OP_FSQRT, JIT_OP_DSQRT, JIT_OP_NFSQRT: unary, stack
  */
 
 JIT_OP_IABS:
-	[reg("eax"), scratch("edx")] -> {
+	[reg("eax"), scratch reg("edx")] -> {
 		x86_cdq(inst);
 		x86_alu_reg_reg(inst, X86_XOR, $1, $2);
 		x86_alu_reg_reg(inst, X86_SUB, $1, $2);
 	}
 
 JIT_OP_LABS:
-	[lreg, scratch("?")] -> {
+	[lreg, scratch reg] -> {
 		x86_mov_reg_reg(inst, $2, %1, 4);
 		x86_shift_reg_imm(inst, X86_SAR, $2, 31);
 		x86_alu_reg_reg(inst, X86_XOR, $1, $2);
@@ -1285,7 +1279,7 @@ JIT_OP_LABS:
 		x86_alu_reg_reg(inst, X86_SBB, %1, $2);
 	}
 
-JIT_OP_FABS, JIT_OP_DABS, JIT_OP_NFABS: unary, stack
+JIT_OP_FABS, JIT_OP_DABS, JIT_OP_NFABS: stack
 	[freg] -> {
 		x86_fabs(inst);
 	}
@@ -1329,7 +1323,7 @@ JIT_OP_LSIGN:
  * Pointer check opcodes.
  */
 
-JIT_OP_CHECK_NULL: unary_note
+JIT_OP_CHECK_NULL: note
 	[reg] -> {
 		unsigned char *patch;
 		x86_alu_reg_reg(inst, X86_OR, $1, $1);
@@ -1398,32 +1392,35 @@ JIT_OP_RETURN:
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_INT: unary_note
+JIT_OP_RETURN_INT: note
 	[reg("eax")] -> {
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_LONG: unary_note
+JIT_OP_RETURN_LONG: note
 	[lreg("eax":"edx")] -> {
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_FLOAT32: unary_note, stack, only
-	[freg] -> {
+JIT_OP_RETURN_FLOAT32: note, stack
+	[freg, clobber(freg)] -> {
+		/* clobber(freg) frees all registers on the fp stack */
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_FLOAT64: unary_note, stack, only
-	[freg] -> {
+JIT_OP_RETURN_FLOAT64: note, stack
+	[freg, clobber(freg)] -> {
+		/* clobber(freg) frees all registers on the fp stack */
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_NFLOAT: unary_note, stack, only
-	[freg] -> {
+JIT_OP_RETURN_NFLOAT: note, stack
+	[freg, clobber(freg)] -> {
+		/* clobber(freg) frees all registers on the fp stack */
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_RETURN_SMALL_STRUCT: binary_note
+JIT_OP_RETURN_SMALL_STRUCT: note
 	[reg, imm] -> {
 		switch($2)
 		{
@@ -1520,7 +1517,7 @@ JIT_OP_RETURN_SMALL_STRUCT: binary_note
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_SETUP_FOR_NESTED: spill_before
+JIT_OP_SETUP_FOR_NESTED: branch
 	[] -> {
 		jit_nint nest_reg = jit_value_get_nint_constant(insn->value1);
 		if(nest_reg == -1)
@@ -1534,7 +1531,7 @@ JIT_OP_SETUP_FOR_NESTED: spill_before
 		}
 	}
 
-JIT_OP_SETUP_FOR_SIBLING: spill_before
+JIT_OP_SETUP_FOR_SIBLING: branch
 	[] -> {
 		jit_value_t parent;
 		jit_nint level = jit_value_get_nint_constant(insn->value1);
@@ -1615,7 +1612,7 @@ JIT_OP_IMPORT: manual
  * Exception handling.
  */
 
-JIT_OP_THROW: unary_branch
+JIT_OP_THROW: branch
 	[reg] -> {
 		x86_push_reg(inst, $1);
 		if(func->builder->setjmp_value != 0)
@@ -1664,13 +1661,13 @@ JIT_OP_LOAD_EXCEPTION_PC: manual
 JIT_OP_ENTER_FINALLY: manual
 	[] -> { /* Nothing to do here: return address on the stack */ }
 
-JIT_OP_LEAVE_FINALLY: spill_before
+JIT_OP_LEAVE_FINALLY: branch
 	[] -> {
 		/* The "finally" return address is on the stack */
 		x86_ret(inst);
 	}
 
-JIT_OP_CALL_FINALLY: spill_before
+JIT_OP_CALL_FINALLY: branch
 	[] -> {
 		jit_block_t block;
 
@@ -1769,28 +1766,17 @@ JIT_OP_COPY_FLOAT64: copy, stack
 JIT_OP_COPY_NFLOAT: copy, stack
 	[freg] -> {}
 
-JIT_OP_COPY_STRUCT: manual, spill_before
-	[] -> {
-		unsigned char *inst;
-		_jit_gen_fix_value(insn->dest);
-		_jit_gen_fix_value(insn->value1);
-		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 128))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
-		inst = memory_copy(gen, inst, X86_EBP, insn->dest->frame_offset,
-						   X86_EBP, insn->value1->frame_offset,
-						   jit_type_get_size(jit_value_get_type(insn->dest)));
-		gen->posn.ptr = inst;
+JIT_OP_COPY_STRUCT:
+	[=frame, frame, clobber(reg)] -> {
+		inst = memory_copy(gen, inst, X86_EBP, $1, X86_EBP, $2,
+				   jit_type_get_size(jit_value_get_type(insn->dest)));
 	}
 
 JIT_OP_COPY_STORE_BYTE:
 	[=frame, imm] -> {
 		x86_mov_membase_imm(inst, X86_EBP, $1, $2, 1);
 	}
-	[=frame, reg("eax"|"ecx"|"edx"|"ebx")] -> {
+	[=frame, breg] -> {
 		x86_mov_membase_reg(inst, X86_EBP, $1, $2, 1);
 	}
 
@@ -1812,9 +1798,11 @@ JIT_OP_ADDRESS_OF:
  */
 
 JIT_OP_RETURN_REG: manual
-	[] -> { /* Nothing to do here */ }
+        [] -> {
+		/* Nothing to do here */;
+	}
 
-JIT_OP_PUSH_INT: unary_note
+JIT_OP_PUSH_INT: note
 	[imm] -> {
 		x86_push_imm(inst, $1);
 		gen->stack_changed = 1;
@@ -1828,7 +1816,7 @@ JIT_OP_PUSH_INT: unary_note
 		gen->stack_changed = 1;
 	}
 
-JIT_OP_PUSH_LONG: unary_note
+JIT_OP_PUSH_LONG: note
 	[imm] -> {
 		x86_push_imm(inst, ((jit_int *)($1))[1]);
 		x86_push_imm(inst, ((jit_int *)($1))[0]);
@@ -1845,7 +1833,7 @@ JIT_OP_PUSH_LONG: unary_note
 		gen->stack_changed = 1;
 	}
 
-JIT_OP_PUSH_FLOAT32: unary_note, stack
+JIT_OP_PUSH_FLOAT32: note, stack
 	[imm] -> {
 		jit_int *ptr = (jit_int *)($1);
 		x86_push_imm(inst, ptr[0]);
@@ -1861,7 +1849,7 @@ JIT_OP_PUSH_FLOAT32: unary_note, stack
 		gen->stack_changed = 1;
 	}
 
-JIT_OP_PUSH_FLOAT64: unary_note, stack
+JIT_OP_PUSH_FLOAT64: note, stack
 	[imm] -> {
 		jit_int *ptr = (jit_int *)($1);
 		x86_push_imm(inst, ptr[1]);
@@ -1879,7 +1867,7 @@ JIT_OP_PUSH_FLOAT64: unary_note, stack
 		gen->stack_changed = 1;
 	}
 
-JIT_OP_PUSH_NFLOAT: unary_note, stack
+JIT_OP_PUSH_NFLOAT: note, stack
 	[imm] -> {
 		jit_int *ptr = (jit_int *)($1);
 		if(sizeof(jit_nfloat) != sizeof(jit_float64))
@@ -1913,8 +1901,8 @@ JIT_OP_PUSH_NFLOAT: unary_note, stack
 		gen->stack_changed = 1;
 	}
 
-JIT_OP_PUSH_STRUCT: unary_branch, more_space
-	[reg] -> {
+JIT_OP_PUSH_STRUCT: note, more_space
+	[reg, clobber(reg)] -> {
 		jit_nuint size;
 		size = (jit_nuint)jit_value_get_nint_constant(insn->value2);
 		if((size % sizeof(void *)) == 0 && size <= 4 * sizeof(void *))
@@ -2013,25 +2001,23 @@ JIT_OP_LOAD_RELATIVE_NFLOAT:
 		x86_fld_membase(inst, $2, $3, 1);
 	}
 
-JIT_OP_LOAD_RELATIVE_STRUCT: unary_branch, more_space
-	[reg] -> {
-		_jit_gen_fix_value(insn->dest);
-		inst = memory_copy(gen, inst, X86_EBP, insn->dest->frame_offset,
-						   $1, jit_value_get_nint_constant(insn->value2),
-						   jit_type_get_size(jit_value_get_type(insn->dest)));
+JIT_OP_LOAD_RELATIVE_STRUCT: more_space
+	[=frame, reg, imm, clobber(reg)] -> {
+		inst = memory_copy(gen, inst, X86_EBP, $1, $2, $3,
+				   jit_type_get_size(jit_value_get_type(insn->dest)));
 	}
 
 JIT_OP_STORE_RELATIVE_BYTE: ternary
 	[imm, imm, imm] -> {
 		x86_mov_mem_imm(inst, $1 + $3, $2, 1);
 	}
-	[imm, reg("eax"|"ecx"|"edx"|"ebx"), imm] -> {
+	[imm, breg, imm] -> {
 		x86_mov_mem_reg(inst, $1 + $3, $2, 1);
 	}
 	[reg, imm, imm] -> {
 		x86_mov_membase_imm(inst, $1, $3, $2, 1);
 	}
-	[reg, reg("eax"|"ecx"|"edx"|"ebx"), imm] -> {
+	[reg, breg, imm] -> {
 		x86_mov_membase_reg(inst, $1, $3, $2, 1);
 	}
 
@@ -2068,7 +2054,7 @@ JIT_OP_STORE_RELATIVE_LONG: ternary
 		x86_mov_membase_imm(inst, $1, $3, *(int *)($2), 4);
 		x86_mov_membase_imm(inst, $1, $3 + 4, *(int *)($2 + 4), 4);
 	}
-	[reg, local, imm, scratch("?")] -> {
+	[reg, local, imm, scratch reg] -> {
 		x86_mov_reg_membase(inst, $4, X86_EBP, $2, 4);
 		x86_mov_membase_reg(inst, $1, $3, $4, 4);
 		x86_mov_reg_membase(inst, $4, X86_EBP, $2 + 4, 4);
@@ -2138,11 +2124,11 @@ JIT_OP_STORE_RELATIVE_STRUCT: manual
 		gen->posn.ptr = inst;
 	}
 
-JIT_OP_ADD_RELATIVE: unary
-	[reg] -> {
+JIT_OP_ADD_RELATIVE:
+	[reg, imm] -> {
 		if(insn->value2->address != 0)
 		{
-			x86_alu_reg_imm(inst, X86_ADD, $1, insn->value2->address);
+			x86_alu_reg_imm(inst, X86_ADD, $1, $2);
 		}
 	}
 
@@ -2211,7 +2197,7 @@ JIT_OP_LOAD_ELEMENT_NFLOAT:
 	}
 
 JIT_OP_STORE_ELEMENT_BYTE: ternary
-	[reg, reg, reg("eax"|"ecx"|"edx"|"ebx")] -> {
+	[reg, reg, breg] -> {
 		x86_mov_memindex_reg(inst, $1, 0, $2, 0, $3, 1);
 	}
 
@@ -2230,7 +2216,7 @@ JIT_OP_STORE_ELEMENT_LONG: ternary
 		x86_mov_memindex_imm(inst, $1, 0, $2, 3, *(int *)($3), 4);
 		x86_mov_memindex_imm(inst, $1, 4, $2, 3, *(int *)($3 + 4), 4);
 	}
-	[reg, reg, local, scratch("?")] -> {
+	[reg, reg, local, scratch reg] -> {
 		x86_mov_reg_membase(inst, $4, X86_EBP, $3, 4);
 		x86_mov_memindex_reg(inst, $1, 0, $2, 3, $4, 4);
 		x86_mov_reg_membase(inst, $4, X86_EBP, $3 + 4, 4);
@@ -2268,8 +2254,7 @@ JIT_OP_STORE_ELEMENT_NFLOAT: ternary
 
 JIT_OP_MEMCPY: ternary
 	[any, any, imm, if("$3 <= 0")] -> { }
-	[reg, reg, imm, if("$3 <= 32"),
-	 scratch("eax" | "ecx" | "edx" | "ebx"), space("32 + $3 * 4")] -> {
+	[reg, reg, imm, scratch breg, if("$3 <= 32"), space("32 + $3 * 4")] -> {
 		int disp;
 		disp = 0;
 		while($3 >= (disp + 4))
@@ -2328,7 +2313,7 @@ JIT_OP_MEMSET: ternary
 			x86_mov_membase_imm(inst, $1, disp, $2, 1);
 		}
 	}
-	[reg, reg("eax"|"ecx"|"edx"|"ebx"), imm, if("$3 < 4")] -> {
+	[reg, breg, imm, if("$3 < 4")] -> {
 		x86_mov_membase_reg(inst, $1, 0, $2, 1);
 		if($3 > 1)
 		{
@@ -2339,7 +2324,7 @@ JIT_OP_MEMSET: ternary
 			}
 		}
 	}
-	[reg, +reg, imm, scratch("?"),
+	[reg, +reg, imm, scratch reg,
 	 if("$3 <= 32 && ($3 % 2) == 0"), space("32 + $3 * 4")] -> {
 		int disp;
 		x86_mov_reg_reg(inst, $4, $2, 4);
@@ -2359,7 +2344,7 @@ JIT_OP_MEMSET: ternary
 			x86_mov_membase_reg(inst, $1, disp, $2, 2);
 		}
 	}
-	[reg, +reg("eax"|"ecx"|"edx"|"ebx"), imm, scratch("?"),
+	[reg, +breg, imm, scratch reg,
 	 if("$3 <= 32 && ($3 % 2) != 0"), space("32 + $3 * 4")] -> {
 		int disp;
 		x86_mov_reg_reg(inst, $4, $2, 4);
@@ -2396,7 +2381,7 @@ JIT_OP_MEMSET: ternary
  * Allocate memory from the stack.
  */
 
-JIT_OP_ALLOCA: unary
+JIT_OP_ALLOCA:
 	[reg] -> {
 		x86_alu_reg_imm(inst, X86_ADD, $1, 15);
 		x86_alu_reg_imm(inst, X86_AND, $1, ~15);
@@ -2405,8 +2390,8 @@ JIT_OP_ALLOCA: unary
 		gen->stack_changed = 1;
 	}
 
-JIT_OP_JUMP_TABLE: ternary
-	[reg, imm, imm, clobber("*"), space("32 + sizeof(void) * $3")] -> {
+JIT_OP_JUMP_TABLE: ternary, branch
+	[reg, imm, imm, space("32 + sizeof(void) * $3")] -> {
 		unsigned char *patch_jump_table;
 		unsigned char *patch_fall_through;
 		int index;
