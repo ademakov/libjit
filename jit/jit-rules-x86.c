@@ -44,7 +44,7 @@
 #define	X86_REG_ESP			7
 #define	X86_REG_ST0			8
 #define	X86_REG_ST1			9
-#define	X85_REG_ST2			10
+#define	X86_REG_ST2			10
 #define	X86_REG_ST3			11
 #define	X86_REG_ST4			12
 #define	X86_REG_ST5			13
@@ -63,9 +63,34 @@
 #define	ROUND_STACK(size)	\
 		(((size) + (sizeof(void *) - 1)) & ~(sizeof(void *) - 1))
 
+static _jit_regclass_t *x86_reg;
+static _jit_regclass_t *x86_breg;
+static _jit_regclass_t *x86_freg;
+static _jit_regclass_t *x86_lreg;
+
 void _jit_init_backend(void)
 {
-	/* Nothing to do here for the x86 */
+	x86_reg = _jit_regclass_create(
+		"reg", JIT_REG_WORD, 6,
+		X86_REG_EAX, X86_REG_ECX,
+		X86_REG_EDX, X86_REG_EBX,
+		X86_REG_ESI, X86_REG_EDI);
+
+	x86_breg = _jit_regclass_create(
+		"breg", JIT_REG_WORD, 4,
+		X86_REG_EAX, X86_REG_ECX,
+		X86_REG_EDX, X86_REG_EBX);
+
+	x86_freg = _jit_regclass_create(
+		"freg", JIT_REG_X86_FLOAT | JIT_REG_IN_STACK, 8,
+		X86_REG_ST0, X86_REG_ST1,
+		X86_REG_ST2, X86_REG_ST3,
+		X86_REG_ST4, X86_REG_ST5,
+		X86_REG_ST6, X86_REG_ST7);
+
+	x86_lreg = _jit_regclass_create(
+		"lreg", JIT_REG_LONG, 2,
+		X86_REG_EAX, X86_REG_ECX);
 }
 
 void _jit_gen_get_elf_info(jit_elf_info_t *info)
