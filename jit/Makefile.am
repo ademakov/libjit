@@ -48,6 +48,8 @@ libjit_la_SOURCES = \
 		jit-pool.c \
 		jit-reg-alloc.h \
 		jit-reg-alloc.c \
+		jit-reg-class.h \
+		jit-reg-class.c \
 		jit-rules.h \
 		jit-rules.c \
 		jit-rules-interp.c \
