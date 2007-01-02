@@ -1,3 +1,11 @@
+2007-01-02  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.ins: add JIT_OP_IMIN_UN rule (based on the
+	  patch #5540 by Kirill Kononenko).
+
+	* jit/jit-reg-alloc.c (set_regdesc_value, set_regdesc_register)
+	(choose_output_register): handle EARLY_CLOBBER flag for dest value.
+
 2006-12-30  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-class.c, jit/jit-reg-class.h, jit/Makefile.am: add

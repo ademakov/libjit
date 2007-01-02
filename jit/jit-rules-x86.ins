@@ -1284,6 +1284,14 @@ JIT_OP_FABS, JIT_OP_DABS, JIT_OP_NFABS: stack
 		x86_fabs(inst);
 	}
 
+JIT_OP_IMIN_UN:
+	[=+reg, +reg, reg] -> {
+		x86_alu_reg_reg(inst, X86_SUB, $2, $3);
+		x86_alu_reg_reg(inst, X86_SBB, $1, $1);
+		x86_alu_reg_reg(inst, X86_AND, $1, $2);
+		x86_alu_reg_reg(inst, X86_ADD, $1, $3);
+	}
+
 JIT_OP_ISIGN:
 	[=reg, imm] -> {
 		if($2 < 0)
