@@ -6,8 +6,13 @@ gen-apply
 gen-apply.exe
 gen-sel
 gen-sel.exe
+gen-rules
+gen-rules.exe
 *.lo
 *.la
 gen-sel-parser.c
 gen-sel-parser.h
 gen-sel-scanner.c
+gen-rules-parser.c
+gen-rules-parser.h
+gen-rules-scanner.c

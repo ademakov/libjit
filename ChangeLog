@@ -1,3 +1,11 @@
+2007-01-04  Thomas Cort  <linuxgeek@gmail.com>
+
+	* jit/jit-rules-alpha.c: register class should not include FIXED
+	registers.
+
+	* .cvsignore, tools/.cvsignore, tutorial/.cvsignore: updated
+	the .cvsignore files to ignore some generated files.
+
 2007-01-03  Thomas Cort  <linuxgeek@gmail.com>
 
 	* jit/jit-rules-alpha.c: initialize alpha register classes.
