@@ -1,3 +1,8 @@
+2007-01-03  Thomas Cort  <linuxgeek@gmail.com>
+
+	* jit/jit-rules-alpha.c: initialize alpha register classes.
+	Fix signed-ness warnings.
+
 2007-01-02  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.ins: add JIT_OP_IMIN_UN rule (based on the

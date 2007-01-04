@@ -84,7 +84,7 @@ int _alpha_has_ieeefp() {
 	}							\
 
 #define jit_cache_end_output()  \
-	gen->posn.ptr = (char*) inst
+	gen->posn.ptr = (unsigned char*) inst
 
 /*
  * Load the instruction pointer from the generation context.
@@ -98,6 +98,8 @@ int _alpha_has_ieeefp() {
 #define jit_gen_save_inst_ptr(gen,inst) \
 	(gen)->posn.ptr = (unsigned char *) inst;
 
+static _jit_regclass_t *alpha_reg;
+static _jit_regclass_t *alpha_freg;
 
 /*
  * Initialize the backend. This is normally used to configure registers 
@@ -105,7 +107,25 @@ int _alpha_has_ieeefp() {
  * some ARM cores have floating-point registers.
  */
 void _jit_init_backend(void) {
-	/* Nothing to do here */;
+	alpha_reg = _jit_regclass_create("reg", JIT_REG_WORD | JIT_REG_LONG, 32,
+		 ALPHA_R0,  ALPHA_R1,  ALPHA_R2,  ALPHA_R3,  ALPHA_R4,
+		 ALPHA_R5,  ALPHA_R6,  ALPHA_R7,  ALPHA_R8,  ALPHA_R9, 
+		ALPHA_R10, ALPHA_R11, ALPHA_R12, ALPHA_R13, ALPHA_R14,
+		ALPHA_R15, ALPHA_R16, ALPHA_R17, ALPHA_R18, ALPHA_R19,
+		ALPHA_R20, ALPHA_R21, ALPHA_R22, ALPHA_R23, ALPHA_R24,
+		ALPHA_R25, ALPHA_R26, ALPHA_R27, ALPHA_R28, ALPHA_R29,
+		ALPHA_R30, ALPHA_R31
+	);
+
+	alpha_freg = _jit_regclass_create("freg", JIT_REG_FLOAT32 | JIT_REG_FLOAT64 | JIT_REG_NFLOAT, 32,
+		 ALPHA_F0,  ALPHA_F1,  ALPHA_F2,  ALPHA_F3,  ALPHA_F4,
+		 ALPHA_F5,  ALPHA_F6,  ALPHA_F7,  ALPHA_F8,  ALPHA_F9, 
+		ALPHA_F10, ALPHA_F11, ALPHA_F12, ALPHA_F13, ALPHA_F14,
+		ALPHA_F15, ALPHA_F16, ALPHA_F17, ALPHA_F18, ALPHA_F19,
+		ALPHA_F20, ALPHA_F21, ALPHA_F22, ALPHA_F23, ALPHA_F24,
+		ALPHA_F25, ALPHA_F26, ALPHA_F27, ALPHA_F28, ALPHA_F29,
+		ALPHA_F30, ALPHA_F31
+	);
 }
 
 #define TODO()          \
@@ -581,7 +601,7 @@ void alpha_output_branch(jit_function_t func, alpha_inst inst, int opcode, jit_i
 		*addr = (long) block->fixup_list;
 		inst++; inst++;
 
-		_jit_pad_buffer((char*)inst,6);
+		_jit_pad_buffer((unsigned char*)inst,6);
 	}
 }
 
@@ -620,9 +640,9 @@ void jump_to_epilog(jit_gencode_t gen, alpha_inst inst, jit_block_t block) {
 	*addr = (long) gen->epilog_fixup;
 	inst++; inst++;
 
-	_jit_pad_buffer((char*)inst,6); /* to be overwritten later with jmp */
+	_jit_pad_buffer((unsigned char*)inst,6); /* to be overwritten later with jmp */
 
-	(gen)->posn.ptr = (char*) inst;
+	(gen)->posn.ptr = (unsigned char*) inst;
 }
 
 #endif /* JIT_BACKEND_ALPHA */
