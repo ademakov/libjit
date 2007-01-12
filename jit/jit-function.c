@@ -1148,7 +1148,7 @@ jit_function_t jit_function_from_vtable_pointer(jit_context_t context, void *vta
 {
 #ifdef JIT_BACKEND_INTERP
 	/* In the interpreted version, the function pointer is used in vtables */
-	jit_function_t func = (jit_function_t)vtable_pinter;
+	jit_function_t func = (jit_function_t)vtable_pointer;
 
 	if(func && func->context == context)
 	{
