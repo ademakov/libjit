@@ -1,3 +1,8 @@
+2007-01-12  Heiko Weiss <heiko.weiss@de.trumpf-laser.com>
+
+	* jit/jit-function.c: Fix a typo in jit_function_from_vtable_pointer which
+	breaks the build if libjit is built in interpreter mode.
+
 2007-01-04  Thomas Cort  <linuxgeek@gmail.com>
 
 	* jit/jit-rules-alpha.c: register class should not include FIXED
