@@ -1239,7 +1239,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 				{
 					seen_option = 1;
 				}
-				printf("_JIT_REGS_X87_ARITH_REVERSIBLE");
+				printf("_JIT_REGS_X87_ARITH | _JIT_REGS_REVERSIBLE");
 			}
 			if(!seen_option)
 			{

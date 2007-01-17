@@ -208,6 +208,14 @@ are_values_equal(_jit_regdesc_t *desc1, _jit_regdesc_t *desc2)
 	return 0;
 }
 
+static void
+swap_values(_jit_regdesc_t *desc1, _jit_regdesc_t *desc2)
+{
+	_jit_regdesc_t tdesc;
+	tdesc = *desc1;
+	*desc1 = *desc2;
+	*desc2 = tdesc;
+}
 
 /*
  * Get value usage and liveness information. The accurate liveness data is
@@ -869,6 +877,12 @@ compute_spill_cost(jit_gencode_t gen, _jit_regs_t *regs, int reg, int other_reg)
 			}
 		}
 	}
+
+	if(gen->contents[reg].is_long_start)
+	{
+		return cost * 2;
+	}
+
 	if(other_reg >= 0)
 	{
 		for(index = 0; index < gen->contents[other_reg].num_values; index++)
@@ -911,6 +925,7 @@ compute_spill_cost(jit_gencode_t gen, _jit_regs_t *regs, int reg, int other_reg)
 			}
 		}
 	}
+
 	return cost;
 }
 
@@ -977,6 +992,10 @@ choose_scratch_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	int suitable_cost;
 	int suitable_age;
 
+#ifdef JIT_REG_DEBUG
+	printf("choose_scratch_register(%d)\n", index);
+#endif
+
 	regclass = regs->scratch[index].regclass;
 
 	suitable_reg = -1;
@@ -990,23 +1009,20 @@ choose_scratch_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 			continue;
 		}
 
-#if ALLOW_CLOBBER_GLOBAL
 		if(jit_reg_is_used(gen->permanent, reg))
 		{
+#if ALLOW_CLOBBER_GLOBAL
 			use_cost = COST_CLOBBER_GLOBAL;
+#else
+			continue;
+#endif
 		}
 		else
 		{
 			use_cost = 0;
 		}
-#else
-		if(jit_reg_is_used(gen->permanent, reg))
-		{
-			continue;
-		}
-		use_cost = 0;
-#endif
 
+#if 0
 		if(regs->ternary && regs->descs[0].value
 		   && thrashes_value(gen, 0, reg, -1, &regs->descs[0]))
 		{
@@ -1022,13 +1038,22 @@ choose_scratch_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 		{
 			use_cost += COST_THRASH;
 		}
+#endif
 
-		use_cost += compute_spill_cost(gen, regs, reg, -1);
+		if(!jit_reg_is_used(regs->clobber, reg))
+		{
+			use_cost += compute_spill_cost(gen, regs, reg, -1);
+		}
+
+#ifdef JIT_REG_DEBUG
+		printf("reg = %d, use_cost = %d\n", reg, use_cost);
+#endif
 
 		if(use_cost < suitable_cost
 		   || (use_cost == suitable_cost
 		       && gen->contents[reg].num_values > 0
-		       && gen->contents[reg].age < suitable_age))
+		       && (IS_STACK_REG(reg)
+			   || gen->contents[reg].age < suitable_age)))
 		{
 			suitable_reg = reg;
 			suitable_cost = use_cost;
@@ -1055,6 +1080,10 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 	int suitable_reg, suitable_other_reg;
 	int suitable_cost;
 	int suitable_age;
+
+#ifdef JIT_REG_DEBUG
+	printf("choose_output_register()\n");
+#endif
 
 	regclass = regs->descs[0].regclass;
 	need_pair = _jit_regs_needs_long_pair(regs->descs[0].value->type);
@@ -1177,7 +1206,7 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 					use_cost = 0;
 				}
 #ifdef JIT_REG_STACK
-				else if(regs->x87_arith)
+				else if(regs->reversible && regs->no_pop)
 				{
 					use_cost = 0;
 				}
@@ -1197,7 +1226,15 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 			}
 		}
 
-		use_cost += compute_spill_cost(gen, regs, reg, other_reg);
+		if(!jit_reg_is_used(regs->clobber, reg)
+		   && !(other_reg >= 0 && jit_reg_is_used(regs->clobber, other_reg)))
+		{
+			use_cost += compute_spill_cost(gen, regs, reg, other_reg);
+		}
+
+#ifdef JIT_REG_DEBUG
+		printf("reg = %d, other_reg = %d, use_cost = %d\n", reg, other_reg, use_cost);
+#endif
 
 		if(use_cost < suitable_cost
 		   || (use_cost == suitable_cost
@@ -1223,25 +1260,20 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 /*
  * Select the best argument order for binary ops. The posibility to select
  * the order exists only for commutative ops and for some x87 floating point
- * instructions. Those x87 instructions have variants with reversed argument
- * order or reversed destination register. Also they have variants that
- * either do or do not pop the stack top.
+ * instructions. Those x87 instructions have variants with reversed
+ * destination register.
  */
 static void
 choose_input_order(jit_gencode_t gen, _jit_regs_t *regs)
 {
-	_jit_regdesc_t temp_desc;
-
 	if(regs->descs[2].value
 	   && regs->descs[2].value->in_register
 	   && regs->descs[2].value->reg == regs->descs[0].reg
 	   && regs->descs[2].value != regs->descs[1].value)
 	{
 #ifdef JIT_REG_STACK
-		if(regs->x87_arith)
+		if(regs->reversible && regs->no_pop)
 		{
-			regs->no_pop = 1;
-			regs->reverse_dest = 1;
 			regs->dest_input_index = 2;
 		}
 		else
@@ -1249,9 +1281,7 @@ choose_input_order(jit_gencode_t gen, _jit_regs_t *regs)
 		{
 			if(regs->commutative)
 			{
-				temp_desc = regs->descs[1];
-				regs->descs[1] = regs->descs[2];
-				regs->descs[2] = temp_desc;
+				swap_values(&regs->descs[1], &regs->descs[2]);
 			}
 			regs->dest_input_index = 1;
 		}
@@ -1264,41 +1294,6 @@ choose_input_order(jit_gencode_t gen, _jit_regs_t *regs)
 	{
 		regs->dest_input_index = 0;
 	}
-
-#ifdef JIT_REG_STACK
-	/* Choose between pop and no-pop instructions. */
-	if(!regs->no_pop && regs->x87_arith
-	   && !regs->clobber_all && !regs->clobber_stack
-	   && regs->descs[1].value && regs->descs[2].value)
-	{
-		int keep1, keep2;
-
-		/* Determine if we might want to keep either of input values
-		   in registers after the instruction completion. */
-		if(regs->descs[1].value->in_register)
-		{
-			keep1 = is_register_alive(gen, regs, regs->descs[1].value->reg);
-		}
-		else
-		{
-			keep1 = (regs->descs[1].used
-				 && (regs->descs[1].value != regs->descs[0].value)
-				 && !regs->descs[1].clobber);
-		}
-		if(regs->descs[2].value->in_register)
-		{
-			keep2 = is_register_alive(gen, regs, regs->descs[2].value->reg);
-		}
-		else
-		{
-			keep2 = (regs->descs[2].used
-				 && (regs->descs[2].value != regs->descs[0].value)
-				 && !regs->descs[2].clobber);
-		}
-
-		regs->no_pop = (keep1 || keep2);
-	}
-#endif
 }
 
 static int
@@ -1314,6 +1309,10 @@ choose_input_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	int suitable_cost;
 	int suitable_age;
 	int clobber;
+
+#ifdef JIT_REG_DEBUG
+	printf("choose_input_register(%d)\n", index);
+#endif
 
 	desc = &regs->descs[index];
 	if(!desc->value)
@@ -1410,16 +1409,16 @@ choose_input_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 				continue;
 #endif
 			}
-			if(jit_reg_is_used(regs->clobber, reg)
-			   || (other_reg >= 0 && jit_reg_is_used(regs->clobber, other_reg)))
-			{
-				/* noop */
-			}
-			else
+			if(!jit_reg_is_used(regs->clobber, reg)
+			   && !(other_reg >= 0 && jit_reg_is_used(regs->clobber, other_reg)))
 			{
 				use_cost += compute_spill_cost(gen, regs, reg, other_reg);
 			}
 		}
+
+#ifdef JIT_REG_DEBUG
+		printf("reg = %d, other_reg = %d, use_cost = %d\n", reg, other_reg, use_cost);
+#endif
 
 		if(use_cost < suitable_cost
 		   || (use_cost == suitable_cost
@@ -1465,10 +1464,145 @@ check_duplicate_value(_jit_regs_t *regs, _jit_regdesc_t *desc1, _jit_regdesc_t *
 }
 
 #ifdef JIT_REG_STACK
+
+/*
+ * For x87 instructions choose between pop and no-pop variants.
+ */
+static void
+select_nopop_or_pop(jit_gencode_t gen, _jit_regs_t *regs)
+{
+	int keep1, keep2;
+
+	if(!regs->x87_arith || !regs->descs[1].value || !regs->descs[2].value)
+	{
+		return;
+	}
+
+	/* Equal values should be assigned to one register and this is
+	   going to work only with no-pop instructions. */
+	if(are_values_equal(&regs->descs[1], &regs->descs[2]))
+	{
+		regs->no_pop = 1;
+		return;
+	}
+
+	/* Determine if we might want to keep input values in registers
+	   after the instruction completion. */
+	if(regs->descs[1].value->in_register)
+	{
+		keep1 = is_register_alive(gen, regs, regs->descs[1].value->reg);
+	}
+	else
+	{
+		keep1 = (regs->descs[1].used
+			 && (regs->descs[1].value != regs->descs[0].value)
+			 && !regs->descs[1].clobber);
+	}
+	if(regs->descs[2].value->in_register)
+	{
+		keep2 = is_register_alive(gen, regs, regs->descs[2].value->reg);
+	}
+	else
+	{
+		keep2 = (regs->descs[2].used
+			 && (regs->descs[2].value != regs->descs[0].value)
+			 && !regs->descs[2].clobber);
+	}
+
+	regs->no_pop = (keep1 || keep2);
+}
+
+static void
+select_stack_order(jit_gencode_t gen, _jit_regs_t *regs)
+{
+	_jit_regdesc_t *desc1;
+	_jit_regdesc_t *desc2;
+	int top_index;
+
+#ifdef JIT_REG_DEBUG
+	printf("select_stack_order()\n");
+#endif
+
+	if(!regs->x87_arith || regs->wanted_stack_count != 2)
+	{
+		return;
+	}
+
+	desc1 = &regs->descs[1];
+	desc2 = &regs->descs[2];
+
+	/* Choose instruction that results into fewer exchanges. If either
+	   of two arguments may be on the stack top choose the second to be
+	   on top. */
+	/* TODO: See if the next instruction wants the output or remaining
+	   input to be on the stack top. */
+ 	if(desc2->copy || desc2->load)
+	{
+		/* the second argument is going to be on the top */
+		top_index = 2;
+	}
+	else if(desc1->copy || desc1->load)
+	{
+		/* the first argument is going to be on the top */
+		top_index = 1;
+	}
+	else if(desc2->value->reg == (gen->reg_stack_top - 1))
+	{
+		/* the second argument is already on the top */
+		top_index = 2;
+	}
+	else if(desc1->value->reg == (gen->reg_stack_top - 1))
+	{
+		/* the first argument is already on the top */
+		top_index = 1;
+	}
+	else
+	{
+		top_index = 2;
+	}
+
+	if(regs->no_pop)
+	{
+		regs->flip_args = (top_index == 2);
+	}
+	else if(regs->reversible)
+	{
+		if(top_index == 2)
+		{
+			regs->flip_args = 1;
+			regs->dest_input_index = 1;
+		}
+		else
+		{
+			regs->flip_args = 0;
+			regs->dest_input_index = 2;
+		}
+	}
+	else /*if(regs->commutative)*/
+	{
+		regs->flip_args = 1;
+		regs->dest_input_index = 1;
+
+		if(top_index != 2)
+		{
+			swap_values(&regs->descs[1], &regs->descs[2]);
+		}
+	}
+
+#ifdef JIT_REG_DEBUG
+	printf("top_index = %d, flip_args = %d, dest_input_index = %d\n",
+	       top_index, regs->flip_args, regs->dest_input_index);
+#endif
+}
+
 static void
 adjust_assignment(jit_gencode_t gen, _jit_regs_t *regs, int index)
 {
-	_jit_regdesc_t *desc;
+	_jit_regdesc_t *desc, *desc2;
+
+#ifdef JIT_REG_DEBUG
+	printf("adjust_assignment(%d)\n", index);
+#endif
 
 	desc = &regs->descs[index];
 	if(!desc->value || !IS_STACK_REG(desc->reg))
@@ -1488,87 +1622,57 @@ adjust_assignment(jit_gencode_t gen, _jit_regs_t *regs, int index)
 		/* find the input value the output goes to */
 		if(index == 0)
 		{
-			index = regs->dest_input_index;
-		}
-
-		if(desc->value->in_register && !desc->copy && regs->x87_arith)
-		{
-			desc->reg = desc->value->reg;
-		}
-		else
-		{
-			desc->reg = gen->reg_stack_top - regs->loaded_stack_count + index - 1;
-		}
-	}
-}
-#endif
-
-#ifdef JIT_REG_STACK
-static void
-select_stack_order(jit_gencode_t gen, _jit_regs_t *regs)
-{
-	_jit_regdesc_t *desc1;
-	_jit_regdesc_t *desc2;
-	_jit_regdesc_t temp_desc;
-	int top_index;
-
-	/* Choose instruction that results into fewer exchanges. */
-	if(regs->wanted_stack_count > 1 && regs->no_pop
-	   && (regs->commutative || regs->reversible))
-	{
-		desc1 = &regs->descs[1];
-		desc2 = &regs->descs[2];
-
-		if(desc1->value->in_register && !desc1->copy
-		   && desc2->value->in_register && !desc2->copy)
-		{
-			/* Is any of the input values on the stack top? */
-			if(desc1->value->reg == (gen->reg_stack_top - 1))
+			if(regs->x87_arith)
 			{
-				top_index = 1;
-			}
-			else if(desc2->value->reg == (gen->reg_stack_top - 1))
-			{
-				top_index = 2;
+				index = regs->dest_input_index;
 			}
 			else
 			{
-				/* TODO: See if the next instruction wants output
-				   or remaining input to be on the stack top. */
-				top_index = 2;
+				index = 2;
 			}
-		}
-		else if(desc1->value->in_register && !desc1->copy)
-		{
-			top_index = 2;
-		}
-		else if(desc2->value->in_register && !desc2->copy)
-		{
-			top_index = 1;
+			desc2 = &regs->descs[index];
 		}
 		else
 		{
-			/* TODO: see if the next instruction wants output or remaining
-			   input to be on the stack top. */
-			top_index = 2;
+			desc2 = desc;
 		}
 
-		if(top_index == 1)
+		if(regs->flip_args)
 		{
-			if(regs->reversible)
+			if(regs->x87_arith && index == 1
+			   && desc2->value->in_register && !desc2->copy)
 			{
-				regs->reverse_args = 1;
+				desc->reg = desc2->value->reg;
 			}
-			else /*if(regs->commutative)*/
+			else
 			{
-				temp_desc = *desc1;
-				*desc1 = *desc2;
-				*desc2 = temp_desc;
+				desc->reg = (gen->reg_stack_top
+					     - regs->loaded_stack_count
+					     + index - 1);
 			}
-			regs->reverse_dest ^= 1;
+		}
+		else
+		{
+			if(regs->x87_arith && index == 2
+			   && desc2->value->in_register && !desc2->copy)
+			{
+				desc->reg = desc2->value->reg;
+			}
+			else
+			{
+				desc->reg = (gen->reg_stack_top
+					     - regs->loaded_stack_count
+					     + regs->wanted_stack_count
+					     - index);
+			}
 		}
 	}
+
+#ifdef JIT_REG_DEBUG
+	printf("reg = %d\n", desc->reg);
+#endif
 }
+
 #endif
 
 /*
@@ -2281,17 +2385,14 @@ abort_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	}
 }
 
+#ifdef JIT_REG_STACK
 static void
-commit_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index, int go_down_stack)
+pop_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index)
 {
 	_jit_regdesc_t *desc;
-	int reg, other_reg;
-#ifdef JIT_REG_STACK
-	int is_down_stack = 0;
-#endif
 
 #ifdef JIT_REG_DEBUG
-	printf("commit_input_value(%d, %d)\n", index, go_down_stack);
+	printf("pop_input_value(%d)\n", index);
 #endif
 
 	desc = &regs->descs[index];
@@ -2300,20 +2401,50 @@ commit_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index, int go_down_
 		return;
 	}
 
+	if(IS_STACK_REG(desc->reg))
+	{
+		if(desc->copy)
+		{
+			gen->contents[desc->reg].used_for_temp = 0;
+		}
+		else
+		{
+			unbind_value(gen, desc->value, desc->reg, 0);
+		}
+		--(gen->reg_stack_top);
+	}
+}
+#endif
+
+static void
+commit_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index, int killed)
+{
+	_jit_regdesc_t *desc;
+	int reg, other_reg;
+
+#ifdef JIT_REG_DEBUG
+	printf("commit_input_value(%d)\n", index);
+#endif
+
+	desc = &regs->descs[index];
+	if(!desc->value || desc->duplicate)
+	{
+		return;
+	}
+
+#ifdef JIT_REG_STACK
+	if(!IS_STACK_REG(desc->reg))
+	{
+		killed = 0;
+	}
+#endif
+
 	if(desc->copy)
 	{
 #ifdef JIT_REG_STACK
-		if(IS_STACK_REG(desc->reg))
+		if(killed)
 		{
-			if(!go_down_stack)
-			{
-				if(1/*!regs->copy*/)
-				{
-					--(gen->reg_stack_top);
-				}
-				gen->contents[desc->reg].used_for_temp = 0;
-			}
-			is_down_stack = 1;
+			killed = 0;
 		}
 		else
 #endif
@@ -2327,7 +2458,7 @@ commit_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index, int go_down_
 	}
 
 #ifdef JIT_REG_STACK
-	if(desc->kill && desc->value->in_register && is_down_stack == go_down_stack)
+	if(!killed && desc->kill && desc->value->in_register)
 #else
 	if(desc->kill && desc->value->in_register)
 #endif
@@ -2341,22 +2472,7 @@ commit_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index, int go_down_
 		{
 			other_reg = -1;
 		}
-#ifdef JIT_REG_STACK
-		if(is_down_stack)
-		{
-			free_value(gen, desc->value, reg, other_reg, 0);
-		}
-		else
-		{
-			unbind_value(gen, desc->value, reg, other_reg);
-			if(IS_STACK_REG(reg) /*&& !regs->copy*/)
-			{
-				--(gen->reg_stack_top);
-			}
-		}
-#else
-		unbind_value(gen, desc->value, reg, other_reg);
-#endif
+		free_value(gen, desc->value, reg, other_reg, 0);
 	}
 
 #ifdef JIT_REG_DEBUG
@@ -2372,7 +2488,7 @@ commit_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index, int go_down_
 }
 
 static void
-commit_output_value(jit_gencode_t gen, _jit_regs_t *regs)
+commit_output_value(jit_gencode_t gen, _jit_regs_t *regs, int push_stack_top)
 {
 	_jit_regdesc_t *desc;
 
@@ -2386,12 +2502,10 @@ commit_output_value(jit_gencode_t gen, _jit_regs_t *regs)
 		return;
 	}
 
-#ifdef JIT_REG_STACK
-	if(IS_STACK_REG(desc->reg) /*&& !regs->copy*/)
+	if(IS_STACK_REG(desc->reg) && push_stack_top)
 	{
 		++(gen->reg_stack_top);
 	}
-#endif
 	bind_value(gen, desc->value, desc->reg, desc->other_reg, 0);
 
 	if(!desc->used)
@@ -3138,13 +3252,6 @@ _jit_regs_clobber_class(jit_gencode_t gen, _jit_regs_t *regs, _jit_regclass_t *r
 {
 	int index;
 
-#ifdef JIT_REG_STACK
-	if((regclass->flags & JIT_REG_IN_STACK) != 0)
-	{
-		regs->clobber_stack = 1;
-	}
-#endif
-
 	for(index = 0; index < regclass->num_regs; index++)
 	{
 		if(jit_reg_is_used(gen->permanent, index))
@@ -3159,8 +3266,6 @@ void
 _jit_regs_clobber_all(jit_gencode_t gen, _jit_regs_t *regs)
 {
 	int index;
-
-	regs->clobber_all = 1;
 
 	for(index = 0; index < JIT_NUM_REGS; index++)
 	{
@@ -3189,54 +3294,52 @@ _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 	   the output always goes to the same register as the first input
 	   value unless this is a three-address instruction. */
 	if(!regs->ternary && !regs->free_dest
-	   && regs->descs[0].value
-	   && regs->descs[1].value)
+	   && regs->descs[0].value && regs->descs[0].reg < 0
+	   && regs->descs[1].value && regs->descs[1].reg >= 0)
 	{
-		if(regs->descs[0].reg >= 0)
-		{
-			if(regs->descs[1].reg < 0)
-			{
-				set_regdesc_register(gen, regs, 1,
-						     regs->descs[0].reg,
-						     regs->descs[0].other_reg);
-			}
-		}
-		else if(regs->descs[1].reg >= 0)
-		{
-			set_regdesc_register(gen, regs, 0,
-					     regs->descs[1].reg,
-					     regs->descs[1].other_reg);
-		}
+		set_regdesc_register(gen, regs, 0,
+				     regs->descs[1].reg,
+				     regs->descs[1].other_reg);
 	}
 
+#if JIT_REG_STACK
+	/* Choose between x87 pop and no-pop instructions.  */
+	select_nopop_or_pop(gen, regs);
+#endif
+
 	/* Assign output and input registers. */
-	if(regs->descs[0].value && regs->descs[0].reg < 0)
+	if(regs->descs[0].value)
 	{
+		if(regs->descs[0].reg < 0)
+		{
+			if(regs->ternary)
+			{
+				if(!choose_input_register(gen, regs, 0))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				if(!choose_output_register(gen, regs))
+				{
+					return 0;
+				}
+			}
+		}
 		if(regs->ternary)
 		{
-			if(!choose_input_register(gen, regs, 0))
-			{
-				return 0;
-			}
 			check_duplicate_value(regs, &regs->descs[0], &regs->descs[1]);
 			check_duplicate_value(regs, &regs->descs[0], &regs->descs[2]);
 		}
-		else
+		else if(!regs->free_dest)
 		{
-			if(!choose_output_register(gen, regs))
+			choose_input_order(gen, regs);
+			if(regs->dest_input_index)
 			{
-				return 0;
-			}
-			if(!regs->free_dest)
-			{
-				choose_input_order(gen, regs);
-				if(regs->dest_input_index)
-				{
-					set_regdesc_register(gen, regs,
-							     regs->dest_input_index,
-							     regs->descs[0].reg,
-							     regs->descs[0].other_reg);
-				}
+				set_regdesc_register(gen, regs, regs->dest_input_index,
+						     regs->descs[0].reg,
+						     regs->descs[0].other_reg);
 			}
 		}
 	}
@@ -3377,38 +3480,54 @@ _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs)
 	if(regs->wanted_stack_count > 0)
 	{
 		/* Adjust assignment of stack registers. */
-		adjust_assignment(gen, regs, 0);
-		adjust_assignment(gen, regs, 1);
-		adjust_assignment(gen, regs, 2);
-
 		select_stack_order(gen, regs);
+		adjust_assignment(gen, regs, 2);
+		adjust_assignment(gen, regs, 1);
+		adjust_assignment(gen, regs, 0);
 
-		/* Shuffle the values that are already on the register stack. */
-		if(regs->loaded_stack_count > 0 && !regs->x87_arith)
+		if(regs->ternary)
 		{
-			move_input_value(gen, regs, 1);
-			move_input_value(gen, regs, 2);
+			/* Ternary ops with only one stack register are supported. */
+			if(regs->loaded_stack_count > 0)
+			{
+				move_input_value(gen, regs, 0);
+				move_input_value(gen, regs, 1);
+				move_input_value(gen, regs, 2);
+			}
+			else
+			{
+				load_input_value(gen, regs, 0);
+				load_input_value(gen, regs, 1);
+				load_input_value(gen, regs, 2);
+			}
 		}
-
-		/* Load and shuffle the remaining values. */
-		if(regs->reverse_args)
+		else if(regs->flip_args)
 		{
-			load_input_value(gen, regs, 2);
-			move_input_value(gen, regs, 2);
+			/* Shuffle the values that are already on the register stack. */
+			if(regs->loaded_stack_count > 0)
+			{
+				move_input_value(gen, regs, 1);
+				move_input_value(gen, regs, 2);
+			}
+
+			/* Load and shuffle the remaining values. */
 			load_input_value(gen, regs, 1);
 			move_input_value(gen, regs, 1);
+			load_input_value(gen, regs, 2);
 		}
 		else
 		{
-			if(regs->ternary)
+			/* Shuffle the values that are already on the register stack. */
+			if(regs->loaded_stack_count > 0)
 			{
-				load_input_value(gen, regs, 0);
-				move_input_value(gen, regs, 0);
+				move_input_value(gen, regs, 2);
+				move_input_value(gen, regs, 1);
 			}
-			load_input_value(gen, regs, 1);
-			move_input_value(gen, regs, 1);
+
+			/* Load and shuffle the remaining values. */
 			load_input_value(gen, regs, 2);
 			move_input_value(gen, regs, 2);
+			load_input_value(gen, regs, 1);
 		}
 	}
 	else
@@ -3440,15 +3559,14 @@ _jit_regs_select(_jit_regs_t *regs)
 	{
 		flags |= _JIT_REGS_NO_POP;
 	}
-	if(regs->reverse_dest)
+	if(regs->flip_args)
 	{
-		flags |= _JIT_REGS_REVERSE_DEST;
+		flags |= _JIT_REGS_FLIP_ARGS;
 	}
-	if(regs->reverse_args)
+	if(regs->dest_input_index == 2)
 	{
-		flags |= _JIT_REGS_REVERSE_ARGS;
+		flags |= _JIT_REGS_REVERSE;
 	}
-
 	return flags;
 }
 #endif
@@ -3462,75 +3580,105 @@ _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs)
 	dump_regs(gen, "enter _jit_regs_commit");
 #endif
 
-#ifdef JIT_REG_STACK
-	if(regs->wanted_stack_count > 0)
+	if(regs->ternary)
 	{
+#ifdef JIT_REG_STACK
+		if(regs->wanted_stack_count > 0)
+		{
+			pop_input_value(gen, regs, 0);
+			pop_input_value(gen, regs, 1);
+			pop_input_value(gen, regs, 2);
+		}
+#endif
+		commit_input_value(gen, regs, 0, 1);
+		commit_input_value(gen, regs, 1, 1);
+		commit_input_value(gen, regs, 2, 1);
+	}
+	else if(!regs->descs[0].value)
+	{
+#ifdef JIT_REG_STACK
+		if(regs->wanted_stack_count > 0)
+		{
+			pop_input_value(gen, regs, 1);
+			pop_input_value(gen, regs, 2);
+		}
+#endif
+		commit_input_value(gen, regs, 1, 1);
+		commit_input_value(gen, regs, 2, 1);
+	}
+#ifdef JIT_REG_STACK
+	else if(regs->wanted_stack_count > 0)
+	{
+		int pop1, pop2;
+		struct _jit_value temp;
 		int reg1, reg2;
 
-		/* The stack registers has to be freed from the top down. It is
-		   assumed that only binary instructions may have more than one
-		   stack register. The unary instruction may not do that for
-		   obvious reasons. The practical observation is that no ternary
-		   instruction in libjit does that as well. */
-		if(regs->reverse_args)
+		pop1 = pop2 = 0;
+		if(!regs->no_pop)
 		{
-			commit_input_value(gen, regs, 1, 0);
-			commit_input_value(gen, regs, 2, 0);
-		}
-		else
-		{
-			commit_input_value(gen, regs, 2, 0);
-			commit_input_value(gen, regs, 1, 0);
-		}
-		if(regs->ternary)
-		{
-			commit_input_value(gen, regs, 0, 0);
-		}
-		else
-		{
-			commit_output_value(gen, regs);
+			if(regs->x87_arith)
+			{
+				if(regs->flip_args)
+				{
+					pop_input_value(gen, regs, 2);
+					pop2 = 1;
+				}
+				else
+				{
+					pop_input_value(gen, regs, 1);
+					pop1 = 1;
+				}
+			}
+			else
+			{
+				pop_input_value(gen, regs, 1);
+				pop_input_value(gen, regs, 2);
+				pop1 = pop2 = 1;
+			}
 		}
 
-		/* If the allocator makes a copy of a value that was already on
-		   the stack we might need to free the original register as well.
-		   In general, the allocator makes a copy if the value is going
-		   to be destroyed by the instruction while it is still used
-		   (according to the liveness analysis). But the original value
-		   needs to be freed only if it is no longer used. So this extra
-		   code seems useless. But there were cases when the allocator
-		   miscalculated the cost of spilling and made a copy when it
-		   was not needed. So this code serves as a precaution against
-		   such problematic cases. */
+		if(IS_STACK_REG(regs->descs[0].reg))
+		{
+			temp = *regs->descs[0].value;
+			if(!regs->x87_arith && !regs->copy)
+			{
+				++(gen->reg_stack_top);
+			}
+			bind_value(gen, &temp, regs->descs[0].reg, -1, 0);
+		}
+
 		reg1 = ((regs->descs[1].value && regs->descs[1].value->in_register)
 			? regs->descs[1].value->reg : -1);
 		reg2 = ((regs->descs[2].value && regs->descs[2].value->in_register)
 			? regs->descs[2].value->reg : -1);
 		if(reg1 > reg2)
 		{
-			commit_input_value(gen, regs, 1, 1);
-			commit_input_value(gen, regs, 2, 1);
+			commit_input_value(gen, regs, 1, pop1);
+			commit_input_value(gen, regs, 2, pop2);
 		}
 		else
 		{
-			commit_input_value(gen, regs, 2, 1);
-			commit_input_value(gen, regs, 1, 1);
+			commit_input_value(gen, regs, 2, pop2);
+			commit_input_value(gen, regs, 1, pop1);
 		}
+
+		if(IS_STACK_REG(regs->descs[0].reg))
+		{
+			reg1 = temp.reg;
+			free_value(gen, &temp, reg1, -1, 1);
+			regs->descs[0].reg = reg1;
+			regs->descs[0].other_reg = -1;
+		}
+		commit_output_value(gen, regs, 0);
 	}
 	else
 #endif
 	{
 		commit_input_value(gen, regs, 2, 0);
 		commit_input_value(gen, regs, 1, 0);
-		if(regs->ternary)
-		{
-			commit_input_value(gen, regs, 0, 0);
-		}
-		else
-		{
-			commit_output_value(gen, regs);
-		}
+		commit_output_value(gen, regs, 1);
 	}
-
+	
 	/* Load clobbered global registers. */
 	for(reg = JIT_NUM_REGS - 1; reg >= 0; reg--)
 	{

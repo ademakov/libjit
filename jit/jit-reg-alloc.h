@@ -61,8 +61,8 @@ extern	"C" {
  * Flags returned by _jit_regs_select_insn().
  */
 #define _JIT_REGS_NO_POP		0x0001
-#define _JIT_REGS_REVERSE_DEST		0x0002
-#define _JIT_REGS_REVERSE_ARGS		0x0004
+#define _JIT_REGS_FLIP_ARGS		0x0002
+#define _JIT_REGS_REVERSE		0x0004
 
 /*
  * Contains register assignment data for single operand.
@@ -106,8 +106,6 @@ typedef struct
 	_jit_scratch_t	scratch[_JIT_REGS_SCRATCH_MAX];
 	int		num_scratch;
 
-	unsigned	clobber_all : 1;
-
 	unsigned	ternary : 1;
 	unsigned	branch : 1;
 	unsigned	copy : 1;
@@ -118,11 +116,9 @@ typedef struct
 	unsigned	on_stack : 1;
 	unsigned	x87_arith : 1;
 	unsigned	reversible : 1;
-	unsigned	clobber_stack : 1;
 
 	unsigned	no_pop : 1;
-	unsigned	reverse_dest : 1;
-	unsigned	reverse_args : 1;
+	unsigned	flip_args : 1;
 #endif
 
 	/* The input value index that is going to be overwritten

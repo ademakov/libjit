@@ -1,7 +1,17 @@
+2007-01-17  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c: complete special x87
+	arithmetic support, for other x87 instructions reverse the order of
+	arguments on the stack.
+
+	* jit/jit-rules-x86.ins: take advantage of regalloc's x87 arithmetic
+	support. Also do not clobber the entire x87 stack for atan, sin, and
+	cos rules.
+
 2007-01-12  Heiko Weiss <heiko.weiss@de.trumpf-laser.com>
 
-	* jit/jit-function.c: Fix a typo in jit_function_from_vtable_pointer which
-	breaks the build if libjit is built in interpreter mode.
+	* jit/jit-function.c: Fix a typo in jit_function_from_vtable_pointer
+	which breaks the build if libjit is built in interpreter mode.
 
 2007-01-04  Thomas Cort  <linuxgeek@gmail.com>
 
