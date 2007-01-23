@@ -1464,7 +1464,7 @@ JIT_OP_CHECK_NULL: note
 JIT_OP_CALL:
 	[] -> {
 		jit_function_t func = (jit_function_t)(insn->dest);
-		x86_call_code(inst, func->closure_entry);
+		x86_call_code(inst, jit_function_to_closure(func));
 	}
 
 JIT_OP_CALL_TAIL:
@@ -1472,7 +1472,7 @@ JIT_OP_CALL_TAIL:
 		jit_function_t func = (jit_function_t)(insn->dest);
 		x86_mov_reg_reg(inst, X86_ESP, X86_EBP, sizeof(void *));
 		x86_pop_reg(inst, X86_EBP);
-		x86_jump_code(inst, func->closure_entry);
+		x86_jump_code(inst, jit_function_to_closure(func));
 	}
 
 JIT_OP_CALL_INDIRECT:

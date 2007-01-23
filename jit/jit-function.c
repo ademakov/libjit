@@ -24,6 +24,9 @@
 #include "jit-reg-alloc.h"
 #include "jit-apply-func.h"
 #include "jit-setjmp.h"
+#ifdef _JIT_COMPILE_DEBUG
+#include <stdio.h>
+#endif
 
 /*@
  * @deftypefun jit_function_t jit_function_create (jit_context_t context, jit_type_t signature)
@@ -109,12 +112,10 @@ jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
 		(func->redirector, (void *)_jit_function_compile_on_demand,
 		 func, jit_type_get_abi(signature));
 	jit_flush_exec(func->redirector, jit_redirector_size);
+
 # if defined(jit_indirector_size)
-	func->closure_entry = _jit_create_indirector
-		(func->indirector, (void**) &(func->entry_point));
+	_jit_create_indirector(func->indirector, (void**) &(func->entry_point));
 	jit_flush_exec(func->indirector, jit_indirector_size);
-# else
-	func->closure_entry = func->entry_point;
 # endif
 #endif
 
@@ -496,7 +497,7 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 	jit_insn_t insn;
 
 #ifdef _JIT_COMPILE_DEBUG
-	printf("Block: %d\n", func->builder->block_count++);
+	printf("Block #%d: %d\n", func->builder->block_count++, block->label);
 #endif
 
 	/* Iterate over all blocks in the function */
@@ -507,7 +508,7 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 		unsigned char *p1, *p2;
 		p1 = gen->posn.ptr;
 		printf("Insn: %5d, Opcode: 0x%04x\n", func->builder->insn_count++, insn->opcode);
-		printf("Start of binary code: 0x%08x\n",  p1);
+		printf("Start of binary code: 0x%08x\n", p1);
 #endif
 
 		switch(insn->opcode)
@@ -611,6 +612,7 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 #ifdef _JIT_COMPILE_DEBUG
 		p2 = gen->posn.ptr;
 		printf("Length of binary code: %d\n\n", p2 - p1);
+		fflush(stdout);
 #endif
 	}
 }
@@ -648,9 +650,6 @@ int jit_function_compile(jit_function_t func)
 	struct jit_gencode gen;
 	jit_cache_t cache;
 	void *start;
-#if !defined(jit_redirector_size) || !defined(jit_indirector_size) || defined(JIT_BACKEND_INTERP)
-	void *recompilable_start = 0;
-#endif
 	void *end;
 	jit_block_t block;
 	int result;
@@ -784,12 +783,14 @@ int jit_function_compile(jit_function_t func)
 		}
 #endif
 
-#if !defined(jit_redirector_size) || !defined(jit_indirector_size) || defined(JIT_BACKEND_INTERP)
+#if !defined(jit_redirector_size) || !defined(jit_indirector_size)
 		/* If the function is recompilable, then we need an extra entry
 		   point to properly redirect previous references to the function */
-		if(func->is_recompilable)
+		if(func->is_recompilable && !func->indirector)
 		{
-			recompilable_start = _jit_gen_redirector(&gen, func);
+			/* TODO: use _jit_create_indirector() instead of
+			   _jit_gen_redirector() as both do the same. */
+			func->indirector = _jit_gen_redirector(&gen, func);
 		}
 #endif
 
@@ -842,22 +843,6 @@ int jit_function_compile(jit_function_t func)
 
 	/* Record the entry point */
 	func->entry_point = start;
-#if !defined(jit_redirector_size) || !defined(jit_indirector_size) || defined(JIT_BACKEND_INTERP)
-	if(recompilable_start)
-	{
-		func->closure_entry = recompilable_start;
-	}
-	else
-#else
-	/* If the function is recompilable, then we keep closure_entry
-	   point to indirector to properly redirect previous references
-	   to the function, otherwise we make it equal to the function
-	   start */
-	if(!func->is_recompilable)
-#endif
-	{
-		func->closure_entry = start;
-	}
 	func->is_compiled = 1;
 
 	/* Free the builder structure, which we no longer require */
@@ -1040,7 +1025,11 @@ void *jit_function_to_closure(jit_function_t func)
 							  function_closure, (void *)func);
 #else
 	/* On native platforms, use the closure entry point */
-	return func->closure_entry;
+	if(func->indirector && (!func->is_compiled || func->is_recompilable))
+	{
+		return func->indirector;
+	}
+	return func->entry_point;
 #endif
 }
 
@@ -1127,14 +1116,15 @@ void *jit_function_to_vtable_pointer(jit_function_t func)
 	return func;
 #else
 	/* On native platforms, the closure entry point is the vtable pointer */
-	if(func)
-	{
-		return func->closure_entry;
-	}
-	else
+	if(!func)
 	{
 		return 0;
 	}
+	if(func->indirector && (!func->is_compiled || func->is_recompilable))
+	{
+		return func->indirector;
+	}
+	return func->entry_point;
 #endif
 }
 

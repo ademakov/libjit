@@ -395,9 +395,6 @@ struct _jit_function
 	/* The entry point for the function's compiled code */
 	void * volatile		entry_point;
 
-	/* The closure/vtable entry point for the function's compiled code */
-	void * volatile		closure_entry;
-
 	/* The function to call to perform on-demand compilation */
 	jit_on_demand_func	on_demand;
 
@@ -406,12 +403,12 @@ struct _jit_function
 	   Redirectors are used to support on-demand compilation */
 	unsigned char		*redirector;
 #endif
-#ifdef jit_indirector_size
+
 	/* Buffer that contains the indirector for this function.
-	   The indirector is used to jump either to the function
-	   redirector or the compiled function itself. */
+	   The indirector jumps to the address that is currently
+	   stored in the entry_point field. Indirectors are used
+	   to support recompilation and on-demand compilation. */
 	unsigned char		*indirector;
-#endif
 };
 
 /*

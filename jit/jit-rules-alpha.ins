@@ -410,7 +410,7 @@ JIT_OP_ILE_UN:
 JIT_OP_CALL:
 	[] -> {
 		jit_function_t func = (jit_function_t)(insn->dest);
-		alpha_call(inst, func->closure_entry);
+		alpha_call(inst, jit_function_to_closure(func));
 	}
 
 /* TODO: JIT_OP_CALL_TAIL, JIT_OP_CALL_INDIRECT, JIT_OP_CALL_VTABLE_PTR */
