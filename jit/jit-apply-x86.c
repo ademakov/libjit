@@ -170,10 +170,6 @@ void *_jit_create_redirector(unsigned char *buf, void *func,
 {
 	void *start = (void *)buf;
 
-	/* Set up a new stack frame */
-	x86_push_reg(buf, X86_EBP);
-	x86_mov_reg_reg(buf, X86_EBP, X86_ESP, 4);
-
 	/* Save the fastcall registers, if necessary */
 #if JIT_APPLY_X86_FASTCALL == 1
 	if(abi == (int)jit_abi_fastcall)
@@ -200,9 +196,6 @@ void *_jit_create_redirector(unsigned char *buf, void *func,
 		x86_pop_reg(buf, X86_EDX);
 	}
 #endif
-
-	/* Restore the value of EBP */
-	x86_pop_reg(buf, X86_EBP);
 
 	/* Jump to the function that the redirector indicated */
 	x86_jump_reg(buf, X86_EAX);
