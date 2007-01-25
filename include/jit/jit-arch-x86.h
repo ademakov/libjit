@@ -27,7 +27,10 @@
  */
 #if defined(__GNUC__)
 #define _JIT_ARCH_GET_CURRENT_FRAME(f)		\
-	asm("movl %%ebp, %0" : "=g" (f))
+	do {					\
+		register void *__f asm("ebp");	\
+		f = __f;			\
+	} while(0)
 #elif defined(_MSC_VER) && defined(_M_IX86)
 #define	_JIT_ARCH_GET_CURRENT_FRAME(f)		\
 	do {					\
