@@ -689,7 +689,6 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 			{
 				reg = -1;
 				other_reg = -1;
-				desc->store = 1;
 			}
 		}
 
@@ -726,9 +725,8 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 			clobber_input = ((clobber & CLOBBER_INPUT_VALUE) != 0);
 		}
 
-		/* See if the input value needs to be saved before the
-		   instruction and if it stays or not in the register
-		   after the instruction. */
+		/* See if the input value needs to be stored before the
+		   instruction and if it stays in the register after it. */
 		if(desc->value->is_constant)
 		{
 			desc->kill = 1;
@@ -742,6 +740,12 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 		{
 			desc->store = is_live_input;
 			desc->kill = 1;
+		}
+
+		/* Store the value if it is going to be thrashed by another one. */
+		if(desc->thrash)
+		{
+			desc->store = 1;
 		}
 
 #ifdef JIT_REG_STACK
