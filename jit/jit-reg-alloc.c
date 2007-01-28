@@ -3494,12 +3494,9 @@ _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs)
 				move_input_value(gen, regs, 1);
 				move_input_value(gen, regs, 2);
 			}
-			else
-			{
-				load_input_value(gen, regs, 0);
-				load_input_value(gen, regs, 1);
-				load_input_value(gen, regs, 2);
-			}
+			load_input_value(gen, regs, 0);
+			load_input_value(gen, regs, 1);
+			load_input_value(gen, regs, 2);
 		}
 		else if(regs->flip_args)
 		{

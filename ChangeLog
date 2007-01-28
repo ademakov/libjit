@@ -1,9 +1,12 @@
-2007-01-26  avd  <avd@buzz.wiraqocha.local>
+2007-01-28  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.c (_jit_regs_gen): fix recently introduced bug
+	with loading registers for ternary ops.
+
+2007-01-26  Aleksey Demakov  <ademakov@gmail.com>
 
 	* include/jit/jit-arch-x86.h (_JIT_ARCH_GET_CURRENT_FRAME): tweak
 	gcc version of the macro.
-
-2007-01-26  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-apply-x86.c (_jit_create_redirector): redirector does not
 	use stack frame so remove frame set up and restore instructions.
