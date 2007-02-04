@@ -478,6 +478,9 @@ struct _jit_context
 	/* Debugger support */
 	jit_debugger_hook_func debug_hook;
 	jit_debugger_t		debugger;
+
+	/* On-demand compilation driver */
+	jit_on_demand_driver_func	on_demand_driver;
 };
 
 /*

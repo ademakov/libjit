@@ -88,6 +88,7 @@ jit_context_t jit_context_create(void)
 	jit_mutex_create(&(context->cache_lock));
 	context->functions = 0;
 	context->last_function = 0;
+	context->on_demand_driver = 0;
 	return context;
 }
 
@@ -156,6 +157,54 @@ void jit_context_build_start(jit_context_t context)
 void jit_context_build_end(jit_context_t context)
 {
 	jit_mutex_unlock(&(context->builder_lock));
+}
+
+/*@
+ * @deftypefun void jit_context_set_on_demand_driver (jit_context_t context, jit_on_demand_driver_func driver)
+ * Specify the C function to be called to drive on-demand compilation.
+ *
+ * When on-demand compilation is requested the default driver provided by
+ * @code{libjit} takes the following actions:
+ *
+ * @enumerate
+ * @item
+ * The context is locked by calling @code{jit_context_build_start}.
+ *
+ * @item
+ * If the function has already been compiled, @code{libjit} unlocks
+ * the context and returns immediately.  This can happen because of race
+ * conditions between threads: some other thread may have beaten us
+ * to the on-demand compiler.
+ *
+ * @item
+ * The user's on-demand compiler is called.  It is responsible for building
+ * the instructions in the function's body.  It should return one of the
+ * result codes @code{JIT_RESULT_OK}, @code{JIT_RESULT_COMPILE_ERROR},
+ * or @code{JIT_RESULT_OUT_OF_MEMORY}.
+ *
+ * @item
+ * If the user's on-demand function hasn't already done so, @code{libjit}
+ * will call @code{jit_function_compile} to compile the function.
+ *
+ * @item
+ * The context is unlocked by calling @code{jit_context_build_end} and
+ * @code{libjit} jumps to the newly-compiled entry point.  If an error
+ * occurs, a built-in exception of type @code{JIT_RESULT_COMPILE_ERROR}
+ * or @code{JIT_RESULT_OUT_OF_MEMORY} will be thrown.
+ *
+ * @item
+ * The entry point of the compiled function is returned from the
+ * driver.
+ * @end enumerate
+ *
+ * You may need to provide your own driver if some additional actions
+ * are required.
+ *
+ * @end deftypefun
+@*/
+void jit_context_set_on_demand_driver(jit_context_t context, jit_on_demand_driver_func driver)
+{
+	context->on_demand_driver = driver;
 }
 
 /*@

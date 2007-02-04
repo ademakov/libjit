@@ -88,6 +88,13 @@ typedef void (*jit_meta_free_func)(void *data);
  */
 typedef int (*jit_on_demand_func)(jit_function_t func);
 
+/*
+ * Function that is used to control on demand compilation.
+ * Typically, it should take care of the context locking and unlocking,
+ * calling function's on demand compiler, and final compilation.
+ */
+typedef void *(*jit_on_demand_driver_func)(jit_function_t func);
+
 #ifdef	__cplusplus
 };
 #endif

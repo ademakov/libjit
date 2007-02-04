@@ -49,6 +49,9 @@
 jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
 {
 	jit_function_t func;
+#if defined(jit_redirector_size)
+	jit_on_demand_driver_func on_demand_driver;
+#endif
 #if defined(jit_redirector_size) || defined(jit_indirector_size)
 	jit_cache_t cache;
 #endif
@@ -104,20 +107,24 @@ jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
 	func->context = context;
 	func->signature = jit_type_copy(signature);
 
-#if defined(jit_redirector_size) && !defined(JIT_BACKEND_INTERP)
+#if defined(jit_redirector_size)
 	/* If we aren't using interpretation, then point the function's
 	   initial entry point at the redirector, which in turn will
 	   invoke the on-demand compiler */
+	on_demand_driver = context->on_demand_driver;
+	if(!on_demand_driver)
+	{
+		on_demand_driver = _jit_function_compile_on_demand;
+	}
 	func->entry_point = _jit_create_redirector
-		(func->redirector, (void *)_jit_function_compile_on_demand,
+		(func->redirector, (void *) on_demand_driver,
 		 func, jit_type_get_abi(signature));
 	jit_flush_exec(func->redirector, jit_redirector_size);
-
+#endif
 # if defined(jit_indirector_size)
 	_jit_create_indirector(func->indirector, (void**) &(func->entry_point));
 	jit_flush_exec(func->indirector, jit_indirector_size);
 # endif
-#endif
 
 	/* Add the function to the context list */
 	func->next = 0;
@@ -618,34 +625,10 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 }
 
 /*
- * Information that is stored for an exception region in the cache.
+ * Compile a function and return its entry point.
  */
-typedef struct jit_cache_eh *jit_cache_eh_t;
-struct jit_cache_eh
-{
-	jit_label_t		handler_label;
-	unsigned char  *handler;
-	jit_cache_eh_t	previous;
-};
-
-/*@
- * @deftypefun int jit_function_compile (jit_function_t func)
- * Compile a function to its executable form.  If the function was
- * already compiled, then do nothing.  Returns zero on error.
- *
- * If an error occurs, you can use @code{jit_function_abandon} to
- * completely destroy the function.  Once the function has been compiled
- * successfully, it can no longer be abandoned.
- *
- * Sometimes you may wish to recompile a function, to apply greater
- * levels of optimization the second time around.  You must call
- * @code{jit_function_set_recompilable} before you compile the function
- * the first time.  On the second time around, build the function's
- * instructions again, and call @code{jit_function_compile}
- * a second time.
- * @end deftypefun
-@*/
-int jit_function_compile(jit_function_t func)
+static int
+compile(jit_function_t func, void **entry_point)
 {
 	struct jit_gencode gen;
 	jit_cache_t cache;
@@ -656,22 +639,6 @@ int jit_function_compile(jit_function_t func)
 #ifdef JIT_PROLOG_SIZE
 	int have_prolog;
 #endif
-
-	/* Bail out if we have nothing to do */
-	if(!func)
-	{
-		return 0;
-	}
-	if(func->is_compiled && !(func->builder))
-	{
-		/* The function is already compiled, and we don't need to recompile */
-		return 1;
-	}
-	if(!(func->builder))
-	{
-		/* We don't have anything to compile at all */
-		return 0;
-	}
 
 	/* We need the cache lock while we are compiling the function */
 	jit_mutex_lock(&(func->context->cache_lock));
@@ -809,7 +776,6 @@ int jit_function_compile(jit_function_t func)
 				block->fixup_absolute_list = 0;
 			}
 		}
-
 	}
 	while(result == JIT_CACHE_END_RESTART);
 
@@ -841,16 +807,144 @@ int jit_function_compile(jit_function_t func)
 		func->no_return = 1;
 	}
 
-	/* Record the entry point */
-	func->entry_point = start;
-	func->is_compiled = 1;
-
 	/* Free the builder structure, which we no longer require */
 	_jit_function_free_builder(func);
 
 	/* The function has been compiled successfully */
 	jit_mutex_unlock(&(func->context->cache_lock));
+
+	/* Record the entry point */
+	if(entry_point)
+	{
+		*entry_point = start;
+	}
+
 	return 1;
+}
+
+/*
+ * Information that is stored for an exception region in the cache.
+ */
+typedef struct jit_cache_eh *jit_cache_eh_t;
+struct jit_cache_eh
+{
+	jit_label_t		handler_label;
+	unsigned char  *handler;
+	jit_cache_eh_t	previous;
+};
+
+/*@
+ * @deftypefun int jit_function_compile (jit_function_t func)
+ * Compile a function to its executable form.  If the function was
+ * already compiled, then do nothing.  Returns zero on error.
+ *
+ * If an error occurs, you can use @code{jit_function_abandon} to
+ * completely destroy the function.  Once the function has been compiled
+ * successfully, it can no longer be abandoned.
+ *
+ * Sometimes you may wish to recompile a function, to apply greater
+ * levels of optimization the second time around.  You must call
+ * @code{jit_function_set_recompilable} before you compile the function
+ * the first time.  On the second time around, build the function's
+ * instructions again, and call @code{jit_function_compile}
+ * a second time.
+ * @end deftypefun
+@*/
+int jit_function_compile(jit_function_t func)
+{
+	int result;
+	void *entry_point;
+
+	/* Bail out if we have nothing to do */
+	if(!func)
+	{
+		return 0;
+	}
+	if(func->is_compiled && !(func->builder))
+	{
+		/* The function is already compiled, and we don't need to recompile */
+		return 1;
+	}
+	if(!(func->builder))
+	{
+		/* We don't have anything to compile at all */
+		return 0;
+	}
+
+	/* Compile and record the entry point. */
+	result = compile(func, &entry_point);
+	if(result)
+	{
+		func->entry_point = entry_point;
+		func->is_compiled = 1;
+	}
+
+	return result;
+}
+
+/*@
+ * @deftypefun int jit_function_compile_entry (jit_function_t func, void **entry_point)
+ * Compile a function to its executable form but do not make it
+ * available for invocation yet. It may be made available later
+ * with @code{jit_function_setup_entry}.
+ * @end deftypefun
+@*/
+int
+jit_function_compile_entry(jit_function_t func, void **entry_point)
+{
+	/* Init entry_point */
+	if(entry_point)
+	{
+		*entry_point = 0;
+	}
+	else
+	{
+		return 0;
+	}
+
+	/* Bail out if we have nothing to do */
+	if(!func)
+	{
+		return 0;
+	}
+	if(func->is_compiled && !(func->builder))
+	{
+		/* The function is already compiled, and we don't need to recompile */
+		return 1;
+	}
+	if(!(func->builder))
+	{
+		/* We don't have anything to compile at all */
+		return 0;
+	}
+
+	/* Compile and return the entry point. */
+	return compile(func, entry_point);
+}
+
+/*@
+ * @deftypefun int jit_function_setup_entry (jit_function_t func, void *entry_point)
+ * Make a function compiled with @code{jit_function_compile_entry}
+ * available for invocation and free the resources used for
+ * compilation. If @code{entry_point} is null then it only
+ * frees the resources.
+ * @end deftypefun
+@*/
+void
+jit_function_setup_entry(jit_function_t func, void *entry_point)
+{
+	/* Bail out if we have nothing to do */
+	if(!func)
+	{
+		return;
+	}
+	/* Record the entry point */
+	if(entry_point)
+	{
+		func->entry_point = entry_point;
+		func->is_compiled = 1;
+	}
+	_jit_function_free_builder(func);
 }
 
 /*@
@@ -1202,10 +1296,28 @@ jit_function_t jit_function_from_vtable_pointer(jit_context_t context, void *vta
  * just after you create it with @code{jit_function_create}.
  * @end deftypefun
 @*/
-void jit_function_set_on_demand_compiler
-		(jit_function_t func, jit_on_demand_func on_demand)
+void
+jit_function_set_on_demand_compiler(jit_function_t func, jit_on_demand_func on_demand)
 {
-	func->on_demand = on_demand;
+	if(func)
+	{
+		func->on_demand = on_demand;
+	}
+}
+
+/*@
+ * @deftypefun jit_on_demand_func jit_function_get_on_demand_compiler (jit_function_t func)
+ * Returns function's on-demand compiler.
+ * @end deftypefun
+@*/
+jit_on_demand_func
+jit_function_get_on_demand_compiler(jit_function_t func)
+{
+	if(func)
+	{
+		return func->on_demand;
+	}
+	return 0;
 }
 
 void *_jit_function_compile_on_demand(jit_function_t func)

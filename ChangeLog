@@ -1,3 +1,10 @@
+2007-02-04  Aleksey Demakov  <ademakov@gmail.com>
+
+	* include/jit/jit-common.h, include/jit/jit-context.h,
+	* include/jit/jit-function.h, jit/jit-internal.h, jit/jit-context.c,
+	* jit/jit-function.c: provide for user defined on-demand compilation
+	driver and delayed function entry point setup.
+
 2007-01-28  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c (_jit_regs_gen, set_regdesc_flags): fix bugs

@@ -53,6 +53,8 @@ int jit_function_is_compiled(jit_function_t func) JIT_NOTHROW;
 void jit_function_set_recompilable(jit_function_t func) JIT_NOTHROW;
 void jit_function_clear_recompilable(jit_function_t func) JIT_NOTHROW;
 int jit_function_is_recompilable(jit_function_t func) JIT_NOTHROW;
+int jit_function_compile_entry(jit_function_t func, void **entry_point) JIT_NOTHROW;
+void jit_function_setup_entry(jit_function_t func, void *entry_point) JIT_NOTHROW;
 void *jit_function_to_closure(jit_function_t func) JIT_NOTHROW;
 jit_function_t jit_function_from_closure
 	(jit_context_t context, void *closure) JIT_NOTHROW;
@@ -62,7 +64,8 @@ void *jit_function_to_vtable_pointer(jit_function_t func) JIT_NOTHROW;
 jit_function_t jit_function_from_vtable_pointer
 	(jit_context_t context, void *vtable_pointer) JIT_NOTHROW;
 void jit_function_set_on_demand_compiler
-		(jit_function_t func, jit_on_demand_func on_demand) JIT_NOTHROW;
+	(jit_function_t func, jit_on_demand_func on_demand) JIT_NOTHROW;
+jit_on_demand_func jit_function_get_on_demand_compiler(jit_function_t func) JIT_NOTHROW;
 int jit_function_apply
 	(jit_function_t func, void **args, void *return_area);
 int jit_function_apply_vararg
