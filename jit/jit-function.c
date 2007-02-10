@@ -910,6 +910,7 @@ jit_function_compile_entry(jit_function_t func, void **entry_point)
 	if(func->is_compiled && !(func->builder))
 	{
 		/* The function is already compiled, and we don't need to recompile */
+		*entry_point = func->entry_point;
 		return 1;
 	}
 	if(!(func->builder))
@@ -1423,6 +1424,9 @@ int jit_function_apply_vararg
 	(jit_function_t func, jit_type_t signature, void **args, void *return_area)
 {
 	struct jit_backtrace call_trace;
+#if defined(jit_redirector_size)
+	jit_on_demand_driver_func on_demand_driver;
+#endif
 	void *entry;
 	jit_jmp_buf jbuf;
 
@@ -1457,7 +1461,16 @@ int jit_function_apply_vararg
 	}
 	else
 	{
+#if defined(jit_redirector_size)
+		on_demand_driver = func->context->on_demand_driver;
+		if(!on_demand_driver)
+		{
+			on_demand_driver = _jit_function_compile_on_demand;
+		}
+		entry = (*on_demand_driver)(func);
+#else
 		entry = _jit_function_compile_on_demand(func);
+#endif
 	}
 
 	/* Get the default signature if necessary */
