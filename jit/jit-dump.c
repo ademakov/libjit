@@ -892,4 +892,5 @@ void jit_dump_function(FILE *stream, jit_function_t func, const char *name)
 
 	/* Output the function footer */
 	fprintf(stream, "end\n\n");
+	fflush(stream);
 }
