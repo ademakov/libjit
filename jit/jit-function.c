@@ -625,6 +625,85 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 }
 
 /*
+ * Reset value on restart.
+ */
+static void
+reset_value(jit_value_t value)
+{
+	value->reg = -1;
+	value->in_register = 0;
+	value->in_global_register = 0;
+	value->in_frame = 0;
+}
+
+/*
+ * Clean up the compilation state on restart.
+ */
+static void
+cleanup_on_restart(jit_gencode_t gen, jit_function_t func)
+{
+	jit_block_t block;
+	jit_insn_iter_t iter;
+	jit_insn_t insn;
+
+#ifdef _JIT_COMPILE_DEBUG
+	printf("\n*** Restart compilation ***\n\n");
+#endif
+
+	block = 0;
+	while((block = jit_block_next(func, block)) != 0)
+	{
+		/* Clear the block addresses and fixup lists */
+		block->address = 0;
+		block->fixup_list = 0;
+		block->fixup_absolute_list = 0;
+
+		/* Reset values referred to by block instructions */
+		jit_insn_iter_init(&iter, block);
+		while((insn = jit_insn_iter_next(&iter)) != 0)
+		{
+			if(insn->dest && (insn->flags & JIT_INSN_DEST_OTHER_FLAGS) == 0)
+			{
+				reset_value(insn->dest);
+			}
+			if(insn->value1 && (insn->flags & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
+			{
+				reset_value(insn->value1);
+			}
+			if(insn->value2 && (insn->flags & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
+			{
+				reset_value(insn->value2);
+			}
+		}
+	}
+
+	/* Reset values referred to by builder */
+	if(func->builder->setjmp_value)
+	{
+		reset_value(func->builder->setjmp_value);
+	}
+	if(func->builder->parent_frame)
+	{
+		reset_value(func->builder->parent_frame);
+	}
+
+	/* Reset the "touched" registers mask. The first time compilation
+	   might have followed wrong code paths and thus allocated wrong
+	   registers. */
+	if(func->builder->has_tail_call)
+	{
+		/* For functions with tail calls _jit_regs_alloc_global()
+		   does not allocate any global registers. The "permanent"
+		   mask has all global registers set to prevent their use. */
+		gen->touched = jit_regused_init;
+	}
+	else
+	{
+		gen->touched = gen->permanent;
+	}
+}
+
+/*
  * Compile a function and return its entry point.
  */
 static int
@@ -764,17 +843,11 @@ compile(jit_function_t func, void **entry_point)
 		/* End the function's output process */
 		result = _jit_cache_end_method(&(gen.posn));
 
-		/* If we need to restart on a different cache page, then clear
-		   the block addresses and fixup lists */
+		/* If we need to restart on a different cache page, then clean up
+		   the compilation state  */
 		if(result == JIT_CACHE_END_RESTART)
 		{
-			block = 0;
-			while((block = jit_block_next(func, block)) != 0)
-			{
-				block->address = 0;
-				block->fixup_list = 0;
-				block->fixup_absolute_list = 0;
-			}
+			cleanup_on_restart(&gen, func);
 		}
 	}
 	while(result == JIT_CACHE_END_RESTART);

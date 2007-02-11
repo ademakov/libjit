@@ -88,6 +88,8 @@ mostly don't have to worry about it:
 #define CLOBBER_OTHER_REG	4
 
 #ifdef JIT_REG_DEBUG
+#include <stdlib.h>
+
 static void dump_regs(jit_gencode_t gen, const char *name)
 {
 	int reg, index;
@@ -208,6 +210,9 @@ are_values_equal(_jit_regdesc_t *desc1, _jit_regdesc_t *desc2)
 	return 0;
 }
 
+/*
+ * Exchange the content of two value descriptors.
+ */
 static void
 swap_values(_jit_regdesc_t *desc1, _jit_regdesc_t *desc2)
 {
@@ -367,6 +372,44 @@ is_register_alive(jit_gencode_t gen, _jit_regs_t *regs, int reg)
 }
 
 /*
+ * Check if the register contains any values either dead or alive
+ * that may need to be evicted from it.
+ */
+static int
+is_register_occupied(jit_gencode_t gen, _jit_regs_t *regs, int reg)
+{
+	if(reg < 0)
+	{
+		return 0;
+	}
+
+	/* Assume that a global register is always alive unless it is to be
+	   computed right away. */
+	if(jit_reg_is_used(gen->permanent, reg))
+	{
+		if(!regs->ternary
+		   && regs->descs[0].value
+		   && regs->descs[0].value->has_global_register
+		   && regs->descs[0].value->global_reg == reg)
+		{
+			return 0;
+		}
+		return 1;
+	}
+
+	if(gen->contents[reg].is_long_end)
+	{
+		reg = get_long_pair_start(reg);
+	}
+	if(gen->contents[reg].num_values)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+/*
  * Determine the effect of using a register for a value. This includes the
  * following:
  *  - whether the value is clobbered by the instruction;
@@ -439,11 +482,11 @@ clobbers_register(jit_gencode_t gen, _jit_regs_t *regs, int index, int reg, int 
 		}
 
 		flags = CLOBBER_NONE;
-		if(is_register_alive(gen, regs, reg))
+		if(is_register_occupied(gen, regs, reg))
 		{
 			flags |= CLOBBER_REG;
 		}
-		if(is_register_alive(gen, regs, other_reg))
+		if(is_register_occupied(gen, regs, other_reg))
 		{
 			flags |= CLOBBER_OTHER_REG;
 		}
@@ -492,11 +535,11 @@ clobbers_register(jit_gencode_t gen, _jit_regs_t *regs, int index, int reg, int 
 		}
 	}
 
-	if(is_register_alive(gen, regs, reg))
+	if(is_register_occupied(gen, regs, reg))
 	{
 		flags |= CLOBBER_REG;
 	}
-	if(is_register_alive(gen, regs, other_reg))
+	if(is_register_occupied(gen, regs, other_reg))
 	{
 		flags |= CLOBBER_OTHER_REG;
 	}
@@ -1729,6 +1772,14 @@ bind_value(jit_gencode_t gen, jit_value_t value, int reg, int other_reg, int sti
 		still_in_frame = 0;
 	}
 
+#ifdef JIT_REG_DEBUG
+	if(gen->contents[reg].num_values == JIT_MAX_REG_VALUES)
+	{
+		printf("*** Too many values for one register! ***\n");
+		abort();
+	}
+#endif
+
 	gen->contents[reg].values[gen->contents[reg].num_values] = value;
 	++(gen->contents[reg].num_values);
 	gen->contents[reg].age = gen->current_age;
@@ -2073,59 +2124,113 @@ spill_clobbered_register(jit_gencode_t gen, _jit_regs_t *regs, int reg)
 	printf("spill_clobbered_register(reg = %d)\n", reg);
 #endif
 
-	/* Find the other register in a long pair */
-	if(gen->contents[reg].is_long_start)
-	{
-		other_reg = OTHER_REG(reg);
-	}
-	else if(gen->contents[reg].is_long_end)
-	{
-		other_reg = reg;
-		reg = get_long_pair_start(reg);
-	}
-	else
-	{
-		other_reg = -1;
-	}
-
-	/* Spill register contents in two passes. First free values that
-	   do not reqiure spilling then spill those that do. This approach
-	   is only useful in case a stack register contains both kinds of
-	   values and the last value is one that does not require spilling.
-	   This way we may save one free instruction. */
+#ifdef JIT_REG_STACK
+	/* For a stack register spill it in two passes. First drop values that
+	   reqiure neither spilling nor a generation of the free instruction.
+	   Then lazily exchange the register with the top and spill or free it
+	   as necessary. This approach might save a exch/free instructions in
+	   certain cases. */
 	if(IS_STACK_REG(reg))
 	{
 		for(index = gen->contents[reg].num_values - 1; index >= 0; --index)
 		{
+			if(gen->contents[reg].num_values == 1)
+			{
+				break;
+			}
+
 			value = gen->contents[reg].values[index];
 			usage = value_usage(regs, value);
-			if((usage & VALUE_INPUT) == 0
-			   && ((usage & VALUE_DEAD) != 0 || value->in_frame))
+			if((usage & VALUE_INPUT) != 0)
 			{
-				free_value(gen, value, reg, other_reg, 0);
+				continue;
+			}
+			if((usage & VALUE_DEAD) != 0 || value->in_frame)
+			{
+				unbind_value(gen, value, reg, -1);
 			}
 		}
-	}
-	for(index = gen->contents[reg].num_values - 1; index >= 0; --index)
-	{
-		value = gen->contents[reg].values[index];
-		usage = value_usage(regs, value);
-		if((usage & VALUE_DEAD) == 0)
+		for(index = gen->contents[reg].num_values - 1; index >= 0; --index)
 		{
-			if((usage & VALUE_INPUT) == 0)
+			int top;
+
+			value = gen->contents[reg].values[index];
+			usage = value_usage(regs, value);
+			if((usage & VALUE_INPUT) != 0)
 			{
-				save_value(gen, value, reg, other_reg, 1);
+				if((usage & VALUE_DEAD) != 0 || value->in_frame)
+				{
+					continue;
+				}
+
+				top = gen->reg_stack_top - 1;
+				if(reg != top)
+				{
+					exch_stack_top(gen, reg, 0);
+					reg = top;
+				}
+
+				save_value(gen, value, reg, -1, 0);
 			}
 			else
 			{
-				save_value(gen, value, reg, other_reg, 0);
+				top = gen->reg_stack_top - 1;
+				if(reg != top)
+				{
+					exch_stack_top(gen, reg, 0);
+					reg = top;
+				}
+
+				if((usage & VALUE_DEAD) != 0 || value->in_frame)
+				{
+					free_value(gen, value, reg, -1, 0);
+				}
+				else
+				{
+					save_value(gen, value, reg, -1, 1);
+				}
 			}
+		}
+	}
+	else
+#endif
+	{
+		/* Find the other register in a long pair */
+		if(gen->contents[reg].is_long_start)
+		{
+			other_reg = OTHER_REG(reg);
+		}
+		else if(gen->contents[reg].is_long_end)
+		{
+			other_reg = reg;
+			reg = get_long_pair_start(reg);
 		}
 		else
 		{
-			if((usage & VALUE_INPUT) == 0)
+			other_reg = -1;
+		}
+
+		for(index = gen->contents[reg].num_values - 1; index >= 0; --index)
+		{
+			value = gen->contents[reg].values[index];
+			usage = value_usage(regs, value);
+			if((usage & VALUE_DEAD) == 0)
 			{
-				free_value(gen, value, reg, other_reg, 0);
+				if((usage & VALUE_INPUT) == 0)
+				{
+					save_value(gen, value, reg, other_reg, 1);
+				}
+				else
+				{
+					save_value(gen, value, reg, other_reg, 0);
+				}
+			}
+			else
+			{
+				if((usage & VALUE_INPUT) == 0)
+				{
+					free_value(gen, value, reg, other_reg, 0);
+				}
 			}
 		}
 	}
@@ -2351,43 +2456,6 @@ move_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	}
 }
 #endif
-
-static void
-abort_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index)
-{
-	_jit_regdesc_t *desc;
-	int reg, other_reg;
-
-#ifdef JIT_REG_DEBUG
-	printf("abort_input_value(%d)\n", index);
-#endif
-
-	desc = &regs->descs[index];
-	if(!desc->value || desc->duplicate)
-	{
-		return;
-	}
-
-	if(desc->load && desc->value->in_register)
-	{
-		reg = desc->value->reg;
-		if(gen->contents[reg].is_long_start)
-		{
-			other_reg = OTHER_REG(reg);
-		}
-		else
-		{
-			other_reg = -1;
-		}
-		unbind_value(gen, desc->value, reg, other_reg);
-#ifdef JIT_REG_STACK
-		if(IS_STACK_REG(reg))
-		{
-			--(gen->reg_stack_top);
-		}
-#endif
-	}
-}
 
 #ifdef JIT_REG_STACK
 static void
@@ -3437,28 +3505,20 @@ _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs)
 		if(IS_STACK_REG(reg))
 		{
 			int top = gen->reg_stack_top - 1;
-
 			/* spill top registers if there are any that needs to be */
-			for(; top > reg && jit_reg_is_used(regs->clobber, top); top--)
+			for(; top >= reg && jit_reg_is_used(regs->clobber, top); top--)
 			{
 				spill_clobbered_register(gen, regs, top);
 				/* If an input value is on the top then it stays there
-				   and the top does not change. */
+				   and the top position does not change. */
 				if(gen->contents[top].num_values > 0)
 				{
 					break;
 				}
 			}
-			/* If the top register was not spilled then exchange it with
-			   the current register. */
 			if(top > reg)
 			{
-				exch_stack_top(gen, reg, 0);
-			}
-			/* Finally spill the register */
-			if(top >= JIT_REG_STACK_START)
-			{
-				spill_clobbered_register(gen, regs, top);
+				spill_clobbered_register(gen, regs, reg);
 			}
 		}
 		else
@@ -3694,17 +3754,6 @@ _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs)
 #endif
 }
 
-void
-_jit_regs_abort(jit_gencode_t gen, _jit_regs_t *regs)
-{
-	abort_input_value(gen, regs, 2);
-	abort_input_value(gen, regs, 1);
-	if(regs->ternary)
-	{
-		abort_input_value(gen, regs, 0);
-	}
-}
-
 unsigned char *
 _jit_regs_inst_ptr(jit_gencode_t gen, int space)
 {
@@ -3723,8 +3772,6 @@ _jit_regs_inst_ptr(jit_gencode_t gen, int space)
 unsigned char *
 _jit_regs_begin(jit_gencode_t gen, _jit_regs_t *regs, int space)
 {
-	unsigned char *inst;
-
 	if(!_jit_regs_assign(gen, regs))
 	{
 		return 0;
@@ -3734,13 +3781,7 @@ _jit_regs_begin(jit_gencode_t gen, _jit_regs_t *regs, int space)
 		return 0;
 	}
 
-	inst = _jit_regs_inst_ptr(gen, space);
-	if(!inst)
-	{
-		_jit_regs_abort(gen, regs);
-	}
-
-	return inst;
+	return _jit_regs_inst_ptr(gen, space);
 }
 
 void

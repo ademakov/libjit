@@ -3,6 +3,18 @@
 	* jit/jit-dump.c (jit_dump_function): flush the output stream upon
 	dumping the function.
 
+	* jit/jit-function.c (cleanup_on_restart, reset_value): add new
+	functions to clean up the compilation state on restart.
+	(compile): replace the code that did cleanup on restart with a call
+	to cleanup_on_restart() which does this job more thoroughly.
+
+	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c: remove _jit_regs_abort()
+	function as the new cleanup-on-restart code makes it superflows.
+
+	* jit/jit-reg-alloc.c (is_register_occupied): add new function;
+	(clobbers_register, spill_clobbered_register, _jit_regs_gen): fix
+	a problem that shows up with the new cleanup method.
+
 2007-02-10  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-function.c: Use the on-demand compilation driver in

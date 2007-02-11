@@ -175,7 +175,6 @@ int _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs);
 int _jit_regs_select(_jit_regs_t *regs);
 #endif
 void _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs);
-void _jit_regs_abort(jit_gencode_t gen, _jit_regs_t *regs);
 
 int _jit_regs_get_dest(_jit_regs_t *regs);
 int _jit_regs_get_value1(_jit_regs_t *regs);
