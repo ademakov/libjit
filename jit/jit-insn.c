@@ -4069,8 +4069,8 @@ add_block:
 }
 
 /*@
- * @deftypefun jit_insn_jump_table(jit_function_t func, jit_value_t value, jit_label_t *labels, unsigned int num_labels)
- *
+ * @deftypefun int jit_insn_jump_table (jit_function_t func, jit_value_t value, {jit_label_t *} labels, unsigned int num_labels)
+ * Branch to a label from the @code{labels} table. The @code{value} is the index of the label.
  * @end deftypefun
 @*/
 int jit_insn_jump_table
@@ -8013,7 +8013,6 @@ int jit_insn_move_blocks_to_start
 int jit_insn_mark_offset(jit_function_t func, jit_int offset)
 {
 #if 1
-/*!USE_NEW_REG_ALLOC*/
 	if(!jit_insn_new_block(func))
 	{
 		return 0;

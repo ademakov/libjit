@@ -52,7 +52,7 @@ public:
 jit_type_t const jit_function::end_params = (jit_type_t)0;
 
 /*@
- * @defop Constructor jit_function jit_function ({jit_context&} context, jit_type_t signature)
+ * @defop Constructor jit_function jit_function ({jit_context& context}, jit_type_t signature)
  * Constructs a new function handler with the specified @code{signature} in
  * the given @code{context}.  It then calls @code{create(signature)} to
  * create the actual function.
@@ -69,7 +69,7 @@ jit_function::jit_function(jit_context& context, jit_type_t signature)
 }
 
 /*@
- * @defop Constructor jit_function jit_function ({jit_context&} context)
+ * @defop Constructor jit_function jit_function ({jit_context& context})
  * Constructs a new function handler in the specified @code{context}.
  * The actual function is not created until you call @code{create()}.
  * @end defop

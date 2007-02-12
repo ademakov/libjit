@@ -35,7 +35,7 @@ Construct an empty value.
 Construct a value by wrapping up a raw C @code{jit_value_t} object.
 @end defop
 
-@defop Constructor jit_value jit_value ({const jit_value&} value)
+@defop Constructor jit_value jit_value ({const jit_value& value})
 Create a copy of @code{value}.
 @end defop
 
@@ -44,7 +44,7 @@ Destroy the C++ value wrapper, but leave the underlying raw C
 value alone.
 @end defop
 
-@defop Operator jit_value {jit_value& operator=} ({const jit_value&} value)
+@defop Operator jit_value {jit_value& operator=} ({const jit_value& value})
 Copy @code{jit_value} objects.
 @end defop
 
@@ -92,24 +92,24 @@ Get the owning function, block, or context for this value.
 Extract the constant stored in this value.
 @end deftypemethod
 
-@defop Operator jit_value {jit_value operator+} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator-} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator*} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator/} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator%} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator-} ({const jit_value&} value1)
-@defopx Operator jit_value {jit_value operator&} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator|} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator^} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator~} ({const jit_value&} value1)
-@defopx Operator jit_value {jit_value operator<<} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator>>} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator==} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator!=} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator<} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator<=} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator>} ({const jit_value&} value1, {const jit_value&} value2)
-@defopx Operator jit_value {jit_value operator>=} ({const jit_value&} value1, {const jit_value&} value2)
+@defop Operator jit_value {jit_value operator+} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator-} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator*} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator/} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator%} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator-} ({const jit_value& value1})
+@defopx Operator jit_value {jit_value operator&} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator|} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator^} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator~} ({const jit_value& value1})
+@defopx Operator jit_value {jit_value operator<<} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator>>} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator==} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator!=} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator<} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator<=} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator>} ({const jit_value& value1}, {const jit_value& value2})
+@defopx Operator jit_value {jit_value operator>=} ({const jit_value& value1}, {const jit_value& value2})
 Generate an arithmetic, bitwise, or comparison instruction based on
 one or two @code{jit_value} objects.  These operators are shortcuts
 for calling @code{insn_add}, @code{insn_sub}, etc on the

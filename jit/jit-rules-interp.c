@@ -846,7 +846,7 @@ void _jit_gen_move_top(jit_gencode_t gen, int reg)
 }
 
 /*@
- * @deftypefun _jit_gen_spill_top (jit_gencode_t gen, int reg, jit_value_t value, int pop)
+ * @deftypefun void _jit_gen_spill_top (jit_gencode_t gen, int reg, jit_value_t value, int pop)
  * Generate instructions to spill the top stack register to the local
  * variable frame. The @code{pop} argument indicates if the top register
  * is popped from the stack.

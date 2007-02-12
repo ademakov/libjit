@@ -4,6 +4,10 @@
 	automake --add-missing as well as auto_gen.sh add an up-to-date
 	version of it.
 
+	* jit/jit-insn.c, jit/jit-rules-interp.c: 
+	* jitplus/jit-plus-value.cpp, jitplus/jit-plus-function.cpp: fix
+	texinfo comments.
+
 2007-02-12  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-dump.c (jit_dump_function): flush the output stream upon
