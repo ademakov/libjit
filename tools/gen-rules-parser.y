@@ -1104,8 +1104,9 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 					{
 						printf(" && ");
 					}
-					printf("insn->%s->in_frame && !insn->%s->in_register",
-					       args[index], args[index]);
+					printf("!insn->%s->is_constant && ", args[index]);
+					printf("!insn->%s->in_register && ", args[index]);
+					printf("!insn->%s->has_global_register", args[index]);
 					seen_option = 1;
 					++index;
 					break;
@@ -1115,7 +1116,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 					{
 						printf(" && ");
 					}
-					printf("!insn->%s->is_constant", args[index]);
+					printf("!insn->%s->is_constant && ", args[index]);
+					printf("!insn->%s->has_global_register", args[index]);
 					seen_option = 1;
 					++index;
 					break;
@@ -1281,15 +1283,18 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			case GENSEL_PATT_IMMU8:
 			case GENSEL_PATT_IMMS16:
 			case GENSEL_PATT_IMMU16:
+				++index;
+				break;
+
 			case GENSEL_PATT_LOCAL:
+				printf("\t\t_jit_gen_fix_value(insn->%s);\n", args[index]);
 				++index;
 				break;
 
 			case GENSEL_PATT_FRAME:
 				printf("\t\t_jit_regs_force_out(gen, insn->%s, %d);\n",
 				       args[index], (free_dest && index == 0));
-				printf("\t\t_jit_gen_fix_value(insn->%s);\n",
-				       args[index]);
+				printf("\t\t_jit_gen_fix_value(insn->%s);\n", args[index]);
 				++index;
 				break;
 

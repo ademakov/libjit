@@ -15,6 +15,14 @@
 	(clobbers_register, spill_clobbered_register, _jit_regs_gen): fix
 	a problem that shows up with the new cleanup method.
 
+	* tools/gen-rules-parser.y (gensel_output_clauses): the conditions
+	for the local and frame patterns are changed. If the value is used
+	before it is defined then both in_frame and in_register	flags are
+	clear. This situation is perfectly valid if there is a backward
+	branch form a point after the definition to a point before the use.
+	So if the value is not a constant and it is not in a register assume
+	that it is on the stack even if the in_frame flag is not set.
+
 2007-02-10  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-function.c: Use the on-demand compilation driver in
