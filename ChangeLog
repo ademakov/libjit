@@ -1,3 +1,8 @@
+2007-02-14  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-function.c (compile_block): check if cache is full and
+	exit if so.
+
 2007-02-13  Aleksey Demakov  <ademakov@gmail.com>
 
 	* doc/texinfo.tex: remove an ancient file version from the tree.

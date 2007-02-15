@@ -518,6 +518,16 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 		printf("Start of binary code: 0x%08x\n", p1);
 #endif
 
+		/* The cache is full. */
+		if(!jit_cache_check_for_n(&gen->posn, 1))
+		{
+#ifdef _JIT_COMPILE_DEBUG
+			printf("No space left in the code cache.\n\n");
+			fflush(stdout);
+#endif
+			return;
+		}
+
 		switch(insn->opcode)
 		{
 			case JIT_OP_NOP:		break;		/* Ignore NOP's */
