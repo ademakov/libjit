@@ -44,6 +44,11 @@ mostly don't have to worry about it:
 #define	JIT_MIN_USED		3
 
 /*
+ * Use is_register_occupied() function.
+ */
+#undef IS_REGISTER_OCCUPIED
+
+/*
  * Check if the register is on the register stack.
  */
 #ifdef JIT_REG_STACK
@@ -371,6 +376,7 @@ is_register_alive(jit_gencode_t gen, _jit_regs_t *regs, int reg)
 	return 0;
 }
 
+#ifdef IS_REGISTER_OCCUPIED
 /*
  * Check if the register contains any values either dead or alive
  * that may need to be evicted from it.
@@ -383,17 +389,9 @@ is_register_occupied(jit_gencode_t gen, _jit_regs_t *regs, int reg)
 		return 0;
 	}
 
-	/* Assume that a global register is always alive unless it is to be
-	   computed right away. */
+	/* Assume that a global register is always occupied. */
 	if(jit_reg_is_used(gen->permanent, reg))
 	{
-		if(!regs->ternary
-		   && regs->descs[0].value
-		   && regs->descs[0].value->has_global_register
-		   && regs->descs[0].value->global_reg == reg)
-		{
-			return 0;
-		}
 		return 1;
 	}
 
@@ -408,6 +406,7 @@ is_register_occupied(jit_gencode_t gen, _jit_regs_t *regs, int reg)
 
 	return 0;
 }
+#endif
 
 /*
  * Determine the effect of using a register for a value. This includes the
@@ -482,6 +481,7 @@ clobbers_register(jit_gencode_t gen, _jit_regs_t *regs, int index, int reg, int 
 		}
 
 		flags = CLOBBER_NONE;
+#ifdef IS_REGISTER_OCCUPIED
 		if(is_register_occupied(gen, regs, reg))
 		{
 			flags |= CLOBBER_REG;
@@ -490,6 +490,16 @@ clobbers_register(jit_gencode_t gen, _jit_regs_t *regs, int index, int reg, int 
 		{
 			flags |= CLOBBER_OTHER_REG;
 		}
+#else
+		if(is_register_alive(gen, regs, reg))
+		{
+			flags |= CLOBBER_REG;
+		}
+		if(is_register_alive(gen, regs, other_reg))
+		{
+			flags |= CLOBBER_OTHER_REG;
+		}
+#endif
 		return flags;
 	}
 	else if(regs->copy)
@@ -535,6 +545,7 @@ clobbers_register(jit_gencode_t gen, _jit_regs_t *regs, int index, int reg, int 
 		}
 	}
 
+#ifdef IS_REGISTER_OCCUPIED
 	if(is_register_occupied(gen, regs, reg))
 	{
 		flags |= CLOBBER_REG;
@@ -543,6 +554,16 @@ clobbers_register(jit_gencode_t gen, _jit_regs_t *regs, int index, int reg, int 
 	{
 		flags |= CLOBBER_OTHER_REG;
 	}
+#else
+	if(is_register_alive(gen, regs, reg))
+	{
+		flags |= CLOBBER_REG;
+	}
+	if(is_register_alive(gen, regs, other_reg))
+	{
+		flags |= CLOBBER_OTHER_REG;
+	}
+#endif
 	return flags;
 }
 
@@ -1657,7 +1678,19 @@ adjust_assignment(jit_gencode_t gen, _jit_regs_t *regs, int index)
 		return;
 	}
 
-	if(regs->wanted_stack_count == 1)
+	if(regs->wanted_stack_count == 0)
+	{
+		/* an op with stack dest and non-stack args */
+#ifdef JIT_REG_DEBUG
+		if(index != 0 || regs->ternary)
+		{
+			printf("*** Wrong stack register count! ***\n");
+			abort();
+		}
+#endif
+		desc->reg = gen->reg_stack_top;
+	}
+	else if(regs->wanted_stack_count == 1)
 	{
 		/* either a unary op or a binary op with duplicate value */
 		desc->reg = gen->reg_stack_top - regs->loaded_stack_count;
@@ -1717,6 +1750,11 @@ adjust_assignment(jit_gencode_t gen, _jit_regs_t *regs, int index)
 
 #ifdef JIT_REG_DEBUG
 	printf("reg = %d\n", desc->reg);
+	if(desc->reg < JIT_REG_STACK_START || desc->reg > JIT_REG_STACK_END)
+	{
+		printf("*** Invalid stack register! ***\n");
+		abort();
+	}
 #endif
 }
 
@@ -3483,7 +3521,19 @@ _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs)
 		}
 		if(jit_reg_is_used(gen->permanent, reg))
 		{
-			/* Oops, global register. */
+#ifdef IS_REGISTER_OCCUPIED
+			/* If the op computes the value assigned to the global
+			   register then it is not really clobbered. */
+			if(!regs->ternary
+			   && regs->descs[0].value
+			   && regs->descs[0].value->has_global_register
+			   && regs->descs[0].value->global_reg == reg)
+			{
+				continue;
+			}
+#endif
+			/* Oops, the global register is going to be clobbered. Save
+			   it on the stack in order to restore after the op. */
 #ifdef JIT_REG_DEBUG
 			printf("*** Spill global register: %d ***\n", reg);
 #endif
@@ -3599,6 +3649,12 @@ _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs)
 		{
 			load_input_value(gen, regs, 0);
 		}
+#ifdef JIT_REG_STACK
+		else if(regs->descs[0].reg >= 0 && IS_STACK_REG(regs->descs[0].reg))
+		{
+			adjust_assignment(gen, regs, 0);
+		}
+#endif
 		load_input_value(gen, regs, 1);
 		load_input_value(gen, regs, 2);
 	}
@@ -3739,12 +3795,21 @@ _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs)
 		commit_input_value(gen, regs, 1, 0);
 		commit_output_value(gen, regs, 1);
 	}
-	
+
 	/* Load clobbered global registers. */
 	for(reg = JIT_NUM_REGS - 1; reg >= 0; reg--)
 	{
 		if(jit_reg_is_used(regs->clobber, reg) && jit_reg_is_used(gen->permanent, reg))
 		{
+#ifdef IS_REGISTER_OCCUPIED
+			if(!regs->ternary
+			   && regs->descs[0].value
+			   && regs->descs[0].value->has_global_register
+			   && regs->descs[0].value->global_reg == reg)
+			{
+				continue;
+			}
+#endif
 			_jit_gen_load_global(gen, reg, 0);
 		}
 	}

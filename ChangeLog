@@ -1,3 +1,11 @@
+2007-02-25  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.c (adjust_assignment, _jit_regs_gen): the ops
+	that have dest value on x87 stack but have no x87 input values need
+	the dest register to be adjusted after spilling too.
+	(is_register_occupied, clobbers_register): undo is_register_occupied
+	logic introduced 2007-02-12.
+
 2007-02-14  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-function.c (compile_block): check if cache is full and
