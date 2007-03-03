@@ -1,6 +1,7 @@
 
 man_MANS        = libjit.3
-EXTRA_DIST      = $(man_MANS)
+EXTRA_SCRIPTS	= extract-docs.sh mkhtml.sh mkpdf.sh
+EXTRA_DIST      = $(man_MANS) $(EXTRA_SCRIPTS)
 
 info_TEXINFOS   = libjit.texi
 libjit_TEXINFOS = \

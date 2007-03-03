@@ -1,5 +1,7 @@
 ARCH_HEADER = jit-arch-@JIT_ARCH@.h
 
+BUILT_SOURCES = jit-arch.h
+
 libjitincludedir = $(includedir)/jit
 libjitinclude_HEADERS = jit.h \
 						jit-arch.h \

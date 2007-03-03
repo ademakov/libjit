@@ -1,5 +1,10 @@
 2007-03-03  Aleksey Demakov  <ademakov@gmail.com>
 
+	* include/jit/Makefile.am: add jit-arch.h to BUILT_SOURCES.
+
+	* doc/Makefile.am: add extract-docs.sh, mkhtml.sh, mkpdf.sh to
+	EXTRA_DIST.
+
 	* configure.in: bump version to 0.1.0.
 	* NEWS: update news for the 0.1.0 release.
 
