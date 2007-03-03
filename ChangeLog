@@ -1,3 +1,8 @@
+2007-03-03  Aleksey Demakov  <ademakov@gmail.com>
+
+	* configure.in: bump version to 0.1.0.
+	* NEWS: update news for the 0.1.0 release.
+
 2007-02-25  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c (adjust_assignment, _jit_regs_gen): the ops
@@ -418,6 +423,7 @@
 	on some archs/distros.
 
 2006-08-21  Thomas Cort  <linuxgeek@gmail.com>
+
 	* jit/jit-rules-alpha.c jit/jit-gen-alpha.h: Add macros for
 	int to fp and fp to int conversions. Use _jit_pad_bufer.
 
@@ -435,6 +441,7 @@
 	from 2006-06-17.
 
 2006-08-15  Thomas Cort  <linuxgeek@gmail.com>
+
 	* jit/jit-rules-alpha.c jit/jit-rules-alpha.h jit/jit-rules-alpha.ins
 	Add a TODO() macro to print unimplemented warnings. Fix some 
 	casting warnings. Implement _jit_gen_redirector(...). Fix
@@ -809,8 +816,8 @@
 
 2006-03-12  Klaus Treichel  <ktreichel@web.de>
 
-	* jit/jit-insn.c: Pop the setjump context on return from functions with
-	a catcher.
+	* jit/jit-insn.c: Pop the setjump context on return from functions
+	with a catcher.
 
 2006-03-11  Kirill Kononenko  <Kirill.Kononenko@gmail.com>
 
