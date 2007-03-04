@@ -1,3 +1,7 @@
+2007-03-04  Aleksey Demakov  <ademakov@gmail.com>
+
+	* configure.in: update working version to "0.1.1".
+
 2007-03-03  Aleksey Demakov  <ademakov@gmail.com>
 
 	* include/jit/Makefile.am: add jit-arch.h to BUILT_SOURCES.
