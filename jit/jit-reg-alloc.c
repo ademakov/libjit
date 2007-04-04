@@ -2612,10 +2612,12 @@ commit_output_value(jit_gencode_t gen, _jit_regs_t *regs, int push_stack_top)
 		return;
 	}
 
+#ifdef JIT_REG_STACK
 	if(IS_STACK_REG(desc->reg) && push_stack_top)
 	{
 		++(gen->reg_stack_top);
 	}
+#endif
 	bind_value(gen, desc->value, desc->reg, desc->other_reg, 0);
 
 	if(!desc->used)
