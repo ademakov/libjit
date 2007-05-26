@@ -1,3 +1,9 @@
+2007-05-26  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-insn.c (jit_insn_store): remove incorrect optimization
+	that eliminates intermediate value without knowledge of its later
+	use.
+
 2007-04-04  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c (commit_output_value): fix compilation for

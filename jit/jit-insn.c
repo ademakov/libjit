@@ -1442,15 +1442,6 @@ int jit_insn_store(jit_function_t func, jit_value_t dest, jit_value_t value)
 	{
 		return 0;
 	}
-	insn = _jit_block_get_last(func->builder->current_block);
-	if(value->is_temporary && insn && insn->dest == value &&
-	   insn->value1 == dest)
-	{
-		/* Special case: we can move the destination value back into
-		   the previous instruction, to avoid a redundant copy */
-		insn->dest = dest;
-		return 1;
-	}
 	insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
