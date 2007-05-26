@@ -3463,8 +3463,8 @@ jit_nfloat jit_ulong_to_nfloat(jit_ulong value)
 	}
 	else
 	{
-		return ((jit_nfloat)(((jit_long)value) + jit_min_long)) +
-					(jit_nfloat)9223372036854775808.0;
+		return (jit_nfloat)((jit_long)value) +
+					(jit_nfloat)18446744073709551616.0;
 	}
 }
 
