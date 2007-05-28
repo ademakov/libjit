@@ -19,6 +19,7 @@
  */
 
 #include "jit-internal.h"
+#include <jit/jit-dump.h>
 
 #define USE_FORWARD_PROPAGATION 1
 #define USE_BACKWARD_PROPAGATION 1
@@ -134,6 +135,11 @@ compute_liveness_for_block(jit_block_t block)
 					/* There is no next use of this value and it is not
 					   live on exit from the block.  So we can discard
 					   the entire instruction as it will have no effect */
+#ifdef _JIT_COMPILE_DEBUG
+					printf("liveness analysis: optimize away instruction '");
+					jit_dump_insn(stdout, block->func, insn);
+					printf("'\n");
+#endif
 					insn->opcode = (short)JIT_OP_NOP;
 					continue;
 				}
@@ -163,7 +169,7 @@ compute_liveness_for_block(jit_block_t block)
 	}
 }
 
-#if USE_FORWARD_PROPAGATION || USE_BACKWARD_PROPAGATION
+#if defined(USE_FORWARD_PROPAGATION) || defined(USE_BACKWARD_PROPAGATION)
 static int
 is_copy_opcode(int opcode)
 {
@@ -237,17 +243,27 @@ forward_propagation(jit_block_t block)
 			continue;
 		}
 
-		/* Copy to itself could be safely discarded */
+		/* Discard copy to itself */
 		if(dest == value)
 		{
+#ifdef _JIT_COMPILE_DEBUG
+			printf("forward copy propagation: optimize away copy to itself in '");
+			jit_dump_insn(stdout, block->func, insn);
+			printf("'\n");
+#endif
 			insn->opcode = (short)JIT_OP_NOP;
 			optimized = 1;
 			continue;
 		}
 
 		/* Not smart enough to tell when it is safe to optimize copying
-		   to a value used in other basic block. So just give up. */
+		   to a value that is used in other basic blocks or may be
+		   aliased. */
 		if(!dest->is_temporary)
+		{
+			continue;
+		}
+		if(dest->is_addressable || dest->is_volatile)
 		{
 			continue;
 		}
@@ -255,8 +271,15 @@ forward_propagation(jit_block_t block)
 		iter2 = iter;
 		while((insn2 = jit_insn_iter_next(&iter2)) != 0)
 		{
-			flags2 = insn2->flags;
+			/* Skip NOP instructions, which may have arguments left
+			   over from when the instruction was replaced, but which
+			   are not relevant to our analysis */
+			if(insn->opcode == JIT_OP_NOP)
+			{
+				continue;
+			}
 
+			flags2 = insn2->flags;
 			if((flags2 & JIT_INSN_DEST_OTHER_FLAGS) == 0)
 			{
 				if((flags2 & JIT_INSN_DEST_IS_VALUE) == 0)
@@ -268,6 +291,15 @@ forward_propagation(jit_block_t block)
 				}
 				else if(insn2->dest == dest)
 				{
+#ifdef _JIT_COMPILE_DEBUG
+					printf("forward copy propagation: in '");
+					jit_dump_insn(stdout, block->func, insn2);
+					printf("' replace ");
+					jit_dump_value(stdout, block->func, insn2->dest, 0);
+					printf(" with ");
+					jit_dump_value(stdout, block->func, value, 0);
+					printf("'\n");
+#endif
 					insn2->dest = value;
 					optimized = 1;
 				}
@@ -276,6 +308,15 @@ forward_propagation(jit_block_t block)
 			{
 				if(insn2->value1 == dest)
 				{
+#ifdef _JIT_COMPILE_DEBUG
+					printf("forward copy propagation: in '");
+					jit_dump_insn(stdout, block->func, insn2);
+					printf("' replace ");
+					jit_dump_value(stdout, block->func, insn2->value1, 0);
+					printf(" with ");
+					jit_dump_value(stdout, block->func, value, 0);
+					printf("'\n");
+#endif
 					insn2->value1 = value;
 					optimized = 1;
 				}
@@ -284,6 +325,15 @@ forward_propagation(jit_block_t block)
 			{
 				if(insn2->value2 == dest)
 				{
+#ifdef _JIT_COMPILE_DEBUG
+					printf("forward copy propagation: in '");
+					jit_dump_insn(stdout, block->func, insn2);
+					printf("' replace ");
+					jit_dump_value(stdout, block->func, insn2->value2, 0);
+					printf(" with ");
+					jit_dump_value(stdout, block->func, value, 0);
+					printf("'\n");
+#endif
 					insn2->value2 = value;
 					optimized = 1;
 				}
@@ -295,7 +345,7 @@ forward_propagation(jit_block_t block)
 }
 #endif
 
-#if USE_BACKWARD_PROPAGATION
+#ifdef USE_BACKWARD_PROPAGATION
 /*
  * Perform simple copy propagation within basic block for the case when a
  * temporary value is stored to another value. This replaces instructions
@@ -338,16 +388,29 @@ backward_propagation(jit_block_t block)
 		{
 			continue;
 		}
+		if(dest->is_addressable || dest->is_volatile)
+		{
+			continue;
+		}
 
 		value = insn->value1;
 		if(value == 0)
 		{
 			continue;
 		}
+		if(value->is_addressable || value->is_volatile)
+		{
+			continue;
+		}
 
-		/* Copy to itself could be safely discarded */
+		/* Discard copy to itself */
 		if(dest == value)
 		{
+#ifdef _JIT_COMPILE_DEBUG
+			printf("backward copy propagation: optimize away copy to itself in '");
+			jit_dump_insn(stdout, block->func, insn);
+			printf("'\n");
+#endif
 			insn->opcode = (short)JIT_OP_NOP;
 			optimized = 1;
 			continue;
@@ -362,8 +425,15 @@ backward_propagation(jit_block_t block)
 		iter2 = iter;
 		while((insn2 = jit_insn_iter_previous(&iter2)) != 0)
 		{
-			flags2 = insn2->flags;
+			/* Skip NOP instructions, which may have arguments left
+			   over from when the instruction was replaced, but which
+			   are not relevant to our analysis */
+			if(insn->opcode == JIT_OP_NOP)
+			{
+				continue;
+			}
 
+			flags2 = insn2->flags;
 			if((flags2 & JIT_INSN_DEST_OTHER_FLAGS) == 0)
 			{
 				if(insn2->dest == dest)
@@ -374,6 +444,17 @@ backward_propagation(jit_block_t block)
 				{
 					if((flags2 & JIT_INSN_DEST_IS_VALUE) == 0)
 					{
+#ifdef _JIT_COMPILE_DEBUG
+						printf("backward copy propagation: in '");
+						jit_dump_insn(stdout, block->func, insn2);
+						printf("' replace ");
+						jit_dump_value(stdout, block->func, insn2->dest, 0);
+						printf(" with ");
+						jit_dump_value(stdout, block->func, dest, 0);
+						printf(" and optimize away '");
+						jit_dump_insn(stdout, block->func, insn);
+						printf("'\n");
+#endif
 						insn->opcode = (short)JIT_OP_NOP;
 						insn2->dest = dest;
 						optimized = 1;
@@ -470,7 +551,7 @@ void _jit_function_compute_liveness(jit_function_t func)
 		/* Perform peephole optimization on branches to branches */
 		_jit_block_peephole_branch(block);
 
-#if USE_FORWARD_PROPAGATION
+#ifdef USE_FORWARD_PROPAGATION
 		/* Perform forward copy propagation for the block */
 		forward_propagation(block);
 #endif
@@ -481,7 +562,7 @@ void _jit_function_compute_liveness(jit_function_t func)
 		/* Compute the liveness flags for the block */
 		compute_liveness_for_block(block);
 
-#if USE_BACKWARD_PROPAGATION
+#ifdef USE_BACKWARD_PROPAGATION
 		/* Perform backward copy propagation for the block */
 		if(backward_propagation(block))
 		{
