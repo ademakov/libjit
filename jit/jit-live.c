@@ -20,10 +20,14 @@
 
 #include "jit-internal.h"
 
+#define USE_FORWARD_PROPAGATION 1
+#define USE_BACKWARD_PROPAGATION 1
+
 /*
  * Compute liveness information for a basic block.
  */
-static void compute_liveness_for_block(jit_block_t block)
+static void
+compute_liveness_for_block(jit_block_t block)
 {
 	jit_insn_iter_t iter;
 	jit_insn_t insn;
@@ -157,39 +161,297 @@ static void compute_liveness_for_block(jit_block_t block)
 			value2->next_use = 1;
 		}
 	}
+}
 
-	/* Re-scan the block to reset the liveness flags on all non-temporaries
-	   because we need them in the original state for the next block */
+#if USE_FORWARD_PROPAGATION || USE_BACKWARD_PROPAGATION
+static int
+is_copy_opcode(int opcode)
+{
+	switch(opcode)
+	{
+	case JIT_OP_COPY_INT:
+	case JIT_OP_COPY_LONG:
+	case JIT_OP_COPY_FLOAT32:
+	case JIT_OP_COPY_FLOAT64:
+	case JIT_OP_COPY_NFLOAT:
+	/*case JIT_OP_STRUCT:*/
+		return 1;
+	}
+	return 0;
+}
+#endif
+
+#if USE_FORWARD_PROPAGATION
+/*
+ * Perform simple copy propagation within basic block. Replaces instructions
+ * that look like this:
+ *
+ * i) t = x
+ * ...
+ * j) y = op(t)
+ *
+ * with the folowing:
+ *
+ * i) t = x
+ * ...
+ * j) y = op(x)
+ *
+ * If "t" is not used after the instruction "j" then further liveness analysis
+ * may replace the instruction "i" with a noop:
+ *
+ * i) noop
+ * ...
+ * j) y = op(x)
+ *
+ * The propagation stops as soon as either "t" or "x" are changed (used as a
+ * dest in a different instruction).
+ */
+static int
+forward_propagation(jit_block_t block)
+{
+	int optimized;
+	jit_insn_iter_t iter, iter2;
+	jit_insn_t insn, insn2;
+	jit_value_t dest, value;
+	int flags2;
+
+	optimized = 0;
+
+	jit_insn_iter_init(&iter, block);
+	while((insn = jit_insn_iter_next(&iter)) != 0)
+	{
+		if(!is_copy_opcode(insn->opcode))
+		{
+			continue;
+		}
+
+		dest = insn->dest;
+		if(dest == 0 || dest->is_constant)
+		{
+			continue;
+		}
+
+		value = insn->value1;
+		if(value == 0)
+		{
+			continue;
+		}
+
+		/* Copy to itself could be safely discarded */
+		if(dest == value)
+		{
+			insn->opcode = (short)JIT_OP_NOP;
+			optimized = 1;
+			continue;
+		}
+
+		/* Not smart enough to tell when it is safe to optimize copying
+		   to a value used in other basic block. So just give up. */
+		if(!dest->is_temporary)
+		{
+			continue;
+		}
+
+		iter2 = iter;
+		while((insn2 = jit_insn_iter_next(&iter2)) != 0)
+		{
+			flags2 = insn2->flags;
+
+			if((flags2 & JIT_INSN_DEST_OTHER_FLAGS) == 0)
+			{
+				if((flags2 & JIT_INSN_DEST_IS_VALUE) == 0)
+				{
+					if(insn2->dest == dest || insn2->dest == value)
+					{
+						break;
+					}
+				}
+				else if(insn2->dest == dest)
+				{
+					insn2->dest = value;
+					optimized = 1;
+				}
+			}
+			if((flags2 & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
+			{
+				if(insn2->value1 == dest)
+				{
+					insn2->value1 = value;
+					optimized = 1;
+				}
+			}
+			if((flags2 & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
+			{
+				if(insn2->value2 == dest)
+				{
+					insn2->value2 = value;
+					optimized = 1;
+				}
+			}
+		}
+	}
+
+	return optimized;
+}
+#endif
+
+#if USE_BACKWARD_PROPAGATION
+/*
+ * Perform simple copy propagation within basic block for the case when a
+ * temporary value is stored to another value. This replaces instructions
+ * that look like this:
+ *
+ * i) t = op(x)
+ * ...
+ * j) y = t
+ *
+ * with the following
+ *
+ * i) y = op(x)
+ * ...
+ * j) noop
+ *
+ * This is only allowed if "t" is used only in the instructions "i" and "j"
+ * and "y" is not used between "i" and "j" (but can be used after "j").
+ */
+static int
+backward_propagation(jit_block_t block)
+{
+	int optimized;
+	jit_insn_iter_t iter, iter2;
+	jit_insn_t insn, insn2;
+	jit_value_t dest, value;
+	int flags2;
+
+	optimized = 0;
+
 	jit_insn_iter_init_last(&iter, block);
 	while((insn = jit_insn_iter_previous(&iter)) != 0)
+	{
+		if(!is_copy_opcode(insn->opcode))
+		{
+			continue;
+		}
+
+		dest = insn->dest;
+		if(dest == 0 || dest->is_constant)
+		{
+			continue;
+		}
+
+		value = insn->value1;
+		if(value == 0)
+		{
+			continue;
+		}
+
+		/* Copy to itself could be safely discarded */
+		if(dest == value)
+		{
+			insn->opcode = (short)JIT_OP_NOP;
+			optimized = 1;
+			continue;
+		}
+
+		/* "value" is used afterwards so we cannot eliminate it here */
+		if((insn->flags & (JIT_INSN_VALUE1_LIVE | JIT_INSN_VALUE1_NEXT_USE)) != 0)
+		{
+			continue;
+		}
+
+		iter2 = iter;
+		while((insn2 = jit_insn_iter_previous(&iter2)) != 0)
+		{
+			flags2 = insn2->flags;
+
+			if((flags2 & JIT_INSN_DEST_OTHER_FLAGS) == 0)
+			{
+				if(insn2->dest == dest)
+				{
+					break;
+				}
+				if(insn2->dest == value)
+				{
+					if((flags2 & JIT_INSN_DEST_IS_VALUE) == 0)
+					{
+						insn->opcode = (short)JIT_OP_NOP;
+						insn2->dest = dest;
+						optimized = 1;
+					}
+					break;
+				}
+			}
+			if((flags2 & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
+			{
+				if(insn2->value1 == dest || insn2->value1 == value)
+				{
+					break;
+				}
+			}
+			if((flags2 & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
+			{
+				if(insn2->value2 == dest || insn2->value1 == value)
+				{
+					break;
+				}
+			}
+		}
+	}
+
+	return optimized;
+}
+#endif
+
+/* Reset value liveness flags. */
+static void
+reset_value_liveness(jit_value_t value)
+{
+	if(value)
+	{
+		if (!value->is_constant && !value->is_temporary)
+		{
+			value->live = 1;
+		}
+		else
+		{
+			value->live = 0;
+		}
+		value->next_use = 0;
+	}
+}
+
+/*
+ * Re-scan the block to reset the liveness flags on all non-temporaries
+ * because we need them in the original state for the next block.
+ */
+static void
+reset_liveness_flags(jit_block_t block, int reset_all)
+{
+	jit_insn_iter_t iter;
+	jit_insn_t insn;
+	int flags;
+
+	jit_insn_iter_init(&iter, block);
+	while((insn = jit_insn_iter_next(&iter)) != 0)
 	{
 		flags = insn->flags;
 		if((flags & JIT_INSN_DEST_OTHER_FLAGS) == 0)
 		{
-			dest = insn->dest;
-			if(dest && !(dest->is_constant) && !(dest->is_temporary))
-			{
-				dest->live = 1;
-				dest->next_use = 0;
-			}
+			reset_value_liveness(insn->dest);
 		}
 		if((flags & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
 		{
-			value1 = insn->value1;
-			if(value1 && !(value1->is_constant) && !(value1->is_temporary))
-			{
-				value1->live = 1;
-				value1->next_use = 0;
-			}
+			reset_value_liveness(insn->value1);
 		}
 		if((flags & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
 		{
-			value2 = insn->value2;
-			if(value2 && !(value2->is_constant) && !(value2->is_temporary))
-			{
-				value2->live = 1;
-				value2->next_use = 0;
-			}
+			reset_value_liveness(insn->value2);
+		}
+		if(reset_all)
+		{
+			flags &= ~(JIT_INSN_DEST_LIVE | JIT_INSN_DEST_NEXT_USE
+				   |JIT_INSN_VALUE1_LIVE | JIT_INSN_VALUE1_NEXT_USE
+				   |JIT_INSN_VALUE2_LIVE | JIT_INSN_VALUE2_NEXT_USE);
 		}
 	}
 }
@@ -208,8 +470,26 @@ void _jit_function_compute_liveness(jit_function_t func)
 		/* Perform peephole optimization on branches to branches */
 		_jit_block_peephole_branch(block);
 
+#if USE_FORWARD_PROPAGATION
+		/* Perform forward copy propagation for the block */
+		forward_propagation(block);
+#endif
+
+		/* Reset the liveness flags for the next block */
+		reset_liveness_flags(block, 0);
+
 		/* Compute the liveness flags for the block */
 		compute_liveness_for_block(block);
+
+#if USE_BACKWARD_PROPAGATION
+		/* Perform backward copy propagation for the block */
+		if(backward_propagation(block))
+		{
+			/* Reset the liveness flags and compute them again */
+			reset_liveness_flags(block, 1);
+			compute_liveness_for_block(block);
+		}
+#endif
 
 		/* Move on to the next block in the function */
 		block = block->next;

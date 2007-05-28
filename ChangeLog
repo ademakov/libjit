@@ -1,3 +1,12 @@
+2007-05-28  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-live.c (_jit_function_compute_liveness)
+	(forward_propagation, backward_propagation): add simple copy
+	propagation that works only within basic blocks.
+
+	* jit/jit-value.c (jit_value_ref): do not set the live flag here
+	as this	is done in jit-live.c now.
+
 2007-05-26  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-intrinsic.c: Fix conversion from ulong to nfloat for values

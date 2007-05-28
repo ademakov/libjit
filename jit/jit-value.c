@@ -627,7 +627,6 @@ void jit_value_ref(jit_function_t func, jit_value_t value)
 			value->is_temporary = 0;
 			value->is_local = 1;
 			value->is_addressable = 1;
-			value->live = 1;
 
 			/* Mark the two functions as not leaves because we will need
 			   them to set up proper frame pointers to allow us to access
@@ -640,7 +639,6 @@ void jit_value_ref(jit_function_t func, jit_value_t value)
 			/* Reference from another block in same function: local */
 			value->is_temporary = 0;
 			value->is_local = 1;
-			value->live = 1;
 			if(_jit_gen_is_global_candidate(value->type))
 			{
 				value->global_candidate = 1;
