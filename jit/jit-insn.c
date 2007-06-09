@@ -4387,42 +4387,53 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		{
 			/* Convert the value into a signed byte */
 			static jit_convert_info_t const to_sbyte[] = {
+				/* from signed byte */
+				/* from signed short */
+				/* from signed int */
 				{CVT(JIT_OP_TRUNC_SBYTE, sbyte),
 				 	CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_SBYTE, sbyte),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from unsigned byte */
+				/* from unsigned short */
+				/* from unsigned int */
 				{CVT(JIT_OP_TRUNC_SBYTE, sbyte),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_INT, int),
 				 	CVT(JIT_OP_CHECK_SBYTE, sbyte),
 					CVT_NONE},
+				/* from signed long */
 				{CVT(JIT_OP_LOW_WORD, int),
 					CVT(JIT_OP_TRUNC_SBYTE, sbyte),
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
 				 	CVT(JIT_OP_CHECK_SBYTE, sbyte),
 					CVT_NONE},
+				/* from unsigned long */
 				{CVT(JIT_OP_LOW_WORD, int),
 					CVT(JIT_OP_TRUNC_SBYTE, sbyte),
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
 				 	CVT(JIT_OP_CHECK_INT, int),
 					CVT(JIT_OP_CHECK_SBYTE, sbyte)},
+				/* from 32-bit float */
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_TRUNC_SBYTE, sbyte)},
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_CHECK_SBYTE, sbyte)},
+				/* from 64-bit float */
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_TRUNC_SBYTE, sbyte)},
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_CHECK_SBYTE, sbyte)},
+				/* from native float */
 				{CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_TRUNC_SBYTE, sbyte),
 					CVT_NONE},
@@ -4438,42 +4449,53 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		{
 			/* Convert the value into an unsigned byte */
 			static jit_convert_info_t const to_ubyte[] = {
+				/* from signed byte */
+				/* from signed short */
+				/* from signed int */
 				{CVT(JIT_OP_TRUNC_UBYTE, ubyte),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_UBYTE, ubyte),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from unsigned byte */
+				/* from unsigned short */
+				/* from unsigned int */
 				{CVT(JIT_OP_TRUNC_UBYTE, ubyte),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_UBYTE, ubyte),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from signed long */
 				{CVT(JIT_OP_LOW_WORD, int),
 					CVT(JIT_OP_TRUNC_UBYTE, ubyte),
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
 				 	CVT(JIT_OP_CHECK_UBYTE, ubyte),
 					CVT_NONE},
+				/* from unsigned long */
 				{CVT(JIT_OP_LOW_WORD, int),
 					CVT(JIT_OP_TRUNC_UBYTE, ubyte),
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
 				 	CVT(JIT_OP_CHECK_UBYTE, ubyte),
 					CVT_NONE},
+				/* from 32-bit float */
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_TRUNC_UBYTE, ubyte)},
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 				 	CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_CHECK_UBYTE, ubyte)},
+				/* from 64-bit float */
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_TRUNC_UBYTE, ubyte)},
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_CHECK_UBYTE, ubyte)},
+				/* from native float */
 				{CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_TRUNC_UBYTE, ubyte),
 					CVT_NONE},
@@ -4489,42 +4511,53 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		{
 			/* Convert the value into a signed short */
 			static jit_convert_info_t const to_short[] = {
+				/* from signed byte */
+				/* from signed short */
+				/* from signed int */
 				{CVT(JIT_OP_TRUNC_SHORT, short),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_SHORT, short),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from unsigned byte */
+				/* from unsigned short */
+				/* from unsigned int */
 				{CVT(JIT_OP_TRUNC_SHORT, short),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_INT, int),
 				 	CVT(JIT_OP_CHECK_SHORT, short),
 					CVT_NONE},
+				/* from signed long */
 				{CVT(JIT_OP_LOW_WORD, int),
 					CVT(JIT_OP_TRUNC_SHORT, short),
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
 				 	CVT(JIT_OP_CHECK_SHORT, short),
 					CVT_NONE},
+				/* from unsigned long */
 				{CVT(JIT_OP_LOW_WORD, int),
 					CVT(JIT_OP_TRUNC_SHORT, short),
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
 				 	CVT(JIT_OP_CHECK_INT, int),
 					CVT(JIT_OP_CHECK_SHORT, short)},
+				/* from 32-bit float */
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_TRUNC_SHORT, short)},
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_CHECK_SHORT, short)},
+				/* from 64-bit float */
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_TRUNC_SHORT, short)},
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_CHECK_SHORT, short)},
+				/* from native float */
 				{CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_TRUNC_SHORT, short),
 					CVT_NONE},
@@ -4540,42 +4573,53 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		{
 			/* Convert the value into an unsigned short */
 			static jit_convert_info_t const to_ushort[] = {
+				/* from signed byte */
+				/* from signed short */
+				/* from signed int */
 				{CVT(JIT_OP_TRUNC_USHORT, ushort),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_USHORT, ushort),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from unsigned byte */
+				/* from unsigned short */
+				/* from unsigned int */
 				{CVT(JIT_OP_TRUNC_USHORT, ushort),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_USHORT, ushort),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from signed long */
 				{CVT(JIT_OP_LOW_WORD, int),
 					CVT(JIT_OP_TRUNC_USHORT, ushort),
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
 				 	CVT(JIT_OP_CHECK_USHORT, ushort),
 					CVT_NONE},
+				/* from unsigned long */
 				{CVT(JIT_OP_LOW_WORD, int),
 					CVT(JIT_OP_TRUNC_USHORT, ushort),
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
 				 	CVT(JIT_OP_CHECK_USHORT, ushort),
 					CVT_NONE},
+				/* from 32-bit float */
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_TRUNC_USHORT, ushort)},
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_CHECK_USHORT, ushort)},
+				/* from 64-bit float */
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_TRUNC_USHORT, ushort)},
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_CHECK_USHORT, ushort)},
+				/* from native float */
 				{CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT(JIT_OP_TRUNC_USHORT, ushort),
 					CVT_NONE},
@@ -4591,12 +4635,18 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		{
 			/* Convert the value into a signed int */
 			static jit_convert_info_t const to_int[] = {
+				/* from signed byte */
+				/* from signed short */
+				/* from signed int */
 				{CVT(JIT_OP_COPY_INT, int),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_COPY_INT, int),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from unsigned byte */
+				/* from unsigned short */
+				/* from unsigned int */
 			#ifndef JIT_NATIVE_INT32
 				{CVT(JIT_OP_TRUNC_INT, int),
 			#else
@@ -4607,6 +4657,7 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 				{CVT(JIT_OP_CHECK_INT, int),
 					CVT_NONE,
 					CVT_NONE},
+				/* from signed long */
 				{CVT(JIT_OP_LOW_WORD, int),
 			#ifndef JIT_NATIVE_INT32
 					CVT(JIT_OP_TRUNC_INT, int),
@@ -4617,6 +4668,7 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 				{CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from unsigned long */
 				{CVT(JIT_OP_LOW_WORD, int),
 			#ifndef JIT_NATIVE_INT32
 					CVT(JIT_OP_TRUNC_INT, int),
@@ -4627,18 +4679,21 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
 				 	CVT(JIT_OP_CHECK_INT, int),
 					CVT_NONE},
+				/* from 32-bit float */
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT_NONE},
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 				 	CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
 					CVT_NONE},
+				/* from 64-bit float */
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT_NONE},
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 				 	CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
 					CVT_NONE},
+				/* from native float */
 				{CVT(JIT_OP_NFLOAT_TO_INT, int),
 					CVT_NONE,
 					CVT_NONE},
@@ -4654,6 +4709,9 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		{
 			/* Convert the value into an unsigned int */
 			static jit_convert_info_t const to_uint[] = {
+				/* from signed byte */
+				/* from signed short */
+				/* from signed int */
 			#ifndef JIT_NATIVE_INT32
 				{CVT(JIT_OP_TRUNC_UINT, uint),
 			#else
@@ -4664,36 +4722,44 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 				{CVT(JIT_OP_CHECK_UINT, uint),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from unsigned byte */
+				/* from unsigned short */
+				/* from unsigned int */
 				{CVT(JIT_OP_COPY_INT, uint),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_COPY_INT, uint),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from signed long */
 				{CVT(JIT_OP_LOW_WORD, uint),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from unsigned long */
 				{CVT(JIT_OP_LOW_WORD, uint),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from 32-bit float */
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_UINT, uint),
 					CVT_NONE},
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 				 	CVT(JIT_OP_CHECK_NFLOAT_TO_UINT, uint),
 					CVT_NONE},
+				/* from 64-bit float */
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_UINT, uint),
 					CVT_NONE},
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 				 	CVT(JIT_OP_CHECK_NFLOAT_TO_UINT, uint),
 					CVT_NONE},
+				/* from native float */
 				{CVT(JIT_OP_NFLOAT_TO_UINT, uint),
 					CVT_NONE,
 					CVT_NONE},
@@ -4709,42 +4775,53 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		{
 			/* Convert the value into a signed long */
 			static jit_convert_info_t const to_long[] = {
+				/* from signed byte */
+				/* from signed short */
+				/* from signed int */
 				{CVT(JIT_OP_EXPAND_INT, long),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_EXPAND_INT, long),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from unsigned byte */
+				/* from unsigned short */
+				/* from unsigned int */
 				{CVT(JIT_OP_EXPAND_UINT, long),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_EXPAND_UINT, long),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from signed long */
 				{CVT(JIT_OP_COPY_LONG, long),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_COPY_LONG, long),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from unsigned long */
 				{CVT(JIT_OP_COPY_LONG, long),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_LONG, long),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from 32-bit float */
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_LONG, long),
 					CVT_NONE},
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 				 	CVT(JIT_OP_CHECK_NFLOAT_TO_LONG, long),
 					CVT_NONE},
+				/* from 64-bit float */
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_LONG, long),
 					CVT_NONE},
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 				 	CVT(JIT_OP_CHECK_NFLOAT_TO_LONG, long),
 					CVT_NONE},
+				/* from native float */
 				{CVT(JIT_OP_NFLOAT_TO_LONG, long),
 					CVT_NONE,
 					CVT_NONE},
@@ -4760,42 +4837,53 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		{
 			/* Convert the value into an unsigned long */
 			static jit_convert_info_t const to_ulong[] = {
+				/* from signed byte */
+				/* from signed short */
+				/* from signed int */
 				{CVT(JIT_OP_EXPAND_INT, ulong),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_UINT, uint),
 				 	CVT(JIT_OP_EXPAND_UINT, ulong),
 					CVT_NONE},
+				/* from unsigned byte */
+				/* from unsigned short */
+				/* from unsigned int */
 				{CVT(JIT_OP_EXPAND_UINT, ulong),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_EXPAND_UINT, ulong),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from signed long */
 				{CVT(JIT_OP_COPY_LONG, ulong),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_CHECK_ULONG, ulong),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from unsigned long */
 				{CVT(JIT_OP_COPY_LONG, ulong),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_COPY_LONG, ulong),
 				 	CVT_NONE,
 					CVT_NONE},
+				/* from 32-bit float */
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_ULONG, ulong),
 					CVT_NONE},
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 				 	CVT(JIT_OP_CHECK_NFLOAT_TO_ULONG, ulong),
 					CVT_NONE},
+				/* from 64-bit float */
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_ULONG, ulong),
 					CVT_NONE},
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 				 	CVT(JIT_OP_CHECK_NFLOAT_TO_ULONG, ulong),
 					CVT_NONE},
+				/* from native float */
 				{CVT(JIT_OP_NFLOAT_TO_ULONG, ulong),
 					CVT_NONE,
 					CVT_NONE},
@@ -4811,42 +4899,53 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		{
 			/* Convert the value into a 32-bit float */
 			static jit_convert_info_t const to_float32[] = {
+				/* from signed byte */
+				/* from signed short */
+				/* from signed int */
 				{CVT(JIT_OP_INT_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
 					CVT_NONE},
 				{CVT(JIT_OP_INT_TO_NFLOAT, nfloat),
 				 	CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
 					CVT_NONE},
+				/* from unsigned byte */
+				/* from unsigned short */
+				/* from unsigned int */
 				{CVT(JIT_OP_UINT_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
 					CVT_NONE},
 				{CVT(JIT_OP_UINT_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
 					CVT_NONE},
+				/* from signed long */
 				{CVT(JIT_OP_LONG_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
 					CVT_NONE},
 				{CVT(JIT_OP_LONG_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
 					CVT_NONE},
+				/* from unsigned long */
 				{CVT(JIT_OP_ULONG_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
 					CVT_NONE},
 				{CVT(JIT_OP_ULONG_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
 					CVT_NONE},
+				/* from 32-bit float */
 				{CVT(JIT_OP_COPY_FLOAT32, float32),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_COPY_FLOAT32, float32),
 					CVT_NONE,
 					CVT_NONE},
+				/* from 64-bit float */
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
 					CVT_NONE},
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
 					CVT_NONE},
+				/* from native float */
 				{CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
 					CVT_NONE,
 					CVT_NONE},
@@ -4862,42 +4961,53 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		{
 			/* Convert the value into a 64-bit float */
 			static jit_convert_info_t const to_float64[] = {
+				/* from signed byte */
+				/* from signed short */
+				/* from signed int */
 				{CVT(JIT_OP_INT_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
 					CVT_NONE},
 				{CVT(JIT_OP_INT_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
 					CVT_NONE},
+				/* from unsigned byte */
+				/* from unsigned short */
+				/* from unsigned int */
 				{CVT(JIT_OP_UINT_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
 					CVT_NONE},
 				{CVT(JIT_OP_UINT_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
 					CVT_NONE},
+				/* from signed long */
 				{CVT(JIT_OP_LONG_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
 					CVT_NONE},
 				{CVT(JIT_OP_LONG_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
 					CVT_NONE},
+				/* from unsigned long */
 				{CVT(JIT_OP_ULONG_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
 					CVT_NONE},
 				{CVT(JIT_OP_ULONG_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
 					CVT_NONE},
+				/* from 32-bit float */
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
 					CVT_NONE},
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
 					CVT_NONE},
+				/* from 64-bit float */
 				{CVT(JIT_OP_COPY_FLOAT64, float64),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_COPY_FLOAT64, float64),
 					CVT_NONE,
 					CVT_NONE},
+				/* from native float */
 				{CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
 					CVT_NONE,
 					CVT_NONE},
@@ -4913,42 +5023,53 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		{
 			/* Convert the value into a native floating-point value */
 			static jit_convert_info_t const to_nfloat[] = {
+				/* from signed byte */
+				/* from signed short */
+				/* from signed int */
 				{CVT(JIT_OP_INT_TO_NFLOAT, nfloat),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_INT_TO_NFLOAT, nfloat),
 					CVT_NONE,
 					CVT_NONE},
+				/* from unsigned byte */
+				/* from unsigned short */
+				/* from unsigned int */
 				{CVT(JIT_OP_UINT_TO_NFLOAT, nfloat),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_UINT_TO_NFLOAT, nfloat),
 					CVT_NONE,
 					CVT_NONE},
+				/* from signed long */
 				{CVT(JIT_OP_LONG_TO_NFLOAT, nfloat),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_LONG_TO_NFLOAT, nfloat),
 					CVT_NONE,
 					CVT_NONE},
+				/* from unsigned long */
 				{CVT(JIT_OP_ULONG_TO_NFLOAT, nfloat),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_ULONG_TO_NFLOAT, nfloat),
 					CVT_NONE,
 					CVT_NONE},
+				/* from 32-bit float */
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
 					CVT_NONE,
 					CVT_NONE},
+				/* from 64-bit float */
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT_NONE,
 					CVT_NONE},
 				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
 					CVT_NONE,
 					CVT_NONE},
+				/* from native float */
 				{CVT(JIT_OP_COPY_NFLOAT, nfloat),
 					CVT_NONE,
 					CVT_NONE},
