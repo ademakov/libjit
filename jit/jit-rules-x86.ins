@@ -1863,19 +1863,28 @@ JIT_OP_ADDRESS_OF_LABEL:
  * Data manipulation.
  */
 
-JIT_OP_COPY_LOAD_SBYTE: copy
+JIT_OP_COPY_LOAD_SBYTE, JIT_OP_COPY_LOAD_UBYTE, JIT_OP_COPY_STORE_BYTE: copy
+	[=local, imm] -> {
+		x86_mov_membase_imm(inst, X86_EBP, $1, $2, 1);
+	}
+	[=local, breg] -> {
+		x86_mov_membase_reg(inst, X86_EBP, $1, $2, 1);
+	}
 	[reg] -> {}
 
-JIT_OP_COPY_LOAD_UBYTE: copy
-	[reg] -> {}
-
-JIT_OP_COPY_LOAD_SHORT: copy
-	[reg] -> {}
-
-JIT_OP_COPY_LOAD_USHORT: copy
+JIT_OP_COPY_LOAD_SHORT, JIT_OP_COPY_LOAD_USHORT, JIT_OP_COPY_STORE_SHORT: copy
+	[=local, imm] -> {
+		x86_mov_membase_imm(inst, X86_EBP, $1, $2, 2);
+	}
+	[=local, reg] -> {
+		x86_mov_membase_reg(inst, X86_EBP, $1, $2, 2);
+	}
 	[reg] -> {}
 
 JIT_OP_COPY_INT: copy
+	[=local, imm] -> {
+		x86_mov_membase_imm(inst, X86_EBP, $1, $2, 4);
+	}
 	[reg] -> {}
 
 JIT_OP_COPY_LONG: copy
@@ -1894,22 +1903,6 @@ JIT_OP_COPY_STRUCT:
 	[=frame, frame, clobber(reg)] -> {
 		inst = memory_copy(gen, inst, X86_EBP, $1, X86_EBP, $2,
 				   jit_type_get_size(jit_value_get_type(insn->dest)));
-	}
-
-JIT_OP_COPY_STORE_BYTE:
-	[=frame, imm] -> {
-		x86_mov_membase_imm(inst, X86_EBP, $1, $2, 1);
-	}
-	[=frame, breg] -> {
-		x86_mov_membase_reg(inst, X86_EBP, $1, $2, 1);
-	}
-
-JIT_OP_COPY_STORE_SHORT:
-	[=frame, imm] -> {
-		x86_mov_membase_imm(inst, X86_EBP, $1, $2, 2);
-	}
-	[=frame, reg] -> {
-		x86_mov_membase_reg(inst, X86_EBP, $1, $2, 2);
 	}
 
 JIT_OP_ADDRESS_OF:

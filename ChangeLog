@@ -1,3 +1,16 @@
+2007-06-10  Aleksey Demakov  <ademakov@gmail.com>
+
+	* tools/gen-rules-parser.y (gensel_output_clauses): alter selection
+	logic so that "reg" rules are chosen over "local" in case the value
+	is used again in the same basic block.
+
+	* jit/jit-rules-x86.ins: tweak COPY rules for bytes, shorts, and
+	ints.
+
+	* jit/jit-live.c (forward_propagation, backward_propagation)
+	(is_copy_insn): do not perform copy propagation if JIT_OP_COPY_INT
+	is used for byte and short values.
+
 2007-05-28  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-live.c (forward_propagation, backward_propagation): do not

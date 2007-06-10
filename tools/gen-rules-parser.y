@@ -21,6 +21,7 @@
 
 #include <config.h>
 #include <stdio.h>
+#include <ctype.h>
 #ifdef HAVE_STRING_H
 	#include <string.h>
 #elif defined(HAVE_STRINGS_H)
@@ -283,7 +284,7 @@ gensel_create_value(int type)
 }
 
 /*
- * Create string value.
+ * Create literal string value.
  */
 static gensel_value_t
 gensel_create_string_value(char *value)
@@ -297,7 +298,7 @@ gensel_create_string_value(char *value)
 }
 
 /*
- * Create string value.
+ * Create register class value.
  */
 static gensel_value_t
 gensel_create_regclass_value(char *value)
@@ -939,6 +940,24 @@ gensel_output_register_pattern(char *name, gensel_option_t pattern)
 }
 
 /*
+ * Create an upper-case copy of a string.
+ */
+static char *
+gensel_string_upper(char *string)
+{
+	char *cp;
+	if(string)
+	{
+		string = strdup(string);
+		for(cp = string; *cp; cp++)
+		{
+			*cp = toupper(*cp);
+		}
+	}
+	return string;
+}
+
+/*
  * Output the clauses for a rule.
  */
 static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t options)
@@ -956,6 +975,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 	int ternary, free_dest;
 	int contains_registers;
 	gensel_regclass_t regclass;
+	char *uc_arg;
 
 	/* If the clause is manual, then output it as-is */
 	if(gensel_search_option(options, GENSEL_OPT_MANUAL))
@@ -1107,6 +1127,14 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 					printf("!insn->%s->is_constant && ", args[index]);
 					printf("!insn->%s->in_register && ", args[index]);
 					printf("!insn->%s->has_global_register", args[index]);
+					/* If the value is used again in the same basic block
+					   it is highly likely that using a register instead
+					   of the stack will be a win. Assume that if the
+					   "local" pattern is not the last one then it must
+					   be followed by a "reg" pattern. */
+					uc_arg = gensel_string_upper(args[index]);
+					printf("&& (insn->flags & JIT_INSN_%s_NEXT_USE) == 0", uc_arg);
+					free(uc_arg);
 					seen_option = 1;
 					++index;
 					break;

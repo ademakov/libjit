@@ -170,19 +170,55 @@ compute_liveness_for_block(jit_block_t block)
 }
 
 #if defined(USE_FORWARD_PROPAGATION) || defined(USE_BACKWARD_PROPAGATION)
+/*
+ * Check if the instruction is eligible for copy propagation.
+ */
 static int
-is_copy_opcode(int opcode)
+is_copy_insn(jit_insn_t insn)
 {
-	switch(opcode)
+	jit_type_t dtype;
+	jit_type_t vtype;
+
+	if (!insn || !insn->dest || !insn->value1)
+	{
+		return 0;
+	}
+
+	switch(insn->opcode)
 	{
 	case JIT_OP_COPY_INT:
+		/* Currently JIT_INSN_COPY_INT is used not only for int-to-int
+		   copying but for byte-to-int and short-to-int copying too
+		   (see jit_insn_convert). Propagation of byte and short values
+		   to instructions that expect ints might confuse them. */
+		dtype = jit_type_normalize(insn->dest->type);
+		vtype = jit_type_normalize(insn->value1->type);
+		if(dtype != vtype)
+		{
+			/* signed/unsigned int conversion should be safe */
+			if((dtype->kind == JIT_TYPE_INT || dtype->kind == JIT_TYPE_UINT)
+			   && (vtype->kind == JIT_TYPE_INT || vtype->kind == JIT_TYPE_UINT))
+			{
+				return 1;
+			}
+			return 0;
+		}
+		return 1;
+
+	case JIT_OP_COPY_LOAD_SBYTE:
+	case JIT_OP_COPY_LOAD_UBYTE:
+	case JIT_OP_COPY_LOAD_SHORT:
+	case JIT_OP_COPY_LOAD_USHORT:
 	case JIT_OP_COPY_LONG:
 	case JIT_OP_COPY_FLOAT32:
 	case JIT_OP_COPY_FLOAT64:
 	case JIT_OP_COPY_NFLOAT:
-	/*case JIT_OP_STRUCT:*/
+	case JIT_OP_COPY_STRUCT:
+	case JIT_OP_COPY_STORE_BYTE:
+	case JIT_OP_COPY_STORE_SHORT:
 		return 1;
 	}
+
 	return 0;
 }
 #endif
@@ -226,22 +262,13 @@ forward_propagation(jit_block_t block)
 	jit_insn_iter_init(&iter, block);
 	while((insn = jit_insn_iter_next(&iter)) != 0)
 	{
-		if(!is_copy_opcode(insn->opcode))
+		if(!is_copy_insn(insn))
 		{
 			continue;
 		}
 
 		dest = insn->dest;
-		if(dest == 0 || dest->is_constant)
-		{
-			continue;
-		}
-
 		value = insn->value1;
-		if(value == 0)
-		{
-			continue;
-		}
 
 		/* Discard copy to itself */
 		if(dest == value)
@@ -264,6 +291,10 @@ forward_propagation(jit_block_t block)
 			continue;
 		}
 		if(dest->is_addressable || dest->is_volatile)
+		{
+			continue;
+		}
+		if(value->is_addressable || value->is_volatile)
 		{
 			continue;
 		}
@@ -378,30 +409,13 @@ backward_propagation(jit_block_t block)
 	jit_insn_iter_init_last(&iter, block);
 	while((insn = jit_insn_iter_previous(&iter)) != 0)
 	{
-		if(!is_copy_opcode(insn->opcode))
+		if(!is_copy_insn(insn))
 		{
 			continue;
 		}
 
 		dest = insn->dest;
-		if(dest == 0 || dest->is_constant)
-		{
-			continue;
-		}
-		if(dest->is_addressable || dest->is_volatile)
-		{
-			continue;
-		}
-
 		value = insn->value1;
-		if(value == 0)
-		{
-			continue;
-		}
-		if(value->is_addressable || value->is_volatile)
-		{
-			continue;
-		}
 
 		/* Discard copy to itself */
 		if(dest == value)
@@ -418,6 +432,15 @@ backward_propagation(jit_block_t block)
 
 		/* "value" is used afterwards so we cannot eliminate it here */
 		if((insn->flags & (JIT_INSN_VALUE1_LIVE | JIT_INSN_VALUE1_NEXT_USE)) != 0)
+		{
+			continue;
+		}
+
+		if(dest->is_addressable || dest->is_volatile)
+		{
+			continue;
+		}
+		if(value->is_addressable || value->is_volatile)
 		{
 			continue;
 		}
