@@ -1456,173 +1456,115 @@ int jit_insn_store(jit_function_t func, jit_value_t dest, jit_value_t value)
 	return 1;
 }
 
-#define ACCUMULATE_RELATIVE	1
-
-#if !ACCUMULATE_RELATIVE
-
 /*
- * Scan back through the current block, looking for a relative adjustment
- * that involves "value" as its destination.  Returns NULL if no such
- * instruction was found, or it is blocked by a later use of "value".
- * "addrof" will be set to a non-NULL value if the instruction just before
- * the relative adjustment took the address of a local frame variable.
- * This instruction is a candidate for being moved down to where the
- * "load_relative" or "store_relative" occurs.
+ * Scan back through the current block, looking for an address instruction that
+ * involves "value" as its destination. Returns NULL if no such instruction was
+ * found, or it is blocked by a later use of "value".
+ *
+ * The instruction found may then be combined into a new single instruction with
+ * the following "load_relative", "store_relative", or another "relative_add".
+ *
+ * For instance, consider the code like this:
+ *
+ * i) y = address_of(x)
+ * ...
+ * j) z = add_relative(y, a)
+ *
+ * Let's suppose that we need to add a "store_realtive(z, b, v)" instruction.
+ * The "find_base_insn()" call will return the instruction "j" and we will be
+ * able to emit the instruction "store_relative(y, a + b, v)" instead. If "z"
+ * is not used elsewhere then "j" will be optimized away by the dead code
+ * elimination pass.
+ *
+ * Repetitive use of this procedure for a chain of "add_relative" instructions
+ * converts it into a series of indpenedent instructions each using the very
+ * first address in the chain as its base. Therefore regardless of the initial
+ * chain length it is always enough to make single "find_base_insn()" call to
+ * get the base address of the entire chain (think induction).
+ *
+ * Note that in this situation the second "find_base_insn()" call will return
+ * the instruction "i" that obtains the base address as the address of a local
+ * frame variable. This instruction is a candidate for being moved down to
+ * where the "load_relative" or "store_relative" occurs. This might make it
+ * easier for the code generator to handle field accesses whitin local
+ * variables.
+ *
+ * The "plast" argument indicates if the found instruction is already the last
+ * one, so there is no need to move it down.
  */
-static jit_insn_t previous_relative(jit_function_t func, jit_value_t value,
-									jit_insn_t *addrof)
+static jit_insn_t
+find_base_insn(
+	jit_function_t func,
+	jit_insn_iter_t iter,
+	jit_value_t value,
+	int *plast)
 {
-	jit_insn_iter_t iter;
+	int last;
 	jit_insn_t insn;
+	jit_insn_iter_t iter2;
 	jit_insn_t insn2;
-	jit_insn_t insn3;
 
-	/* Clear "addrof" first */
-	*addrof = 0;
-
-	/* If the value is not temporary, then it isn't a candidate */
-	if(!(value->is_temporary))
+	/* The "value" could be vulnerable to aliasing effects so we cannot
+	   optimize it */
+	if(value->is_addressable || value->is_volatile)
 	{
 		return 0;
 	}
 
-	/* Iterate back through the block looking for a suitable adjustment */
-	jit_insn_iter_init_last(&iter, func->builder->current_block);
+	/* We are about to check the last instruction before the current one */
+	last = 1;
+
+	/* Iterate back through the block looking for a suitable instruction */
 	while((insn = jit_insn_iter_previous(&iter)) != 0)
 	{
-		if(insn->opcode == JIT_OP_ADD_RELATIVE && insn->dest == value)
+		/* This instruction uses "value" in some way */
+		if(insn->dest == value)
 		{
-			/* See if the instruction just before the "add_relative"
-			   is an "address_of" that is being used by the add */
-			insn3 = jit_insn_iter_previous(&iter);
-			if(insn3)
+			/* This is the instruction we were looking for */
+			if(insn->opcode == JIT_OP_ADDRESS_OF)
 			{
-				jit_insn_iter_next(&iter);
-				if(insn3->opcode != JIT_OP_ADDRESS_OF ||
-				   insn3->dest != insn->value1 ||
-				   !(insn3->dest->is_temporary))
-				{
-					insn3 = 0;
-				}
+				*plast = last;
+				return insn;
 			}
-
-			/* Scan forwards to ensure that "insn->value1" is not
-			   used anywhere in the instructions that follow */
-			jit_insn_iter_next(&iter);
-			while((insn2 = jit_insn_iter_next(&iter)) != 0)
+			if(insn->opcode == JIT_OP_ADD_RELATIVE)
 			{
-				if(insn2->dest == insn->value1 ||
-				   insn2->value1 == insn->value1 ||
-				   insn2->value2 == insn->value1)
+				value = insn->value1;
+				if(value->is_addressable || value->is_volatile)
 				{
 					return 0;
 				}
-				if(insn3)
+
+				/* Scan forwards to ensure that "insn->value1"
+				   is not modified anywhere in the instructions
+				   that follow */
+				iter2 = iter;
+				jit_insn_iter_next(&iter2);
+				while((insn2 = jit_insn_iter_next(&iter2)) != 0)
 				{
-					/* We may need to disable the "address_of" instruction
-					   if any of its values are used further on */
-					if(insn2->dest == insn3->dest ||
-				       insn2->value1 == insn3->dest ||
-				       insn2->value2 == insn3->dest ||
-					   insn2->dest == insn3->value1 ||
-				       insn2->value1 == insn3->value1 ||
-				       insn2->value2 == insn3->value1)
+					if(insn2->dest == value
+					   && (insn2->flags & JIT_INSN_DEST_IS_VALUE) == 0)
 					{
-						insn3 = 0;
+						return 0;
 					}
 				}
+
+				*plast = last;
+				return insn;
 			}
-			if(insn3)
+
+			/* Oops. This instruction modifies "value" and blocks
+			   any previous address_of or add_relative instructions */
+			if((insn->flags & JIT_INSN_DEST_IS_VALUE) == 0)
 			{
-				*addrof  = insn3;
+				break;
 			}
-			return insn;
 		}
-		if(insn->dest == value || insn->value1 == value ||
-		   insn->value2 == value)
-		{
-			/* This instruction uses "value" in some way, so it
-			   blocks any previous "add_relative" instructions */
-			return 0;
-		}
+
+		/* We are to check instructions that preceed the last one */
+		last = 0;
 	}
 	return 0;
 }
-
-#else
-
-static int
-accumulate_relative_offset(
-	jit_function_t func,
-	jit_value_t value,
-	jit_nint offset,
-	jit_value_t *addrof_ptr,
-	jit_value_t *value_ptr,
-	jit_nint *offset_ptr)
-{
-	jit_insn_iter_t iter;
-	jit_insn_t insn;
-
-	if(addrof_ptr)
-	{
-		*addrof_ptr = 0;
-	}
-	if(value_ptr)
-	{
-		*value_ptr = 0;
-	}
-	if(offset_ptr)
-	{
-		*offset_ptr = 0;
-	}
-
-	jit_insn_iter_init_last(&iter, func->builder->current_block);
-	while((insn = jit_insn_iter_previous(&iter)) != 0)
-	{
-		if(!(value->is_temporary))
-		{
-			break;
-		}
-		if(insn->dest != value)
-		{
-			continue;
-		}
-		if(insn->opcode == JIT_OP_ADDRESS_OF)
-		{
-			if(addrof_ptr)
-			{
-				*addrof_ptr = insn->value1;
-			}
-			break;
-		}
-		if(insn->opcode != JIT_OP_ADD_RELATIVE)
-		{
-			if((insn->flags & JIT_INSN_DEST_IS_VALUE) == 0)
-			{
-				/* This instruction modifies "value" in some way,
-				   so it blocks any previous "add_relative"
-				   instructions */
-				return 0;
-			}
-			continue;
-		}
-		offset += jit_value_get_nint_constant(insn->value2);
-		value = insn->value1;
-	}
-
-	if(value_ptr)
-	{
-		*value_ptr = value;
-	}
-	if(offset_ptr)
-	{
-		*offset_ptr = offset;
-	}
-
-	return 1;
-}
-
-#endif
 
 /*@
  * @deftypefun jit_value_t jit_insn_load_relative (jit_function_t func, jit_value_t value, jit_nint offset, jit_type_t type)
@@ -1634,14 +1576,10 @@ jit_value_t jit_insn_load_relative
 		(jit_function_t func, jit_value_t value,
 		 jit_nint offset, jit_type_t type)
 {
-#if ACCUMULATE_RELATIVE
-	jit_value_t addrof;
-	jit_value_t new_value;
-	jit_nint new_offset;
-#else
+	jit_insn_iter_t iter;
 	jit_insn_t insn;
-	jit_insn_t addrof;
-#endif
+	int last;
+
 	if(!value)
 	{
 		return 0;
@@ -1650,42 +1588,29 @@ jit_value_t jit_insn_load_relative
 	{
 		return 0;
 	}
-#if ACCUMULATE_RELATIVE
-	if(accumulate_relative_offset(func, value, offset, &addrof, &new_value, &new_offset))
-	{
-		value = new_value;
-		offset = new_offset;
-	}
-#else
-	insn = previous_relative(func, value, &addrof);
-	if(insn)
+
+	jit_insn_iter_init_last(&iter, func->builder->current_block);
+	insn = find_base_insn(func, iter, value, &last);
+	if(insn && insn->opcode == JIT_OP_ADD_RELATIVE)
 	{
 		/* We have a previous "add_relative" instruction for this
-		   pointer.  Remove it from the instruction stream and
-		   adjust the current offset accordingly */
+		   pointer. Adjust the current offset accordingly */
 		offset += jit_value_get_nint_constant(insn->value2);
 		value = insn->value1;
-		insn->opcode = JIT_OP_NOP;
-		insn->dest = 0;
-		insn->value1 = 0;
-		insn->value2 = 0;
-		if(addrof)
+		insn = find_base_insn(func, iter, value, &last);
+		last = 0;
+	}
+	if(insn && insn->opcode == JIT_OP_ADDRESS_OF && !last)
+	{
+		/* Shift the "address_of" instruction down, to make
+		   it easier for the code generator to handle field
+		   accesses within local and global variables */
+		value = jit_insn_address_of(func, insn->value1);
+		if(!value)
 		{
-			/* Shift the "address_of" instruction down too, to make
-			   it easier for the code generator to handle field
-			   accesses within local and global variables */
-			value = jit_insn_address_of(func, addrof->value1);
-			if(!value)
-			{
-				return 0;
-			}
-			addrof->opcode = JIT_OP_NOP;
-			addrof->dest = 0;
-			addrof->value1 = 0;
-			addrof->value2 = 0;
+			return 0;
 		}
 	}
-#endif
 	return apply_binary
 		(func, _jit_load_opcode(JIT_OP_LOAD_RELATIVE_SBYTE, type, 0, 0), value,
 		 jit_value_create_nint_constant(func, jit_type_nint, offset), type);
@@ -1701,15 +1626,11 @@ int jit_insn_store_relative
 		(jit_function_t func, jit_value_t dest,
 		 jit_nint offset, jit_value_t value)
 {
+	jit_insn_iter_t iter;
 	jit_insn_t insn;
+	int last;
 	jit_value_t offset_value;
-#if ACCUMULATE_RELATIVE
-	jit_value_t addrof;
-	jit_value_t new_dest;
-	jit_nint new_offset;
-#else
-	jit_insn_t addrof;
-#endif
+
 	if(!dest || !value)
 	{
 		return 0;
@@ -1718,42 +1639,30 @@ int jit_insn_store_relative
 	{
 		return 0;
 	}
-#if ACCUMULATE_RELATIVE
-	if(accumulate_relative_offset(func, dest, offset, &addrof, &new_dest, &new_offset))
-	{
-		dest = new_dest;
-		offset = new_offset;
-	}
-#else
-	insn = previous_relative(func, dest, &addrof);
-	if(insn)
+
+	jit_insn_iter_init_last(&iter, func->builder->current_block);
+	insn = find_base_insn(func, iter, dest, &last);
+	if(insn && insn->opcode == JIT_OP_ADD_RELATIVE)
 	{
 		/* We have a previous "add_relative" instruction for this
-		   pointer.  Remove it from the instruction stream and
-		   adjust the current offset accordingly */
+		   pointer. Adjust the current offset accordingly */
 		offset += jit_value_get_nint_constant(insn->value2);
 		dest = insn->value1;
-		insn->opcode = JIT_OP_NOP;
-		insn->dest = 0;
-		insn->value1 = 0;
-		insn->value2 = 0;
-		if(addrof)
+		insn = find_base_insn(func, iter, value, &last);
+		last = 0;
+	}
+	if(insn && insn->opcode == JIT_OP_ADDRESS_OF && !last)
+	{
+		/* Shift the "address_of" instruction down, to make
+		   it easier for the code generator to handle field
+		   accesses within local and global variables */
+		dest = jit_insn_address_of(func, insn->value1);
+		if(!dest)
 		{
-			/* Shift the "address_of" instruction down too, to make
-			   it easier for the code generator to handle field
-			   accesses within local and global variables */
-			dest = jit_insn_address_of(func, addrof->value1);
-			if(!dest)
-			{
-				return 0;
-			}
-			addrof->opcode = JIT_OP_NOP;
-			addrof->dest = 0;
-			addrof->value1 = 0;
-			addrof->value2 = 0;
+			return 0;
 		}
 	}
-#endif
+
 	offset_value = jit_value_create_nint_constant(func, jit_type_nint, offset);
 	if(!offset_value)
 	{
@@ -1766,8 +1675,7 @@ int jit_insn_store_relative
 	}
 	jit_value_ref(func, dest);
 	jit_value_ref(func, value);
-	insn->opcode = (short)_jit_store_opcode
-		(JIT_OP_STORE_RELATIVE_BYTE, 0, value->type);
+	insn->opcode = (short)_jit_store_opcode(JIT_OP_STORE_RELATIVE_BYTE, 0, value->type);
 	insn->flags = JIT_INSN_DEST_IS_VALUE;
 	insn->dest = dest;
 	insn->value1 = value;
@@ -1788,9 +1696,10 @@ int jit_insn_store_relative
 jit_value_t jit_insn_add_relative
 		(jit_function_t func, jit_value_t value, jit_nint offset)
 {
-#if ACCUMULATE_RELATIVE
-	jit_value_t new_value;
-	jit_nint new_offset;
+	jit_insn_iter_t iter;
+	jit_insn_t insn;
+	int last;
+
 	if(!value)
 	{
 		return 0;
@@ -1799,43 +1708,20 @@ jit_value_t jit_insn_add_relative
 	{
 		return 0;
 	}
-	if(accumulate_relative_offset(func, value, offset, 0, &new_value, &new_offset))
+
+	jit_insn_iter_init_last(&iter, func->builder->current_block);
+	insn = find_base_insn(func, iter, value, &last);
+	if(insn && insn->opcode == JIT_OP_ADD_RELATIVE)
 	{
-		value = new_value;
-		offset = new_offset;
+		/* We have a previous "add_relative" instruction for this
+		   pointer. Adjust the current offset accordingly */
+		offset += jit_value_get_nint_constant(insn->value2);
+		value = insn->value1;
 	}
+
 	return apply_binary(func, JIT_OP_ADD_RELATIVE, value,
 			    jit_value_create_nint_constant(func, jit_type_nint, offset),
 			    jit_type_void_ptr);
-#else
-	jit_insn_t insn;
-	jit_insn_t addrof;
-	if(!value)
-	{
-		return 0;
-	}
-	if(!_jit_function_ensure_builder(func))
-	{
-		return 0;
-	}
-	insn = previous_relative(func, value, &addrof);
-	if(insn)
-	{
-		/* Back-patch the "add_relative" instruction to adjust the offset */
-		insn->value2 = jit_value_create_nint_constant
-			(func, jit_type_nint,
-			 jit_value_get_nint_constant(insn->value2) + offset);
-		return value;
-	}
-	else
-	{
-		/* Create a new "add_relative" instruction */
-		return apply_binary(func, JIT_OP_ADD_RELATIVE, value,
-							jit_value_create_nint_constant
-								(func, jit_type_nint, offset),
-							jit_type_void_ptr);
-	}
-#endif
 }
 
 /*@

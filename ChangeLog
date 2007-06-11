@@ -1,3 +1,11 @@
+2007-06-11  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-insn.c (accumulate_relative_offset): remove.
+	* jit/jit-insn.c (find_base_insn, jit_insn_load_relative)
+	(jit_insn_store_relative, jit_insn_add_relative): add find_base_insn
+	function that should finally optimize relative instructions
+	correctly.
+
 2007-06-10  Aleksey Demakov  <ademakov@gmail.com>
 
 	* tools/gen-rules-parser.y (gensel_output_clauses): alter selection
@@ -597,7 +605,7 @@
 	and do not replace the accumulated instructions with JIT_OP_NOP as
 	it was before. The old approach is problematic because it is unknown
 	at this point if the values we accumulated are dead or they will be
-	used by instructions added later. The deadcode elimination pass
+	used by instructions added later. The dead code elimination pass
 	removes unused values just as well but with enough knowledge to	be
 	safe. The new code also does not move JIT_OP_ADDRESS_OF towards	the
 	relative instructions that uses the address. Supposedly such move
