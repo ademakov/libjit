@@ -2508,7 +2508,7 @@ JIT_OP_ALLOCA:
 	}
 
 JIT_OP_JUMP_TABLE: ternary, branch
-	[reg, imm, imm, space("32 + sizeof(void) * $3")] -> {
+	[reg, imm, imm, space("32 + sizeof(void *) * $3")] -> {
 		unsigned char *patch_jump_table;
 		unsigned char *patch_fall_through;
 		int index;
@@ -2521,7 +2521,7 @@ JIT_OP_JUMP_TABLE: ternary, branch
 
 		x86_alu_reg_imm(inst, X86_CMP, $1, num_labels);
 		patch_fall_through = inst;
-		x86_branch32(inst, X86_CC_GE, 0, 1);
+		x86_branch32(inst, X86_CC_AE, 0, 0);
 
 		if(func->builder->position_independent)
 		{

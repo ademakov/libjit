@@ -1,3 +1,8 @@
+2007-10-07  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.ins (JIT_OP_JUMP_TABLE): fix jump table code
+	generation.
+
 2007-06-11  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-insn.c (accumulate_relative_offset): remove.
