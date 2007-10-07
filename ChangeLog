@@ -3,6 +3,10 @@
 	* jit/jit-rules-x86.ins (JIT_OP_JUMP_TABLE): fix jump table code
 	generation.
 
+	* include/jit/jit-function.h: 
+	* jit/jit-function.c (jit_function_reserve_label): add new function
+	to create labels for jump tables.
+
 2007-06-11  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-insn.c (accumulate_relative_offset): remove.

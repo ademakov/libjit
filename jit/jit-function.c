@@ -1635,3 +1635,23 @@ unsigned int jit_function_get_max_optimization_level(void)
 	/* TODO - implement more than basic optimization */
 	return 0;
 }
+
+/*@
+ * @deftypefun {jit_label_t} jit_function_reserve_label (jit_function_t func)
+ * Allocate a new label for later use within the function @code{func}. Most
+ * instructions that require a label could perform label allocation themselves.
+ * A separate label allocation could be useful to fill a jump table with
+ * identical entries.
+ * @end deftypefun
+@*/
+jit_label_t
+jit_function_reserve_label(jit_function_t func)
+{
+	/* Ensure that we have a function builder */
+	if(!_jit_function_ensure_builder(func))
+	{
+		return jit_label_undefined;
+	}
+
+	return (func->builder->next_label)++;
+}
