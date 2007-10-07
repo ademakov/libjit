@@ -3947,7 +3947,10 @@ add_block:
 
 /*@
  * @deftypefun int jit_insn_jump_table (jit_function_t func, jit_value_t value, {jit_label_t *} labels, unsigned int num_labels)
- * Branch to a label from the @code{labels} table. The @code{value} is the index of the label.
+ * Branch to a label from the @code{labels} table. The @code{value} is the
+ * index of the label. It is allowed to have identical labels in the table.
+ * If an entry in the table has @code{jit_label_undefined} value then it is
+ * replaced with a newly allocated label.
  * @end deftypefun
 @*/
 int jit_insn_jump_table
