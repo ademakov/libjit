@@ -558,6 +558,17 @@ jit_value jit_function::get_struct_pointer()
 }
 
 /*@
+ * @deftypemethod jit_function jit_label new_label ()
+ * Create a new label.  This is the C++ counterpart to
+ * @code{jit_function_reserve_label}.
+ * @end deftypemethod
+@*/
+jit_label jit_function::new_label()
+{
+	return jit_label(jit_function_reserve_label(func));
+}
+
+/*@
  * @deftypemethod jit_function void insn_label ({jit_label&} label)
  * @deftypemethodx jit_function void insn_new_block ()
  * @deftypemethodx jit_function jit_value insn_load ({const jit_value&} value)

@@ -151,7 +151,7 @@ public:
 	int is_recompilable() const { return jit_function_is_recompilable(func); }
 
 	void set_recompilable() { jit_function_set_recompilable(func); }
-	void clear_recompilable() { jit_function_set_recompilable(func); }
+	void clear_recompilable() { jit_function_clear_recompilable(func); }
 	void set_recompilable(int flag)
 		{ if(flag) set_recompilable(); else clear_recompilable(); }
 
@@ -205,6 +205,8 @@ public:
 	jit_value new_constant(const jit_constant_t& value);
 	jit_value get_param(unsigned int param);
 	jit_value get_struct_pointer();
+
+	jit_label new_label();
 
 	void insn_label(jit_label& label);
 	void insn_new_block();
