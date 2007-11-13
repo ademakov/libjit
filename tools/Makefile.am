@@ -1,6 +1,8 @@
 
 noinst_PROGRAMS = gen-apply gen-rules gen-sel
 
+noinst_HEADERS = gen-apply-macosx.h
+
 gen_apply_SOURCES = gen-apply.c
 
 gen_rules_SOURCES = gen-rules-parser.y gen-rules-scanner.l
