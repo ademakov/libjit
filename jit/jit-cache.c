@@ -1323,7 +1323,8 @@ unsigned long _jit_cache_get_native(jit_cache_t cache, void *start,
 		}
 		prevNativeOfs = nativeOfs;
 	}
-	return JIT_CACHE_NO_OFFSET;
+
+	return exact ? JIT_CACHE_NO_OFFSET : prevNativeOfs;
 }
 
 unsigned long _jit_cache_get_bytecode(jit_cache_t cache, void *start,
@@ -1350,7 +1351,8 @@ unsigned long _jit_cache_get_bytecode(jit_cache_t cache, void *start,
 		}
 		prevOfs = ofs;
 	}
-	return JIT_CACHE_NO_OFFSET;
+
+	return exact ? JIT_CACHE_NO_OFFSET : prevOfs;
 }
 
 unsigned long _jit_cache_get_size(jit_cache_t cache)

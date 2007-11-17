@@ -1,3 +1,12 @@
+2007-11-17  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-insn.c (jit_insn_mark_offset): do not start new block
+	on the bytecode mark. If a mark goes just after another mark then
+	replace the old mark rather than add the new.
+
+	* jit/jit-cache.c (_jit_cache_get_bytecode)
+	(_jit_cache_get_native): fix offset for the last bytecode mark.
+
 2007-11-13  Aleksey Demakov  <ademakov@gmail.com>
 
 	* tools/Makefile.am (noinst_HEADERS): add gen-apply-macosx.h

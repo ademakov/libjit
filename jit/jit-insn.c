@@ -8013,15 +8013,35 @@ int jit_insn_move_blocks_to_start
 @*/
 int jit_insn_mark_offset(jit_function_t func, jit_int offset)
 {
-#if 1
-	if(!jit_insn_new_block(func))
+	jit_block_t block;
+	jit_insn_t last;
+	jit_value_t value;
+
+	/* Ensure that we have a builder for this function */
+	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-#endif
-	return create_unary_note(func, JIT_OP_MARK_OFFSET,
-					   	     jit_value_create_nint_constant
-					   			(func, jit_type_int, offset));
+
+	value = jit_value_create_nint_constant(func, jit_type_int, offset);
+	if (!value)
+	{
+		return 0;
+	}
+
+	/* If the previous instruction is mark offset too
+	   then just replace the offset value in place --
+	   we are not interested in bytecodes that produce
+	   no real code. */
+	block = func->builder->current_block;
+	last = _jit_block_get_last(block);
+	if (last && last->opcode == JIT_OP_MARK_OFFSET)
+	{
+		last->value1 = value;
+		return 1;
+	}
+
+	return create_unary_note(func, JIT_OP_MARK_OFFSET, value);
 }
 
 /* Documentation is in jit-debugger.c */
