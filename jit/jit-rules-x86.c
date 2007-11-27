@@ -803,8 +803,14 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 				float32_value = jit_value_get_float32_constant(value);
 				if(IS_WORD_REG(reg))
 				{
-					x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
-							((jit_int *)&float32_value)[0]);
+					union
+					{
+						jit_float32 float32_value;
+						jit_int int_value;
+					} un;
+
+					un.float32_value = float32_value;
+					x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg, un.int_value);
 				}
 				else
 				{
@@ -832,10 +838,17 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 				float64_value = jit_value_get_float64_constant(value);
 				if(IS_WORD_REG(reg))
 				{
+					union
+					{
+						jit_float64 float64_value;
+						jit_int int_value[2];
+					} un;
+
+					un.float64_value = float64_value;
 					x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
-							((jit_int *)&float64_value)[0]);
+							un.int_value[0]);
 					x86_mov_reg_imm(inst, _jit_reg_info[other_reg].cpu_reg,
-							((jit_int *)&float64_value)[1]);
+							un.int_value[1]);
 				}
 				else
 				{
@@ -863,10 +876,17 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 				nfloat_value = jit_value_get_nfloat_constant(value);
 				if(IS_WORD_REG(reg) && sizeof(jit_nfloat) == sizeof(jit_float64))
 				{
+					union
+					{
+						jit_nfloat nfloat_value;
+						jit_int int_value[2];
+					} un;
+
+					un.nfloat_value = nfloat_value;
 					x86_mov_reg_imm(inst, _jit_reg_info[reg].cpu_reg,
-							((jit_int *)&nfloat_value)[0]);
+							un.int_value[0]);
 					x86_mov_reg_imm(inst, _jit_reg_info[other_reg].cpu_reg,
-							((jit_int *)&nfloat_value)[1]);
+							un.int_value[1]);
 				}
 				else
 				{
