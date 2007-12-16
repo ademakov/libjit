@@ -47,6 +47,12 @@
 #define	JIT_MEMCPY	"jit_memcpy@PLT"
 #endif
 
+/*
+ * We have to add all registers not saved by the caller to the clobber list
+ * and not only the registers used for parameter passing because we do
+ * function calls.
+ * Maybe we should add the xmm* registers too?
+ */
 #define	jit_builtin_apply(func,args,size,return_float,return_buf)	\
 		do { \
 			void *__func = (void *)(func); \
@@ -86,6 +92,7 @@
 				"addq %%rdx, %%rsp\n\t" \
 				: : "m"(__func), "m"(__args), "m"(__size), "m"(__return_buf) \
 				: "rax", "rcx", "rdx", "rdi", "rsi", "r8", "r9", \
+				  "r10", "r11", \
 				  "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", \
 				  "xmm5", "xmm6", "xmm7" \
 			); \

@@ -66,7 +66,7 @@ extern	"C" {
 	}
 
 #define	_JIT_ALIGN_FOR_TYPE(name)	\
-	((unsigned)(&(((struct _JIT_align_##name *)0)->field)))
+	((jit_nuint)(&(((struct _JIT_align_##name *)0)->field)))
 
 #define	_JIT_ALIGN_MAX(a,b)	\
 	((a) > (b) ? (a) : (b))
