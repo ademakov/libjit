@@ -1,3 +1,17 @@
+2007-12-16  Klaus Treichel  <ktreichel@web.de>
+
+	* configure.in: Add support for multi os archs (like x86_64). Put the
+	libraries in the correct directories so that 32- and 64-bit code doesn't
+	get mixed up.
+
+	* jit/jit-apply-x86-64.h: Add some information about the clobber list to
+	jit_builtin_apply and add r10 and r11 to the clobber list because they
+	are not preserved by the callee and we call arbitrary functions here.
+
+	* jit/jit-internal.h: Cast _JIT_ALIGN_TO_TYPE to jit_nuint instead of
+	unsigned because jit_nuint is guaranteed to have the size of a pointer.
+	This fixes compiler warnings on x86_64 too.
+
 2007-11-27  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.c (_jit_gen_load_value): fix compiler warnings.
