@@ -599,6 +599,9 @@ When the on-demand compiler returns, @code{libjit} will call
 @code{jit_function_compile} and then jump to the newly compiled code.
 Upon the second and subsequent calls to the function, @code{libjit}
 will bypass the on-demand compiler and call the compiled code directly.
+Note that in case of on-demand compilation @code{libjit} automatically
+locks and unlocks the corresponding context with
+@code{jit_context_build_start} and @code{jit_context_build_end} calls.
 
 Sometimes you may wish to force a commonly used function to
 be recompiled, so that you can apply additional optimization.
@@ -613,11 +616,18 @@ jit_function_set_recompilable(function);
 jit_function_set_on_demand_compiler(function, compile_mul_add);
 @end example
 
-Then, you force the function to be recompiled with a call to
-@code{jit_function_recompile}:
+Once the function is compiled (either on-demand or up-front) its
+intermediate representation built by @code{libjit} is discarded.
+To force the function to be recompiled you need to build it again
+and call @code{jit_function_compile} after that.  As always when
+the function is built and compiled manually it is necessary
+to take care of context locking:
 
 @example
-jit_function_recompile(function);
+jit_context_build_start(context);
+jit_function_get_on_demand_compiler(function)(function);
+jit_function_compile(function);
+jit_context_build_end(context);
 @end example
 
 After this, any existing references to the function will be redirected
@@ -677,9 +687,10 @@ public:
         set_recompilable();
     @}
 
+    virtual void build();
+
 protected:
     virtual jit_type_t create_signature();
-    virtual void build();
 @};
 @end example
 

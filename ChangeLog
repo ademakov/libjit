@@ -10,6 +10,8 @@
 	* tutorial/t3.c, tutorial/t4.cpp: recompile manually
 	instead of using removed recompile functions.
 
+	* doc/libjit.texi: update tutorial.
+
 2007-12-16  Klaus Treichel  <ktreichel@web.de>
 
 	* configure.in: Add support for multi os archs (like x86_64). Put the
