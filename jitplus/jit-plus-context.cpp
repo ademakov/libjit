@@ -73,6 +73,15 @@ jit_context::~jit_context()
 }
 
 /*@
+ * @deftypemethod jit_context void build_start ()
+ * Start an explicit build process.  Not needed if you will be using
+ * on-demand compilation.
+ * @end deftypemethod
+ *
+ * @deftypemethod jit_context void build_end ()
+ * End an explicit build process.
+ * @end deftypemethod
+ *
  * @deftypemethod jit_context jit_context_t raw () const
  * Get the raw C context pointer that underlies this object.
  * @end deftypemethod

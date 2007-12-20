@@ -241,33 +241,6 @@ int jit_function::compile()
 }
 
 /*@
- * @deftypemethod jit_function int recompile ()
- * Force a function to be recompiled.
- * @end deftypemethod
- *
- * @deftypemethod jit_function int is_recompilable () const
- * Determine if this function is recompilable.
- * @end deftypemethod
- *
- * @deftypemethod jit_function void set_recompilable ()
- * @deftypemethodx jit_function void clear_recompilable ()
- * @deftypemethodx jit_function void set_recompilable (int flag)
- * Modify the "recompilable" flag on this function.
- * @end deftypemethod
-@*/
-int jit_function::recompile()
-{
-	if(!func)
-	{
-		return JIT_RESULT_COMPILE_ERROR;
-	}
-	else
-	{
-		return jit_function_recompile(func);
-	}
-}
-
-/*@
  * @deftypemethod jit_function void set_optimization_level ({unsigned int} level)
  * @deftypemethodx jit_function {unsigned int} optimization_level () const
  * Set or get the optimization level for this function.

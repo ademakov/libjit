@@ -95,7 +95,10 @@ int main(int argc, char **argv)
 
 	/* Force the function to be recompiled.  Normally we'd use another
 	   on-demand compiler with greater optimization capabilities */
-	jit_function_recompile(function);
+	jit_context_build_start(context);
+	jit_function_get_on_demand_compiler(function)(function);
+	jit_function_compile(function);
+	jit_context_build_end(context);
 
 	/* Execute the function a third time, after it is recompiled */
 	arg1 = 2;

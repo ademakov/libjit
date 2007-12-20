@@ -48,7 +48,6 @@ jit_block_t jit_function_get_entry(jit_function_t func) JIT_NOTHROW;
 jit_block_t jit_function_get_current(jit_function_t func) JIT_NOTHROW;
 jit_function_t jit_function_get_nested_parent(jit_function_t func) JIT_NOTHROW;
 int jit_function_compile(jit_function_t func) JIT_NOTHROW;
-int jit_function_recompile(jit_function_t func) JIT_NOTHROW;
 int jit_function_is_compiled(jit_function_t func) JIT_NOTHROW;
 void jit_function_set_recompilable(jit_function_t func) JIT_NOTHROW;
 void jit_function_clear_recompilable(jit_function_t func) JIT_NOTHROW;

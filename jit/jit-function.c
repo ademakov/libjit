@@ -1032,58 +1032,6 @@ jit_function_setup_entry(jit_function_t func, void *entry_point)
 }
 
 /*@
- * @deftypefun int jit_function_recompile (jit_function_t func)
- * Force @code{func} to be recompiled, by calling its on-demand
- * compiler again.  It is highly recommended that you set the
- * recompilable flag with @code{jit_function_set_recompilable}
- * when you initially create the function.
- *
- * This function returns one of @code{JIT_RESULT_OK},
- * @code{JIT_RESULT_COMPILE_ERROR}, or @code{JIT_RESULT_OUT_OF_MEMORY}.
- * @end deftypefun
-@*/
-int jit_function_recompile(jit_function_t func)
-{
-	int result;
-
-	/* Lock down the context */
-	jit_context_build_start(func->context);
-
-	/* Call the user's on-demand compiler if we don't have a builder yet.
-	   Bail out with an error if there is no on-demand compiler */
-	if(!(func->builder))
-	{
-		if(func->on_demand)
-		{
-			result = (*(func->on_demand))(func);
-			if(result != JIT_RESULT_OK)
-			{
-				_jit_function_free_builder(func);
-				jit_context_build_end(func->context);
-				return result;
-			}
-		}
-		else
-		{
-			jit_context_build_end(func->context);
-			return JIT_RESULT_COMPILE_ERROR;
-		}
-	}
-
-	/* Compile the function */
-	if(!jit_function_compile(func))
-	{
-		_jit_function_free_builder(func);
-		jit_context_build_end(func->context);
-		return JIT_RESULT_OUT_OF_MEMORY;
-	}
-
-	/* Unlock the context and report that we are ready to go */
-	jit_context_build_end(func->context);
-	return JIT_RESULT_OK;
-}
-
-/*@
  * @deftypefun int jit_function_is_compiled (jit_function_t func)
  * Determine if a function has already been compiled.
  * @end deftypefun

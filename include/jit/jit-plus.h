@@ -117,6 +117,8 @@ public:
 	jit_context(jit_context_t context);
 	~jit_context();
 
+	void build_start() { jit_context_build_start(context); }
+	void build_end() { jit_context_build_end(context); }
 	jit_context_t raw() const { return context; }
 
 private:
@@ -145,8 +147,6 @@ public:
 	int compile();
 
 	int is_compiled() const { return jit_function_is_compiled(func); }
-
-	int recompile();
 
 	int is_recompilable() const { return jit_function_is_recompilable(func); }
 

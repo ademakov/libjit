@@ -25,9 +25,10 @@ public:
 		set_recompilable();
 	}
 
+	virtual void build();
+
 protected:
 	virtual jit_type_t create_signature();
-	virtual void build();
 };
 
 jit_type_t mul_add_function::create_signature()
@@ -83,7 +84,10 @@ int main(int argc, char **argv)
 	printf("mul_add(13, 5, 7) = %d\n", (int)result);
 
 	// Force the function to be recompiled.
-	mul_add.recompile();
+	mul_add.build_start();
+	mul_add.build();
+	mul_add.compile();
+	mul_add.build_end();
 
 	// Execute the function a third time, after it is recompiled.
 	arg1 = 2;

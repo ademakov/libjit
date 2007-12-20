@@ -1,3 +1,15 @@
+2007-12-20  Aleksey Demakov  <ademakov@gmail.com>
+
+	* include/jit/jit-plus.h: add jit_context::build_start() and
+	jit_context::build_end() methods.
+
+	* include/jit/jit-function.h, jit/jit-function.c
+	(jit_function_recompile): remove.
+	* include/jit/jit-plus.h, jitplus/jit-plus-function.cpp
+	(jit_function::recompile): remove.
+	* tutorial/t3.c, tutorial/t4.cpp: recompile manually
+	instead of using removed recompile functions.
+
 2007-12-16  Klaus Treichel  <ktreichel@web.de>
 
 	* configure.in: Add support for multi os archs (like x86_64). Put the
