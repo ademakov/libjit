@@ -3308,7 +3308,7 @@ restart_tail:
 			_jit_backtrace_push(&call_trace, pc);
 			if(!entry)
 			{
-				entry = _jit_function_compile_on_demand(call_func);
+				entry = (*call_func->context->on_demand_driver)(call_func);
 			}
 			_jit_run_function((jit_function_interp_t)entry,
 					  stacktop,
@@ -3324,7 +3324,7 @@ restart_tail:
 			entry = call_func->entry_point;
 			if(!entry)
 			{
-				entry = _jit_function_compile_on_demand(call_func);
+				entry = (*call_func->context->on_demand_driver)(call_func);
 			}
 			VM_PERFORM_TAIL((jit_function_interp_t)entry);
 		}
@@ -3360,7 +3360,7 @@ restart_tail:
 			_jit_backtrace_push(&call_trace, pc);
 			if(!entry)
 			{
-				entry = _jit_function_compile_on_demand(call_func);
+				entry = (*call_func->context->on_demand_driver)(call_func);
 			}
 			_jit_run_function((jit_function_interp_t)entry,
 					  stacktop,
@@ -3380,7 +3380,7 @@ restart_tail:
 			entry = call_func->entry_point;
 			if(!entry)
 			{
-				entry = _jit_function_compile_on_demand(call_func);
+				entry = (*call_func->context->on_demand_driver)(call_func);
 			}
 			VM_PERFORM_TAIL((jit_function_interp_t)entry);
 		}
@@ -5009,8 +5009,7 @@ int jit_function_apply_vararg
 	}
 	else
 	{
-		entry = (jit_function_interp_t)
-			_jit_function_compile_on_demand(func);
+		entry = (jit_function_interp_t)(*func->context->on_demand_driver)(func);
 	}
 
 	/* Populate the low-level argument buffer */

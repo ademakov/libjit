@@ -88,7 +88,7 @@ jit_context_t jit_context_create(void)
 	jit_mutex_create(&(context->cache_lock));
 	context->functions = 0;
 	context->last_function = 0;
-	context->on_demand_driver = 0;
+	context->on_demand_driver = _jit_function_compile_on_demand;
 	return context;
 }
 
@@ -204,7 +204,14 @@ void jit_context_build_end(jit_context_t context)
 @*/
 void jit_context_set_on_demand_driver(jit_context_t context, jit_on_demand_driver_func driver)
 {
-	context->on_demand_driver = driver;
+	if (driver)
+	{
+		context->on_demand_driver = driver;
+	}
+	else
+	{
+		context->on_demand_driver = _jit_function_compile_on_demand;
+	}
 }
 
 /*@

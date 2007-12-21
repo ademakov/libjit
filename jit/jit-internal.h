@@ -398,17 +398,19 @@ struct _jit_function
 	/* The function to call to perform on-demand compilation */
 	jit_on_demand_func	on_demand;
 
-#ifdef jit_redirector_size
+#ifndef JIT_BACKEND_INTERP
+# ifdef jit_redirector_size
 	/* Buffer that contains the redirector for this function.
 	   Redirectors are used to support on-demand compilation */
 	unsigned char		*redirector;
-#endif
+# endif
 
 	/* Buffer that contains the indirector for this function.
 	   The indirector jumps to the address that is currently
 	   stored in the entry_point field. Indirectors are used
 	   to support recompilation and on-demand compilation. */
 	unsigned char		*indirector;
+#endif
 };
 
 /*

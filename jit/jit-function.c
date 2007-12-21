@@ -49,10 +49,7 @@
 jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
 {
 	jit_function_t func;
-#if defined(jit_redirector_size)
-	jit_on_demand_driver_func on_demand_driver;
-#endif
-#if defined(jit_redirector_size) || defined(jit_indirector_size)
+#if !defined(JIT_BACKEND_INTERP) && (defined(jit_redirector_size) || defined(jit_indirector_size))
 	jit_cache_t cache;
 #endif
 
@@ -63,7 +60,7 @@ jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
 		return 0;
 	}
 
-#if defined(jit_redirector_size) || defined(jit_indirector_size)
+#if !defined(JIT_BACKEND_INTERP) && (defined(jit_redirector_size) || defined(jit_indirector_size))
 	/* TODO: if the function is destroyed the redirector and indirector memory
 	   is leaked */
 
@@ -101,27 +98,22 @@ jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
 # endif
 
 	jit_mutex_unlock(&(context->cache_lock));
-#endif
+#endif /* !defined(JIT_BACKEND_INTERP) && (defined(jit_redirector_size) || defined(jit_indirector_size)) */
 
 	/* Initialize the function block */
 	func->context = context;
 	func->signature = jit_type_copy(signature);
 
-#if defined(jit_redirector_size)
+#if !defined(JIT_BACKEND_INTERP) && defined(jit_redirector_size)
 	/* If we aren't using interpretation, then point the function's
 	   initial entry point at the redirector, which in turn will
 	   invoke the on-demand compiler */
-	on_demand_driver = context->on_demand_driver;
-	if(!on_demand_driver)
-	{
-		on_demand_driver = _jit_function_compile_on_demand;
-	}
 	func->entry_point = _jit_create_redirector
-		(func->redirector, (void *) on_demand_driver,
+		(func->redirector, (void *) context->on_demand_driver,
 		 func, jit_type_get_abi(signature));
 	jit_flush_exec(func->redirector, jit_redirector_size);
 #endif
-# if defined(jit_indirector_size)
+# if !defined(JIT_BACKEND_INTERP) && defined(jit_indirector_size)
 	_jit_create_indirector(func->indirector, (void**) &(func->entry_point));
 	jit_flush_exec(func->indirector, jit_indirector_size);
 # endif
@@ -839,7 +831,7 @@ compile(jit_function_t func, void **entry_point)
 		}
 #endif
 
-#if !defined(jit_redirector_size) || !defined(jit_indirector_size)
+#if !defined(JIT_BACKEND_INTERP) && (!defined(jit_redirector_size) || !defined(jit_indirector_size))
 		/* If the function is recompilable, then we need an extra entry
 		   point to properly redirect previous references to the function */
 		if(func->is_recompilable && !func->indirector)
@@ -1455,9 +1447,6 @@ int jit_function_apply_vararg
 	(jit_function_t func, jit_type_t signature, void **args, void *return_area)
 {
 	struct jit_backtrace call_trace;
-#if defined(jit_redirector_size)
-	jit_on_demand_driver_func on_demand_driver;
-#endif
 	void *entry;
 	jit_jmp_buf jbuf;
 
@@ -1492,16 +1481,7 @@ int jit_function_apply_vararg
 	}
 	else
 	{
-#if defined(jit_redirector_size)
-		on_demand_driver = func->context->on_demand_driver;
-		if(!on_demand_driver)
-		{
-			on_demand_driver = _jit_function_compile_on_demand;
-		}
-		entry = (*on_demand_driver)(func);
-#else
-		entry = _jit_function_compile_on_demand(func);
-#endif
+		entry = (*func->context->on_demand_driver)(func);
 	}
 
 	/* Get the default signature if necessary */
