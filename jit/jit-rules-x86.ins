@@ -141,6 +141,49 @@ JIT_OP_EXPAND_UINT:
 		x86_clear_reg(inst, %1);
 	}
 
+JIT_OP_NFLOAT_TO_INT: stack
+	[=reg, freg] -> {
+		/* allocate space on the stack for 2 shorts and 1 int */
+		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, 8);
+		/* store FPU control word */
+		x86_fnstcw_membase(inst, X86_ESP, 0);
+		/* set "round toward zero" mode */
+		x86_mov_reg_membase(inst, $1, X86_ESP, 0, 2);
+		x86_alu_reg16_imm(inst, X86_OR, $1, 0xc00);
+		x86_mov_membase_reg(inst, X86_ESP, 2, $1, 2);
+		x86_fldcw_membase(inst, X86_ESP, 2);
+		/* convert float to int */
+		x86_fist_pop_membase(inst, X86_ESP, 4, 0);
+		/* restore FPU control word */
+		x86_fldcw_membase(inst, X86_ESP, 0);
+		/* move result to the destination */
+		x86_mov_reg_membase(inst, $1, X86_ESP, 4, 4);
+		/* restore the stack */
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, 8);
+	}
+
+JIT_OP_NFLOAT_TO_LONG: stack
+	[=lreg, freg] -> {
+		/* allocate space on the stack for 2 shorts and 1 long */
+		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, 12);
+		/* store FPU control word */
+		x86_fnstcw_membase(inst, X86_ESP, 0);
+		/* set "round toward zero" mode */
+		x86_mov_reg_membase(inst, $1, X86_ESP, 0, 2);
+		x86_alu_reg16_imm(inst, X86_OR, $1, 0xc00);
+		x86_mov_membase_reg(inst, X86_ESP, 2, $1, 2);
+		x86_fldcw_membase(inst, X86_ESP, 2);
+		/* convert float to long */
+		x86_fist_pop_membase(inst, X86_ESP, 4, 1);
+		/* restore FPU control word */
+		x86_fldcw_membase(inst, X86_ESP, 0);
+		/* move result to the destination */
+		x86_mov_reg_membase(inst, $1, X86_ESP, 4, 4);
+		x86_mov_reg_membase(inst, %1, X86_ESP, 8, 4);
+		/* restore the stack */
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, 12);
+	}
+
 JIT_OP_INT_TO_NFLOAT:
 	[=freg, local] -> {
 		x86_fild_membase(inst, X86_EBP, $2, 0);
@@ -1449,12 +1492,18 @@ JIT_OP_LSIGN:
 
 JIT_OP_CHECK_NULL: note
 	[reg] -> {
+#if 0 && defined(JIT_USE_SIGNALS)
+		/* if $1 contains NULL this generates SEGV and the signal
+		   handler will throw the exception  */
+		x86_alu_reg_membase(inst, X86_CMP, $1, $1, 0);
+#else
 		unsigned char *patch;
 		x86_alu_reg_reg(inst, X86_OR, $1, $1);
 		patch = inst;
 		x86_branch8(inst, X86_CC_NE, 0, 0);
 		inst = throw_builtin(inst, func, JIT_RESULT_NULL_REFERENCE);
 		x86_patch(patch, inst);
+#endif
 	}
 
 /*

@@ -540,6 +540,25 @@ typedef union {
 		}	\
 	} while (0)
 
+#define x86_alu_reg16_imm(inst,opc,reg,imm) 	\
+	do {	\
+		*(inst)++ = (unsigned char)0x66;	\
+		if ((reg) == X86_EAX) {	\
+			*(inst)++ = (((unsigned char)(opc)) << 3) + 5;	\
+			x86_imm_emit16 ((inst), (imm));	\
+			break;	\
+		}	\
+		if (x86_is_imm8((imm))) {	\
+			*(inst)++ = (unsigned char)0x83;	\
+			x86_reg_emit ((inst), (opc), (reg));	\
+			x86_imm_emit8 ((inst), (imm));	\
+		} else {	\
+			*(inst)++ = (unsigned char)0x81;	\
+			x86_reg_emit ((inst), (opc), (reg));	\
+			x86_imm_emit16 ((inst), (imm));	\
+		}	\
+	} while (0)
+
 #define x86_alu_mem_imm(inst,opc,mem,imm) 	\
 	do {	\
 		if (x86_is_imm8((imm))) {	\
