@@ -763,8 +763,8 @@ restart_tail:
 		VMCASE(JIT_OP_LADD):
 		{
 			/* Add signed 64-bit integers */
-			VM_STK_LONG1 = VM_STK_LONG1 + VM_STK_LONG0;
-			VM_MODIFY_PC_AND_STACK(1, 1);
+			VM_R0_LONG = VM_R1_LONG + VM_R2_LONG;
+			VM_MODIFY_PC(1);
 		}
 		VMBREAK;
 
@@ -1079,8 +1079,8 @@ restart_tail:
 		VMCASE(JIT_OP_ISHL):
 		{
 			/* Shift left signed 32-bit integers */
-			VM_STK_INT1 = VM_STK_INT1 << (VM_STK_UINT0 & 0x1F);
-			VM_MODIFY_PC_AND_STACK(1, 1);
+			VM_R0_INT = VM_R1_INT << (VM_R2_INT & 0x1F);
+			VM_MODIFY_PC(1);
 		}
 		VMBREAK;
 
@@ -1150,9 +1150,9 @@ restart_tail:
 
 		VMCASE(JIT_OP_LSHR_UN):
 		{
-			/* Shift right signed 64-bit integers */
+			/* Shift right unsigned 64-bit integers */
 			VM_R0_ULONG = (VM_R1_ULONG >> (VM_R2_UINT & 0x3F));
-			VM_MODIFY_PC_AND_STACK(1, 1);
+			VM_MODIFY_PC(1);
 		}
 		VMBREAK;
 
@@ -2036,7 +2036,7 @@ restart_tail:
 		{
 			/* Compare unsigned 32-bit integers */
 			VM_R0_UINT = jit_uint_cmp(VM_R1_UINT, VM_R2_UINT);
-			VM_MODIFY_PC_AND_STACK(1, 1);
+			VM_MODIFY_PC(1);
 		}
 		VMBREAK;
 
@@ -2044,7 +2044,7 @@ restart_tail:
 		{
 			/* Compare signed 64-bit integers */
 			VM_R0_INT = jit_long_cmp(VM_R1_LONG, VM_R2_LONG);
-			VM_MODIFY_PC_AND_STACK(1, 1);
+			VM_MODIFY_PC(1);
 		}
 		VMBREAK;
 
@@ -2052,7 +2052,7 @@ restart_tail:
 		{
 			/* Compare unsigned 64-bit integers */
 			VM_R0_INT = jit_long_cmp(VM_R1_ULONG, VM_R2_ULONG);
-			VM_MODIFY_PC_AND_STACK(1, 1);
+			VM_MODIFY_PC(1);
 		}
 		VMBREAK;
 

@@ -1,3 +1,9 @@
+2007-12-28  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-interp.c: Fix the opcodes JIT_OP_LADD, JIT_OP_ISHL,
+	JIT_OP_LSHR_UN, JIT_OP_ICMP_UN, JIT_OP_LCMP and JIT_OP_LCMP_UN in the
+	intpreter backend.
+
 2007-12-24  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-gen-x86.h (x86_alu_reg16_imm): add macro.
