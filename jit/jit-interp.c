@@ -2051,7 +2051,7 @@ restart_tail:
 		VMCASE(JIT_OP_LCMP_UN):
 		{
 			/* Compare unsigned 64-bit integers */
-			VM_R0_INT = jit_long_cmp(VM_R1_ULONG, VM_R2_ULONG);
+			VM_R0_INT = jit_ulong_cmp(VM_R1_ULONG, VM_R2_ULONG);
 			VM_MODIFY_PC(1);
 		}
 		VMBREAK;
