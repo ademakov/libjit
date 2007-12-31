@@ -1,3 +1,8 @@
+2007-12-31  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-apply-x86-64.h: Swap source and destination for the call of
+	jit_memcpy in jit_builtin_apply so that they are in the correct order.
+
 2007-12-28  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-interp.c: fix JIT_OP_LCMP_UN opcode.
