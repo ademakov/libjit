@@ -2,6 +2,9 @@
 
 	* jit/jit-opcode.c: Add the nint argument to the copy_struct opcode.
 
+	* jit/jit-rules-interp.c (_jit_gen_start_block): Fix fixups for
+	interpreter.
+
 2007-12-31  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-apply-x86-64.h: Swap source and destination for the call of

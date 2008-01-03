@@ -1575,7 +1575,7 @@ void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block)
 
 	/* If this block has pending fixups, then apply them now */
 	fixup = (void **)(block->fixup_list);
-	while(fixup != 0 && ((unsigned char *)fixup[2] - 1) < gen->posn.limit)
+	while(fixup != 0)
 	{
 		next = (void **)(fixup[1]);
 		fixup[1] = (void *)(jit_nint)(((void **)(block->address)) - fixup);
