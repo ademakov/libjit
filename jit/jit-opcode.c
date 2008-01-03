@@ -446,7 +446,7 @@ jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES] = {
 	{"copy_float32",				O_(FLOAT32, FLOAT32, EMPTY, COPY)},
 	{"copy_float64",				O_(FLOAT64, FLOAT64, EMPTY, COPY)},
 	{"copy_nfloat",					O_(NFLOAT, NFLOAT, EMPTY, COPY)},
-	{"copy_struct",					O_(PTR, PTR, EMPTY, COPY)},
+	{"copy_struct",					O_(PTR, PTR, EMPTY, COPY) | NINT_ARG},
 	{"copy_store_byte",				F_(INT, INT, EMPTY)},
 	{"copy_store_short",			F_(INT, INT, EMPTY)},
 	{"address_of",					O_(PTR, ANY, EMPTY, ADDRESS_OF)},
