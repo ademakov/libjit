@@ -1,0 +1,39 @@
+Target Release: 0.1.2
+=====================
+
+* fix interpreter for x86 and amd64
+* sync jitplus with jit (jump tables, compile driver, debug)
+* LGPL
+
+Target release: 0.1.4
+=====================
+
+* jitruby
+* amd64 port
+* fix catch/throw within finally
+* get rid of manual rules
+
+Target Release: 0.2.0
+=====================
+
+* CFG-based liveness analysis and dead code elimination
+* linear scan register allocation
+* global copy and constant propagation
+* improve exception handling
+* align function prolog and basic blocks
+* support cross-compilation 
+
+Long-Term Tasks
+===============
+
+* comprehensive test suite
+* ports to ppc, arm, sparc, alpha, mips...
+* more optimizations:
+** redundancy elimination
+** alias analysis
+** strength reduction
+** loop optimization
+** array data type, ABCD
+* tree-based IR and instruction selection ?
+* instruction scheduling ?
+* finish ELF writer/reader
