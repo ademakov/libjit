@@ -312,7 +312,7 @@ typedef union {
 			x86_imm_emit8 ((inst), (disp));	\
 		} else {	\
 			x86_address_byte ((inst), 2, (r), 4);	\
-			x86_address_byte ((inst), (shift), (indexreg), 5);	\
+			x86_address_byte ((inst), (shift), (indexreg), (basereg));	\
 			x86_imm_emit32 ((inst), (disp));	\
 		}	\
 	} while (0)
