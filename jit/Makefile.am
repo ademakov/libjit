@@ -53,6 +53,7 @@ libjit_la_SOURCES = \
 		jit-rules.h \
 		jit-rules.c \
 		jit-rules-interp.c \
+		jit-rules-interp.h \
 		jit-rules-alpha.h \
 		jit-rules-alpha.c \
 		jit-rules-arm.h \

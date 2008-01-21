@@ -1,13 +1,18 @@
+2008-01-21 Dalibor Topic <robilad@kaffe.org>
+
+	* jit/Makefile.am (libjit_la_SOURCES): add mising jit-rules-interp.h
+	file.
+
 2008-01-16  Klaus Treichel  <ktreichel@web.de>
 
-	* jit/jit-gen-x86.h: Use the suppied base register instead of
-	register no. 5 (EBP) in x86_memindex_emit for displacements greater than
-	x86_int8 (<-128 or >127).
+	* jit/jit-gen-x86.h: Use the supplied base register instead of
+	register no. 5 (EBP) in x86_memindex_emit for displacements greater
+	than x86_int8 (<-128 or >127).
 
 2008-01-04  Klaus Treichel  <ktreichel@web.de>
 
-	* jit/jit-opcode.c: Add the nint argument to the return_small_struct and
-	flush_small_struct opcodes.
+	* jit/jit-opcode.c: Add the nint argument to the return_small_struct
+	and flush_small_struct opcodes.
 
 2008-01-03  Klaus Treichel  <ktreichel@web.de>
 
@@ -18,8 +23,9 @@
 
 2007-12-31  Klaus Treichel  <ktreichel@web.de>
 
-	* jit/jit-apply-x86-64.h: Swap source and destination for the call of
-	jit_memcpy in jit_builtin_apply so that they are in the correct order.
+	* jit/jit-apply-x86-64.h: Swap source and destination for the call
+	of jit_memcpy in jit_builtin_apply so that they are in the correct
+	order.
 
 2007-12-28  Aleksey Demakov  <ademakov@gmail.com>
 
@@ -28,8 +34,8 @@
 2007-12-28  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-interp.c: Fix the opcodes JIT_OP_LADD, JIT_OP_ISHL,
-	JIT_OP_LSHR_UN, JIT_OP_ICMP_UN, JIT_OP_LCMP and JIT_OP_LCMP_UN in the
-	intpreter backend.
+	JIT_OP_LSHR_UN, JIT_OP_ICMP_UN, JIT_OP_LCMP and JIT_OP_LCMP_UN in
+	the intpreter backend.
 
 2007-12-24  Aleksey Demakov  <ademakov@gmail.com>
 
