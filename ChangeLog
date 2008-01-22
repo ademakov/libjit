@@ -1,5 +1,7 @@
 2008-01-22  Aleksey Demakov  <ademakov@gmail.com>
 
+	* COPYING.LESSER: add LGPL v2.1 file.
+
 	* jit/*.c, jitplus/*.cpp, jitdynamic/*.c: fix texinfo markup for
 	parameters. 
 
