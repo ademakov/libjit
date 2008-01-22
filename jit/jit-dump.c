@@ -40,7 +40,7 @@
 @*/
 
 /*@
- * @deftypefun void jit_dump_type ({FILE *} stream, jit_type_t type)
+ * @deftypefun void jit_dump_type (FILE *@var{stream}, jit_type_t @var{type})
  * Dump the name of a type to a stdio stream.
  * @end deftypefun
 @*/
@@ -119,10 +119,10 @@ static char *format_integer(char *buf, int is_neg, jit_ulong value)
 }
 
 /*@
- * @deftypefun void jit_dump_value ({FILE *} stream, jit_function_t func, jit_value_t value, const char *prefix)
- * Dump the name of a value to a stdio stream.  If @code{prefix} is not
+ * @deftypefun void jit_dump_value (FILE *@var{stream}, jit_function_t @var{func}, jit_value_t @var{value}, const char *@var{prefix})
+ * Dump the name of a value to a stdio stream.  If @var{prefix} is not
  * NULL, then it indicates a type prefix to add to the value name.
- * If @code{prefix} is NULL, then this function intuits the type prefix.
+ * If @var{prefix} is NULL, then this function intuits the type prefix.
  * @end deftypefun
 @*/
 void jit_dump_value(FILE *stream, jit_function_t func, jit_value_t value, const char *prefix)
@@ -345,7 +345,7 @@ static void dump_value(FILE *stream, jit_function_t func,
 }
 
 /*@
- * @deftypefun void jit_dump_insn ({FILE *} stream, jit_function_t func, jit_value_t value)
+ * @deftypefun void jit_dump_insn (FILE *@var{stream}, jit_function_t @var{func}, jit_value_t @var{value})
  * Dump the contents of an instruction to a stdio stream.
  * @end deftypefun
 @*/
@@ -741,9 +741,9 @@ static void dump_object_code(FILE *stream, void *start, void *end)
 #endif /* !JIT_BACKEND_INTERP */
 
 /*@
- * @deftypefun void jit_dump_function ({FILE *} stream, jit_function_t func, {const char *} name)
+ * @deftypefun void jit_dump_function (FILE *@var{stream}, jit_function_t @var{func}, const char *@var{name})
  * Dump the three-address instructions within a function to a stream.
- * The @code{name} is attached to the output as a friendly label, but
+ * The @var{name} is attached to the output as a friendly label, but
  * has no other significance.
  *
  * If the function has not been compiled yet, then this will dump the

@@ -39,9 +39,9 @@
 @*/
 
 /*@
- * @deftypefun {void *} jit_memset ({void *} dest, int ch, {unsigned int} len)
- * Set the @code{len} bytes at @code{dest} to the value @code{ch}.
- * Returns @code{dest}.
+ * @deftypefun {void *} jit_memset (void *@var{dest}, int @var{ch}, unsigned int @var{len})
+ * Set the @var{len} bytes at @var{dest} to the value @var{ch}.
+ * Returns @var{dest}.
  * @end deftypefun
 @*/
 void *jit_memset(void *dest, int ch, unsigned int len)
@@ -60,10 +60,10 @@ void *jit_memset(void *dest, int ch, unsigned int len)
 }
 
 /*@
- * @deftypefun {void *} jit_memcpy ({void *} dest, {const void *} src, {unsigned int} len)
- * Copy the @code{len} bytes at @code{src} to @code{dest}.  Returns
- * @code{dest}.  The behavior is undefined if the blocks overlap
- * (use @code{jit_memmove} instead for that case).
+ * @deftypefun {void *} jit_memcpy (void *@var{dest}, const void *@var{src}, unsigned int @var{len})
+ * Copy the @var{len} bytes at @var{src} to @var{dest}.  Returns
+ * @var{dest}.  The behavior is undefined if the blocks overlap
+ * (use @var{jit_memmove} instead for that case).
  * @end deftypefun
 @*/
 void *jit_memcpy(void *dest, const void *src, unsigned int len)
@@ -86,9 +86,9 @@ void *jit_memcpy(void *dest, const void *src, unsigned int len)
 }
 
 /*@
- * @deftypefun {void *} jit_memmove ({void *} dest, {const void *} src, {unsigned int} len)
- * Copy the @code{len} bytes at @code{src} to @code{dest} and handle
- * overlapping blocks correctly.  Returns @code{dest}.
+ * @deftypefun {void *} jit_memmove (void *@var{dest}, const void *@var{src}, unsigned int @var{len})
+ * Copy the @var{len} bytes at @var{src} to @var{dest} and handle
+ * overlapping blocks correctly.  Returns @var{dest}.
  * @end deftypefun
 @*/
 void *jit_memmove(void *dest, const void *src, unsigned int len)
@@ -121,8 +121,8 @@ void *jit_memmove(void *dest, const void *src, unsigned int len)
 }
 
 /*@
- * @deftypefun int jit_memcmp ({const void *} s1, {const void *} s2, {unsigned int} len)
- * Compare @code{len} bytes at @code{s1} and @code{s2}, returning a negative,
+ * @deftypefun int jit_memcmp (const void *@var{s1}, const void *@var{s2}, unsigned int @var{len})
+ * Compare @var{len} bytes at @var{s1} and @var{s2}, returning a negative,
  * zero, or positive result depending upon their relationship.  It is
  * system-specific as to whether this function uses signed or unsigned
  * byte comparisons.
@@ -152,9 +152,9 @@ int jit_memcmp(const void *s1, const void *s2, unsigned int len)
 }
 
 /*@
- * @deftypefun {void *} jit_memchr ({void *} str, int ch, {unsigned int} len)
- * Search the @code{len} bytes at @code{str} for the first instance of
- * the value @code{ch}.  Returns the location of @code{ch} if it was found,
+ * @deftypefun {void *} jit_memchr (void *@var{str}, int @var{ch}, unsigned int @var{len})
+ * Search the @var{len} bytes at @var{str} for the first instance of
+ * the value @var{ch}.  Returns the location of @var{ch} if it was found,
  * or NULL if it was not found.
  * @end deftypefun
 @*/

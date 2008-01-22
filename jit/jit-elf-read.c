@@ -749,8 +749,8 @@ static void load_dynamic_section(jit_readelf_t readelf, int flags)
 }
 
 /*@
- * @deftypefun int jit_readelf_open ({jit_readelf_t *} readelf, {const char *} filename, int force)
- * Open the specified @code{filename} and load the ELF binary that is
+ * @deftypefun int jit_readelf_open (jit_readelf_t *@var{readelf}, const char *@var{filename}, int @var{force})
+ * Open the specified @var{filename} and load the ELF binary that is
  * contained within it.  Returns one of the following result codes:
  *
  * @table @code
@@ -1085,7 +1085,7 @@ int jit_readelf_open(jit_readelf_t *_readelf, const char *filename, int flags)
 }
 
 /*@
- * @deftypefun void jit_readelf_close (jit_readelf_t readelf)
+ * @deftypefun void jit_readelf_close (jit_readelf_t @var{readelf})
  * Close an ELF reader, reclaiming all of the memory that was used.
  * @end deftypefun
 @*/
@@ -1123,7 +1123,7 @@ void jit_readelf_close(jit_readelf_t readelf)
 }
 
 /*@
- * @deftypefun {const char *} jit_readelf_get_name (jit_readelf_t readelf)
+ * @deftypefun {const char *} jit_readelf_get_name (jit_readelf_t @var{readelf})
  * Get the library name that is embedded inside an ELF binary.
  * ELF binaries can refer to each other using this name.
  * @end deftypefun
@@ -1142,9 +1142,9 @@ const char *jit_readelf_get_name(jit_readelf_t readelf)
 }
 
 /*@
- * @deftypefun void *jit_readelf_get_symbol (jit_readelf_t readelf, {const char *} name)
- * Look up the symbol called @code{name} in the ELF binary represented
- * by @code{readelf}.  Returns NULL if the symbol is not present.
+ * @deftypefun void *jit_readelf_get_symbol (jit_readelf_t @var{readelf}, const char *@var{name})
+ * Look up the symbol called @var{name} in the ELF binary represented
+ * by @var{readelf}.  Returns NULL if the symbol is not present.
  *
  * External references from this ELF binary to others are not resolved
  * until the ELF binary is loaded into a JIT context using
@@ -1228,7 +1228,7 @@ void *jit_readelf_get_symbol(jit_readelf_t readelf, const char *name)
 }
 
 /*@
- * @deftypefun {void *} jit_readelf_get_section (jit_readelf_t readelf, {const char *} name, {jit_nuint *} size)
+ * @deftypefun {void *} jit_readelf_get_section (jit_readelf_t @var{readelf}, const char *@var{name}, jit_nuint *@var{size})
  * Get the address and size of a particular section from an ELF binary.
  * Returns NULL if the section is not present in the ELF binary.
  *
@@ -1286,7 +1286,7 @@ void *jit_readelf_get_section
 }
 
 /*@
- * @deftypefun {void *} jit_readelf_get_section_by_type (jit_readelf_t readelf, jit_int type, {jit_nuint *} size)
+ * @deftypefun {void *} jit_readelf_get_section_by_type (jit_readelf_t @var{readelf}, jit_int @var{type}, jit_nuint *@var{size})
  * Get a particular section using its raw ELF section type (i.e. one of
  * the @code{SHT_*} constants in @code{jit-elf-defs.h}).  This is mostly
  * for internal use, but some virtual machines may find it useful for
@@ -1326,9 +1326,9 @@ void *jit_readelf_get_section_by_type
 }
 
 /*@
- * @deftypefun {void *} jit_readelf_map_vaddr (jit_readelf_t readelf, jit_nuint vaddr)
+ * @deftypefun {void *} jit_readelf_map_vaddr (jit_readelf_t @var{readelf}, jit_nuint @var{vaddr})
  * Map a virtual address to an actual address in a loaded ELF binary.
- * Returns NULL if @code{vaddr} could not be mapped.
+ * Returns NULL if @var{vaddr} could not be mapped.
  * @end deftypefun
 @*/
 void *jit_readelf_map_vaddr(jit_readelf_t readelf, jit_nuint vaddr)
@@ -1352,7 +1352,7 @@ void *jit_readelf_map_vaddr(jit_readelf_t readelf, jit_nuint vaddr)
 }
 
 /*@
- * @deftypefun {unsigned int} jit_readelf_num_needed (jit_readelf_t readelf)
+ * @deftypefun {unsigned int} jit_readelf_num_needed (jit_readelf_t @var{readelf})
  * Get the number of dependent libraries that are needed by this
  * ELF binary.  The virtual machine will normally need to arrange
  * to load these libraries with @code{jit_readelf_open} as well,
@@ -1377,10 +1377,10 @@ unsigned int jit_readelf_num_needed(jit_readelf_t readelf)
 }
 
 /*@
- * @deftypefun {const char *} jit_readelf_get_needed (jit_readelf_t readelf, {unsigned int} index)
- * Get the name of the dependent library at position @code{index} within
+ * @deftypefun {const char *} jit_readelf_get_needed (jit_readelf_t @var{readelf}, unsigned int @var{index})
+ * Get the name of the dependent library at position @var{index} within
  * the needed libraries list of this ELF binary.  Returns NULL if
- * the @code{index} is invalid.
+ * the @var{index} is invalid.
  * @end deftypefun
 @*/
 const char *jit_readelf_get_needed(jit_readelf_t readelf, unsigned int index)
@@ -1404,7 +1404,7 @@ const char *jit_readelf_get_needed(jit_readelf_t readelf, unsigned int index)
 }
 
 /*@
- * @deftypefun void jit_readelf_add_to_context (jit_readelf_t readelf, jit_context_t context)
+ * @deftypefun void jit_readelf_add_to_context (jit_readelf_t @var{readelf}, jit_context_t @var{context})
  * Add this ELF binary to a JIT context, so that its contents can be used
  * when executing JIT-managed code.  The binary will be closed automatically
  * if the context is destroyed and @code{jit_readelf_close} has not been
@@ -1759,10 +1759,10 @@ static int perform_relocations
 }
 
 /*@
- * @deftypefun int jit_readelf_resolve_all (jit_context_t context, int print_failures)
+ * @deftypefun int jit_readelf_resolve_all (jit_context_t @var{context}, int @var{print_failures})
  * Resolve all of the cross-library symbol references in ELF binaries
- * that have been added to @code{context} but which were not resolved
- * in the previous call to this function.  If @code{print_failures}
+ * that have been added to @var{context} but which were not resolved
+ * in the previous call to this function.  If @var{print_failures}
  * is non-zero, then diagnostic messages will be written to stdout
  * for any symbol resolutions that fail.
  *
@@ -1798,14 +1798,14 @@ int jit_readelf_resolve_all(jit_context_t context, int print_failures)
 }
 
 /*@
- * @deftypefun int jit_readelf_register_symbol (jit_context_t context, {const char *} name, {void *} value, int after)
- * Register @code{value} with @code{name} on the specified @code{context}.
+ * @deftypefun int jit_readelf_register_symbol (jit_context_t @var{context}, const char *@var{name}, void *@var{value}, int @var{after})
+ * Register @var{value} with @var{name} on the specified @var{context}.
  * Whenever symbols are resolved with @code{jit_readelf_resolve_all},
- * and the symbol @code{name} is encountered, @code{value} will be
+ * and the symbol @var{name} is encountered, @var{value} will be
  * substituted.  Returns zero if out of memory or there is something
  * wrong with the parameters.
  *
- * If @code{after} is non-zero, then @code{name} will be resolved after all
+ * If @var{after} is non-zero, then @var{name} will be resolved after all
  * other ELF libraries; otherwise it will be resolved before the ELF
  * libraries.
  *

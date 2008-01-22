@@ -29,7 +29,7 @@
 #endif
 
 /*@
- * @deftypefun jit_function_t jit_function_create (jit_context_t context, jit_type_t signature)
+ * @deftypefun jit_function_t jit_function_create (jit_context_t @var{context}, jit_type_t @var{signature})
  * Create a new function block and associate it with a JIT context.
  * Returns NULL if out of memory.
  *
@@ -136,10 +136,10 @@ jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
 }
 
 /*@
- * @deftypefun jit_function_t jit_function_create_nested (jit_context_t context, jit_type_t signature, jit_function_t parent)
+ * @deftypefun jit_function_t jit_function_create_nested (jit_context_t @var{context}, jit_type_t @var{signature}, jit_function_t @var{parent})
  * Create a new function block and associate it with a JIT context.
  * In addition, this function is nested inside the specified
- * @code{parent} function and is able to access its parent's
+ * @var{parent} function and is able to access its parent's
  * (and grandparent's) local variables.
  *
  * The front end is responsible for ensuring that the nested function can
@@ -257,10 +257,10 @@ void _jit_function_destroy(jit_function_t func)
 }
 
 /*@
- * @deftypefun void jit_function_abandon (jit_function_t func)
+ * @deftypefun void jit_function_abandon (jit_function_t @var{func})
  * Abandon this function during the build process.  This should be called
  * when you detect a fatal error that prevents the function from being
- * properly built.  The @code{func} object is completely destroyed and
+ * properly built.  The @var{func} object is completely destroyed and
  * detached from its owning context.  The function is left alone if
  * it was already compiled.
  * @end deftypefun
@@ -285,7 +285,7 @@ void jit_function_abandon(jit_function_t func)
 }
 
 /*@
- * @deftypefun jit_context_t jit_function_get_context (jit_function_t func)
+ * @deftypefun jit_context_t jit_function_get_context (jit_function_t @var{func})
  * Get the context associated with a function.
  * @end deftypefun
 @*/
@@ -302,7 +302,7 @@ jit_context_t jit_function_get_context(jit_function_t func)
 }
 
 /*@
- * @deftypefun jit_type_t jit_function_get_signature (jit_function_t func)
+ * @deftypefun jit_type_t jit_function_get_signature (jit_function_t @var{func})
  * Get the signature associated with a function.
  * @end deftypefun
 @*/
@@ -319,7 +319,7 @@ jit_type_t jit_function_get_signature(jit_function_t func)
 }
 
 /*@
- * @deftypefun int jit_function_set_meta (jit_function_t func, int type, {void *} data, jit_meta_free_func free_data, int build_only)
+ * @deftypefun int jit_function_set_meta (jit_function_t @var{func}, int @var{type}, void *@var{data}, jit_meta_free_func @var{free_data}, int @var{build_only})
  * Tag a function with some metadata.  Returns zero if out of memory.
  *
  * Metadata may be used to store dependency graphs, branch prediction
@@ -328,13 +328,13 @@ jit_type_t jit_function_get_signature(jit_function_t func)
  * to store information about the function that is specific to the
  * virtual machine or language.
  *
- * If the @code{type} already has some metadata associated with it, then
+ * If the @var{type} already has some metadata associated with it, then
  * the previous value will be freed.
  *
- * If @code{build_only} is non-zero, then the metadata will be freed
+ * If @var{build_only} is non-zero, then the metadata will be freed
  * when the function is compiled with @code{jit_function_compile}.
  * Otherwise the metadata will persist until the JIT context is destroyed,
- * or @code{jit_function_free_meta} is called for the specified @code{type}.
+ * or @code{jit_function_free_meta} is called for the specified @var{type}.
  *
  * Metadata type values of 10000 or greater are reserved for internal use.
  * @end deftypefun
@@ -358,9 +358,9 @@ int jit_function_set_meta(jit_function_t func, int type, void *data,
 }
 
 /*@
- * @deftypefun {void *} jit_function_get_meta (jit_function_t func, int type)
+ * @deftypefun {void *} jit_function_get_meta (jit_function_t @var{func}, int @var{type})
  * Get the metadata associated with a particular tag.  Returns NULL
- * if @code{type} does not have any metadata associated with it.
+ * if @var{type} does not have any metadata associated with it.
  * @end deftypefun
 @*/
 void *jit_function_get_meta(jit_function_t func, int type)
@@ -374,9 +374,9 @@ void *jit_function_get_meta(jit_function_t func, int type)
 }
 
 /*@
- * @deftypefun void jit_function_free_meta (jit_function_t func, int type)
+ * @deftypefun void jit_function_free_meta (jit_function_t @var{func}, int @var{type})
  * Free metadata of a specific type on a function.  Does nothing if
- * the @code{type} does not have any metadata associated with it.
+ * the @var{type} does not have any metadata associated with it.
  * @end deftypefun
 @*/
 void jit_function_free_meta(jit_function_t func, int type)
@@ -389,8 +389,8 @@ void jit_function_free_meta(jit_function_t func, int type)
 }
 
 /*@
- * @deftypefun jit_function_t jit_function_next (jit_context_t context, jit_function_t prev)
- * Iterate over the defined functions in creation order.  The @code{prev}
+ * @deftypefun jit_function_t jit_function_next (jit_context_t @var{context}, jit_function_t @var{prev})
+ * Iterate over the defined functions in creation order.  The @var{prev}
  * argument should be NULL on the first call.  Returns NULL at the end.
  * @end deftypefun
 @*/
@@ -411,12 +411,11 @@ jit_function_t jit_function_next(jit_context_t context, jit_function_t prev)
 }
 
 /*@
- * @deftypefun jit_function_t jit_function_previous (jit_context_t context, jit_function_t prev)
+ * @deftypefun jit_function_t jit_function_previous (jit_context_t @var{context}, jit_function_t @var{prev})
  * Iterate over the defined functions in reverse creation order.
  * @end deftypefun
 @*/
-jit_function_t jit_function_previous(jit_context_t context,
-									 jit_function_t prev)
+jit_function_t jit_function_previous(jit_context_t context, jit_function_t prev)
 {
 	if(prev)
 	{
@@ -433,7 +432,7 @@ jit_function_t jit_function_previous(jit_context_t context,
 }
 
 /*@
- * @deftypefun jit_block_t jit_function_get_entry (jit_function_t func)
+ * @deftypefun jit_block_t jit_function_get_entry (jit_function_t @var{func})
  * Get the entry block for a function.  This is always the first block
  * created by @code{jit_function_create}.
  * @end deftypefun
@@ -451,7 +450,7 @@ jit_block_t jit_function_get_entry(jit_function_t func)
 }
 
 /*@
- * @deftypefun jit_block_t jit_function_get_current (jit_function_t func)
+ * @deftypefun jit_block_t jit_function_get_current (jit_function_t @var{func})
  * Get the current block for a function.  New blocks are created by
  * certain @code{jit_insn_xxx} calls.
  * @end deftypefun
@@ -469,8 +468,8 @@ jit_block_t jit_function_get_current(jit_function_t func)
 }
 
 /*@
- * @deftypefun jit_function_t jit_function_get_nested_parent (jit_function_t func)
- * Get the nested parent for a function, or NULL if @code{func}
+ * @deftypefun jit_function_t jit_function_get_nested_parent (jit_function_t @var{func})
+ * Get the nested parent for a function, or NULL if @var{func}
  * does not have a nested parent.
  * @end deftypefun
 @*/
@@ -909,7 +908,7 @@ struct jit_cache_eh
 };
 
 /*@
- * @deftypefun int jit_function_compile (jit_function_t func)
+ * @deftypefun int jit_function_compile (jit_function_t @var{func})
  * Compile a function to its executable form.  If the function was
  * already compiled, then do nothing.  Returns zero on error.
  *
@@ -958,7 +957,7 @@ int jit_function_compile(jit_function_t func)
 }
 
 /*@
- * @deftypefun int jit_function_compile_entry (jit_function_t func, void **entry_point)
+ * @deftypefun int jit_function_compile_entry (jit_function_t @var{func}, void **@var{entry_point})
  * Compile a function to its executable form but do not make it
  * available for invocation yet. It may be made available later
  * with @code{jit_function_setup_entry}.
@@ -999,10 +998,10 @@ jit_function_compile_entry(jit_function_t func, void **entry_point)
 }
 
 /*@
- * @deftypefun int jit_function_setup_entry (jit_function_t func, void *entry_point)
+ * @deftypefun int jit_function_setup_entry (jit_function_t @var{func}, void *@var{entry_point})
  * Make a function compiled with @code{jit_function_compile_entry}
  * available for invocation and free the resources used for
- * compilation. If @code{entry_point} is null then it only
+ * compilation. If @var{entry_point} is null then it only
  * frees the resources.
  * @end deftypefun
 @*/
@@ -1024,7 +1023,7 @@ jit_function_setup_entry(jit_function_t func, void *entry_point)
 }
 
 /*@
- * @deftypefun int jit_function_is_compiled (jit_function_t func)
+ * @deftypefun int jit_function_is_compiled (jit_function_t @var{func})
  * Determine if a function has already been compiled.
  * @end deftypefun
 @*/
@@ -1041,7 +1040,7 @@ int jit_function_is_compiled(jit_function_t func)
 }
 
 /*@
- * @deftypefun int jit_function_set_recompilable (jit_function_t func)
+ * @deftypefun int jit_function_set_recompilable (jit_function_t @var{func})
  * Mark this function as a candidate for recompilation.  That is,
  * it is possible that we may call @code{jit_function_compile}
  * more than once, to re-optimize an existing function.
@@ -1063,7 +1062,7 @@ void jit_function_set_recompilable(jit_function_t func)
 }
 
 /*@
- * @deftypefun void jit_function_clear_recompilable (jit_function_t func)
+ * @deftypefun void jit_function_clear_recompilable (jit_function_t @var{func})
  * Clear the recompilable flag on this function.  Normally you would use
  * this once you have decided that the function has been optimized enough,
  * and that you no longer intend to call @code{jit_function_compile} again.
@@ -1084,7 +1083,7 @@ void jit_function_clear_recompilable(jit_function_t func)
 }
 
 /*@
- * @deftypefun int jit_function_is_recompilable (jit_function_t func)
+ * @deftypefun int jit_function_is_recompilable (jit_function_t @var{func})
  * Determine if this function is recompilable.
  * @end deftypefun
 @*/
@@ -1119,7 +1118,7 @@ static void function_closure(jit_type_t signature, void *result,
 #endif /* JIT_BACKEND_INTERP */
 
 /*@
- * @deftypefun {void *} jit_function_to_closure (jit_function_t func)
+ * @deftypefun {void *} jit_function_to_closure (jit_function_t @var{func})
  * Convert a compiled function into a closure that can called directly
  * from C.  Returns NULL if out of memory, or if closures are not
  * supported on this platform.
@@ -1152,7 +1151,7 @@ void *jit_function_to_closure(jit_function_t func)
 }
 
 /*@
- * @deftypefun jit_function_t jit_function_from_closure (jit_context_t context, {void *} closure)
+ * @deftypefun jit_function_t jit_function_from_closure (jit_context_t @var{context}, void *@var{closure})
  * Convert a closure back into a function.  Returns NULL if the
  * closure does not correspond to a function in the specified context.
  * @end deftypefun
@@ -1169,11 +1168,11 @@ jit_function_t jit_function_from_closure(jit_context_t context, void *closure)
 }
 
 /*@
- * @deftypefun jit_function_t jit_function_from_pc (jit_context_t context, {void *} pc, {void **} handler)
+ * @deftypefun jit_function_t jit_function_from_pc (jit_context_t @var{context}, void *@var{pc}, void **@var{handler})
  * Get the function that contains the specified program counter location.
  * Also return the address of the @code{catch} handler for the same location.
  * Returns NULL if the program counter does not correspond to a function
- * under the control of @code{context}.
+ * under the control of @var{context}.
  * @end deftypefun
 @*/
 jit_function_t jit_function_from_pc
@@ -1215,7 +1214,7 @@ jit_function_t jit_function_from_pc
 }
 
 /*@
- * @deftypefun {void *} jit_function_to_vtable_pointer (jit_function_t func)
+ * @deftypefun {void *} jit_function_to_vtable_pointer (jit_function_t @var{func})
  * Return a pointer that is suitable for referring to this function
  * from a vtable.  Such pointers should only be used with the
  * @code{jit_insn_call_vtable} instruction.
@@ -1247,7 +1246,7 @@ void *jit_function_to_vtable_pointer(jit_function_t func)
 }
 
 /*@
- * @deftypefun jit_function_t jit_function_from_vtable_pointer (jit_context_t context, {void *} vtable_pointer)
+ * @deftypefun jit_function_t jit_function_from_vtable_pointer (jit_context_t @var{context}, void *@var{vtable_pointer})
  * Convert a vtable_pointer back into a function.  Returns NULL if the
  * vtable_pointer does not correspond to a function in the specified context.
  * @end deftypefun
@@ -1275,8 +1274,8 @@ jit_function_t jit_function_from_vtable_pointer(jit_context_t context, void *vta
 }
 
 /*@
- * @deftypefun void jit_function_set_on_demand_compiler (jit_function_t func, jit_on_demand_func on_demand)
- * Specify the C function to be called when @code{func} needs to be
+ * @deftypefun void jit_function_set_on_demand_compiler (jit_function_t @var{func}, jit_on_demand_func @var{on_demand})
+ * Specify the C function to be called when @var{func} needs to be
  * compiled on-demand.  This should be set just after the function
  * is created, before any build or compile processes begin.
  *
@@ -1330,7 +1329,7 @@ jit_function_set_on_demand_compiler(jit_function_t func, jit_on_demand_func on_d
 }
 
 /*@
- * @deftypefun jit_on_demand_func jit_function_get_on_demand_compiler (jit_function_t func)
+ * @deftypefun jit_on_demand_func jit_function_get_on_demand_compiler (jit_function_t @var{func})
  * Returns function's on-demand compiler.
  * @end deftypefun
 @*/
@@ -1401,9 +1400,9 @@ void *_jit_function_compile_on_demand(jit_function_t func)
 }
 
 /*@
- * @deftypefun int jit_function_apply (jit_function_t func, {void **} args, {void *} return_area)
- * Call the function @code{func} with the supplied arguments.  Each element
- * in @code{args} is a pointer to one of the arguments, and @code{return_area}
+ * @deftypefun int jit_function_apply (jit_function_t @var{func}, void **@var{args}, void *@var{return_area})
+ * Call the function @var{func} with the supplied arguments.  Each element
+ * in @var{args} is a pointer to one of the arguments, and @var{return_area}
  * points to a buffer to receive the return value.  Returns zero if an
  * exception occurred.
  *
@@ -1413,15 +1412,15 @@ void *_jit_function_compile_on_demand(jit_function_t func)
  * is guaranteed to be supported everywhere.
  *
  * Function applications acts as an exception blocker.  If any exceptions
- * occur during the execution of @code{func}, they won't travel up the
+ * occur during the execution of @var{func}, they won't travel up the
  * stack any further than this point.  This prevents ordinary C code
  * from being accidentally presented with a situation that it cannot handle.
  * This blocking protection is not present when a function is invoked
  * via its closure.
  * @end deftypefun
  *
- * @deftypefun int jit_function_apply_vararg (jit_function_t func, jit_type_t signature, {void **} args, {void *} return_area)
- * Call the function @code{func} with the supplied arguments.  There may
+ * @deftypefun int jit_function_apply_vararg (jit_function_t @var{func}, jit_type_t @var{signature}, void **@var{args}, void *@var{return_area})
+ * Call the function @var{func} with the supplied arguments.  There may
  * be more arguments than are specified in the function's original signature,
  * in which case the additional values are passed as variable arguments.
  * This function is otherwise identical to @code{jit_function_apply}.
@@ -1505,11 +1504,11 @@ int jit_function_apply_vararg
 #endif /* !JIT_BACKEND_INTERP */
 
 /*@
- * @deftypefun void jit_function_set_optimization_level (jit_function_t func, {unsigned int} level)
- * Set the optimization level for @code{func}.  Increasing values indicate
+ * @deftypefun void jit_function_set_optimization_level (jit_function_t @var{func}, unsigned int @var{level})
+ * Set the optimization level for @var{func}.  Increasing values indicate
  * that the @code{libjit} dynamic compiler should expend more effort to
  * generate better code for this function.  Usually you would increase
- * this value just before forcing @code{func} to recompile.
+ * this value just before forcing @var{func} to recompile.
  *
  * When the optimization level reaches the value returned by
  * @code{jit_function_get_max_optimization_level()}, there is usually
@@ -1518,7 +1517,7 @@ int jit_function_apply_vararg
  *
  * The front end is usually responsible for choosing candidates for
  * function inlining.  If it has identified more such candidates, then
- * it may still want to recompile @code{func} again even once it has
+ * it may still want to recompile @var{func} again even once it has
  * reached the maximum optimization level.
  * @end deftypefun
 @*/
@@ -1537,8 +1536,8 @@ void jit_function_set_optimization_level
 }
 
 /*@
- * @deftypefun {unsigned int} jit_function_get_optimization_level (jit_function_t func)
- * Get the current optimization level for @code{func}.
+ * @deftypefun {unsigned int} jit_function_get_optimization_level (jit_function_t @var{func})
+ * Get the current optimization level for @var{func}.
  * @end deftypefun
 @*/
 unsigned int jit_function_get_optimization_level(jit_function_t func)
@@ -1565,8 +1564,8 @@ unsigned int jit_function_get_max_optimization_level(void)
 }
 
 /*@
- * @deftypefun {jit_label_t} jit_function_reserve_label (jit_function_t func)
- * Allocate a new label for later use within the function @code{func}. Most
+ * @deftypefun {jit_label_t} jit_function_reserve_label (jit_function_t @var{func})
+ * Allocate a new label for later use within the function @var{func}. Most
  * instructions that require a label could perform label allocation themselves.
  * A separate label allocation could be useful to fill a jump table with
  * identical entries.

@@ -418,8 +418,8 @@ static void perform_layout(jit_type_t type)
 }
 
 /*@
- * @deftypefun jit_type_t jit_type_copy (jit_type_t type)
- * Make a copy of the type descriptor @code{type} by increasing
+ * @deftypefun jit_type_t jit_type_copy (jit_type_t @var{type})
+ * Make a copy of the type descriptor @var{type} by increasing
  * its reference count.
  * @end deftypefun
 @*/
@@ -434,7 +434,7 @@ jit_type_t jit_type_copy(jit_type_t type)
 }
 
 /*@
- * @deftypefun void jit_type_free (jit_type_t type)
+ * @deftypefun void jit_type_free (jit_type_t @var{type})
  * Free a type descriptor by decreasing its reference count.
  * This function is safe to use on pre-defined types, which are
  * never actually freed.
@@ -511,12 +511,12 @@ static jit_type_t create_complex(int kind, jit_type_t *types,
 }
 
 /*@
- * @deftypefun jit_type_t jit_type_create_struct ({jit_type_t *} fields, {unsigned int} num_fields, int incref)
+ * @deftypefun jit_type_t jit_type_create_struct (jit_type_t *@var{fields}, unsigned int @var{num_fields}, int @var{incref})
  * Create a type descriptor for a structure.  Returns NULL if out of memory.
  * If there are no fields, then the size of the structure will be zero.
  * It is necessary to add a padding field if the language does not allow
  * zero-sized structures.  The reference counts on the field types are
- * incremented if @code{incref} is non-zero.
+ * incremented if @var{incref} is non-zero.
  *
  * The @code{libjit} library does not provide any special support for
  * implementing structure inheritance, where one structure extends the
@@ -545,12 +545,12 @@ jit_type_t jit_type_create_struct(jit_type_t *fields, unsigned int num_fields,
 }
 
 /*@
- * @deftypefun jit_type_t jit_type_create_union ({jit_type_t *} fields, {unsigned int} num_fields, int incref)
+ * @deftypefun jit_type_t jit_type_create_union (jit_type_t *@var{fields}, unsigned int @var{num_fields}, int @var{incref})
  * Create a type descriptor for a union.  Returns NULL if out of memory.
  * If there are no fields, then the size of the union will be zero.
  * It is necessary to add a padding field if the language does not allow
  * zero-sized unions.  The reference counts on the field types are
- * incremented if @code{incref} is non-zero.
+ * incremented if @var{incref} is non-zero.
  * @end deftypefun
 @*/
 jit_type_t jit_type_create_union(jit_type_t *fields, unsigned int num_fields,
@@ -560,17 +560,17 @@ jit_type_t jit_type_create_union(jit_type_t *fields, unsigned int num_fields,
 }
 
 /*@
- * @deftypefun jit_type_t jit_type_create_signature (jit_abi_t abi, jit_type_t return_type, {jit_type_t *} params, {unsigned int} num_params, int incref)
+ * @deftypefun jit_type_t jit_type_create_signature (jit_abi_t @var{abi}, jit_type_t @var{return_type}, jit_type_t *@var{params}, unsigned int @var{num_params}, int @var{incref})
  * Create a type descriptor for a function signature.  Returns NULL if out
  * of memory.  The reference counts on the component types are incremented
- * if @code{incref} is non-zero.
+ * if @var{incref} is non-zero.
  *
  * When used as a structure or union field, function signatures are laid
  * out like pointers.  That is, they represent a pointer to a function
  * that has the specified parameters and return type.
  *
  * @tindex jit_abi_t
- * The @code{abi} parameter specifies the Application Binary Interface (ABI)
+ * The @var{abi} parameter specifies the Application Binary Interface (ABI)
  * that the function uses.  It may be one of the following values:
  *
  * @table @code
@@ -625,10 +625,10 @@ jit_type_t jit_type_create_signature(jit_abi_t abi, jit_type_t return_type,
 }
 
 /*@
- * @deftypefun jit_type_t jit_type_create_pointer (jit_type_t type, int incref)
+ * @deftypefun jit_type_t jit_type_create_pointer (jit_type_t @var{type}, int @var{incref})
  * Create a type descriptor for a pointer to another type.  Returns NULL
- * if out of memory.  The reference count on @code{type} is incremented if
- * @code{incref} is non-zero.
+ * if out of memory.  The reference count on @var{type} is incremented if
+ * @var{incref} is non-zero.
  * @end deftypefun
 @*/
 jit_type_t jit_type_create_pointer(jit_type_t type, int incref)
@@ -658,7 +658,7 @@ jit_type_t jit_type_create_pointer(jit_type_t type, int incref)
 }
 
 /*@
- * @deftypefun jit_type_t jit_type_create_tagged (jit_type_t type, int kind, {void *} data, jit_meta_free_func free_func, int incref)
+ * @deftypefun jit_type_t jit_type_create_tagged (jit_type_t @var{type}, int @var{kind}, void *@var{data}, jit_meta_free_func @var{free_func}, int @var{incref})
  * Tag a type with some additional user data.  Tagging is typically used by
  * higher-level programs to embed extra information about a type that
  * @code{libjit} itself does not support.
@@ -670,10 +670,10 @@ jit_type_t jit_type_create_pointer(jit_type_t type, int incref)
  * it is necessary to do so, without affecting @code{libjit}'s ability
  * to compile the code efficiently.
  *
- * The @code{kind} is a small positive integer value that the program
- * can use to distinguish multiple tag types.  The @code{data} pointer is
- * the actual data that you wish to store.  And @code{free_func} is a
- * function that is used to free @code{data} when the type is freed
+ * The @var{kind} is a small positive integer value that the program
+ * can use to distinguish multiple tag types.  The @var{data} pointer is
+ * the actual data that you wish to store.  And @var{free_func} is a
+ * function that is used to free @var{data} when the type is freed
  * with @code{jit_type_free}.
  *
  * If you need to store more than one piece of information, you can
@@ -688,7 +688,7 @@ jit_type_t jit_type_create_pointer(jit_type_t type, int incref)
  * @table @code
  * @vindex JIT_TYPETAG_NAME
  * @item JIT_TYPETAG_NAME
- * The @code{data} pointer is a @code{char *} string indicating a friendly
+ * The @var{data} pointer is a @code{char *} string indicating a friendly
  * name to display for the type.
  *
  * @vindex JIT_TYPETAG_STRUCT_NAME
@@ -697,7 +697,7 @@ jit_type_t jit_type_create_pointer(jit_type_t type, int incref)
  * @item JIT_TYPETAG_STRUCT_NAME
  * @itemx JIT_TYPETAG_UNION_NAME
  * @itemx JIT_TYPETAG_ENUM_NAME
- * The @code{data} pointer is a @code{char *} string indicating a friendly
+ * The @var{data} pointer is a @code{char *} string indicating a friendly
  * name to display for a @code{struct}, @code{union}, or @code{enum} type.
  * This is for languages like C that have separate naming scopes for
  * typedef's and structures.
@@ -792,8 +792,8 @@ jit_type_t jit_type_create_tagged(jit_type_t type, int kind, void *data,
 }
 
 /*@
- * @deftypefun int jit_type_set_names (jit_type_t type, {char **} names, {unsigned int} num_names)
- * Set the field or parameter names for @code{type}.  Returns zero
+ * @deftypefun int jit_type_set_names (jit_type_t @var{type}, char **@var{names}, unsigned int @var{num_names})
+ * Set the field or parameter names for @var{type}.  Returns zero
  * if there is insufficient memory to set the names.
  *
  * Normally fields are accessed via their index.  Field names are a
@@ -837,7 +837,7 @@ int jit_type_set_names(jit_type_t type, char **names, unsigned int num_names)
 }
 
 /*@
- * @deftypefun void jit_type_set_size_and_alignment (jit_type_t type, jit_nint size, jit_nint alignment)
+ * @deftypefun void jit_type_set_size_and_alignment (jit_type_t @var{type}, jit_nint @var{size}, jit_nint @var{alignment})
  * Set the size and alignment information for a structure or union
  * type.  Use this for performing explicit type layout.  Normally
  * the size is computed automatically.  Ignored if not a
@@ -869,7 +869,7 @@ void jit_type_set_size_and_alignment(jit_type_t type, jit_nint size,
 }
 
 /*@
- * @deftypefun void jit_type_set_offset (jit_type_t type, {unsigned int} field_index, jit_nuint offset)
+ * @deftypefun void jit_type_set_offset (jit_type_t @var{type}, unsigned int @var{field_index}, jit_nuint @var{offset})
  * Set the offset of a specific structure field.  Use this for
  * performing explicit type layout.  Normally the offset is
  * computed automatically.  Ignored if not a structure type,
@@ -891,15 +891,15 @@ void jit_type_set_offset(jit_type_t type, unsigned int field_index,
 }
 
 /*@
- * @deftypefun int jit_type_get_kind (jit_type_t type)
- * Get a value that indicates the kind of @code{type}.  This allows
+ * @deftypefun int jit_type_get_kind (jit_type_t @var{type})
+ * Get a value that indicates the kind of @var{type}.  This allows
  * callers to quickly classify a type to determine how it should be
  * handled further.
  *
  * @table @code
  * @vindex JIT_TYPE_INVALID
  * @item JIT_TYPE_INVALID
- * The value of the @code{type} parameter is NULL.
+ * The value of the @var{type} parameter is NULL.
  *
  * @vindex JIT_TYPE_VOID
  * @item JIT_TYPE_VOID
@@ -978,7 +978,7 @@ void jit_type_set_offset(jit_type_t type, unsigned int field_index,
  * If this function returns @code{JIT_TYPE_FIRST_TAGGED} or higher,
  * then the type is tagged and its tag kind is the return value minus
  * @code{JIT_TYPE_FIRST_TAGGED}.  That is, the following two expressions
- * will be identical if @code{type} is tagged:
+ * will be identical if @var{type} is tagged:
  *
  * @example
  * jit_type_get_tagged_kind(type)
@@ -999,7 +999,7 @@ int jit_type_get_kind(jit_type_t type)
 }
 
 /*@
- * @deftypefun jit_nuint jit_type_get_size (jit_type_t type)
+ * @deftypefun jit_nuint jit_type_get_size (jit_type_t @var{type})
  * Get the size of a type in bytes.
  * @end deftypefun
 @*/
@@ -1027,7 +1027,7 @@ jit_nuint jit_type_get_size(jit_type_t type)
 }
 
 /*@
- * @deftypefun jit_nuint jit_type_get_alignment (jit_type_t type)
+ * @deftypefun jit_nuint jit_type_get_alignment (jit_type_t @var{type})
  * Get the alignment of a type.  An alignment value of 2 indicates
  * that the type should be aligned on a two-byte boundary, for example.
  * @end deftypefun
@@ -1050,7 +1050,7 @@ jit_nuint jit_type_get_alignment(jit_type_t type)
 }
 
 /*@
- * @deftypefun {unsigned int} jit_type_num_fields (jit_type_t type)
+ * @deftypefun {unsigned int} jit_type_num_fields (jit_type_t @var{type})
  * Get the number of fields in a structure or union type.
  * @end deftypefun
 @*/
@@ -1068,7 +1068,7 @@ unsigned int jit_type_num_fields(jit_type_t type)
 }
 
 /*@
- * @deftypefun jit_type_t jit_type_get_field (jit_type_t type, {unsigned int} field_index)
+ * @deftypefun jit_type_t jit_type_get_field (jit_type_t @var{type}, unsigned int @var{field_index})
  * Get the type of a specific field within a structure or union.
  * Returns NULL if not a structure or union, or the index is out of range.
  * @end deftypefun
@@ -1087,7 +1087,7 @@ jit_type_t jit_type_get_field(jit_type_t type, unsigned int field_index)
 }
 
 /*@
- * @deftypefun jit_nuint jit_type_get_offset (jit_type_t type, {unsigned int} field_index)
+ * @deftypefun jit_nuint jit_type_get_offset (jit_type_t @var{type}, unsigned int @var{field_index})
  * Get the offset of a specific field within a structure.
  * Returns zero if not a structure, or the index is out of range,
  * so this is safe to use on non-structure types.
@@ -1111,7 +1111,7 @@ jit_nuint jit_type_get_offset(jit_type_t type, unsigned int field_index)
 }
 
 /*@
- * @deftypefun {const char *} jit_type_get_name (jit_type_t type, {unsigned int} index)
+ * @deftypefun {const char *} jit_type_get_name (jit_type_t @var{type}, unsigned int @var{index})
  * Get the name of a structure, union, or signature field/parameter.
  * Returns NULL if not a structure, union, or signature, the index
  * is out of range, or there is no name associated with the component.
@@ -1130,7 +1130,7 @@ const char *jit_type_get_name(jit_type_t type, unsigned int index)
 }
 
 /*@
- * @deftypefun {unsigned int} jit_type_find_name (jit_type_t type, {const char *} name)
+ * @deftypefun {unsigned int} jit_type_find_name (jit_type_t @var{type}, const char *@var{name})
  * Find the field/parameter index for a particular name.  Returns
  * @code{JIT_INVALID_NAME} if the name was not present.
  * @end deftypefun
@@ -1158,7 +1158,7 @@ unsigned int jit_type_find_name(jit_type_t type, const char *name)
 }
 
 /*@
- * @deftypefun {unsigned int} jit_type_num_params (jit_type_t type)
+ * @deftypefun {unsigned int} jit_type_num_params (jit_type_t @var{type})
  * Get the number of parameters in a signature type.
  * @end deftypefun
 @*/
@@ -1175,7 +1175,7 @@ unsigned int jit_type_num_params(jit_type_t type)
 }
 
 /*@
- * @deftypefun jit_type_t jit_type_get_return (jit_type_t type)
+ * @deftypefun jit_type_t jit_type_get_return (jit_type_t @var{type})
  * Get the return type from a signature type.  Returns NULL if
  * not a signature type.
  * @end deftypefun
@@ -1193,7 +1193,7 @@ jit_type_t jit_type_get_return(jit_type_t type)
 }
 
 /*@
- * @deftypefun jit_type_t jit_type_get_param (jit_type_t type, {unsigned int} param_index)
+ * @deftypefun jit_type_t jit_type_get_param (jit_type_t @var{type}, unsigned int @var{param_index})
  * Get a specific parameter from a signature type.  Returns NULL
  * if not a signature type or the index is out of range.
  * @end deftypefun
@@ -1212,7 +1212,7 @@ jit_type_t jit_type_get_param(jit_type_t type, unsigned int param_index)
 }
 
 /*@
- * @deftypefun jit_abi_t jit_type_get_abi (jit_type_t type)
+ * @deftypefun jit_abi_t jit_type_get_abi (jit_type_t @var{type})
  * Get the ABI code from a signature type.  Returns @code{jit_abi_cdecl}
  * if not a signature type.
  * @end deftypefun
@@ -1230,7 +1230,7 @@ jit_abi_t jit_type_get_abi(jit_type_t type)
 }
 
 /*@
- * @deftypefun jit_type_t jit_type_get_ref (jit_type_t type)
+ * @deftypefun jit_type_t jit_type_get_ref (jit_type_t @var{type})
  * Get the type that is referred to by a pointer type.  Returns NULL
  * if not a pointer type.
  * @end deftypefun
@@ -1248,7 +1248,7 @@ jit_type_t jit_type_get_ref(jit_type_t type)
 }
 
 /*@
- * @deftypefun jit_type_t jit_type_get_tagged_type (jit_type_t type)
+ * @deftypefun jit_type_t jit_type_get_tagged_type (jit_type_t @var{type})
  * Get the type that underlies a tagged type.  Returns NULL
  * if not a tagged type.
  * @end deftypefun
@@ -1266,9 +1266,9 @@ jit_type_t jit_type_get_tagged_type(jit_type_t type)
 }
 
 /*@
- * @deftypefun void jit_type_set_tagged_type (jit_type_t type, jit_type_t underlying)
- * Set the type that underlies a tagged type.  Ignored if @code{type}
- * is not a tagged type.  If @code{type} already has an underlying
+ * @deftypefun void jit_type_set_tagged_type (jit_type_t @var{type}, jit_type_t @var{underlying})
+ * Set the type that underlies a tagged type.  Ignored if @var{type}
+ * is not a tagged type.  If @var{type} already has an underlying
  * type, then the original is freed.
  *
  * This function is typically used to flesh out the body of a
@@ -1297,7 +1297,7 @@ void jit_type_set_tagged_type(jit_type_t type, jit_type_t underlying,
 }
 
 /*@
- * @deftypefun int jit_type_get_tagged_type (jit_type_t type)
+ * @deftypefun int jit_type_get_tagged_type (jit_type_t @var{type})
  * Get the kind of tag that is applied to a tagged type.  Returns -1
  * if not a tagged type.
  * @end deftypefun
@@ -1315,7 +1315,7 @@ int jit_type_get_tagged_kind(jit_type_t type)
 }
 
 /*@
- * @deftypefun {void *} jit_type_get_tagged_data (jit_type_t type)
+ * @deftypefun {void *} jit_type_get_tagged_data (jit_type_t @var{type})
  * Get the user data is associated with a tagged type.  Returns NULL
  * if not a tagged type.
  * @end deftypefun
@@ -1333,7 +1333,7 @@ void *jit_type_get_tagged_data(jit_type_t type)
 }
 
 /*@
- * @deftypefun void jit_type_set_tagged_data (jit_type_t type, {void *} data, jit_meta_free_func free_fun)
+ * @deftypefun void jit_type_set_tagged_data (jit_type_t @var{type}, void *@var{data}, jit_meta_free_func @var{free_func})
  * Set the user data is associated with a tagged type.  The original data,
  * if any, is freed.
  * @end deftypefun
@@ -1357,7 +1357,7 @@ void jit_type_set_tagged_data(jit_type_t type, void *data,
 }
 
 /*@
- * @deftypefun int jit_type_is_primitive (jit_type_t type)
+ * @deftypefun int jit_type_is_primitive (jit_type_t @var{type})
  * Determine if a type is primitive.
  * @end deftypefun
 @*/
@@ -1374,7 +1374,7 @@ int jit_type_is_primitive(jit_type_t type)
 }
 
 /*@
- * @deftypefun int jit_type_is_struct (jit_type_t type)
+ * @deftypefun int jit_type_is_struct (jit_type_t @var{type})
  * Determine if a type is a structure.
  * @end deftypefun
 @*/
@@ -1391,7 +1391,7 @@ int jit_type_is_struct(jit_type_t type)
 }
 
 /*@
- * @deftypefun int jit_type_is_union (jit_type_t type)
+ * @deftypefun int jit_type_is_union (jit_type_t @var{type})
  * Determine if a type is a union.
  * @end deftypefun
 @*/
@@ -1408,7 +1408,7 @@ int jit_type_is_union(jit_type_t type)
 }
 
 /*@
- * @deftypefun int jit_type_is_signature (jit_type_t type)
+ * @deftypefun int jit_type_is_signature (jit_type_t @var{type})
  * Determine if a type is a function signature.
  * @end deftypefun
 @*/
@@ -1425,7 +1425,7 @@ int jit_type_is_signature(jit_type_t type)
 }
 
 /*@
- * @deftypefun int jit_type_is_pointer (jit_type_t type)
+ * @deftypefun int jit_type_is_pointer (jit_type_t @var{type})
  * Determine if a type is a pointer.
  * @end deftypefun
 @*/
@@ -1442,7 +1442,7 @@ int jit_type_is_pointer(jit_type_t type)
 }
 
 /*@
- * @deftypefun int jit_type_is_tagged (jit_type_t type)
+ * @deftypefun int jit_type_is_tagged (jit_type_t @var{type})
  * Determine if a type is a tagged type.
  * @end deftypefun
 @*/
@@ -1469,7 +1469,7 @@ jit_nuint jit_type_best_alignment(void)
 }
 
 /*@
- * @deftypefun jit_type_t jit_type_normalize (jit_type_t type)
+ * @deftypefun jit_type_t jit_type_normalize (jit_type_t @var{type})
  * Normalize a type to its basic numeric form.  e.g. "jit_type_nint" is
  * turned into "jit_type_int" or "jit_type_long", depending upon
  * the underlying platform.  Pointers are normalized like "jit_type_nint".
@@ -1523,7 +1523,7 @@ jit_type_t jit_type_normalize(jit_type_t type)
 }
 
 /*@
- * @deftypefun jit_type_t jit_type_remove_tags (jit_type_t type)
+ * @deftypefun jit_type_t jit_type_remove_tags (jit_type_t @var{type})
  * Remove tags from a type, and return the underlying type.
  * This is different from normalization, which will also collapses
  * native types to their basic numeric counterparts.
@@ -1539,11 +1539,11 @@ jit_type_t jit_type_remove_tags(jit_type_t type)
 }
 
 /*@
- * @deftypefun jit_type_t jit_type_promote_int (jit_type_t type)
- * If @code{type} is @code{jit_type_sbyte} or @code{jit_type_short},
- * then return @code{jit_type_int}.  If @code{type} is
+ * @deftypefun jit_type_t jit_type_promote_int (jit_type_t @var{type})
+ * If @var{type} is @code{jit_type_sbyte} or @code{jit_type_short},
+ * then return @code{jit_type_int}.  If @var{type} is
  * @code{jit_type_ubyte} or @code{jit_type_ushort}, then return
- * @code{jit_type_uint}.  Otherwise return @code{type} as-is.
+ * @code{jit_type_uint}.  Otherwise return @var{type} as-is.
  * @end deftypefun
 @*/
 jit_type_t jit_type_promote_int(jit_type_t type)
@@ -1563,7 +1563,7 @@ jit_type_t jit_type_promote_int(jit_type_t type)
 }
 
 /*@
- * @deftypefun int jit_type_return_via_pointer (jit_type_t type)
+ * @deftypefun int jit_type_return_via_pointer (jit_type_t @var{type})
  * Determine if a type should be returned via a pointer if it appears
  * as the return type in a signature.
  * @end deftypefun
@@ -1596,8 +1596,8 @@ int jit_type_return_via_pointer(jit_type_t type)
 }
 
 /*@
- * @deftypefun int jit_type_has_tag (jit_type_t type, int kind)
- * Determine if @code{type} has a specific kind of tag.  This will
+ * @deftypefun int jit_type_has_tag (jit_type_t @var{type}, int @var{kind})
+ * Determine if @var{type} has a specific kind of tag.  This will
  * resolve multiple levels of tagging.
  * @end deftypefun
 @*/

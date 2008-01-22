@@ -80,7 +80,7 @@ void *jit_exception_get_last_and_clear(void)
 }
 
 /*@
- * @deftypefun void jit_exception_set_last (void *object)
+ * @deftypefun void jit_exception_set_last (void *@var{object})
  * Set the last exception object that occurred on this thread, so that
  * it can be retrieved by a later call to @code{jit_exception_get_last}.
  * This is normally used by @code{jit_function_apply} to save the
@@ -109,7 +109,7 @@ void jit_exception_clear_last(void)
 }
 
 /*@
- * @deftypefun void jit_exception_throw ({void *} object)
+ * @deftypefun void jit_exception_throw (void *@var{object})
  * Throw an exception object within the current thread.  As far as
  * @code{libjit} is concerned, the exception object is just a pointer.
  * The precise meaning of the data at the pointer is determined
@@ -137,7 +137,7 @@ void jit_exception_throw(void *object)
 }
 
 /*@
- * @deftypefun void jit_exception_builtin (int exception_type)
+ * @deftypefun void jit_exception_builtin (int @var{exception_type})
  * This function is called to report a builtin exception.
  * The JIT will automatically embed calls to this function wherever a
  * builtin exception needs to be reported.
@@ -244,7 +244,7 @@ void jit_exception_builtin(int exception_type)
 }
 
 /*@
- * @deftypefun jit_exception_func jit_exception_set_handler (jit_exception_func handler)
+ * @deftypefun jit_exception_func jit_exception_set_handler (jit_exception_func @var{handler})
  * Set the builtin exception handler for the current thread.
  * Returns the previous exception handler.
  * @end deftypefun
@@ -378,7 +378,7 @@ jit_stack_trace_t jit_exception_get_stack_trace(void)
 }
 
 /*@
- * @deftypefun {unsigned int} jit_stack_trace_get_size (jit_stack_trace_t trace)
+ * @deftypefun {unsigned int} jit_stack_trace_get_size (jit_stack_trace_t @var{trace})
  * Get the size of a stack trace.
  * @end deftypefun
 @*/
@@ -395,11 +395,11 @@ unsigned int jit_stack_trace_get_size(jit_stack_trace_t trace)
 }
 
 /*@
- * @deftypefun jit_function_t jit_stack_trace_get_function (jit_context_t context, jit_stack_trace_t trace, {unsigned int} posn)
- * Get the function that is at position @code{posn} within a stack trace.
+ * @deftypefun jit_function_t jit_stack_trace_get_function (jit_context_t @var{context}, jit_stack_trace_t @var{trace}, unsigned int @var{posn})
+ * Get the function that is at position @var{posn} within a stack trace.
  * Position 0 is the function that created the stack trace.  If this
  * returns NULL, then it indicates that there is a native callout at
- * @code{posn} within the stack trace.
+ * @var{posn} within the stack trace.
  * @end deftypefun
 @*/
 jit_function_t jit_stack_trace_get_function
@@ -418,8 +418,8 @@ jit_function_t jit_stack_trace_get_function
 }
 
 /*@
- * @deftypefun {void *} jit_stack_trace_get_pc (jit_stack_trace_t trace, {unsigned int} posn)
- * Get the program counter that corresponds to position @code{posn}
+ * @deftypefun {void *} jit_stack_trace_get_pc (jit_stack_trace_t @var{trace}, unsigned int @var{posn})
+ * Get the program counter that corresponds to position @var{posn}
  * within a stack trace.  This is the point within the function
  * where execution had reached at the time of the trace.
  * @end deftypefun
@@ -438,10 +438,10 @@ void *jit_stack_trace_get_pc
 }
 
 /*@
- * @deftypefun {unsigned int} jit_stack_trace_get_offset (jit_stack_trace_t trace, {unsigned int} posn)
- * Get the bytecode offset that is recorded for position @code{posn}
+ * @deftypefun {unsigned int} jit_stack_trace_get_offset (jit_stack_trace_t @var{trace}, unsigned int @var{posn})
+ * Get the bytecode offset that is recorded for position @var{posn}
  * within a stack trace.  This will be @code{JIT_NO_OFFSET} if there
- * is no bytecode offset associated with @code{posn}.
+ * is no bytecode offset associated with @var{posn}.
  * @end deftypefun
 @*/
 unsigned int jit_stack_trace_get_offset
@@ -471,7 +471,7 @@ unsigned int jit_stack_trace_get_offset
 }
 
 /*@
- * @deftypefun void jit_stack_trace_free (jit_stack_trace_t trace)
+ * @deftypefun void jit_stack_trace_free (jit_stack_trace_t @var{trace})
  * Free the memory associated with a stack trace.
  * @end deftypefun
 @*/

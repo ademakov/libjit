@@ -379,12 +379,12 @@ static void jit_apply_builder_get_return
 }
 
 /*@
- * @deftypefun void jit_apply (jit_type_t signature, {void *} func, {void **} args, {unsigned int} num_fixed_args, {void *} return_value)
+ * @deftypefun void jit_apply (jit_type_t signature, void *@var{func}, void **@var{args}, unsigned int @var{num_fixed_args}, void *@var{return_value})
  * Call a function that has a particular function signature.
- * If the signature has more than @code{num_fixed_args} arguments,
+ * If the signature has more than @var{num_fixed_args} arguments,
  * then it is assumed to be a vararg call, with the additional
  * arguments passed in the vararg argument area on the stack.
- * The @code{signature} must specify the type of all arguments,
+ * The @var{signature} must specify the type of all arguments,
  * including those in the vararg argument area.
  * @end deftypefun
 @*/
@@ -437,10 +437,10 @@ void jit_apply(jit_type_t signature, void *func,
 }
 
 /*@
- * @deftypefun void jit_apply_raw (jit_type_t signature, {void *} func, {void *} args, {void *} return_value)
+ * @deftypefun void jit_apply_raw (jit_type_t @var{signature}, void *@var{func}, void *@var{args}, void *@var{return_value})
  * Call a function, passing a set of raw arguments.  This can only
  * be used if @code{jit_raw_supported} returns non-zero for the signature.
- * The @code{args} value is assumed to be an array of @code{jit_nint} values
+ * The @var{args} value is assumed to be an array of @code{jit_nint} values
  * that correspond to each of the arguments.  Raw function calls
  * are slightly faster than their non-raw counterparts, but can
  * only be used in certain circumstances.
@@ -474,7 +474,7 @@ void jit_apply_raw(jit_type_t signature, void *func,
 }
 
 /*@
- * @deftypefun int jit_raw_supported (jit_type_t signature)
+ * @deftypefun int jit_raw_supported (jit_type_t @var{signature})
  * Determine if @code{jit_apply_raw} can be used to call functions
  * with a particular signature.  Returns zero if not.
  * @end deftypefun
@@ -810,10 +810,10 @@ static void closure_handler(jit_closure_t closure, void *apply_args)
 #endif /* jit_closure_size */
 
 /*@
- * @deftypefun {void *} jit_closure_create (jit_context_t context, jit_type_t signature, {jit_closure_func} func, {void *} user_data)
+ * @deftypefun {void *} jit_closure_create (jit_context_t @var{context}, jit_type_t @var{signature}, jit_closure_func @var{func}, void *@var{user_data})
  * Create a closure from a function signature, a closure handling function,
  * and a user data value.  Returns NULL if out of memory, or if closures are
- * not supported.  The @code{func} argument should have the following
+ * not supported.  The @var{func} argument should have the following
  * prototype:
  *
  * @example
@@ -826,7 +826,7 @@ static void closure_handler(jit_closure_t closure, void *apply_args)
  * @code{jit_closure_va_list_t} value for accessing the remainder of
  * the arguments.
  *
- * The memory for the closure will be reclaimed when the @code{context}
+ * The memory for the closure will be reclaimed when the @var{context}
  * is destroyed.
  * @end deftypefun
 @*/
@@ -898,14 +898,14 @@ int jit_closures_supported(void)
 }
 
 /*@
- * @deftypefun jit_nint jit_closure_va_get_nint (jit_closure_va_list_t va)
- * @deftypefunx jit_nuint jit_closure_va_get_nuint (jit_closure_va_list_t va)
- * @deftypefunx jit_long jit_closure_va_get_long (jit_closure_va_list_t va)
- * @deftypefunx jit_ulong jit_closure_va_get_ulong (jit_closure_va_list_t va)
- * @deftypefunx jit_float32 jit_closure_va_get_float32 (jit_closure_va_list_t va)
- * @deftypefunx jit_float64 jit_closure_va_get_float64 (jit_closure_va_list_t va)
- * @deftypefunx jit_nfloat jit_closure_va_get_nfloat (jit_closure_va_list_t va)
- * @deftypefunx {void *} jit_closure_va_get_ptr (jit_closure_va_list_t va)
+ * @deftypefun jit_nint jit_closure_va_get_nint (jit_closure_va_list_t @var{va})
+ * @deftypefunx jit_nuint jit_closure_va_get_nuint (jit_closure_va_list_t @var{va})
+ * @deftypefunx jit_long jit_closure_va_get_long (jit_closure_va_list_t @var{va})
+ * @deftypefunx jit_ulong jit_closure_va_get_ulong (jit_closure_va_list_t @var{va})
+ * @deftypefunx jit_float32 jit_closure_va_get_float32 (jit_closure_va_list_t @var{va})
+ * @deftypefunx jit_float64 jit_closure_va_get_float64 (jit_closure_va_list_t @var{va})
+ * @deftypefunx jit_nfloat jit_closure_va_get_nfloat (jit_closure_va_list_t @var{va})
+ * @deftypefunx {void *} jit_closure_va_get_ptr (jit_closure_va_list_t @var{va})
  * Get the next value of a specific type from a closure's variable arguments.
  * @end deftypefun
 @*/
@@ -966,9 +966,9 @@ void *jit_closure_va_get_ptr(jit_closure_va_list_t va)
 }
 
 /*@
- * @deftypefun void jit_closure_va_get_struct (jit_closure_va_list_t va, void *buf, jit_type_t type)
- * Get a structure or union value of a specific @code{type} from a closure's
- * variable arguments, and copy it into @code{buf}.
+ * @deftypefun void jit_closure_va_get_struct (jit_closure_va_list_t @var{va}, void *@var{buf}, jit_type_t @var{type})
+ * Get a structure or union value of a specific @var{type} from a closure's
+ * variable arguments, and copy it into @var{buf}.
  * @end deftypefun
 @*/
 void jit_closure_va_get_struct

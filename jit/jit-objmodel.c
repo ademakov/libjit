@@ -52,7 +52,7 @@ based libraries.
 @*/
 
 /*@
- * @deftypefun void jitom_destroy_model (jit_objmodel_t model)
+ * @deftypefun void jitom_destroy_model (jit_objmodel_t @var{model})
  * Destroy an object model handler that is no longer required.
  * It is undefined what will happen to the objects and classes
  * that were being managed by the object model: they may still persist,
@@ -68,9 +68,9 @@ void jitom_destroy_model(jit_objmodel_t model)
 }
 
 /*@
- * @deftypefun jitom_class_t jitom_get_class_by_name (jit_objmodel_t model, {const char *} name)
+ * @deftypefun jitom_class_t jitom_get_class_by_name (jit_objmodel_t @var{model}, const char *@var{name})
  * Get the class descriptor from the object model for a class
- * called @code{name}.  Returns NULL if the class was not found.
+ * called @var{name}.  Returns NULL if the class was not found.
  * If the name includes namespace or nested scope qualifiers,
  * they must be separated by periods (@code{.}).
  * @end deftypefun
@@ -81,7 +81,7 @@ jitom_class_t jitom_get_class_by_name(jit_objmodel_t model, const char *name)
 }
 
 /*@
- * @deftypefun {char *} jitom_class_get_name (jit_objmodel_t model, jitom_class_t klass)
+ * @deftypefun {char *} jitom_class_get_name (jit_objmodel_t @var{model}, jitom_class_t @var{klass})
  * Get the name of a particular class.  The return value must be freed
  * with @code{jit_free}.
  * @end deftypefun
@@ -92,7 +92,7 @@ char *jitom_class_get_name(jit_objmodel_t model, jitom_class_t klass)
 }
 
 /*@
- * @deftypefun int jitom_class_get_modifiers (jit_objmodel_t model, jitom_class_t klass)
+ * @deftypefun int jitom_class_get_modifiers (jit_objmodel_t @var{model}, jitom_class_t @var{klass})
  * Get the access modifiers for a particular class.  The following lists
  * all access modifiers, for classes, fields and methods:
  *
@@ -207,7 +207,7 @@ int jitom_class_get_modifiers(jit_objmodel_t model, jitom_class_t klass)
 }
 
 /*@
- * @deftypefun jit_type_t jitom_class_get_type (jit_objmodel_t model, jitom_class_t klass)
+ * @deftypefun jit_type_t jitom_class_get_type (jit_objmodel_t @var{model}, jitom_class_t @var{klass})
  * Get the JIT type descriptor that represents pointer-based
  * object references to a class.  The object model handler should
  * use @code{jitom_type_tag_as_class} to tag the return value.
@@ -221,7 +221,7 @@ jit_type_t jitom_class_get_type(jit_objmodel_t model, jitom_class_t klass)
 }
 
 /*@
- * @deftypefun jit_type_t jitom_class_get_value_type (jit_objmodel_t model, jitom_class_t klass)
+ * @deftypefun jit_type_t jitom_class_get_value_type (jit_objmodel_t @var{model}, jitom_class_t @var{klass})
  * Get the JIT type descriptor that represents inline stack instances
  * of the class.  The object model handler should use
  * @code{jitom_type_tag_as_value} to tag the return value.
@@ -236,8 +236,8 @@ jit_type_t jitom_class_get_value_type
 }
 
 /*@
- * @deftypefun jitom_class_t jitom_class_get_primary_super (jit_objmodel_t model, jitom_class_t klass)
- * Get the primary superclass for @code{klass}.  If the object model supports
+ * @deftypefun jitom_class_t jitom_class_get_primary_super (jit_objmodel_t @var{model}, jitom_class_t @var{klass})
+ * Get the primary superclass for @var{klass}.  If the object model supports
  * true multiple inheritance, then this should return the first superclass.
  * Note: for the purposes of this function, interfaces are not considered
  * superclasses.  Use @code{jitom_class_get_interfaces} instead.
@@ -250,9 +250,9 @@ jitom_class_t jitom_class_get_primary_super
 }
 
 /*@
- * @deftypefun {jitom_class_t *} jitom_class_get_all_supers (jit_objmodel_t model, jitom_class_t klass, {unsigned int *} num)
- * Return an array of all superclasses for @code{klass}, with the number of
- * elements returned in @code{num}.  Returns NULL if out of memory.
+ * @deftypefun {jitom_class_t *} jitom_class_get_all_supers (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, unsigned int *@var{num})
+ * Return an array of all superclasses for @var{klass}, with the number of
+ * elements returned in @var{num}.  Returns NULL if out of memory.
  * Use @code{jit_free} to free the return array.
  * @end deftypefun
 @*/
@@ -263,9 +263,9 @@ jitom_class_t *jitom_class_get_all_supers
 }
 
 /*@
- * @deftypefun {jitom_class_t *} jitom_class_get_interfaces (jit_objmodel_t model, jitom_class_t klass, {unsigned int *} num)
- * Return an array of all interfaces for @code{klass}, with the number
- * of elements returned in @code{num}.  The list does not include interfaces
+ * @deftypefun {jitom_class_t *} jitom_class_get_interfaces (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, unsigned int *@var{num})
+ * Return an array of all interfaces for @var{klass}, with the number
+ * of elements returned in @var{num}.  The list does not include interfaces
  * that are declared on superclasses.  Returns NULL if out of memory.
  * Use @code{jit_free} to free the return array.
  * @end deftypefun
@@ -277,9 +277,9 @@ jitom_class_t *jitom_class_get_interfaces
 }
 
 /*@
- * @deftypefun {jitom_field_t *} jitom_class_get_fields (jit_objmodel_t model, jitom_class_t klass, {unsigned int *} num)
- * Return an array of all fields for @code{klass}, with the number
- * of elements returned in @code{num}.  The list does not include fields
+ * @deftypefun {jitom_field_t *} jitom_class_get_fields (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, unsigned int *@var{num})
+ * Return an array of all fields for @var{klass}, with the number
+ * of elements returned in @var{num}.  The list does not include fields
  * that are declared on superclasses.  Returns NULL if out of memory.
  * Use @code{jit_free} to free the return array.
  * @end deftypefun
@@ -291,9 +291,9 @@ jitom_field_t *jitom_class_get_fields
 }
 
 /*@
- * @deftypefun {jitom_method_t *} jitom_class_get_methods (jit_objmodel_t model, jitom_class_t klass, {unsigned int *} num)
- * Return an array of all methods for @code{klass}, with the number
- * of elements returned in @code{num}.  The list does not include methods
+ * @deftypefun {jitom_method_t *} jitom_class_get_methods (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, unsigned int *@var{num})
+ * Return an array of all methods for @var{klass}, with the number
+ * of elements returned in @var{num}.  The list does not include methods
  * that are declared on superclasses.  Returns NULL if out of memory.
  * Use @code{jit_free} to free the return array.
  * @end deftypefun
@@ -305,11 +305,11 @@ jitom_method_t *jitom_class_get_methods
 }
 
 /*@
- * @deftypefun jit_value_t jitom_class_new (jit_objmodel_t model, jitom_class_t klass, jitom_method_t ctor, jit_function_t func, {jit_value_t *} args, {unsigned int} num_args, int flags)
- * Add instructions to @code{func} to create a new instance of the
- * specified class.  If @code{ctor} is not NULL, then it indicates a
- * constructor that should be invoked with the arguments in @code{args}.
- * If @code{ctor} is NULL, then memory should be allocated, but no
+ * @deftypefun jit_value_t jitom_class_new (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jitom_method_t @var{ctor}, jit_function_t @var{func}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{flags})
+ * Add instructions to @var{func} to create a new instance of the
+ * specified class.  If @var{ctor} is not NULL, then it indicates a
+ * constructor that should be invoked with the arguments in @var{args}.
+ * If @var{ctor} is NULL, then memory should be allocated, but no
  * constructor should be invoked.  Returns a JIT value representing
  * the newly allocated object.  The type of the value will be the same
  * as the the result from @code{jitom_class_get_type}.
@@ -325,11 +325,11 @@ jit_value_t jitom_class_new
 }
 
 /*@
- * @deftypefun jit_value_t jitom_class_new_value (jit_objmodel_t model, jitom_class_t klass, jitom_method_t ctor, jit_function_t func, {jit_value_t *} args, {unsigned int} num_args, int flags)
- * Add instructions to @code{func} to create a new instance of the
- * specified class, inline on the stack.  If @code{ctor} is not NULL, then
+ * @deftypefun jit_value_t jitom_class_new_value (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jitom_method_t @var{ctor}, jit_function_t @var{func}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{flags})
+ * Add instructions to @var{func} to create a new instance of the
+ * specified class, inline on the stack.  If @var{ctor} is not NULL, then
  * it indicates a constructor that should be invoked with the arguments
- * in @code{args}.  If @code{ctor} is NULL, then stack space should be
+ * in @var{args}.  If @var{ctor} is NULL, then stack space should be
  * allocated, but no constructor should be invoked.  Returns a JIT
  * value representing the newly allocated stack space.  The type of the
  * value will be the same as the the result from
@@ -346,9 +346,9 @@ jit_value_t jitom_class_new_value
 }
 
 /*@
- * @deftypefun int jitom_class_delete (jit_objmodel_t model, jitom_class_t klass, jit_value_t obj_value)
+ * @deftypefun int jitom_class_delete (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jit_value_t @var{obj_value})
  * Delete an instance of a particular class, calling the destructor if
- * necessary.  The @code{obj_value} may be an inline stack value,
+ * necessary.  The @var{obj_value} may be an inline stack value,
  * in which case the destructor is called, but the memory is not freed.
  * Ignored if the class does not have the @code{JITOM_MODIFIER_DELETE}
  * modifier.
@@ -365,7 +365,7 @@ int jitom_class_delete
 }
 
 /*@
- * @deftypefun int jitom_class_add_ref (jit_objmodel_t model, jitom_class_t klass, jit_value_t obj_value)
+ * @deftypefun int jitom_class_add_ref (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jit_value_t @var{obj_value})
  * Add a reference to a reference-counted object.  Ignored if the
  * class does not have the @code{JITOM_MODIFIER_REFERENCE_COUNTED} modifier,
  * or the value is stored inline on the stack.
@@ -381,7 +381,7 @@ int jitom_class_add_ref
 }
 
 /*@
- * @deftypefun {char *} jitom_field_get_name (jit_objmodel_t model, jitom_class_t klass, jitom_field_t field)
+ * @deftypefun {char *} jitom_field_get_name (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jitom_field_t @var{field})
  * Get the name of a particular object model field.  The return value must
  * be freed with @code{jit_free}.
  * @end deftypefun
@@ -393,7 +393,7 @@ char *jitom_field_get_name
 }
 
 /*@
- * @deftypefun jit_type_t jitom_field_get_type (jit_objmodel_t model, jitom_class_t klass, jitom_field_t field)
+ * @deftypefun jit_type_t jitom_field_get_type (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jitom_field_t @var{field})
  * Get the type of a particular object model field.
  * @end deftypefun
 @*/
@@ -404,7 +404,7 @@ jit_type_t jitom_field_get_type
 }
 
 /*@
- * @deftypefun int jitom_field_get_modifiers (jit_objmodel_t model, jitom_class_t klass, jitom_field_t field)
+ * @deftypefun int jitom_field_get_modifiers (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jitom_field_t @var{field})
  * Get the access modifiers that are associated with a particular
  * object model field.
  * @end deftypefun
@@ -416,9 +416,9 @@ int jitom_field_get_modifiers
 }
 
 /*@
- * @deftypefun jit_value_t jitom_field_load (jit_objmodel_t model, jitom_class_t klass, jitom_field_t field, jit_function_t func, jit_value_t obj_value)
- * Create instructions within @code{func} to effect a load from a
- * field within the object @code{obj_value}.  If @code{obj_value} is
+ * @deftypefun jit_value_t jitom_field_load (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jitom_field_t @var{field}, jit_function_t @var{func}, jit_value_t @var{obj_value})
+ * Create instructions within @var{func} to effect a load from a
+ * field within the object @var{obj_value}.  If @var{obj_value} is
  * NULL, then it indicates a static field reference.
  *
  * If the field has the @code{JITOM_MODIFIER_LITERAL} modifier, then this
@@ -434,9 +434,9 @@ jit_value_t jitom_field_load
 }
 
 /*@
- * @deftypefun jit_value_t jitom_field_load_address (jit_objmodel_t model, jitom_class_t klass, jitom_field_t field, jit_function_t func, jit_value_t obj_value)
- * Create instructions within @code{func} to get the address of a
- * field within the object @code{obj_value}.  If @code{obj_value} is
+ * @deftypefun jit_value_t jitom_field_load_address (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jitom_field_t @var{field}, jit_function_t @var{func}, jit_value_t @var{obj_value})
+ * Create instructions within @var{func} to get the address of a
+ * field within the object @var{obj_value}.  If @var{obj_value} is
  * NULL, then it indicates that we want the address of a static field.
  * Some object models may not support this function, and will return NULL.
  * @end deftypefun
@@ -450,9 +450,9 @@ jit_value_t jitom_field_load_address
 }
 
 /*@
- * @deftypefun int jitom_field_store (jit_objmodel_t model, jitom_class_t klass, jitom_field_t field, jit_function_t func, jit_value_t obj_value, jit_value_t value)
- * Create instructions within @code{func} to store @code{value} into a
- * field within the object @code{obj_value}.  If @code{obj_value} is
+ * @deftypefun int jitom_field_store (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jitom_field_t @var{field}, jit_function_t @var{func}, jit_value_t @var{obj_value}, jit_value_t @var{value})
+ * Create instructions within @var{func} to store @var{value} into a
+ * field within the object @var{obj_value}.  If @var{obj_value} is
  * NULL, then it indicates a static field store.
  * @end deftypefun
 @*/
@@ -465,7 +465,7 @@ int jitom_field_store
 }
 
 /*@
- * @deftypefun {char *} jitom_method_get_name (jit_objmodel_t model, jitom_class_t klass, jitom_method_t method)
+ * @deftypefun {char *} jitom_method_get_name (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jitom_method_t @var{method})
  * Get the name of an object model method.  The return value must
  * be freed with @code{jit_free}.
  * @end deftypefun
@@ -477,7 +477,7 @@ char *jitom_method_get_name
 }
 
 /*@
- * @deftypefun jit_type_t jitom_method_get_type (jit_objmodel_t model, jitom_class_t klass, jitom_method_t method)
+ * @deftypefun jit_type_t jitom_method_get_type (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jitom_method_t @var{method})
  * Get the signature type of an object model method.  If the method
  * is instance-based, then the first argument will be an object reference
  * type indicating the @code{this} pointer.
@@ -490,7 +490,7 @@ jit_type_t jitom_method_get_type
 }
 
 /*@
- * @deftypefun int jitom_method_get_modifiers (jit_objmodel_t model, jitom_class_t klass, jitom_method_t method)
+ * @deftypefun int jitom_method_get_modifiers (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jitom_method_t @var{method})
  * Get the access modifiers for an object model method.
  * @end deftypefun
 @*/
@@ -501,11 +501,11 @@ int jitom_method_get_modifiers
 }
 
 /*@
- * @deftypefun jit_value_t jitom_method_invoke (jit_objmodel_t model, jitom_class_t klass, jitom_method_t method, jit_function_t func, {jit_value_t *} args, {unsigned int} num_args, int flags)
- * Create instructions within @code{func} to invoke a static or
+ * @deftypefun jit_value_t jitom_method_invoke (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jitom_method_t @var{method}, jit_function_t @var{func}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{flags})
+ * Create instructions within @var{func} to invoke a static or
  * instance method.  If an instance method is virtual, then this will
  * ignore the virtual property to invoke the designated method directly.
- * The first element in @code{args} should be the @code{this} pointer
+ * The first element in @var{args} should be the @code{this} pointer
  * for instance methods.
  * @end deftypefun
 @*/
@@ -518,9 +518,9 @@ jit_value_t jitom_method_invoke
 }
 
 /*@
- * @deftypefun jit_value_t jitom_method_invoke_virtual (jit_objmodel_t model, jitom_class_t klass, jitom_method_t method, jit_function_t func, {jit_value_t *} args, {unsigned int} num_args, int flags)
- * Create instructions within @code{func} to invoke a virtual or interface
- * method.  The first element in @code{args} should be the @code{this}
+ * @deftypefun jit_value_t jitom_method_invoke_virtual (jit_objmodel_t @var{model}, jitom_class_t @var{klass}, jitom_method_t @var{method}, jit_function_t @var{func}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{flags})
+ * Create instructions within @var{func} to invoke a virtual or interface
+ * method.  The first element in @var{args} should be the @code{this}
  * pointer for the call.
  * @end deftypefun
 @*/
@@ -543,7 +543,7 @@ typedef struct
 } jitom_tag_info;
 
 /*@
- * @deftypefun jit_type_t jitom_type_tag_as_class (jit_type_t type, jit_objmodel_t model, jitom_class_t klass, int incref)
+ * @deftypefun jit_type_t jitom_type_tag_as_class (jit_type_t @var{type}, jit_objmodel_t @var{model}, jitom_class_t @var{klass}, int @var{incref})
  * Tag a JIT type as an object reference belonging to a specific class.
  * Returns NULL if there is insufficient memory to tag the type.
  * @end deftypefun
@@ -568,7 +568,7 @@ jit_type_t jitom_type_tag_as_class
 }
 
 /*@
- * @deftypefun jit_type_t jitom_type_tag_as_value (jit_type_t type, jit_objmodel_t model, jitom_class_t klass, int incref)
+ * @deftypefun jit_type_t jitom_type_tag_as_value (jit_type_t @var{type}, jit_objmodel_t @var{model}, jitom_class_t @var{klass}, int @var{incref})
  * Tag a JIT type as an inline static value belonging to a specific class.
  * Returns NULL if there is insufficient memory to tag the type.
  * @end deftypefun
@@ -593,7 +593,7 @@ jit_type_t jitom_type_tag_as_value
 }
 
 /*@
- * @deftypefun int jitom_type_is_class (jit_type_t type)
+ * @deftypefun int jitom_type_is_class (jit_type_t @var{type})
  * Determine if a type is tagged as an object reference.
  * @end deftypefun
 @*/
@@ -603,7 +603,7 @@ int jitom_type_is_class(jit_type_t type)
 }
 
 /*@
- * @deftypefun int jitom_type_is_value (jit_type_t type)
+ * @deftypefun int jitom_type_is_value (jit_type_t @var{type})
  * Determine if a type is tagged as an inline static value.
  * @end deftypefun
 @*/
@@ -613,7 +613,7 @@ int jitom_type_is_value(jit_type_t type)
 }
 
 /*@
- * @deftypefun jit_objmodel_t jitom_type_get_model (jit_type_t type)
+ * @deftypefun jit_objmodel_t jitom_type_get_model (jit_type_t @var{type})
  * Get the object model associated with a type that was tagged with
  * @code{jitom_type_tag_as_class} or @code{jitom_type_tag_as_value}.
  * @end deftypefun
@@ -632,7 +632,7 @@ jit_objmodel_t jitom_type_get_model(jit_type_t type)
 }
 
 /*@
- * @deftypefun jitom_class_t jitom_type_get_class (jit_type_t type)
+ * @deftypefun jitom_class_t jitom_type_get_class (jit_type_t @var{type})
  * Get the class associated with a type that was tagged with
  * @code{jitom_type_tag_as_class} or @code{jitom_type_tag_as_value}.
  * @end deftypefun

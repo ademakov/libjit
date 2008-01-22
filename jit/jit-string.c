@@ -43,8 +43,8 @@
 @*/
 
 /*@
- * @deftypefun {unsigned int} jit_strlen ({const char *} str)
- * Returns the length of @code{str}.
+ * @deftypefun {unsigned int} jit_strlen (const char *@var{str})
+ * Returns the length of @var{str}.
  * @end deftypefun
 @*/
 unsigned int jit_strlen(const char *str)
@@ -62,8 +62,8 @@ unsigned int jit_strlen(const char *str)
 }
 
 /*@
- * @deftypefun {char *} jit_strcpy ({char *} dest, {const char *} src)
- * Copy the string at @code{src} to @code{dest}.  Returns @code{dest}.
+ * @deftypefun {char *} jit_strcpy (char *@var{dest}, const char *@var{src})
+ * Copy the string at @var{src} to @var{dest}.  Returns @var{dest}.
  * @end deftypefun
 @*/
 char *jit_strcpy(char *dest, const char *src)
@@ -83,9 +83,9 @@ char *jit_strcpy(char *dest, const char *src)
 }
 
 /*@
- * @deftypefun {char *} jit_strcat ({char *} dest, {const char *} src)
- * Copy the string at @code{src} to the end of the string at @code{dest}.
- * Returns @code{dest}.
+ * @deftypefun {char *} jit_strcat (char *@var{dest}, const char *@var{src})
+ * Copy the string at @var{src} to the end of the string at @var{dest}.
+ * Returns @var{dest}.
  * @end deftypefun
 @*/
 char *jit_strcat(char *dest, const char *src)
@@ -105,9 +105,9 @@ char *jit_strcat(char *dest, const char *src)
 }
 
 /*@
- * @deftypefun {char *} jit_strncpy ({char *} dest, {const char *} src, {unsigned int} len)
- * Copy at most @code{len} characters from the string at @code{src} to
- * @code{dest}.  Returns @code{dest}.
+ * @deftypefun {char *} jit_strncpy (char *@var{dest}, const char *@var{src}, unsigned int @var{len})
+ * Copy at most @var{len} characters from the string at @var{src} to
+ * @var{dest}.  Returns @var{dest}.
  * @end deftypefun
 @*/
 char *jit_strncpy(char *dest, const char *src, unsigned int len)
@@ -132,9 +132,9 @@ char *jit_strncpy(char *dest, const char *src, unsigned int len)
 }
 
 /*@
- * @deftypefun {char *} jit_strdup ({const char *} str)
+ * @deftypefun {char *} jit_strdup (const char *@var{str})
  * Allocate a block of memory using @code{jit_malloc} and copy
- * @code{str} into it.  Returns NULL if @code{str} is NULL or there
+ * @var{str} into it.  Returns NULL if @var{str} is NULL or there
  * is insufficient memory to perform the @code{jit_malloc} operation.
  * @end deftypefun
 @*/
@@ -155,10 +155,10 @@ char *jit_strdup(const char *str)
 }
 
 /*@
- * @deftypefun {char *} jit_strndup ({const char *} str, unsigned int len)
+ * @deftypefun {char *} jit_strndup (const char *@var{str}, unsigned int @var{len})
  * Allocate a block of memory using @code{jit_malloc} and copy at most
- * @code{len} characters of @code{str} into it.  The copied string is then
- * NULL-terminated.  Returns NULL if @code{str} is NULL or there
+ * @var{len} characters of @var{str} into it.  The copied string is then
+ * NULL-terminated.  Returns NULL if @var{str} is NULL or there
  * is insufficient memory to perform the @code{jit_malloc} operation.
  * @end deftypefun
 @*/
@@ -180,8 +180,8 @@ char *jit_strndup(const char *str, unsigned int len)
 }
 
 /*@
- * @deftypefun int jit_strcmp ({const char *} str1, {const char *} str2)
- * Compare the two strings @code{str1} and @code{str2}, returning
+ * @deftypefun int jit_strcmp (const char *@var{str1}, const char *@var{str2})
+ * Compare the two strings @var{str1} and @var{str2}, returning
  * a negative, zero, or positive value depending upon their relationship.
  * @end deftypefun
 @*/
@@ -205,10 +205,10 @@ int jit_strcmp(const char *str1, const char *str2)
 }
 
 /*@
- * @deftypefun int jit_strncmp ({const char *} str1, {const char *} str2, {unsigned int} len)
- * Compare the two strings @code{str1} and @code{str2}, returning
+ * @deftypefun int jit_strncmp (const char *@var{str1}, const char *@var{str2}, unsigned int @var{len})
+ * Compare the two strings @var{str1} and @var{str2}, returning
  * a negative, zero, or positive value depending upon their relationship.
- * At most @code{len} characters are compared.
+ * At most @var{len} characters are compared.
  * @end deftypefun
 @*/
 int jit_strncmp(const char *str1, const char *str2, unsigned int len)
@@ -232,8 +232,8 @@ int jit_strncmp(const char *str1, const char *str2, unsigned int len)
 }
 
 /*@
- * @deftypefun int jit_stricmp ({const char *} str1, {const char *} str2)
- * Compare the two strings @code{str1} and @code{str2}, returning
+ * @deftypefun int jit_stricmp (const char *@var{str1}, const char *@var{str2})
+ * Compare the two strings @var{str1} and @var{str2}, returning
  * a negative, zero, or positive value depending upon their relationship.
  * Instances of the English letters A to Z are converted into their
  * lower case counterparts before comparison.
@@ -271,10 +271,10 @@ int jit_stricmp(const char *str1, const char *str2)
 }
 
 /*@
- * @deftypefun int jit_strnicmp ({const char *} str1, {const char *} str2, {unsigned int} len)
- * Compare the two strings @code{str1} and @code{str2}, returning
+ * @deftypefun int jit_strnicmp (const char *@var{str1}, const char *@var{str2}, unsigned int @var{len})
+ * Compare the two strings @var{str1} and @var{str2}, returning
  * a negative, zero, or positive value depending upon their relationship.
- * At most @code{len} characters are compared.  Instances of the English
+ * At most @var{len} characters are compared.  Instances of the English
  * letters A to Z are converted into their lower case counterparts
  * before comparison.
  * @end deftypefun
@@ -304,9 +304,9 @@ int jit_strnicmp(const char *str1, const char *str2, unsigned int len)
 }
 
 /*@
- * @deftypefun {char *} jit_strchr ({const char *} str, int ch)
- * Search @code{str} for the first occurrence of @code{ch}.  Returns
- * the address where @code{ch} was found, or NULL if not found.
+ * @deftypefun {char *} jit_strchr (const char *@var{str}, int @var{ch})
+ * Search @var{str} for the first occurrence of @var{ch}.  Returns
+ * the address where @var{ch} was found, or NULL if not found.
  * @end deftypefun
 @*/
 char *jit_strchr(const char *str, int ch)
@@ -332,9 +332,9 @@ char *jit_strchr(const char *str, int ch)
 }
 
 /*@
- * @deftypefun {char *} jit_strrchr ({const char *} str, int ch)
- * Search @code{str} for the first occurrence of @code{ch}, starting
- * at the end of the string.  Returns the address where @code{ch}
+ * @deftypefun {char *} jit_strrchr (const char *@var{str}, int @var{ch})
+ * Search @var{str} for the first occurrence of @var{ch}, starting
+ * at the end of the string.  Returns the address where @var{ch}
  * was found, or NULL if not found.
  * @end deftypefun
 @*/

@@ -293,9 +293,9 @@ static int add_dyn_info
 }
 
 /*@
- * @deftypefun jit_writeelf_t jit_writeelf_create ({const char *} library_name)
+ * @deftypefun jit_writeelf_t jit_writeelf_create (const char *@var{library_name})
  * Create an object to assist with the process of writing an ELF binary.
- * The @code{library_name} will be embedded into the binary.  Returns NULL
+ * The @var{library_name} will be embedded into the binary.  Returns NULL
  * if out of memory.
  * @end deftypefun
 @*/
@@ -394,8 +394,8 @@ jit_writeelf_t jit_writeelf_create(const char *library_name)
 }
 
 /*@
- * @deftypefun void jit_writeelf_destroy (jit_writeelf_t writeelf)
- * Destroy the memory structures that were used while @code{writeelf}
+ * @deftypefun void jit_writeelf_destroy (jit_writeelf_t @var{writeelf})
+ * Destroy the memory structures that were used while @var{writeelf}
  * was being built.
  * @end deftypefun
 @*/
@@ -415,8 +415,8 @@ void jit_writeelf_destroy(jit_writeelf_t writeelf)
 }
 
 /*@
- * @deftypefun int jit_writeelf_write (jit_writeelf_t writeelf, {const char *} filename)
- * Write a fully-built ELF binary to @code{filename}.  Returns zero
+ * @deftypefun int jit_writeelf_write (jit_writeelf_t @var{writeelf}, const char *@var{filename})
+ * Write a fully-built ELF binary to @var{filename}.  Returns zero
  * if an error occurred (reason in @code{errno}).
  * @end deftypefun
 @*/
@@ -427,9 +427,9 @@ int jit_writeelf_write(jit_writeelf_t writeelf, const char *filename)
 }
 
 /*@
- * @deftypefun int jit_writeelf_add_function (jit_writeelf_t writeelf, jit_function_t func, {const char *} name)
- * Write the code for @code{func} to the ELF binary represented by
- * @code{writeelf}.  The function must already be compiled, and its
+ * @deftypefun int jit_writeelf_add_function (jit_writeelf_t @var{writeelf}, jit_function_t @var{func}, const char *@var{name})
+ * Write the code for @var{func} to the ELF binary represented by
+ * @var{writeelf}.  The function must already be compiled, and its
  * context must have the @code{JIT_OPTION_PRE_COMPILE} option set
  * to a non-zero value.  Returns zero if out of memory or the
  * parameters are invalid.
@@ -443,9 +443,9 @@ int jit_writeelf_add_function
 }
 
 /*@
- * @deftypefun int jit_writeelf_add_needed (jit_writeelf_t writeelf, {const char *} library_name)
- * Add @code{library_name} to the list of dependent libraries that are needed
- * when the ELF binary is reloaded.  If @code{library_name} is already on
+ * @deftypefun int jit_writeelf_add_needed (jit_writeelf_t @var{writeelf}, const char *@var{library_name})
+ * Add @var{library_name} to the list of dependent libraries that are needed
+ * when the ELF binary is reloaded.  If @var{library_name} is already on
  * the list, then this request will be silently ignored.  Returns
  * zero if out of memory or the parameters are invalid.
  * @end deftypefun
@@ -493,12 +493,12 @@ int jit_writeelf_add_needed(jit_writeelf_t writeelf, const char *library_name)
 }
 
 /*@
- * @deftypefun int jit_writeelf_write_section (jit_writeelf_t writeelf, {const char *} name, jit_int type, {const void *} buf, {unsigned int} len, int discardable)
- * Write auxillary data to a section called @code{name}.  If @code{type}
+ * @deftypefun int jit_writeelf_write_section (jit_writeelf_t @var{writeelf}, const char *@var{name}, jit_int @var{type}, const void *@var{buf}, unsigned int @var{len}, int @var{discardable})
+ * Write auxillary data to a section called @var{name}.  If @var{type}
  * is not zero, then it indicates an ELF section type.  This is used
  * by virtual machines to store auxillary data that can be retrieved
  * later using @code{jit_readelf_get_section}.  If the section already
- * contains data, then this will append the new data.  If @code{discardable}
+ * contains data, then this will append the new data.  If @var{discardable}
  * is non-zero, then it is OK for this section to be discarded when the
  * ELF binary is stripped.  Returns zero if out of memory or the
  * parameters are invalid.

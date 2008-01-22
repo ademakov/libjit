@@ -92,54 +92,54 @@ static unsigned __int64 const float64_nan = 0x7FF8000000000000LL;
 #endif
 
 /*@
- * @deftypefun jit_int jit_int_add (jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_sub (jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_mul (jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_neg (jit_int value1)
- * @deftypefunx jit_int jit_int_and (jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_or (jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_xor (jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_not (jit_int value1)
- * @deftypefunx jit_int jit_int_not (jit_int value1)
- * @deftypefunx jit_int jit_int_shl (jit_int value1, jit_uint value2)
- * @deftypefunx jit_int jit_int_shr (jit_int value1, jit_uint value2)
+ * @deftypefun jit_int jit_int_add (jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_sub (jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_mul (jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_neg (jit_int @var{value1})
+ * @deftypefunx jit_int jit_int_and (jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_or (jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_xor (jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_not (jit_int @var{value1})
+ * @deftypefunx jit_int jit_int_not (jit_int @var{value1})
+ * @deftypefunx jit_int jit_int_shl (jit_int @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_int jit_int_shr (jit_int @var{value1}, jit_uint @var{value2})
  * Perform an arithmetic operation on signed 32-bit integers.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_int_add_ovf ({jit_int *} result, jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_sub_ovf ({jit_int *} result, jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_mul_ovf ({jit_int *} result, jit_int value1, jit_int value2)
+ * @deftypefun jit_int jit_int_add_ovf (jit_int *@var{result}, jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_sub_ovf (jit_int *@var{result}, jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_mul_ovf (jit_int *@var{result}, jit_int @var{value1}, jit_int @var{value2})
  * Perform an arithmetic operation on two signed 32-bit integers,
  * with overflow checking.  Returns @code{JIT_RESULT_OK}
  * or @code{JIT_RESULT_OVERFLOW}.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_int_div_ovf ({jit_int *} result, jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_rem_ovf ({jit_int *} result, jit_int value1, jit_int value2)
+ * @deftypefun jit_int jit_int_div_ovf (jit_int *@var{result}, jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_rem_ovf (jit_int *@var{result}, jit_int @var{value1}, jit_int @var{value2})
  * Perform a division or remainder operation on two signed 32-bit integers.
  * Returns @code{JIT_RESULT_OK}, @code{JIT_RESULT_DIVISION_BY_ZERO},
  * or @code{JIT_RESULT_ARITHMETIC}.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_int_eq (jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_ne (jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_lt (jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_le (jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_gt (jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_ge (jit_int value1, jit_int value2)
+ * @deftypefun jit_int jit_int_eq (jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_ne (jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_lt (jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_le (jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_gt (jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_ge (jit_int @var{value1}, jit_int @var{value2})
  * Compare two signed 32-bit integers, returning 0 or 1 based
  * on their relationship.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_int_cmp (jit_int value1, jit_int value2)
+ * @deftypefun jit_int jit_int_cmp (jit_int @var{value1}, jit_int @var{value2})
  * Compare two signed 32-bit integers and return -1, 0, or 1 based
  * on their relationship.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_int_abs (jit_int value1)
- * @deftypefunx jit_int jit_int_min (jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_max (jit_int value1, jit_int value2)
- * @deftypefunx jit_int jit_int_sign (jit_int value1)
+ * @deftypefun jit_int jit_int_abs (jit_int @var{value1})
+ * @deftypefunx jit_int jit_int_min (jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_max (jit_int @var{value1}, jit_int @var{value2})
+ * @deftypefunx jit_int jit_int_sign (jit_int @var{value1})
  * Calculate the absolute value, minimum, maximum, or sign for
  * signed 32-bit integer values.
  * @end deftypefun
@@ -356,52 +356,52 @@ jit_int jit_int_sign(jit_int value1)
 }
 
 /*@
- * @deftypefun jit_uint jit_uint_add (jit_uint value1, jit_uint value2)
- * @deftypefunx jit_uint jit_uint_sub (jit_uint value1, jit_uint value2)
- * @deftypefunx jit_uint jit_uint_mul (jit_uint value1, jit_uint value2)
- * @deftypefunx jit_uint jit_uint_neg (jit_uint value1)
- * @deftypefunx jit_uint jit_uint_and (jit_uint value1, jit_uint value2)
- * @deftypefunx jit_uint jit_uint_or (jit_uint value1, jit_uint value2)
- * @deftypefunx jit_uint jit_uint_xor (jit_uint value1, jit_uint value2)
- * @deftypefunx jit_uint jit_uint_not (jit_uint value1)
- * @deftypefunx jit_uint jit_uint_not (jit_uint value1)
- * @deftypefunx jit_uint jit_uint_shl (jit_uint value1, jit_uint value2)
- * @deftypefunx jit_uint jit_uint_shr (jit_uint value1, jit_uint value2)
+ * @deftypefun jit_uint jit_uint_add (jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_uint jit_uint_sub (jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_uint jit_uint_mul (jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_uint jit_uint_neg (jit_uint @var{value1})
+ * @deftypefunx jit_uint jit_uint_and (jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_uint jit_uint_or (jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_uint jit_uint_xor (jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_uint jit_uint_not (jit_uint @var{value1})
+ * @deftypefunx jit_uint jit_uint_not (jit_uint @var{value1})
+ * @deftypefunx jit_uint jit_uint_shl (jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_uint jit_uint_shr (jit_uint @var{value1}, jit_uint @var{value2})
  * Perform an arithmetic operation on unsigned 32-bit integers.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_uint_add_ovf ({jit_uint *} result, jit_uint value1, jit_uint value2)
- * @deftypefunx jit_int jit_uint_sub_ovf ({jit_uint *} result, jit_uint value1, jit_uint value2)
- * @deftypefunx jit_int jit_uint_mul_ovf ({jit_uint *} result, jit_uint value1, jit_uint value2)
+ * @deftypefun jit_int jit_uint_add_ovf (jit_uint *@var{result}, jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_int jit_uint_sub_ovf (jit_uint *@var{result}, jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_int jit_uint_mul_ovf (jit_uint *@var{result}, jit_uint @var{value1}, jit_uint @var{value2})
  * Perform an arithmetic operation on two unsigned 32-bit integers,
  * with overflow checking.  Returns @code{JIT_RESULT_OK}
  * or @code{JIT_RESULT_OVERFLOW}.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_uint_div_ovf ({jit_uint *} result, jit_uint value1, jit_uint value2)
- * @deftypefunx jit_int jit_uint_rem_ovf ({jit_uint *} result, jit_uint value1, jit_uint value2)
+ * @deftypefun jit_int jit_uint_div_ovf (jit_uint *@var{result}, jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_int jit_uint_rem_ovf (jit_uint *@var{result}, jit_uint @var{value1}, jit_uint @var{value2})
  * Perform a division or remainder operation on two unsigned 32-bit integers.
  * Returns @code{JIT_RESULT_OK} or @code{JIT_RESULT_DIVISION_BY_ZERO}
  * (@code{JIT_RESULT_ARITHMETIC} is not possible with unsigned integers).
  * @end deftypefun
  *
- * @deftypefun jit_int jit_uint_eq (jit_uint value1, jit_uint value2)
- * @deftypefunx jit_int jit_uint_ne (jit_uint value1, jit_uint value2)
- * @deftypefunx jit_int jit_uint_lt (jit_uint value1, jit_uint value2)
- * @deftypefunx jit_int jit_uint_le (jit_uint value1, jit_uint value2)
- * @deftypefunx jit_int jit_uint_gt (jit_uint value1, jit_uint value2)
- * @deftypefunx jit_int jit_uint_ge (jit_uint value1, jit_uint value2)
+ * @deftypefun jit_int jit_uint_eq (jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_int jit_uint_ne (jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_int jit_uint_lt (jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_int jit_uint_le (jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_int jit_uint_gt (jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_int jit_uint_ge (jit_uint @var{value1}, jit_uint @var{value2})
  * Compare two unsigned 32-bit integers, returning 0 or 1 based
  * on their relationship.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_uint_cmp (jit_uint value1, jit_uint value2)
+ * @deftypefun jit_int jit_uint_cmp (jit_uint @var{value1}, jit_uint @var{value2})
  * Compare two unsigned 32-bit integers and return -1, 0, or 1 based
  * on their relationship.
  * @end deftypefun
  *
- * @deftypefun jit_uint jit_uint_min (jit_uint value1, jit_uint value2)
- * @deftypefunx jit_uint jit_uint_max (jit_uint value1, jit_uint value2)
+ * @deftypefun jit_uint jit_uint_min (jit_uint @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_uint jit_uint_max (jit_uint @var{value1}, jit_uint @var{value2})
  * Calculate the minimum or maximum for unsigned 32-bit integer values.
  * @end deftypefun
 @*/
@@ -557,54 +557,54 @@ jit_uint jit_uint_max(jit_uint value1, jit_uint value2)
 }
 
 /*@
- * @deftypefun jit_long jit_long_add (jit_long value1, jit_long value2)
- * @deftypefunx jit_long jit_long_sub (jit_long value1, jit_long value2)
- * @deftypefunx jit_long jit_long_mul (jit_long value1, jit_long value2)
- * @deftypefunx jit_long jit_long_neg (jit_long value1)
- * @deftypefunx jit_long jit_long_and (jit_long value1, jit_long value2)
- * @deftypefunx jit_long jit_long_or (jit_long value1, jit_long value2)
- * @deftypefunx jit_long jit_long_xor (jit_long value1, jit_long value2)
- * @deftypefunx jit_long jit_long_not (jit_long value1)
- * @deftypefunx jit_long jit_long_not (jit_long value1)
- * @deftypefunx jit_long jit_long_shl (jit_long value1, jit_uint value2)
- * @deftypefunx jit_long jit_long_shr (jit_long value1, jit_uint value2)
+ * @deftypefun jit_long jit_long_add (jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_long jit_long_sub (jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_long jit_long_mul (jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_long jit_long_neg (jit_long @var{value1})
+ * @deftypefunx jit_long jit_long_and (jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_long jit_long_or (jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_long jit_long_xor (jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_long jit_long_not (jit_long @var{value1})
+ * @deftypefunx jit_long jit_long_not (jit_long @var{value1})
+ * @deftypefunx jit_long jit_long_shl (jit_long @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_long jit_long_shr (jit_long @var{value1}, jit_uint @var{value2})
  * Perform an arithmetic operation on signed 64-bit integers.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_long_add_ovf ({jit_long *} result, jit_long value1, jit_long value2)
- * @deftypefunx jit_int jit_long_sub_ovf ({jit_long *} result, jit_long value1, jit_long value2)
- * @deftypefunx jit_int jit_long_mul_ovf ({jit_long *} result, jit_long value1, jit_long value2)
+ * @deftypefun jit_int jit_long_add_ovf (jit_long *@var{result}, jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_int jit_long_sub_ovf (jit_long *@var{result}, jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_int jit_long_mul_ovf (jit_long *@var{result}, jit_long @var{value1}, jit_long @var{value2})
  * Perform an arithmetic operation on two signed 64-bit integers,
  * with overflow checking.  Returns @code{JIT_RESULT_OK}
  * or @code{JIT_RESULT_OVERFLOW}.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_long_div_ovf ({jit_long *} result, jit_long value1, jit_long value2)
- * @deftypefunx jit_int jit_long_rem_ovf ({jit_long *} result, jit_long value1, jit_long value2)
+ * @deftypefun jit_int jit_long_div_ovf (jit_long *@var{result}, jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_int jit_long_rem_ovf (jit_long *@var{result}, jit_long @var{value1}, jit_long @var{value2})
  * Perform a division or remainder operation on two signed 64-bit integers.
  * Returns @code{JIT_RESULT_OK}, @code{JIT_RESULT_DIVISION_BY_ZERO},
  * or @code{JIT_RESULT_ARITHMETIC}.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_long_eq (jit_long value1, jit_long value2)
- * @deftypefunx jit_int jit_long_ne (jit_long value1, jit_long value2)
- * @deftypefunx jit_int jit_long_lt (jit_long value1, jit_long value2)
- * @deftypefunx jit_int jit_long_le (jit_long value1, jit_long value2)
- * @deftypefunx jit_int jit_long_gt (jit_long value1, jit_long value2)
- * @deftypefunx jit_int jit_long_ge (jit_long value1, jit_long value2)
+ * @deftypefun jit_int jit_long_eq (jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_int jit_long_ne (jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_int jit_long_lt (jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_int jit_long_le (jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_int jit_long_gt (jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_int jit_long_ge (jit_long @var{value1}, jit_long @var{value2})
  * Compare two signed 64-bit integers, returning 0 or 1 based
  * on their relationship.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_long_cmp (jit_long value1, jit_long value2)
+ * @deftypefun jit_int jit_long_cmp (jit_long @var{value1}, jit_long @var{value2})
  * Compare two signed 64-bit integers and return -1, 0, or 1 based
  * on their relationship.
  * @end deftypefun
  *
- * @deftypefun jit_long jit_long_abs (jit_long value1)
- * @deftypefunx jit_long jit_long_min (jit_long value1, jit_long value2)
- * @deftypefunx jit_long jit_long_max (jit_long value1, jit_long value2)
- * @deftypefunx jit_int jit_long_sign (jit_long value1)
+ * @deftypefun jit_long jit_long_abs (jit_long @var{value1})
+ * @deftypefunx jit_long jit_long_min (jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_long jit_long_max (jit_long @var{value1}, jit_long @var{value2})
+ * @deftypefunx jit_int jit_long_sign (jit_long @var{value1})
  * Calculate the absolute value, minimum, maximum, or sign for
  * signed 64-bit integer values.
  * @end deftypefun
@@ -883,52 +883,52 @@ jit_int jit_long_sign(jit_long value1)
 }
 
 /*@
- * @deftypefun jit_ulong jit_ulong_add (jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_ulong jit_ulong_sub (jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_ulong jit_ulong_mul (jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_ulong jit_ulong_neg (jit_ulong value1)
- * @deftypefunx jit_ulong jit_ulong_and (jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_ulong jit_ulong_or (jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_ulong jit_ulong_xor (jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_ulong jit_ulong_not (jit_ulong value1)
- * @deftypefunx jit_ulong jit_ulong_not (jit_ulong value1)
- * @deftypefunx jit_ulong jit_ulong_shl (jit_ulong value1, jit_uint value2)
- * @deftypefunx jit_ulong jit_ulong_shr (jit_ulong value1, jit_uint value2)
+ * @deftypefun jit_ulong jit_ulong_add (jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_ulong jit_ulong_sub (jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_ulong jit_ulong_mul (jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_ulong jit_ulong_neg (jit_ulong @var{value1})
+ * @deftypefunx jit_ulong jit_ulong_and (jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_ulong jit_ulong_or (jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_ulong jit_ulong_xor (jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_ulong jit_ulong_not (jit_ulong @var{value1})
+ * @deftypefunx jit_ulong jit_ulong_not (jit_ulong @var{value1})
+ * @deftypefunx jit_ulong jit_ulong_shl (jit_ulong @var{value1}, jit_uint @var{value2})
+ * @deftypefunx jit_ulong jit_ulong_shr (jit_ulong @var{value1}, jit_uint @var{value2})
  * Perform an arithmetic operation on unsigned 64-bit integers.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_ulong_add_ovf ({jit_ulong *} result, jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_int jit_ulong_sub_ovf ({jit_ulong *} result, jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_int jit_ulong_mul_ovf ({jit_ulong *} result, jit_ulong value1, jit_ulong value2)
+ * @deftypefun jit_int jit_ulong_add_ovf (jit_ulong *@var{result}, jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_int jit_ulong_sub_ovf (jit_ulong *@var{result}, jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_int jit_ulong_mul_ovf (jit_ulong *@var{result}, jit_ulong @var{value1}, jit_ulong @var{value2})
  * Perform an arithmetic operation on two unsigned 64-bit integers,
  * with overflow checking.  Returns @code{JIT_RESULT_OK}
  * or @code{JIT_RESULT_OVERFLOW}.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_ulong_div_ovf ({jit_ulong *} result, jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_int jit_ulong_rem_ovf ({jit_ulong *} result, jit_ulong value1, jit_ulong value2)
+ * @deftypefun jit_int jit_ulong_div_ovf (jit_ulong *@var{result}, jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_int jit_ulong_rem_ovf (jit_ulong *@var{result}, jit_ulong @var{value1}, jit_ulong @var{value2})
  * Perform a division or remainder operation on two unsigned 64-bit integers.
  * Returns @code{JIT_RESULT_OK} or @code{JIT_RESULT_DIVISION_BY_ZERO}
  * (@code{JIT_RESULT_ARITHMETIC} is not possible with unsigned integers).
  * @end deftypefun
  *
- * @deftypefun jit_int jit_ulong_eq (jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_int jit_ulong_ne (jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_int jit_ulong_lt (jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_int jit_ulong_le (jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_int jit_ulong_gt (jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_int jit_ulong_ge (jit_ulong value1, jit_ulong value2)
+ * @deftypefun jit_int jit_ulong_eq (jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_int jit_ulong_ne (jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_int jit_ulong_lt (jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_int jit_ulong_le (jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_int jit_ulong_gt (jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_int jit_ulong_ge (jit_ulong @var{value1}, jit_ulong @var{value2})
  * Compare two unsigned 64-bit integers, returning 0 or 1 based
  * on their relationship.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_ulong_cmp (jit_ulong value1, jit_ulong value2)
+ * @deftypefun jit_int jit_ulong_cmp (jit_ulong @var{value1}, jit_ulong @var{value2})
  * Compare two unsigned 64-bit integers and return -1, 0, or 1 based
  * on their relationship.
  * @end deftypefun
  *
- * @deftypefun jit_ulong jit_ulong_min (jit_ulong value1, jit_ulong value2)
- * @deftypefunx jit_ulong jit_ulong_max (jit_ulong value1, jit_ulong value2)
+ * @deftypefun jit_ulong jit_ulong_min (jit_ulong @var{value1}, jit_ulong @var{value2})
+ * @deftypefunx jit_ulong jit_ulong_max (jit_ulong @var{value1}, jit_ulong @var{value2})
  * Calculate the minimum or maximum for unsigned 64-bit integer values.
  * @end deftypefun
 @*/
@@ -1133,42 +1133,42 @@ jit_ulong jit_ulong_max(jit_ulong value1, jit_ulong value2)
 }
 
 /*@
- * @deftypefun jit_float32 jit_float32_add (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_float32 jit_float32_sub (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_float32 jit_float32_mul (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_float32 jit_float32_div (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_float32 jit_float32_rem (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_float32 jit_float32_ieee_rem (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_float32 jit_float32_neg (jit_float32 value1)
+ * @deftypefun jit_float32 jit_float32_add (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_float32 jit_float32_sub (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_float32 jit_float32_mul (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_float32 jit_float32_div (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_float32 jit_float32_rem (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_float32 jit_float32_ieee_rem (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_float32 jit_float32_neg (jit_float32 @var{value1})
  * Perform an arithmetic operation on 32-bit floating-point values.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_float32_eq (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_int jit_float32_ne (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_int jit_float32_lt (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_int jit_float32_le (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_int jit_float32_gt (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_int jit_float32_ge (jit_float32 value1, jit_float32 value2)
+ * @deftypefun jit_int jit_float32_eq (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_int jit_float32_ne (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_int jit_float32_lt (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_int jit_float32_le (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_int jit_float32_gt (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_int jit_float32_ge (jit_float32 @var{value1}, jit_float32 @var{value2})
  * Compare two 32-bit floating-point values, returning 0 or 1 based
  * on their relationship.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_float32_cmpl (jit_float32 value1, jit_float32 value2)
+ * @deftypefun jit_int jit_float32_cmpl (jit_float32 @var{value1}, jit_float32 @var{value2})
  * Compare two 32-bit floating-point values and return -1, 0, or 1 based
  * on their relationship.  If either value is "not a number",
  * then -1 is returned.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_float32_cmpg (jit_float32 value1, jit_float32 value2)
+ * @deftypefun jit_int jit_float32_cmpg (jit_float32 @var{value1}, jit_float32 @var{value2})
  * Compare two 32-bit floating-point values and return -1, 0, or 1 based
  * on their relationship.  If either value is "not a number",
  * then 1 is returned.
  * @end deftypefun
  *
- * @deftypefun jit_float32 jit_float32_abs (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_min (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_float32 jit_float32_max (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_int jit_float32_sign (jit_float32 value1)
+ * @deftypefun jit_float32 jit_float32_abs (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_min (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_float32 jit_float32_max (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_int jit_float32_sign (jit_float32 @var{value1})
  * Calculate the absolute value, minimum, maximum, or sign for
  * 32-bit floating point values.
  * @end deftypefun
@@ -1428,23 +1428,23 @@ jit_int jit_float32_sign(jit_float32 value1)
 }
 
 /*@
- * @deftypefun jit_float32 jit_float32_acos (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_asin (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_atan (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_atan2 (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_float32 jit_float32_ceil (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_cos (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_cosh (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_exp (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_floor (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_log (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_log10 (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_pow (jit_float32 value1, jit_float32 value2)
- * @deftypefunx jit_float32 jit_float32_sin (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_sinh (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_sqrt (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_tan (jit_float32 value1)
- * @deftypefunx jit_float32 jit_float32_tanh (jit_float32 value1)
+ * @deftypefun jit_float32 jit_float32_acos (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_asin (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_atan (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_atan2 (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_float32 jit_float32_ceil (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_cos (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_cosh (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_exp (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_floor (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_log (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_log10 (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_pow (jit_float32 @var{value1}, jit_float32 @var{value2})
+ * @deftypefunx jit_float32 jit_float32_sin (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_sinh (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_sqrt (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_tan (jit_float32 @var{value1})
+ * @deftypefunx jit_float32 jit_float32_tanh (jit_float32 @var{value1})
  * Apply a mathematical function to one or two 32-bit floating-point values.
  * @end deftypefun
 @*/
@@ -1581,8 +1581,8 @@ jit_float32 jit_float32_pow(jit_float32 value1, jit_float32 value2)
 }
 
 /*@
- * @deftypefun jit_float32 jit_float32_rint (jit_float32 value1)
- * Round @code{value1} to the nearest integer.  Half-way cases
+ * @deftypefun jit_float32 jit_float32_rint (jit_float32 @var{value1})
+ * Round @var{value1} to the nearest integer.  Half-way cases
  * are rounded to an even number.
  * @end deftypefun
 @*/
@@ -1614,8 +1614,8 @@ jit_float32 jit_float32_rint(jit_float32 value1)
 }
 
 /*@
- * @deftypefun jit_float32 jit_float32_round (jit_float32 value1)
- * Round @code{value1} to the nearest integer.  Half-way cases
+ * @deftypefun jit_float32 jit_float32_round (jit_float32 @var{value1})
+ * Round @var{value1} to the nearest integer.  Half-way cases
  * are rounded away from zero.
  * @end deftypefun
 @*/
@@ -1707,7 +1707,7 @@ jit_float32 jit_float32_tanh(jit_float32 value1)
 }
 
 /*@
- * @deftypefun jit_int jit_float32_is_finite (jit_float32 value)
+ * @deftypefun jit_int jit_float32_is_finite (jit_float32 @var{value})
  * Determine if a 32-bit floating point value is finite, returning
  * non-zero if it is, or zero if it is not.  If the value is
  * "not a number", this function returns zero.
@@ -1736,7 +1736,7 @@ jit_int jit_float32_is_finite(jit_float32 value)
 }
 
 /*@
- * @deftypefun jit_int jit_float32_is_nan (jit_float32 value)
+ * @deftypefun jit_int jit_float32_is_nan (jit_float32 @var{value})
  * Determine if a 32-bit floating point value is "not a number", returning
  * non-zero if it is, or zero if it is not.
  * @end deftypefun
@@ -1753,7 +1753,7 @@ jit_int jit_float32_is_nan(jit_float32 value)
 }
 
 /*@
- * @deftypefun jit_int jit_float32_is_inf (jit_float32 value)
+ * @deftypefun jit_int jit_float32_is_inf (jit_float32 @var{value})
  * Determine if a 32-bit floating point value is infinite or not.
  * Returns -1 for negative infinity, 1 for positive infinity,
  * and 0 for everything else.
@@ -1793,42 +1793,42 @@ jit_int jit_float32_is_inf(jit_float32 value)
 }
 
 /*@
- * @deftypefun jit_float64 jit_float64_add (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_float64 jit_float64_sub (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_float64 jit_float64_mul (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_float64 jit_float64_div (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_float64 jit_float64_rem (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_float64 jit_float64_ieee_rem (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_float64 jit_float64_neg (jit_float64 value1)
+ * @deftypefun jit_float64 jit_float64_add (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_float64 jit_float64_sub (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_float64 jit_float64_mul (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_float64 jit_float64_div (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_float64 jit_float64_rem (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_float64 jit_float64_ieee_rem (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_float64 jit_float64_neg (jit_float64 @var{value1})
  * Perform an arithmetic operation on 64-bit floating-point values.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_float64_eq (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_int jit_float64_ne (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_int jit_float64_lt (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_int jit_float64_le (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_int jit_float64_gt (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_int jit_float64_ge (jit_float64 value1, jit_float64 value2)
+ * @deftypefun jit_int jit_float64_eq (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_int jit_float64_ne (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_int jit_float64_lt (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_int jit_float64_le (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_int jit_float64_gt (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_int jit_float64_ge (jit_float64 @var{value1}, jit_float64 @var{value2})
  * Compare two 64-bit floating-point values, returning 0 or 1 based
  * on their relationship.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_float64_cmpl (jit_float64 value1, jit_float64 value2)
+ * @deftypefun jit_int jit_float64_cmpl (jit_float64 @var{value1}, jit_float64 @var{value2})
  * Compare two 64-bit floating-point values and return -1, 0, or 1 based
  * on their relationship.  If either value is "not a number",
  * then -1 is returned.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_float64_cmpg (jit_float64 value1, jit_float64 value2)
+ * @deftypefun jit_int jit_float64_cmpg (jit_float64 @var{value1}, jit_float64 @var{value2})
  * Compare two 64-bit floating-point values and return -1, 0, or 1 based
  * on their relationship.  If either value is "not a number",
  * then 1 is returned.
  * @end deftypefun
  *
- * @deftypefun jit_float64 jit_float64_abs (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_min (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_float64 jit_float64_max (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_int jit_float64_sign (jit_float64 value1)
+ * @deftypefun jit_float64 jit_float64_abs (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_min (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_float64 jit_float64_max (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_int jit_float64_sign (jit_float64 @var{value1})
  * Calculate the absolute value, minimum, maximum, or sign for
  * 64-bit floating point values.
  * @end deftypefun
@@ -2040,23 +2040,23 @@ jit_int jit_float64_sign(jit_float64 value1)
 }
 
 /*@
- * @deftypefun jit_float64 jit_float64_acos (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_asin (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_atan (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_atan2 (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_float64 jit_float64_ceil (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_cos (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_cosh (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_exp (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_floor (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_log (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_log10 (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_pow (jit_float64 value1, jit_float64 value2)
- * @deftypefunx jit_float64 jit_float64_sin (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_sinh (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_sqrt (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_tan (jit_float64 value1)
- * @deftypefunx jit_float64 jit_float64_tanh (jit_float64 value1)
+ * @deftypefun jit_float64 jit_float64_acos (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_asin (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_atan (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_atan2 (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_float64 jit_float64_ceil (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_cos (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_cosh (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_exp (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_floor (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_log (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_log10 (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_pow (jit_float64 @var{value1}, jit_float64 @var{value2})
+ * @deftypefunx jit_float64 jit_float64_sin (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_sinh (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_sqrt (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_tan (jit_float64 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_tanh (jit_float64 @var{value1})
  * Apply a mathematical function to one or two 64-bit floating-point values.
  * @end deftypefun
 @*/
@@ -2169,8 +2169,8 @@ jit_float64 jit_float64_pow(jit_float64 value1, jit_float64 value2)
 }
 
 /*@
- * @deftypefun jit_float64 jit_float64_rint (jit_float64 value1)
- * Round @code{value1} to the nearest integer.  Half-way cases
+ * @deftypefun jit_float64 jit_float64_rint (jit_float64 @var{value1})
+ * Round @var{value1} to the nearest integer.  Half-way cases
  * are rounded to an even number.
  * @end deftypefun
 @*/
@@ -2202,8 +2202,8 @@ jit_float64 jit_float64_rint(jit_float64 value1)
 }
 
 /*@
- * @deftypefun jit_float64 jit_float64_round (jit_float64 value1)
- * Round @code{value1} to the nearest integer.  Half-way cases
+ * @deftypefun jit_float64 jit_float64_round (jit_float64 @var{value1})
+ * Round @var{value1} to the nearest integer.  Half-way cases
  * are rounded away from zero.
  * @end deftypefun
 @*/
@@ -2285,7 +2285,7 @@ jit_float64 jit_float64_tanh(jit_float64 value1)
 }
 
 /*@
- * @deftypefun jit_int jit_float64_is_finite (jit_float64 value)
+ * @deftypefun jit_int jit_float64_is_finite (jit_float64 @var{value})
  * Determine if a 64-bit floating point value is finite, returning
  * non-zero if it is, or zero if it is not.  If the value is
  * "not a number", this function returns zero.
@@ -2310,7 +2310,7 @@ jit_int jit_float64_is_finite(jit_float64 value)
 }
 
 /*@
- * @deftypefun jit_int jit_float64_is_nan (jit_float64 value)
+ * @deftypefun jit_int jit_float64_is_nan (jit_float64 @var{value})
  * Determine if a 64-bit floating point value is "not a number", returning
  * non-zero if it is, or zero if it is not.
  * @end deftypefun
@@ -2325,7 +2325,7 @@ jit_int jit_float64_is_nan(jit_float64 value)
 }
 
 /*@
- * @deftypefun jit_int jit_float64_is_inf (jit_float64 value)
+ * @deftypefun jit_int jit_float64_is_inf (jit_float64 @var{value})
  * Determine if a 64-bit floating point value is infinite or not.
  * Returns -1 for negative infinity, 1 for positive infinity,
  * and 0 for everything else.
@@ -2360,42 +2360,42 @@ jit_int jit_float64_is_inf(jit_float64 value)
 }
 
 /*@
- * @deftypefun jit_nfloat jit_nfloat_add (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_nfloat jit_nfloat_sub (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_nfloat jit_nfloat_mul (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_nfloat jit_nfloat_div (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_nfloat jit_nfloat_rem (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_nfloat jit_nfloat_ieee_rem (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_nfloat jit_nfloat_neg (jit_nfloat value1)
+ * @deftypefun jit_nfloat jit_nfloat_add (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_nfloat jit_nfloat_sub (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_nfloat jit_nfloat_mul (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_nfloat jit_nfloat_div (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_nfloat jit_nfloat_rem (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_nfloat jit_nfloat_ieee_rem (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_nfloat jit_nfloat_neg (jit_nfloat @var{value1})
  * Perform an arithmetic operation on native floating-point values.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_nfloat_eq (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_int jit_nfloat_ne (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_int jit_nfloat_lt (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_int jit_nfloat_le (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_int jit_nfloat_gt (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_int jit_nfloat_ge (jit_nfloat value1, jit_nfloat value2)
+ * @deftypefun jit_int jit_nfloat_eq (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_int jit_nfloat_ne (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_int jit_nfloat_lt (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_int jit_nfloat_le (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_int jit_nfloat_gt (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_int jit_nfloat_ge (jit_nfloat @var{value1}, jit_nfloat @var{value2})
  * Compare two native floating-point values, returning 0 or 1 based
  * on their relationship.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_nfloat_cmpl (jit_nfloat value1, jit_nfloat value2)
+ * @deftypefun jit_int jit_nfloat_cmpl (jit_nfloat @var{value1}, jit_nfloat @var{value2})
  * Compare two native floating-point values and return -1, 0, or 1 based
  * on their relationship.  If either value is "not a number",
  * then -1 is returned.
  * @end deftypefun
  *
- * @deftypefun jit_int jit_nfloat_cmpg (jit_nfloat value1, jit_nfloat value2)
+ * @deftypefun jit_int jit_nfloat_cmpg (jit_nfloat @var{value1}, jit_nfloat @var{value2})
  * Compare two native floating-point values and return -1, 0, or 1 based
  * on their relationship.  If either value is "not a number",
  * then 1 is returned.
  * @end deftypefun
  *
- * @deftypefun jit_nfloat jit_nfloat_abs (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_min (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_nfloat jit_nfloat_max (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_int jit_nfloat_sign (jit_nfloat value1)
+ * @deftypefun jit_nfloat jit_nfloat_abs (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_min (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_nfloat jit_nfloat_max (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_int jit_nfloat_sign (jit_nfloat @var{value1})
  * Calculate the absolute value, minimum, maximum, or sign for
  * native floating point values.
  * @end deftypefun
@@ -2657,23 +2657,23 @@ jit_int jit_nfloat_sign(jit_nfloat value1)
 }
 
 /*@
- * @deftypefun jit_nfloat jit_nfloat_acos (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_asin (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_atan (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_atan2 (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_nfloat jit_nfloat_ceil (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_cos (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_cosh (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_exp (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_floor (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_log (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_log10 (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_pow (jit_nfloat value1, jit_nfloat value2)
- * @deftypefunx jit_nfloat jit_nfloat_sin (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_sinh (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_sqrt (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_tan (jit_nfloat value1)
- * @deftypefunx jit_nfloat jit_nfloat_tanh (jit_nfloat value1)
+ * @deftypefun jit_nfloat jit_nfloat_acos (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_asin (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_atan (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_atan2 (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_nfloat jit_nfloat_ceil (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_cos (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_cosh (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_exp (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_floor (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_log (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_log10 (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_pow (jit_nfloat @var{value1}, jit_nfloat @var{value2})
+ * @deftypefunx jit_nfloat jit_nfloat_sin (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_sinh (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_sqrt (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_tan (jit_nfloat @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_tanh (jit_nfloat @var{value1})
  * Apply a mathematical function to one or two native floating-point values.
  * @end deftypefun
 @*/
@@ -2810,8 +2810,8 @@ jit_nfloat jit_nfloat_pow(jit_nfloat value1, jit_nfloat value2)
 }
 
 /*@
- * @deftypefun jit_nfloat jit_nfloat_rint (jit_nfloat value1)
- * Round @code{value1} to the nearest integer.  Half-way cases
+ * @deftypefun jit_nfloat jit_nfloat_rint (jit_nfloat @var{value1})
+ * Round @var{value1} to the nearest integer.  Half-way cases
  * are rounded to an even number.
  * @end deftypefun
 @*/
@@ -2843,8 +2843,8 @@ jit_nfloat jit_nfloat_rint(jit_nfloat value1)
 }
 
 /*@
- * @deftypefun jit_nfloat jit_nfloat_round (jit_nfloat value1)
- * Round @code{value1} to the nearest integer.  Half-way cases
+ * @deftypefun jit_nfloat jit_nfloat_round (jit_nfloat @var{value1})
+ * Round @var{value1} to the nearest integer.  Half-way cases
  * are rounded away from zero.
  * @end deftypefun
 @*/
@@ -2936,7 +2936,7 @@ jit_nfloat jit_nfloat_tanh(jit_nfloat value1)
 }
 
 /*@
- * @deftypefun jit_int jit_nfloat_is_finite (jit_nfloat value)
+ * @deftypefun jit_int jit_nfloat_is_finite (jit_nfloat @var{value})
  * Determine if a native floating point value is finite, returning
  * non-zero if it is, or zero if it is not.  If the value is
  * "not a number", this function returns zero.
@@ -2966,7 +2966,7 @@ jit_int jit_nfloat_is_finite(jit_nfloat value)
 }
 
 /*@
- * @deftypefun jit_int jit_nfloat_is_nan (jit_nfloat value)
+ * @deftypefun jit_int jit_nfloat_is_nan (jit_nfloat @var{value})
  * Determine if a native floating point value is "not a number", returning
  * non-zero if it is, or zero if it is not.
  * @end deftypefun
@@ -2983,7 +2983,7 @@ jit_int jit_nfloat_is_nan(jit_nfloat value)
 }
 
 /*@
- * @deftypefun jit_int jit_nfloat_is_inf (jit_nfloat value)
+ * @deftypefun jit_int jit_nfloat_is_inf (jit_nfloat @var{value})
  * Determine if a native floating point value is infinite or not.
  * Returns -1 for negative infinity, 1 for positive infinity,
  * and 0 for everything else.
@@ -3023,26 +3023,26 @@ jit_int jit_nfloat_is_inf(jit_nfloat value)
 }
 
 /*@
- * @deftypefun jit_int jit_int_to_sbyte (jit_int value)
- * @deftypefunx jit_int jit_int_to_ubyte (jit_int value)
- * @deftypefunx jit_int jit_int_to_short (jit_int value)
- * @deftypefunx jit_int jit_int_to_ushort (jit_int value)
- * @deftypefunx jit_int jit_int_to_int (jit_int value)
- * @deftypefunx jit_uint jit_int_to_uint (jit_int value)
- * @deftypefunx jit_long jit_int_to_long (jit_int value)
- * @deftypefunx jit_ulong jit_int_to_ulong (jit_int value)
- * @deftypefunx jit_int jit_uint_to_int (jit_uint value)
- * @deftypefunx jit_uint jit_uint_to_uint (jit_uint value)
- * @deftypefunx jit_long jit_uint_to_long (jit_uint value)
- * @deftypefunx jit_ulong jit_uint_to_ulong (jit_uint value)
- * @deftypefunx jit_int jit_long_to_int (jit_long value)
- * @deftypefunx jit_uint jit_long_to_uint (jit_long value)
- * @deftypefunx jit_long jit_long_to_long (jit_long value)
- * @deftypefunx jit_ulong jit_long_to_ulong (jit_long value)
- * @deftypefunx jit_int jit_ulong_to_int (jit_ulong value)
- * @deftypefunx jit_uint jit_ulong_to_uint (jit_ulong value)
- * @deftypefunx jit_long jit_ulong_to_long (jit_ulong value)
- * @deftypefunx jit_ulong jit_ulong_to_ulong (jit_ulong value)
+ * @deftypefun jit_int jit_int_to_sbyte (jit_int @var{value})
+ * @deftypefunx jit_int jit_int_to_ubyte (jit_int @var{value})
+ * @deftypefunx jit_int jit_int_to_short (jit_int @var{value})
+ * @deftypefunx jit_int jit_int_to_ushort (jit_int @var{value})
+ * @deftypefunx jit_int jit_int_to_int (jit_int @var{value})
+ * @deftypefunx jit_uint jit_int_to_uint (jit_int @var{value})
+ * @deftypefunx jit_long jit_int_to_long (jit_int @var{value})
+ * @deftypefunx jit_ulong jit_int_to_ulong (jit_int @var{value})
+ * @deftypefunx jit_int jit_uint_to_int (jit_uint @var{value})
+ * @deftypefunx jit_uint jit_uint_to_uint (jit_uint @var{value})
+ * @deftypefunx jit_long jit_uint_to_long (jit_uint @var{value})
+ * @deftypefunx jit_ulong jit_uint_to_ulong (jit_uint @var{value})
+ * @deftypefunx jit_int jit_long_to_int (jit_long @var{value})
+ * @deftypefunx jit_uint jit_long_to_uint (jit_long @var{value})
+ * @deftypefunx jit_long jit_long_to_long (jit_long @var{value})
+ * @deftypefunx jit_ulong jit_long_to_ulong (jit_long @var{value})
+ * @deftypefunx jit_int jit_ulong_to_int (jit_ulong @var{value})
+ * @deftypefunx jit_uint jit_ulong_to_uint (jit_ulong @var{value})
+ * @deftypefunx jit_long jit_ulong_to_long (jit_ulong @var{value})
+ * @deftypefunx jit_ulong jit_ulong_to_ulong (jit_ulong @var{value})
  * Convert between integer types.
  * @end deftypefun
 @*/
@@ -3147,26 +3147,26 @@ jit_ulong jit_ulong_to_ulong(jit_ulong value)
 }
 
 /*@
- * @deftypefun jit_int jit_int_to_sbyte_ovf ({jit_int *result}, jit_int value)
- * @deftypefunx jit_int jit_int_to_ubyte_ovf ({jit_int *result}, jit_int value)
- * @deftypefunx jit_int jit_int_to_short_ovf ({jit_int *result}, jit_int value)
- * @deftypefunx jit_int jit_int_to_ushort_ovf ({jit_int *result}, jit_int value)
- * @deftypefunx jit_int jit_int_to_int_ovf ({jit_int *result}, jit_int value)
- * @deftypefunx jit_int jit_int_to_uint_ovf ({jit_uint *result}, jit_int value)
- * @deftypefunx jit_int jit_int_to_long_ovf ({jit_long *result}, jit_int value)
- * @deftypefunx jit_int jit_int_to_ulong_ovf ({jit_ulong *result}, jit_int value)
- * @deftypefunx jit_int jit_uint_to_int_ovf ({jit_int *result}, jit_uint value)
- * @deftypefunx jit_int jit_uint_to_uint_ovf ({jit_uint *result}, jit_uint value)
- * @deftypefunx jit_int jit_uint_to_long_ovf ({jit_long *result}, jit_uint value)
- * @deftypefunx jit_int jit_uint_to_ulong_ovf ({jit_ulong *result}, jit_uint value)
- * @deftypefunx jit_int jit_long_to_int_ovf ({jit_int *result}, jit_long value)
- * @deftypefunx jit_int jit_long_to_uint_ovf ({jit_uint *result}, jit_long value)
- * @deftypefunx jit_int jit_long_to_long_ovf ({jit_long *result}, jit_long value)
- * @deftypefunx jit_int jit_long_to_ulong_ovf ({jit_ulong *result}, jit_long value)
- * @deftypefunx jit_int jit_ulong_to_int_ovf ({jit_int *result}, jit_ulong value)
- * @deftypefunx jit_int jit_ulong_to_uint_ovf ({jit_uint *result}, jit_ulong value)
- * @deftypefunx jit_int jit_ulong_to_long_ovf ({jit_long *result}, jit_ulong value)
- * @deftypefunx jit_int jit_ulong_to_ulong_ovf ({jit_ulong *result}, jit_ulong value)
+ * @deftypefun jit_int jit_int_to_sbyte_ovf (jit_int *@var{result}, jit_int @var{value})
+ * @deftypefunx jit_int jit_int_to_ubyte_ovf (jit_int *@var{result}, jit_int @var{value})
+ * @deftypefunx jit_int jit_int_to_short_ovf (jit_int *@var{result}, jit_int @var{value})
+ * @deftypefunx jit_int jit_int_to_ushort_ovf (jit_int *@var{result}, jit_int @var{value})
+ * @deftypefunx jit_int jit_int_to_int_ovf (jit_int *@var{result}, jit_int @var{value})
+ * @deftypefunx jit_int jit_int_to_uint_ovf (jit_uint *@var{result}, jit_int @var{value})
+ * @deftypefunx jit_int jit_int_to_long_ovf (jit_long *@var{result}, jit_int @var{value})
+ * @deftypefunx jit_int jit_int_to_ulong_ovf (jit_ulong *@var{result}, jit_int @var{value})
+ * @deftypefunx jit_int jit_uint_to_int_ovf (jit_int *@var{result}, jit_uint @var{value})
+ * @deftypefunx jit_int jit_uint_to_uint_ovf (jit_uint *@var{result}, jit_uint @var{value})
+ * @deftypefunx jit_int jit_uint_to_long_ovf (jit_long *@var{result}, jit_uint @var{value})
+ * @deftypefunx jit_int jit_uint_to_ulong_ovf (jit_ulong *@var{result}, jit_uint @var{value})
+ * @deftypefunx jit_int jit_long_to_int_ovf (jit_int *@var{result}, jit_long @var{value})
+ * @deftypefunx jit_int jit_long_to_uint_ovf (jit_uint *@var{result}, jit_long @var{value})
+ * @deftypefunx jit_int jit_long_to_long_ovf (jit_long *@var{result}, jit_long @var{value})
+ * @deftypefunx jit_int jit_long_to_ulong_ovf (jit_ulong *@var{result}, jit_long @var{value})
+ * @deftypefunx jit_int jit_ulong_to_int_ovf (jit_int *@var{result}, jit_ulong @var{value})
+ * @deftypefunx jit_int jit_ulong_to_uint_ovf (jit_uint *@var{result}, jit_ulong @var{value})
+ * @deftypefunx jit_int jit_ulong_to_long_ovf (jit_long *@var{result}, jit_ulong @var{value})
+ * @deftypefunx jit_int jit_ulong_to_ulong_ovf (jit_ulong *@var{result}, jit_ulong @var{value})
  * Convert between integer types with overflow detection.
  * @end deftypefun
 @*/
@@ -3287,10 +3287,10 @@ jit_int jit_ulong_to_ulong_ovf(jit_ulong *result, jit_ulong value)
 }
 
 /*@
- * @deftypefun jit_int jit_nfloat_to_int (jit_nfloat value)
- * @deftypefunx jit_uint jit_nfloat_to_uint (jit_nfloat value)
- * @deftypefunx jit_long jit_nfloat_to_long (jit_nfloat value)
- * @deftypefunx jit_ulong jit_nfloat_to_ulong (jit_nfloat value)
+ * @deftypefun jit_int jit_nfloat_to_int (jit_nfloat @var{value})
+ * @deftypefunx jit_uint jit_nfloat_to_uint (jit_nfloat @var{value})
+ * @deftypefunx jit_long jit_nfloat_to_long (jit_nfloat @var{value})
+ * @deftypefunx jit_ulong jit_nfloat_to_ulong (jit_nfloat @var{value})
  * Convert a native floating-point value into an integer.
  * @end deftypefun
 @*/
@@ -3351,10 +3351,10 @@ jit_ulong jit_nfloat_to_ulong(jit_nfloat value)
 }
 
 /*@
- * @deftypefun jit_int jit_nfloat_to_int_ovf ({jit_int *} result, jit_nfloat value)
- * @deftypefunx jit_uint jit_nfloat_to_uint_ovf ({jit_uint *} result, jit_nfloat value)
- * @deftypefunx jit_long jit_nfloat_to_long_ovf ({jit_long *} result, jit_nfloat value)
- * @deftypefunx jit_ulong jit_nfloat_to_ulong_ovf ({jit_ulong *} result, jit_nfloat value)
+ * @deftypefun jit_int jit_nfloat_to_int_ovf (jit_int *@var{result}, jit_nfloat @var{value})
+ * @deftypefunx jit_uint jit_nfloat_to_uint_ovf (jit_uint *@var{result}, jit_nfloat @var{value})
+ * @deftypefunx jit_long jit_nfloat_to_long_ovf (jit_long *@var{result}, jit_nfloat @var{value})
+ * @deftypefunx jit_ulong jit_nfloat_to_ulong_ovf (jit_ulong *@var{result}, jit_nfloat @var{value})
  * Convert a native floating-point value into an integer,
  * with overflow detection.  Returns @code{JIT_RESULT_OK} if the conversion
  * was successful or @code{JIT_RESULT_OVERFLOW} if an overflow occurred.
@@ -3431,10 +3431,10 @@ jit_int jit_nfloat_to_ulong_ovf(jit_ulong *result, jit_nfloat value)
 }
 
 /*@
- * @deftypefun jit_nfloat jit_int_to_nfloat (jit_int value)
- * @deftypefunx jit_nfloat jit_uint_to_nfloat (jit_uint value)
- * @deftypefunx jit_nfloat jit_long_to_nfloat (jit_long value)
- * @deftypefunx jit_nfloat jit_ulong_to_nfloat (jit_ulong value)
+ * @deftypefun jit_nfloat jit_int_to_nfloat (jit_int @var{value})
+ * @deftypefunx jit_nfloat jit_uint_to_nfloat (jit_uint @var{value})
+ * @deftypefunx jit_nfloat jit_long_to_nfloat (jit_long @var{value})
+ * @deftypefunx jit_nfloat jit_ulong_to_nfloat (jit_ulong @var{value})
  * Convert an integer into native floating-point value.
  * @end deftypefun
 @*/
@@ -3469,10 +3469,10 @@ jit_nfloat jit_ulong_to_nfloat(jit_ulong value)
 }
 
 /*@
- * @deftypefun jit_nfloat jit_float32_to_nfloat (jit_float32 value)
- * @deftypefunx jit_nfloat jit_float64_to_nfloat (jit_float64 value)
- * @deftypefunx jit_float32 jit_nfloat_to_float32 (jit_nfloat value)
- * @deftypefunx jit_float64 jit_nfloat_to_float64 (jit_nfloat value)
+ * @deftypefun jit_nfloat jit_float32_to_nfloat (jit_float32 @var{value})
+ * @deftypefunx jit_nfloat jit_float64_to_nfloat (jit_float64 @var{value})
+ * @deftypefunx jit_float32 jit_nfloat_to_float32 (jit_nfloat @var{value})
+ * @deftypefunx jit_float64 jit_nfloat_to_float64 (jit_nfloat @var{value})
  * Convert between floating-point types.
  * @end deftypefun
 @*/

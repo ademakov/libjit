@@ -32,11 +32,11 @@ The front end virtual machine is responsible for inserting "potential
 breakpoints" into the code when functions are built and compiled.  This
 is performed using @code{jit_insn_mark_breakpoint}:
 
-@deftypefun int jit_insn_mark_breakpoint (jit_function_t func, jit_nint data1, jit_nint data2)
-Mark the current position in @code{func} as corresponding to a breakpoint
+@deftypefun int jit_insn_mark_breakpoint (jit_function_t @var{func}, jit_nint @var{data1}, jit_nint @var{data2})
+Mark the current position in @var{func} as corresponding to a breakpoint
 location.  When a break occurs, the debugging routines are passed
-@code{func}, @code{data1}, and @code{data2} as arguments.  By convention,
-@code{data1} is the type of breakpoint (source line, function entry,
+@var{func}, @var{data1}, and @var{data2} as arguments.  By convention,
+@var{data1} is the type of breakpoint (source line, function entry,
 function exit, etc).
 @end deftypefun
 
@@ -125,9 +125,9 @@ of the event is set to the value of @code{stop_immediately} for the call.
 A thread called @code{jit_debugger_detach_self}.
 @end table
 
-@deftypefun int jit_insn_mark_breakpoint_variable (jit_function_t func, jit_value_t data1, jit_value_t data2)
+@deftypefun int jit_insn_mark_breakpoint_variable (jit_function_t @var{func}, jit_value_t @var{data1}, jit_value_t @var{data2})
 This function is similar to @code{jit_insn_mark_breakpoint} except that values
-in @code{data1} and @code{data2} can be computed at runtime. You can use this
+in @var{data1} and @var{data2} can be computed at runtime. You can use this
 function for example to get address of local variable.
 @end deftypefun
 
@@ -267,8 +267,8 @@ int jit_debugging_possible(void)
 }
 
 /*@
- * @deftypefun jit_debugger_t jit_debugger_create (jit_context_t context)
- * Create a new debugger instance and attach it to a JIT @code{context}.
+ * @deftypefun jit_debugger_t jit_debugger_create (jit_context_t @var{context})
+ * Create a new debugger instance and attach it to a JIT @var{context}.
  * If the context already has a debugger associated with it, then this
  * function will return the previous debugger.
  * @end deftypefun
@@ -300,7 +300,7 @@ jit_debugger_t jit_debugger_create(jit_context_t context)
 }
 
 /*@
- * @deftypefun void jit_debugger_destroy (jit_debugger_t dbg)
+ * @deftypefun void jit_debugger_destroy (jit_debugger_t @var{dbg})
  * Destroy a debugger instance.
  * @end deftypefun
 @*/
@@ -310,7 +310,7 @@ void jit_debugger_destroy(jit_debugger_t dbg)
 }
 
 /*@
- * @deftypefun jit_context_t jit_debugger_get_context (jit_debugger_t dbg)
+ * @deftypefun jit_context_t jit_debugger_get_context (jit_debugger_t @var{dbg})
  * Get the JIT context that is associated with a debugger instance.
  * @end deftypefun
 @*/
@@ -327,8 +327,8 @@ jit_context_t jit_debugger_get_context(jit_debugger_t dbg)
 }
 
 /*@
- * @deftypefun jit_debugger_t jit_debugger_from_context (jit_context_t context)
- * Get the debugger that is currently associated with a JIT context,
+ * @deftypefun jit_debugger_t jit_debugger_from_context (jit_context_t @var{context})
+ * Get the debugger that is currently associated with a JIT @var{context},
  * or NULL if there is no debugger associated with the context.
  * @end deftypefun
 @*/
@@ -345,7 +345,7 @@ jit_debugger_t jit_debugger_from_context(jit_context_t context)
 }
 
 /*@
- * @deftypefun jit_debugger_thread_id_t jit_debugger_get_self (jit_debugger_t dbg)
+ * @deftypefun jit_debugger_thread_id_t jit_debugger_get_self (jit_debugger_t @var{dbg})
  * Get the thread identifier associated with the current thread.
  * The return values are normally values like 1, 2, 3, etc, allowing
  * the user interface to report messages like "thread 3 has stopped
@@ -362,9 +362,9 @@ jit_debugger_thread_id_t jit_debugger_get_self(jit_debugger_t dbg)
 }
 
 /*@
- * @deftypefun jit_debugger_thread_id_t jit_debugger_get_thread (jit_debugger_t dbg, {const void *} native_thread)
+ * @deftypefun jit_debugger_thread_id_t jit_debugger_get_thread (jit_debugger_t @var{dbg}, const void *@var{native_thread})
  * Get the thread identifier for a specific native thread.  The
- * @code{native_thread} pointer is assumed to point at a block
+ * @var{native_thread} pointer is assumed to point at a block
  * of memory containing a native thread handle.  This would be a
  * @code{pthread_t} on Pthreads platforms or a @code{HANDLE}
  * on Win32 platforms.  If the native thread has not been seen
@@ -379,7 +379,7 @@ jit_debugger_thread_id_t jit_debugger_get_thread
 }
 
 /*@
- * @deftypefun int jit_debugger_get_native_thread (jit_debugger_t dbg, jit_debugger_thread_id_t thread, {void *} native_thread)
+ * @deftypefun int jit_debugger_get_native_thread (jit_debugger_t @var{dbg}, jit_debugger_thread_id_t @var{thread}, void *@var{native_thread})
  * Get the native thread handle associated with a debugger thread identifier.
  * Returns non-zero if OK, or zero if the debugger thread identifier is not
  * yet associated with a native thread handle.
@@ -406,7 +406,7 @@ int jit_debugger_get_native_thread
 }
 
 /*@
- * @deftypefun void jit_debugger_set_breakable (jit_debugger_t dbg, {const void *} native_thread, int flag)
+ * @deftypefun void jit_debugger_set_breakable (jit_debugger_t @var{dbg}, const void *@var{native_thread}, int @var{flag})
  * Set a flag that indicates if a native thread can stop at breakpoints.
  * If set to 1 (the default), breakpoints will be active on the thread.
  * If set to 0, breakpoints will be ignored on the thread.  Typically
@@ -432,8 +432,8 @@ void jit_debugger_set_breakable
 }
 
 /*@
- * @deftypefun void jit_debugger_attach_self (jit_debugger_t dbg, int stop_immediately)
- * Attach the current thread to a debugger.  If @code{stop_immediately}
+ * @deftypefun void jit_debugger_attach_self (jit_debugger_t @var{dbg}, int @var{stop_immediately})
+ * Attach the current thread to a debugger.  If @var{stop_immediately}
  * is non-zero, then the current thread immediately suspends, waiting for
  * the user to start it with @code{jit_debugger_run}.  This function is
  * typically called in a thread's startup code just before any "real work"
@@ -473,7 +473,7 @@ void jit_debugger_attach_self(jit_debugger_t dbg, int stop_immediately)
 }
 
 /*@
- * @deftypefun void jit_debugger_detach_self (jit_debugger_t dbg)
+ * @deftypefun void jit_debugger_detach_self (jit_debugger_t @var{dbg})
  * Detach the current thread from the debugger.  This is typically
  * called just before the thread exits.
  * @end deftypefun
@@ -499,9 +499,9 @@ void jit_debugger_detach_self(jit_debugger_t dbg)
 }
 
 /*@
- * @deftypefun int jit_debugger_wait_event (jit_debugger_t dbg, {jit_debugger_event_t *} event, jit_nint timeout)
+ * @deftypefun int jit_debugger_wait_event (jit_debugger_t @var{dbg}, jit_debugger_event_t *@var{event}, jit_nint @var{timeout})
  * Wait for the next debugger event to arrive.  Debugger events typically
- * indicate breakpoints that have occurred.  The @code{timeout} is in
+ * indicate breakpoints that have occurred.  The @var{timeout} is in
  * milliseconds, or -1 for an infinite timeout period.  Returns non-zero
  * if an event has arrived, or zero on timeout.
  * @end deftypefun
@@ -532,10 +532,10 @@ int jit_debugger_wait_event
 }
 
 /*@
- * @deftypefun jit_debugger_breakpoint_id_t jit_debugger_add_breakpoint (jit_debugger_t dbg, jit_debugger_breakpoint_info_t info)
- * Add a hard breakpoint to a debugger instance.  The @code{info} structure
+ * @deftypefun jit_debugger_breakpoint_id_t jit_debugger_add_breakpoint (jit_debugger_t @var{dbg}, jit_debugger_breakpoint_info_t @var{info})
+ * Add a hard breakpoint to a debugger instance.  The @var{info} structure
  * defines the conditions under which the breakpoint should fire.
- * The fields of @code{info} are as follows:
+ * The fields of @var{info} are as follows:
  *
  * @table @code
  * @item flags
@@ -589,7 +589,7 @@ jit_debugger_breakpoint_id_t jit_debugger_add_breakpoint
 }
 
 /*@
- * @deftypefun void jit_debugger_remove_breakpoint (jit_debugger_t dbg, jit_debugger_breakpoint_id_t id)
+ * @deftypefun void jit_debugger_remove_breakpoint (jit_debugger_t @var{dbg}, jit_debugger_breakpoint_id_t @var{id})
  * Remove a previously defined breakpoint from a debugger instance.
  * @end deftypefun
 @*/
@@ -600,7 +600,7 @@ void jit_debugger_remove_breakpoint
 }
 
 /*@
- * @deftypefun void jit_debugger_remove_all_breakpoints (jit_debugger_t dbg)
+ * @deftypefun void jit_debugger_remove_all_breakpoints (jit_debugger_t @var{dbg})
  * Remove all breakpoints from a debugger instance.
  * @end deftypefun
 @*/
@@ -610,7 +610,7 @@ void jit_debugger_remove_all_breakpoints(jit_debugger_t dbg)
 }
 
 /*@
- * @deftypefun int jit_debugger_is_alive (jit_debugger_t dbg, jit_debugger_thread_id_t thread)
+ * @deftypefun int jit_debugger_is_alive (jit_debugger_t @var{dbg}, jit_debugger_thread_id_t @var{thread})
  * Determine if a particular thread is still alive.
  * @end deftypefun
 @*/
@@ -621,7 +621,7 @@ int jit_debugger_is_alive(jit_debugger_t dbg, jit_debugger_thread_id_t thread)
 }
 
 /*@
- * @deftypefun int jit_debugger_is_running (jit_debugger_t dbg, jit_debugger_thread_id_t thread)
+ * @deftypefun int jit_debugger_is_running (jit_debugger_t @var{dbg}, jit_debugger_thread_id_t @var{thread})
  * Determine if a particular thread is currently running (non-zero) or
  * stopped (zero).
  * @end deftypefun
@@ -641,7 +641,7 @@ int jit_debugger_is_running(jit_debugger_t dbg, jit_debugger_thread_id_t thread)
 }
 
 /*@
- * @deftypefun void jit_debugger_run (jit_debugger_t dbg, jit_debugger_thread_id_t thread)
+ * @deftypefun void jit_debugger_run (jit_debugger_t @var{dbg}, jit_debugger_thread_id_t @var{thread})
  * Start the specified thread running, or continue from the last breakpoint.
  *
  * This function, and the others that follow, sends a request to the specified
@@ -662,7 +662,7 @@ void jit_debugger_run(jit_debugger_t dbg, jit_debugger_thread_id_t thread)
 }
 
 /*@
- * @deftypefun void jit_debugger_step (jit_debugger_t dbg, jit_debugger_thread_id_t thread)
+ * @deftypefun void jit_debugger_step (jit_debugger_t @var{dbg}, jit_debugger_thread_id_t @var{thread})
  * Step over a single line of code.  If the line performs a method call,
  * then this will step into the call.  The request will be ignored if
  * the thread is currently running.
@@ -682,7 +682,7 @@ void jit_debugger_step(jit_debugger_t dbg, jit_debugger_thread_id_t thread)
 }
 
 /*@
- * @deftypefun void jit_debugger_next (jit_debugger_t dbg, jit_debugger_thread_id_t thread)
+ * @deftypefun void jit_debugger_next (jit_debugger_t @var{dbg}, jit_debugger_thread_id_t @var{thread})
  * Step over a single line of code but do not step into method calls.
  * The request will be ignored if the thread is currently running.
  * @end deftypefun
@@ -701,7 +701,7 @@ void jit_debugger_next(jit_debugger_t dbg, jit_debugger_thread_id_t thread)
 }
 
 /*@
- * @deftypefun void jit_debugger_finish (jit_debugger_t dbg, jit_debugger_thread_id_t thread)
+ * @deftypefun void jit_debugger_finish (jit_debugger_t @var{dbg}, jit_debugger_thread_id_t @var{thread})
  * Keep running until the end of the current function.  The request will
  * be ignored if the thread is currently running.
  * @end deftypefun
@@ -720,7 +720,7 @@ void jit_debugger_finish(jit_debugger_t dbg, jit_debugger_thread_id_t thread)
 }
 
 /*@
- * @deftypefun void jit_debugger_break (jit_debugger_t dbg)
+ * @deftypefun void jit_debugger_break (jit_debugger_t @var{dbg})
  * Force an explicit user breakpoint at the current location within the
  * current thread.  Control returns to the caller when the debugger
  * calls one of the above "run" or "step" functions in another thread.
@@ -752,7 +752,7 @@ void jit_debugger_break(jit_debugger_t dbg)
 }
 
 /*@
- * @deftypefun void jit_debugger_quit (jit_debugger_t dbg)
+ * @deftypefun void jit_debugger_quit (jit_debugger_t @var{dbg})
  * Sends a request to the thread that called @code{jit_debugger_wait_event}
  * indicating that the debugger should quit.
  * @end deftypefun
@@ -771,7 +771,7 @@ void jit_debugger_quit(jit_debugger_t dbg)
 }
 
 /*@
- * @deftypefun jit_debugger_hook_func jit_debugger_set_hook (jit_context_t context, jit_debugger_hook_func hook)
+ * @deftypefun jit_debugger_hook_func jit_debugger_set_hook (jit_context_t @var{context}, jit_debugger_hook_func @var{hook})
  * Set a debugger hook on a JIT context.  Returns the previous hook.
  *
  * Debug hooks are a very low-level breakpoint mechanism.  Upon reaching each

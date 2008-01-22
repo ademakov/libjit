@@ -1302,8 +1302,8 @@ static void mangle_type_msvc6(jit_mangler_t mangler, jit_type_t type)
 #endif
 
 /*@
- * @deftypefun {char *} jit_mangle_global_function ({const char *} name, jit_type_t signature, int form)
- * Mangle the name of a global C++ function using the specified @code{form}.
+ * @deftypefun {char *} jit_mangle_global_function (const char *@var{name}, jit_type_t @var{signature}, int @var{form})
+ * Mangle the name of a global C++ function using the specified @var{form}.
  * Returns NULL if out of memory, or if the form is not supported.
  * @end deftypefun
 @*/
@@ -1349,8 +1349,8 @@ char *jit_mangle_global_function
 }
 
 /*@
- * @deftypefun {char *} jit_mangle_member_function ({const char *} class_name, {const char *} name, jit_type_t signature, int form, int flags)
- * Mangle the name of a C++ member function using the specified @code{form}.
+ * @deftypefun {char *} jit_mangle_member_function (const char *@var{class_name}, const char *@var{name}, jit_type_t @var{signature}, int @var{form}, int @var{flags})
+ * Mangle the name of a C++ member function using the specified @var{form}.
  * Returns NULL if out of memory, or if the form is not supported.
  * The following flags may be specified to modify the mangling rules:
  *
@@ -1383,17 +1383,17 @@ char *jit_mangle_global_function
  *
  * @vindex JIT_MANGLE_EXPLICIT_THIS
  * @item JIT_MANGLE_EXPLICIT_THIS
- * The @code{signature} includes an extra pointer parameter at the start
+ * The @var{signature} includes an extra pointer parameter at the start
  * that indicates the type of the @code{this} pointer.  This parameter won't
  * be included in the final mangled name.
  *
  * @vindex JIT_MANGLE_IS_CTOR
  * @item JIT_MANGLE_IS_CTOR
- * The method is a constructor.  The @code{name} parameter will be ignored.
+ * The method is a constructor.  The @var{name} parameter will be ignored.
  *
  * @vindex JIT_MANGLE_IS_DTOR
  * @item JIT_MANGLE_IS_DTOR
- * The method is a destructor.  The @code{name} parameter will be ignored.
+ * The method is a destructor.  The @var{name} parameter will be ignored.
  *
  * @vindex JIT_MANGLE_BASE
  * @item JIT_MANGLE_BASE
@@ -1401,7 +1401,7 @@ char *jit_mangle_global_function
  * the "complete" entry point.
  * @end table
  *
- * The @code{class_name} may include namespace and nested parent qualifiers
+ * The @var{class_name} may include namespace and nested parent qualifiers
  * by separating them with @code{::} or @code{.}.  Class names that involve
  * template parameters are not supported yet.
  * @end deftypefun

@@ -52,9 +52,9 @@ public:
 jit_type_t const jit_function::end_params = (jit_type_t)0;
 
 /*@
- * @defop Constructor jit_function jit_function ({jit_context& context}, jit_type_t signature)
- * Constructs a new function handler with the specified @code{signature} in
- * the given @code{context}.  It then calls @code{create(signature)} to
+ * @defop Constructor jit_function jit_function (jit_context& @var{context}, jit_type_t @var{signature})
+ * Constructs a new function handler with the specified @var{signature} in
+ * the given @var{context}.  It then calls @code{create(@var{signature})} to
  * create the actual function.
  * @end defop
 @*/
@@ -69,8 +69,8 @@ jit_function::jit_function(jit_context& context, jit_type_t signature)
 }
 
 /*@
- * @defop Constructor jit_function jit_function ({jit_context& context})
- * Constructs a new function handler in the specified @code{context}.
+ * @defop Constructor jit_function jit_function (jit_context& @var{context})
+ * Constructs a new function handler in the specified @var{context}.
  * The actual function is not created until you call @code{create()}.
  * @end defop
 @*/
@@ -82,7 +82,7 @@ jit_function::jit_function(jit_context& context)
 }
 
 /*@
- * @defop Constructor jit_function jit_function (jit_function_t func)
+ * @defop Constructor jit_function jit_function (jit_function_t @var{func})
  * Constructs a new function handler and wraps it around the specified
  * raw C @code{jit_function_t} object.  This can be useful for layering
  * the C++ on-demand building facility on top of an existing C function.
@@ -129,7 +129,7 @@ jit_function::~jit_function()
 @*/
 
 /*@
- * @deftypemethod jit_function {static jit_function *} from_raw (jit_function_t func)
+ * @deftypemethod jit_function {static jit_function *} from_raw (jit_function_t @var{func})
  * Find the C++ @code{jit_function} object that is associated with a
  * raw C @code{jit_function_t} pointer.  Returns NULL if there is
  * no such object.
@@ -147,7 +147,7 @@ jit_function *jit_function::from_raw(jit_function_t func)
 @*/
 
 /*@
- * @deftypemethod jit_function void create (jit_type_t signature)
+ * @deftypemethod jit_function void create (jit_type_t @var{signature})
  * Create this function if it doesn't already exist.
  * @end deftypemethod
 @*/
@@ -241,7 +241,7 @@ int jit_function::compile()
 }
 
 /*@
- * @deftypemethod jit_function void set_optimization_level ({unsigned int} level)
+ * @deftypemethod jit_function void set_optimization_level (unsigned int @var{level})
  * @deftypemethodx jit_function {unsigned int} optimization_level () const
  * Set or get the optimization level for this function.
  * @end deftypemethod
@@ -255,14 +255,14 @@ int jit_function::compile()
  * Get the closure or vtable pointer form of this function.
  * @end deftypemethod
  *
- * @deftypemethod jit_function int apply ({void **} args, {void *} result)
- * @deftypemethodx jit_function int apply (jit_type_t signature, {void **} args, {void *} return_area)
+ * @deftypemethod jit_function int apply (void** @var{args}, void* @var{result})
+ * @deftypemethodx jit_function int apply (jit_type_t @var{signature}, void** @var{args}, void* @var{return_area})
  * Call this function, applying the specified arguments.
  * @end deftypemethod
 @*/
 
 /*@
- * @deftypemethod jit_function {static jit_type_t} signature_helper (jit_type_t return_type, ...)
+ * @deftypemethod jit_function {static jit_type_t} signature_helper (jit_type_t @var{return_type}, ...)
  * You can call this method from @code{create_signature()} to help build the
  * correct signature for your function.  The first parameter is the return
  * type, following by zero or more types for the parameters.  The parameter
@@ -364,7 +364,7 @@ void jit_function::out_of_memory()
 			return val
 
 /*@
- * @deftypemethod jit_function jit_value new_value (jit_type_t type)
+ * @deftypemethod jit_function jit_value new_value (jit_type_t @var{type})
  * Create a new temporary value.  This is the C++ counterpart to
  * @code{jit_value_create}.
  * @end deftypemethod
@@ -375,19 +375,19 @@ jit_value jit_function::new_value(jit_type_t type)
 }
 
 /*@
- * @deftypemethod jit_function jit_value new_constant (jit_sbyte value, jit_type_t type)
- * @deftypemethodx jit_function jit_value new_constant (jit_ubyte value, jit_type_t type)
- * @deftypemethodx jit_function jit_value new_constant (jit_short value, jit_type_t type)
- * @deftypemethodx jit_function jit_value new_constant (jit_ushort value, jit_type_t type)
- * @deftypemethodx jit_function jit_value new_constant (jit_int value, jit_type_t type)
- * @deftypemethodx jit_function jit_value new_constant (jit_uint value, jit_type_t type)
- * @deftypemethodx jit_function jit_value new_constant (jit_long value, jit_type_t type)
- * @deftypemethodx jit_function jit_value new_constant (jit_ulong value, jit_type_t type)
- * @deftypemethodx jit_function jit_value new_constant (jit_float32 value, jit_type_t type)
- * @deftypemethodx jit_function jit_value new_constant (jit_float64 value, jit_type_t type)
- * @deftypemethodx jit_function jit_value new_constant (jit_nfloat value, jit_type_t type)
- * @deftypemethodx jit_function jit_value new_constant ({void *} value, jit_type_t type)
- * @deftypemethodx jit_function jit_value new_constant ({const jit_constant_t&} value)
+ * @deftypemethod jit_function jit_value new_constant (jit_sbyte @var{value}, jit_type_t @var{type})
+ * @deftypemethodx jit_function jit_value new_constant (jit_ubyte @var{value}, jit_type_t @var{type})
+ * @deftypemethodx jit_function jit_value new_constant (jit_short @var{value}, jit_type_t @var{type})
+ * @deftypemethodx jit_function jit_value new_constant (jit_ushort @var{value}, jit_type_t @var{type})
+ * @deftypemethodx jit_function jit_value new_constant (jit_int @var{value}, jit_type_t @var{type})
+ * @deftypemethodx jit_function jit_value new_constant (jit_uint @var{value}, jit_type_t @var{type})
+ * @deftypemethodx jit_function jit_value new_constant (jit_long @var{value}, jit_type_t @var{type})
+ * @deftypemethodx jit_function jit_value new_constant (jit_ulong @var{value}, jit_type_t @var{type})
+ * @deftypemethodx jit_function jit_value new_constant (jit_float32 @var{value}, jit_type_t @var{type})
+ * @deftypemethodx jit_function jit_value new_constant (jit_float64 @var{value}, jit_type_t @var{type})
+ * @deftypemethodx jit_function jit_value new_constant (jit_nfloat @var{value}, jit_type_t @var{type})
+ * @deftypemethodx jit_function jit_value new_constant (void* @var{value}, jit_type_t @var{type})
+ * @deftypemethodx jit_function jit_value new_constant (const jit_constant_t& @var{value})
  * Create constant values of various kinds.  @xref{Values}, for more
  * information on creating and managing constants.
  * @end deftypemethod
@@ -510,8 +510,8 @@ jit_value jit_function::new_constant(const jit_constant_t& value)
 }
 
 /*@
- * @deftypemethod jit_function jit_value get_param ({unsigned int} param)
- * Get the value that corresponds to parameter @code{param}.
+ * @deftypemethod jit_function jit_value get_param (unsigned int @var{param})
+ * Get the value that corresponds to parameter @var{param}.
  * @end deftypemethod
 @*/
 jit_value jit_function::get_param(unsigned int param)
@@ -542,122 +542,122 @@ jit_label jit_function::new_label()
 }
 
 /*@
- * @deftypemethod jit_function void insn_label ({jit_label&} label)
+ * @deftypemethod jit_function void insn_label (jit_label& @var{label})
  * @deftypemethodx jit_function void insn_new_block ()
- * @deftypemethodx jit_function jit_value insn_load ({const jit_value&} value)
- * @deftypemethodx jit_function jit_value insn_dup ({const jit_value&} value)
- * @deftypemethodx jit_function jit_value insn_load_small ({const jit_value&} value)
- * @deftypemethodx jit_function void store ({const jit_value&} dest, {const jit_value&} value)
- * @deftypemethodx jit_function jit_value insn_load_relative ({const jit_value&} value, jit_nint offset, jit_type_t type)
- * @deftypemethodx jit_function void insn_store_relative ({const jit_value&} dest, jit_nint offset, {const jit_value&} value)
- * @deftypemethodx jit_function jit_value insn_add_relative ({const jit_value&} value, jit_nint offset)
- * @deftypemethodx jit_function jit_value insn_load_elem ({const jit_value&} base_addr, {const jit_value&} index, jit_type_t elem_type)
- * @deftypemethodx jit_function jit_value insn_load_elem_address ({const jit_value&} base_addr, {const jit_value&} index, jit_type_t elem_type)
- * @deftypemethodx jit_function void insn_store_elem ({const jit_value&} base_addr, {const jit_value&} index, {const jit_value&} value)
- * @deftypemethodx jit_function void insn_check_null ({const jit_value&} value)
- * @deftypemethodx jit_function jit_value insn_add ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_add_ovf ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_sub ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_sub_ovf ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_mul ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_mul_ovf ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_div ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_rem ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_rem_ieee ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_neg ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_and ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_or ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_xor ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_not ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_shl ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_shr ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_ushr ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_sshr ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_eq ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_ne ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_lt ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_le ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_gt ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_ge ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_cmpl ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_cmpg ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_to_bool ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_to_not_bool ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_acos ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_asin ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_atan ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_atan2 ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_ceil ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_cos ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_cosh ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_exp ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_floor ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_log ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_log10 ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_pow ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_rint ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_round ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_sin ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_sinh ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_sqrt ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_tan ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_tanh ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_is_nan ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_is_finite ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_is_inf ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_abs ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_min ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_max ({const jit_value&} value1, {const jit_value&} value2)
- * @deftypemethodx jit_function jit_value insn_sign ({const jit_value&} value1)
- * @deftypemethodx jit_function void insn_branch ({jit_label&} label)
- * @deftypemethodx jit_function void insn_branch_if ({const jit_value&} value, {jit_label&} label)
- * @deftypemethodx jit_function void insn_branch_if_not ({const jit_value&} value, {jit_label&} label)
- * @deftypemethodx jit_function jit_value insn_address_of ({const jit_value&} value1)
- * @deftypemethodx jit_function jit_value insn_address_of_label ({jit_label&} label)
- * @deftypemethodx jit_function jit_value insn_convert ({const jit_value&} value, jit_type_t type, int overflow_check)
- * @deftypemethodx jit_function jit_value insn_call ({const char *} name, jit_function_t jit_func, jit_type_t signature, {jit_value_t *} args, {unsigned int} num_args, int flags)
- * @deftypemethodx jit_function jit_value insn_call_indirect ({const jit_value&} value, jit_type_t signature, {jit_value_t *} args, {unsigned int} num_args, int flags)
- * @deftypemethodx jit_function jit_value insn_call_indirect_vtable ({const jit_value&} value, jit_type_t signature, {jit_value_t *} args, {unsigned int} num_args, int flags)
- * @deftypemethodx jit_function jit_value insn_call_native ({const char *} name, {void *} native_func, jit_type_t signature, {jit_value_t *} args, {unsigned int} num_args, int flags)
- * @deftypemethodx jit_function jit_value insn_call_intrinsic ({const char *} name, {void *} intrinsic_func, {const jit_intrinsic_descr_t&} descriptor, {const jit_value&} arg1, {const jit_value&} arg2)
- * @deftypemethodx jit_function void insn_incoming_reg ({const jit_value&} value, int reg)
- * @deftypemethodx jit_function void insn_incoming_frame_posn ({const jit_value&}  value, jit_nint posn)
- * @deftypemethodx jit_function void insn_outgoing_reg ({const jit_value&} value, int reg)
- * @deftypemethodx jit_function void insn_outgoing_frame_posn ({const jit_value&}  value, jit_nint posn)
- * @deftypemethodx jit_function void insn_return_reg ({const jit_value&} value, int reg)
- * @deftypemethodx jit_function void insn_setup_for_nested (int nested_level, int reg)
- * @deftypemethodx jit_function void insn_flush_struct ({const jit_value&} value)
- * @deftypemethodx jit_function jit_value insn_import (jit_value value)
- * @deftypemethodx jit_function void insn_push ({const jit_value&} value)
- * @deftypemethodx jit_function void insn_push_ptr ({const jit_value&} value, jit_type_t type)
- * @deftypemethodx jit_function void insn_set_param ({const jit_value&} value, jit_nint offset)
- * @deftypemethodx jit_function void insn_set_param_ptr ({const jit_value&} value, jit_type_t type, jit_nint offset)
+ * @deftypemethodx jit_function jit_value insn_load (const jit_value& @var{value})
+ * @deftypemethodx jit_function jit_value insn_dup (const jit_value& @var{value})
+ * @deftypemethodx jit_function jit_value insn_load_small (const jit_value& @var{value})
+ * @deftypemethodx jit_function void store (const jit_value& @var{dest}, const jit_value& @var{value})
+ * @deftypemethodx jit_function jit_value insn_load_relative (const jit_value& @var{value}, jit_nint @var{offset}, jit_type_t @var{type})
+ * @deftypemethodx jit_function void insn_store_relative (const jit_value& @var{dest}, jit_nint @var{offset}, const jit_value& @var{value})
+ * @deftypemethodx jit_function jit_value insn_add_relative (const jit_value& @var{value}, jit_nint @var{offset})
+ * @deftypemethodx jit_function jit_value insn_load_elem (const jit_value& @var{base_addr}, const jit_value& @var{index}, jit_type_t @var{elem_type})
+ * @deftypemethodx jit_function jit_value insn_load_elem_address (const jit_value& @var{base_addr}, const jit_value& @var{index}, jit_type_t @var{elem_type})
+ * @deftypemethodx jit_function void insn_store_elem (const jit_value& @var{base_addr}, const jit_value& @var{index}, const jit_value& @var{value})
+ * @deftypemethodx jit_function void insn_check_null (const jit_value& @var{value})
+ * @deftypemethodx jit_function jit_value insn_add (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_add_ovf (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_sub (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_sub_ovf (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_mul (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_mul_ovf (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_div (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_rem (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_rem_ieee (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_neg (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_and (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_or (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_xor (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_not (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_shl (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_shr (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_ushr (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_sshr (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_eq (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_ne (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_lt (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_le (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_gt (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_ge (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_cmpl (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_cmpg (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_to_bool (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_to_not_bool (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_acos (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_asin (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_atan (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_atan2 (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_ceil (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_cos (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_cosh (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_exp (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_floor (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_log (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_log10 (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_pow (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_rint (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_round (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_sin (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_sinh (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_sqrt (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_tan (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_tanh (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_is_nan (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_is_finite (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_is_inf (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_abs (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_min (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_max (const jit_value& @var{value1}, const jit_value& @var{value2})
+ * @deftypemethodx jit_function jit_value insn_sign (const jit_value& @var{value1})
+ * @deftypemethodx jit_function void insn_branch (jit_label& @var{label})
+ * @deftypemethodx jit_function void insn_branch_if (const jit_value& @var{value}, jit_label& @var{label})
+ * @deftypemethodx jit_function void insn_branch_if_not (const jit_value& value, jit_label& @var{label})
+ * @deftypemethodx jit_function jit_value insn_address_of (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_address_of_label (jit_label& @var{label})
+ * @deftypemethodx jit_function jit_value insn_convert (const jit_value& @var{value}, jit_type_t @var{type}, int @var{overflow_check})
+ * @deftypemethodx jit_function jit_value insn_call (const char* @var{name}, jit_function_t @var{jit_func}, jit_type_t @var{signature}, jit_value_t* @var{args}, unsigned int @var{num_args}, int @var{flags})
+ * @deftypemethodx jit_function jit_value insn_call_indirect (const jit_value& @var{value}, jit_type_t @var{signature}, jit_value_t* @var{args}, unsigned int @var{num_args}, int @var{flags})
+ * @deftypemethodx jit_function jit_value insn_call_indirect_vtable (const jit_value& @var{value}, jit_type_t @var{signature}, jit_value_t * @var{args}, unsigned int @var{num_args}, int @var{flags})
+ * @deftypemethodx jit_function jit_value insn_call_native (const char* @var{name}, void* @var{native_func}, jit_type_t @var{signature}, jit_value_t* @var{args}, unsigned int @var{num_args}, int @var{flags})
+ * @deftypemethodx jit_function jit_value insn_call_intrinsic (const char* @var{name}, void* @var{intrinsic_func}, const jit_intrinsic_descr_t& @var{descriptor}, const jit_value& @var{arg1}, const jit_value& @var{arg2})
+ * @deftypemethodx jit_function void insn_incoming_reg (const jit_value& @var{value}, int @var{reg})
+ * @deftypemethodx jit_function void insn_incoming_frame_posn (const jit_value& @var{value}, jit_nint @var{posn})
+ * @deftypemethodx jit_function void insn_outgoing_reg (const jit_value& @var{value}, int @var{reg})
+ * @deftypemethodx jit_function void insn_outgoing_frame_posn (const jit_value& @var{value}, jit_nint @var{posn})
+ * @deftypemethodx jit_function void insn_return_reg (const jit_value& @var{value}, int @var{reg})
+ * @deftypemethodx jit_function void insn_setup_for_nested (int @var{nested_level}, int @var{reg})
+ * @deftypemethodx jit_function void insn_flush_struct (const jit_value& @var{value})
+ * @deftypemethodx jit_function jit_value insn_import (jit_value @var{value})
+ * @deftypemethodx jit_function void insn_push (const jit_value& @var{value})
+ * @deftypemethodx jit_function void insn_push_ptr (const jit_value& @var{value}, jit_type_t @var{type})
+ * @deftypemethodx jit_function void insn_set_param (const jit_value& @var{value}, jit_nint @var{offset})
+ * @deftypemethodx jit_function void insn_set_param_ptr (const jit_value& @var{value}, jit_type_t @var{type}, jit_nint @var{offset})
  * @deftypemethodx jit_function void insn_push_return_area_ptr ()
- * @deftypemethodx jit_function void insn_return ({const jit_value&} value)
+ * @deftypemethodx jit_function void insn_return (const jit_value& @var{value})
  * @deftypemethodx jit_function void insn_return ()
- * @deftypemethodx jit_function void insn_return_ptr ({const jit_value&} value, jit_type_t type)
+ * @deftypemethodx jit_function void insn_return_ptr (const jit_value& @var{value}, jit_type_t @var{type})
  * @deftypemethodx jit_function void insn_default_return ()
- * @deftypemethodx jit_function void insn_throw ({const jit_value&} value)
+ * @deftypemethodx jit_function void insn_throw (const jit_value& @var{value})
  * @deftypemethodx jit_function jit_value insn_get_call_stack ()
  * @deftypemethodx jit_function jit_value insn_thrown_exception ()
  * @deftypemethodx jit_function void insn_uses_catcher ()
  * @deftypemethodx jit_function jit_value insn_start_catcher ()
- * @deftypemethodx jit_function void insn_branch_if_pc_not_in_range ({const jit_label&} start_label, {const jit_label&} end_label, {jit_label&} label)
+ * @deftypemethodx jit_function void insn_branch_if_pc_not_in_range (const jit_label& @var{start_label}, const jit_label& @var{end_label}, jit_label& @var{label})
  * @deftypemethodx jit_function void insn_rethrow_unhandled ()
- * @deftypemethodx jit_function void insn_start_finally ({jit_label&} label)
+ * @deftypemethodx jit_function void insn_start_finally (jit_label& @var{label})
  * @deftypemethodx jit_function void insn_return_from_finally ()
- * @deftypemethodx jit_function void insn_call_finally ({jit_label&} label)
- * @deftypemethodx jit_function jit_value insn_start_filter ({jit_label&} label, jit_type_t type)
- * @deftypemethodx jit_function void insn_return_from_filter ({const jit_value&} value)
- * @deftypemethodx jit_function jit_value insn_call_filter ({jit_label&} label, {const jit_value&} value, jit_type_t type)
- * @deftypemethodx jit_function void insn_memcpy ({const jit_value&} dest, {const jit_value&} src, {const jit_value&} size)
- * @deftypemethodx jit_function void insn_memmove ({const jit_value&} dest, {const jit_value&} src, {const jit_value&} size)
- * @deftypemethodx jit_function void jit_insn_memset ({const jit_value&} dest, {const jit_value&} value, {const jit_value&} size)
- * @deftypemethodx jit_function jit_value jit_insn_alloca ({const jit_value&} size)
- * @deftypemethodx jit_function void insn_move_blocks_to_end ({const jit_label&} from_label, {const jit_label&} to_label)
- * @deftypemethodx jit_function void insn_move_blocks_to_start ({const jit_label&} from_label, {const jit_label&} to_label)
- * @deftypemethodx jit_function void insn_mark_offset (jit_int offset)
- * @deftypemethodx jit_function void insn_mark_breakpoint (jit_nint data1, jit_nint data2)
+ * @deftypemethodx jit_function void insn_call_finally (jit_label& @var{label})
+ * @deftypemethodx jit_function jit_value insn_start_filter (jit_label& @var{label}, jit_type_t @var{type})
+ * @deftypemethodx jit_function void insn_return_from_filter (const jit_value& @var{value})
+ * @deftypemethodx jit_function jit_value insn_call_filter (jit_label& @var{label}, const jit_value& @var{value}, jit_type_t @var{type})
+ * @deftypemethodx jit_function void insn_memcpy (const jit_value& @var{dest}, const jit_value& @var{src}, const jit_value& @var{size})
+ * @deftypemethodx jit_function void insn_memmove (const jit_value& @var{dest}, const jit_value& @var{src}, const jit_value& @var{size})
+ * @deftypemethodx jit_function void jit_insn_memset (const jit_value& @var{dest}, const jit_value& @var{value}, const jit_value& @var{size})
+ * @deftypemethodx jit_function jit_value jit_insn_alloca (const jit_value& @var{size})
+ * @deftypemethodx jit_function void insn_move_blocks_to_end (const jit_label& @var{from_label}, const jit_label& @var{to_label})
+ * @deftypemethodx jit_function void insn_move_blocks_to_start (const jit_label& @var{from_label}, const jit_label& @var{to_label})
+ * @deftypemethodx jit_function void insn_mark_offset (jit_int @var{offset})
+ * @deftypemethodx jit_function void insn_mark_breakpoint (jit_nint @var{data1}, jit_nint @var{data2})
  * Create instructions of various kinds.  @xref{Instructions}, for more
  * information on the individual instructions and their arguments.
  * @end deftypemethod

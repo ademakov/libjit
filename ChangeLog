@@ -1,3 +1,8 @@
+2008-01-22  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/*.c, jitplus/*.cpp, jitdynamic/*.c: fix texinfo markup for
+	parameters. 
+
 2008-01-21 Dalibor Topic <robilad@kaffe.org>
 
 	* jit/Makefile.am (libjit_la_SOURCES): add mising jit-rules-interp.h

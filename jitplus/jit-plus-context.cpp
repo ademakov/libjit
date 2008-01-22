@@ -43,12 +43,12 @@ jit_context::jit_context()
 }
 
 /*@
- * @defop Constructor jit_context jit_context (jit_context_t context)
+ * @defop Constructor jit_context jit_context (jit_context_t @var{context})
  * Construct a new JIT context by wrapping up an existing raw C context.
  * This is useful for importing a context from third party C code
  * into a program that prefers to use C++.
  *
- * When you this form of construction, @code{jit_context_destroy}
+ * When you use this form of construction, @code{jit_context_destroy}
  * will not be called on the context when the @code{jit_context}
  * object is destructed.  You will need to arrange for that manually.
  * @end defop

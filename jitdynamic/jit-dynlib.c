@@ -48,23 +48,23 @@ are not portable across operating systems.
 You must include @code{<jit/jit-dynamic.h>} to use these routines,
 and then link with @code{-ljitdynamic -ljit}.
 
-@deftypefun jit_dynlib_handle_t jit_dynlib_open ({const char *} name)
-Opens the dynamic library called @code{name}, returning a handle for it.
+@deftypefun jit_dynlib_handle_t jit_dynlib_open (const char *@var{name})
+Opens the dynamic library called @var{name}, returning a handle for it.
 @end deftypefun
 
-@deftypefun void jit_dynlib_close (jit_dynlib_handle_t handle)
+@deftypefun void jit_dynlib_close (jit_dynlib_handle_t @var{handle})
 Close a dynamic library.
 @end deftypefun
 
-@deftypefun {void *} jit_dynlib_get_symbol (jit_dynlib_handle_t handle, {const char *} symbol)
-Retrieve the symbol @code{name} from the specified dynamic library.
+@deftypefun {void *} jit_dynlib_get_symbol (jit_dynlib_handle_t @var{handle}, const char *@var{symbol})
+Retrieve the symbol @var{symbol} from the specified dynamic library.
 Returns NULL if the symbol could not be found.  This will try both
-non-prefixed and underscore-prefixed forms of @code{name} on platforms
+non-prefixed and underscore-prefixed forms of @var{symbol} on platforms
 where it makes sense to do so, so there is no need for the caller
 to perform prefixing.
 @end deftypefun
 
-@deftypefun void jit_dynlib_set_debug (int flag)
+@deftypefun void jit_dynlib_set_debug (int @var{flag})
 Enable or disable additional debug messages to stderr.  Debugging is
 disabled by default.  Normally the dynamic library routines will silently
 report errors via NULL return values, leaving reporting up to the caller.

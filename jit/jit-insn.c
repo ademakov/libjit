@@ -888,7 +888,7 @@ static jit_value_t apply_test
 }
 
 /*@
- * @deftypefun int jit_insn_get_opcode (jit_insn_t insn)
+ * @deftypefun int jit_insn_get_opcode (jit_insn_t @var{insn})
  * Get the opcode that is associated with an instruction.
  * @end deftypefun
 @*/
@@ -905,7 +905,7 @@ int jit_insn_get_opcode(jit_insn_t insn)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_get_dest (jit_insn_t insn)
+ * @deftypefun jit_value_t jit_insn_get_dest (jit_insn_t @var{insn})
  * Get the destination value that is associated with an instruction.
  * Returns NULL if the instruction does not have a destination.
  * @end deftypefun
@@ -923,7 +923,7 @@ jit_value_t jit_insn_get_dest(jit_insn_t insn)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_get_value1 (jit_insn_t insn)
+ * @deftypefun jit_value_t jit_insn_get_value1 (jit_insn_t @var{insn})
  * Get the first argument value that is associated with an instruction.
  * Returns NULL if the instruction does not have a first argument value.
  * @end deftypefun
@@ -941,7 +941,7 @@ jit_value_t jit_insn_get_value1(jit_insn_t insn)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_get_value2 (jit_insn_t insn)
+ * @deftypefun jit_value_t jit_insn_get_value2 (jit_insn_t @var{insn})
  * Get the second argument value that is associated with an instruction.
  * Returns NULL if the instruction does not have a second argument value.
  * @end deftypefun
@@ -959,7 +959,7 @@ jit_value_t jit_insn_get_value2(jit_insn_t insn)
 }
 
 /*@
- * @deftypefun jit_label_t jit_insn_get_label (jit_insn_t insn)
+ * @deftypefun jit_label_t jit_insn_get_label (jit_insn_t @var{insn})
  * Get the label for a branch target from an instruction.
  * Returns NULL if the instruction does not have a branch target.
  * @end deftypefun
@@ -982,7 +982,7 @@ jit_label_t jit_insn_get_label(jit_insn_t insn)
 }
 
 /*@
- * @deftypefun jit_function_t jit_insn_get_function (jit_insn_t insn)
+ * @deftypefun jit_function_t jit_insn_get_function (jit_insn_t @var{insn})
  * Get the function for a call instruction.  Returns NULL if the
  * instruction does not refer to a called function.
  * @end deftypefun
@@ -1000,7 +1000,7 @@ jit_function_t jit_insn_get_function(jit_insn_t insn)
 }
 
 /*@
- * @deftypefun {void *} jit_insn_get_native (jit_insn_t insn)
+ * @deftypefun {void *} jit_insn_get_native (jit_insn_t @var{insn})
  * Get the function pointer for a native call instruction.
  * Returns NULL if the instruction does not refer to a native
  * function call.
@@ -1019,7 +1019,7 @@ void *jit_insn_get_native(jit_insn_t insn)
 }
 
 /*@
- * @deftypefun {const char *} jit_insn_get_name (jit_insn_t insn)
+ * @deftypefun {const char *} jit_insn_get_name (jit_insn_t @var{insn})
  * Get the diagnostic name for a function call.  Returns NULL
  * if the instruction does not have a diagnostic name.
  * @end deftypefun
@@ -1037,7 +1037,7 @@ const char *jit_insn_get_name(jit_insn_t insn)
 }
 
 /*@
- * @deftypefun jit_type_t jit_insn_get_signature (jit_insn_t insn)
+ * @deftypefun jit_type_t jit_insn_get_signature (jit_insn_t @var{insn})
  * Get the signature for a function call instruction.  Returns NULL
  * if the instruction is not a function call.
  * @end deftypefun
@@ -1055,8 +1055,8 @@ jit_type_t jit_insn_get_signature(jit_insn_t insn)
 }
 
 /*@
- * @deftypefun int jit_insn_dest_is_value (jit_insn_t insn)
- * Returns a non-zero value if the destination for @code{insn} is
+ * @deftypefun int jit_insn_dest_is_value (jit_insn_t @var{insn})
+ * Returns a non-zero value if the destination for @var{insn} is
  * actually a source value.  This can happen with instructions
  * such as @code{jit_insn_store_relative} where the instruction
  * needs three source operands, and the real destination is a
@@ -1076,11 +1076,11 @@ int jit_insn_dest_is_value(jit_insn_t insn)
 }
 
 /*@
- * @deftypefun void jit_insn_label (jit_function_t func, {jit_label_t *} label)
- * Start a new block within the function @code{func} and give it the
- * specified @code{label}.  Returns zero if out of memory.
+ * @deftypefun void jit_insn_label (jit_function_t @var{func}, jit_label_t *@var{label})
+ * Start a new block within the function @var{func} and give it the
+ * specified @var{label}.  Returns zero if out of memory.
  *
- * If the contents of @code{label} are @code{jit_label_undefined}, then this
+ * If the contents of @var{label} are @code{jit_label_undefined}, then this
  * function will allocate a new label for this block.  Otherwise it will
  * reuse the specified label from a previous branch instruction.
  * @end deftypefun
@@ -1152,7 +1152,7 @@ int jit_insn_label(jit_function_t func, jit_label_t *label)
 }
 
 /*@
- * @deftypefun int jit_insn_new_block (jit_function_t func)
+ * @deftypefun int jit_insn_new_block (jit_function_t @var{func})
  * Start a new basic block, without giving it an explicit label.
  * @end deftypefun
 @*/
@@ -1347,8 +1347,8 @@ int _jit_store_opcode(int base_opcode, int small_base, jit_type_t type)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_load (jit_function_t func, jit_value_t value)
- * Load the contents of @code{value} into a new temporary, essentially
+ * @deftypefun jit_value_t jit_insn_load (jit_function_t @var{func}, jit_value_t @var{value})
+ * Load the contents of @var{value} into a new temporary, essentially
  * duplicating the value.  Constants are not duplicated.
  * @end deftypefun
 @*/
@@ -1371,7 +1371,7 @@ jit_value_t jit_insn_load(jit_function_t func, jit_value_t value)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_dup (jit_function_t func, jit_value_t value)
+ * @deftypefun jit_value_t jit_insn_dup (jit_function_t @var{func}, jit_value_t @var{value})
  * This is the same as @code{jit_insn_load}, but the name may better
  * reflect how it is used in some front ends.
  * @end deftypefun
@@ -1382,12 +1382,12 @@ jit_value_t jit_insn_dup(jit_function_t func, jit_value_t value)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_load_small (jit_function_t func, jit_value_t value)
- * If @code{value} is of type @code{sbyte}, @code{byte}, @code{short},
+ * @deftypefun jit_value_t jit_insn_load_small (jit_function_t @var{func}, jit_value_t @var{value})
+ * If @var{value} is of type @code{sbyte}, @code{byte}, @code{short},
  * @code{ushort}, a structure, or a union, then make a copy of it and
- * return the temporary copy.  Otherwise return @code{value} as-is.
+ * return the temporary copy.  Otherwise return @var{value} as-is.
  *
- * This is useful where you want to use @code{value} directly without
+ * This is useful where you want to use @var{value} directly without
  * duplicating it first.  However, certain types usually cannot
  * be operated on directly without first copying them elsewhere.
  * This function will do that whenever necessary.
@@ -1419,9 +1419,9 @@ jit_value_t jit_insn_load_small(jit_function_t func, jit_value_t value)
 }
 
 /*@
- * @deftypefun void jit_insn_store (jit_function_t func, jit_value_t dest, jit_value_t value)
- * Store the contents of @code{value} at the location referred to by
- * @code{dest}.  The @code{dest} should be a @code{jit_value_t} representing a
+ * @deftypefun void jit_insn_store (jit_function_t @var{func}, jit_value_t @var{dest}, jit_value_t @var{value})
+ * Store the contents of @var{value} at the location referred to by
+ * @var{dest}.  The @var{dest} should be a @code{jit_value_t} representing a
  * local variable or temporary.  Use @code{jit_insn_store_relative} to store
  * to a location referred to by a pointer.
  * @end deftypefun
@@ -1567,9 +1567,9 @@ find_base_insn(
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_load_relative (jit_function_t func, jit_value_t value, jit_nint offset, jit_type_t type)
- * Load a value of the specified @code{type} from the effective address
- * @code{(value + offset)}, where @code{value} is a pointer.
+ * @deftypefun jit_value_t jit_insn_load_relative (jit_function_t @var{func}, jit_value_t @var{value}, jit_nint @var{offset}, jit_type_t @var{type})
+ * Load a value of the specified @var{type} from the effective address
+ * @code{(@var{value} + @var{offset})}, where @var{value} is a pointer.
  * @end deftypefun
 @*/
 jit_value_t jit_insn_load_relative
@@ -1617,9 +1617,9 @@ jit_value_t jit_insn_load_relative
 }
 
 /*@
- * @deftypefun int jit_insn_store_relative (jit_function_t func, jit_value_t dest, jit_nint offset, jit_value_t value)
- * Store @code{value} at the effective address @code{(dest + offset)},
- * where @code{dest} is a pointer.
+ * @deftypefun int jit_insn_store_relative (jit_function_t @var{func}, jit_value_t @var{dest}, jit_nint @var{offset}, jit_value_t @var{value})
+ * Store @var{value} at the effective address @code{(@var{dest} + @var{offset})},
+ * where @var{dest} is a pointer.
  * @end deftypefun
 @*/
 int jit_insn_store_relative
@@ -1684,8 +1684,8 @@ int jit_insn_store_relative
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_add_relative (jit_function_t func, jit_value_t value, jit_nint offset)
- * Add the constant @code{offset} to the specified pointer @code{value}.
+ * @deftypefun jit_value_t jit_insn_add_relative (jit_function_t @var{func}, jit_value_t @var{value}, jit_nint @var{offset})
+ * Add the constant @var{offset} to the specified pointer @var{value}.
  * This is functionally identical to calling @code{jit_insn_add}, but
  * the JIT can optimize the code better if it knows that the addition
  * is being used to perform a relative adjustment on a pointer.
@@ -1725,10 +1725,10 @@ jit_value_t jit_insn_add_relative
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_load_elem (jit_function_t func, jit_value_t base_addr, jit_value_t index, jit_type_t elem_type)
- * Load an element of type @code{elem_type} from position @code{index} within
- * the array starting at @code{base_addr}.  The effective address of the
- * array element is @code{base_addr + index * sizeof(elem_type)}.
+ * @deftypefun jit_value_t jit_insn_load_elem (jit_function_t @var{func}, jit_value_t @var{base_addr}, jit_value_t @var{index}, jit_type_t @var{elem_type})
+ * Load an element of type @var{elem_type} from position @var{index} within
+ * the array starting at @var{base_addr}.  The effective address of the
+ * array element is @code{@var{base_addr} + @var{index} * sizeof(@var{elem_type})}.
  * @end deftypefun
 @*/
 jit_value_t jit_insn_load_elem
@@ -1772,12 +1772,13 @@ jit_value_t jit_insn_load_elem
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_load_elem_address (jit_function_t func, jit_value_t base_addr, jit_value_t index, jit_type_t elem_type)
- * Load the effective address of an element of type @code{elem_type} at
- * position @code{index} within the array starting at @code{base_addr}.
- * Essentially, this computes the expression @code{base_addr + index *
- * sizeof(elem_type)}, but may be more efficient than performing the
- * steps with @code{jit_insn_mul} and @code{jit_insn_add}.
+ * @deftypefun jit_value_t jit_insn_load_elem_address (jit_function_t @var{func}, jit_value_t @var{base_addr}, jit_value_t @var{index}, jit_type_t @var{elem_type})
+ * Load the effective address of an element of type @var{elem_type} at
+ * position @var{index} within the array starting at @var{base_addr}.
+ * Essentially, this computes the expression
+ * @code{@var{base_addr} + @var{index} * sizeof(@var{elem_type})}, but
+ * may be more efficient than performing the steps with @code{jit_insn_mul}
+ * and @code{jit_insn_add}.
  * @end deftypefun
 @*/
 jit_value_t jit_insn_load_elem_address
@@ -1793,10 +1794,10 @@ jit_value_t jit_insn_load_elem_address
 }
 
 /*@
- * @deftypefun int jit_insn_store_elem (jit_function_t func, jit_value_t base_addr, jit_value_t index, jit_value_t value)
- * Store @code{value} at position @code{index} of the array starting at
- * @code{base_addr}.  The effective address of the storage location is
- * @code{base_addr + index * sizeof(jit_value_get_type(value))}.
+ * @deftypefun int jit_insn_store_elem (jit_function_t @var{func}, jit_value_t @var{base_addr}, jit_value_t @var{index}, jit_value_t @var{value})
+ * Store @var{value} at position @var{index} of the array starting at
+ * @var{base_addr}.  The effective address of the storage location is
+ * @code{@var{base_addr} + @var{index} * sizeof(jit_value_get_type(@var{value}))}.
  * @end deftypefun
 @*/
 int jit_insn_store_elem
@@ -1846,8 +1847,8 @@ int jit_insn_store_elem
 }
 
 /*@
- * @deftypefun int jit_insn_check_null (jit_function_t func, jit_value_t value)
- * Check @code{value} to see if it is NULL.  If it is, then throw the
+ * @deftypefun int jit_insn_check_null (jit_function_t @var{func}, jit_value_t @var{value})
+ * Check @var{value} to see if it is NULL.  If it is, then throw the
  * built-in @code{JIT_RESULT_NULL_REFERENCE} exception.
  * @end deftypefun
 @*/
@@ -1910,7 +1911,7 @@ int _jit_insn_check_is_redundant(const jit_insn_iter_t *iter)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_add (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_add (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Add two values together and return the result in a new temporary value.
  * @end deftypefun
 @*/
@@ -1937,7 +1938,7 @@ jit_value_t jit_insn_add
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_add_ovf (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_add_ovf (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Add two values together and return the result in a new temporary value.
  * Throw an exception if overflow occurs.
  * @end deftypefun
@@ -1965,7 +1966,7 @@ jit_value_t jit_insn_add_ovf
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_sub (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_sub (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Subtract two values and return the result in a new temporary value.
  * @end deftypefun
 @*/
@@ -1992,7 +1993,7 @@ jit_value_t jit_insn_sub
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_sub_ovf (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_sub_ovf (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Subtract two values and return the result in a new temporary value.
  * Throw an exception if overflow occurs.
  * @end deftypefun
@@ -2020,7 +2021,7 @@ jit_value_t jit_insn_sub_ovf
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_mul (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_mul (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Multiply two values and return the result in a new temporary value.
  * @end deftypefun
 @*/
@@ -2047,7 +2048,7 @@ jit_value_t jit_insn_mul
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_mul_ovf (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_mul_ovf (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Multiply two values and return the result in a new temporary value.
  * Throw an exception if overflow occurs.
  * @end deftypefun
@@ -2075,7 +2076,7 @@ jit_value_t jit_insn_mul_ovf
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_div (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_div (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Divide two values and return the quotient in a new temporary value.
  * Throws an exception on division by zero or arithmetic error
  * (an arithmetic error is one where the minimum possible signed
@@ -2105,7 +2106,7 @@ jit_value_t jit_insn_div
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_rem (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_rem (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Divide two values and return the remainder in a new temporary value.
  * Throws an exception on division by zero or arithmetic error
  * (an arithmetic error is one where the minimum possible signed
@@ -2135,7 +2136,7 @@ jit_value_t jit_insn_rem
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_rem_ieee (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_rem_ieee (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Divide two values and return the remainder in a new temporary value.
  * Throws an exception on division by zero or arithmetic error
  * (an arithmetic error is one where the minimum possible signed
@@ -2167,7 +2168,7 @@ jit_value_t jit_insn_rem_ieee
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_neg (jit_function_t func, jit_value_t value1)
+ * @deftypefun jit_value_t jit_insn_neg (jit_function_t @var{func}, jit_value_t @var{value1})
  * Negate a value and return the result in a new temporary value.
  * @end deftypefun
 @*/
@@ -2239,7 +2240,7 @@ jit_value_t jit_insn_neg
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_and (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_and (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Bitwise AND two values and return the result in a new temporary value.
  * @end deftypefun
 @*/
@@ -2264,7 +2265,7 @@ jit_value_t jit_insn_and
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_or (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_or (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Bitwise OR two values and return the result in a new temporary value.
  * @end deftypefun
 @*/
@@ -2289,7 +2290,7 @@ jit_value_t jit_insn_or
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_xor (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_xor (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Bitwise XOR two values and return the result in a new temporary value.
  * @end deftypefun
 @*/
@@ -2314,7 +2315,7 @@ jit_value_t jit_insn_xor
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_not (jit_function_t func, jit_value_t value1)
+ * @deftypefun jit_value_t jit_insn_not (jit_function_t @var{func}, jit_value_t @var{value1})
  * Bitwise NOT a value and return the result in a new temporary value.
  * @end deftypefun
 @*/
@@ -2339,7 +2340,7 @@ jit_value_t jit_insn_not
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_shl (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_shl (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Perform a bitwise left shift on two values and return the
  * result in a new temporary value.
  * @end deftypefun
@@ -2365,7 +2366,7 @@ jit_value_t jit_insn_shl
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_shr (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_shr (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Perform a bitwise right shift on two values and return the
  * result in a new temporary value.  This performs a signed shift
  * on signed operators, and an unsigned shift on unsigned operands.
@@ -2392,7 +2393,7 @@ jit_value_t jit_insn_shr
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_ushr (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_ushr (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Perform a bitwise right shift on two values and return the
  * result in a new temporary value.  This performs an unsigned
  * shift on both signed and unsigned operands.
@@ -2419,7 +2420,7 @@ jit_value_t jit_insn_ushr
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_sshr (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_sshr (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Perform a bitwise right shift on two values and return the
  * result in a new temporary value.  This performs an signed
  * shift on both signed and unsigned operands.
@@ -2446,7 +2447,7 @@ jit_value_t jit_insn_sshr
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_eq (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_eq (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Compare two values for equality and return the result
  * in a new temporary value.
  * @end deftypefun
@@ -2474,7 +2475,7 @@ jit_value_t jit_insn_eq
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_ne (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_ne (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Compare two values for inequality and return the result
  * in a new temporary value.
  * @end deftypefun
@@ -2502,7 +2503,7 @@ jit_value_t jit_insn_ne
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_lt (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_lt (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Compare two values for less than and return the result
  * in a new temporary value.
  * @end deftypefun
@@ -2530,7 +2531,7 @@ jit_value_t jit_insn_lt
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_le (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_le (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Compare two values for less than or equal and return the result
  * in a new temporary value.
  * @end deftypefun
@@ -2558,7 +2559,7 @@ jit_value_t jit_insn_le
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_gt (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_gt (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Compare two values for greater than and return the result
  * in a new temporary value.
  * @end deftypefun
@@ -2586,7 +2587,7 @@ jit_value_t jit_insn_gt
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_ge (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_ge (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Compare two values for greater than or equal and return the result
  * in a new temporary value.
  * @end deftypefun
@@ -2614,7 +2615,7 @@ jit_value_t jit_insn_ge
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_cmpl (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_cmpl (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Compare two values, and return a -1, 0, or 1 result.  If either
  * value is "not a number", then -1 is returned.
  * @end deftypefun
@@ -2642,7 +2643,7 @@ jit_value_t jit_insn_cmpl
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_cmpg (jit_function_t func, jit_value_t value1, jit_value_t value2)
+ * @deftypefun jit_value_t jit_insn_cmpg (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
  * Compare two values, and return a -1, 0, or 1 result.  If either
  * value is "not a number", then 1 is returned.
  * @end deftypefun
@@ -2670,7 +2671,7 @@ jit_value_t jit_insn_cmpg
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_to_bool (jit_function_t func, jit_value_t value1)
+ * @deftypefun jit_value_t jit_insn_to_bool (jit_function_t @var{func}, jit_value_t @var{value1})
  * Convert a value into a boolean 0 or 1 result of type @code{jit_type_int}.
  * @end deftypefun
 @*/
@@ -2744,7 +2745,7 @@ jit_value_t jit_insn_to_bool(jit_function_t func, jit_value_t value1)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_to_not_bool (jit_function_t func, jit_value_t value1)
+ * @deftypefun jit_value_t jit_insn_to_not_bool (jit_function_t @var{func}, jit_value_t @var{value1})
  * Convert a value into a boolean 1 or 0 result of type @code{jit_type_int}
  * (i.e. the inverse of @code{jit_insn_to_bool}).
  * @end deftypefun
@@ -2879,25 +2880,25 @@ jit_value_t jit_insn_to_not_bool(jit_function_t func, jit_value_t value1)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_acos (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_asin (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_atan (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_atan2 (jit_function_t func, jit_value_t value1, jit_value_t value2)
- * @deftypefunx jit_value_t jit_insn_ceil (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_cos (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_cosh (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_exp (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_floor (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_log (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_log10 (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_pow (jit_function_t func, jit_value_t value1, jit_value_t value2)
- * @deftypefunx jit_value_t jit_insn_rint (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_round (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_sin (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_sinh (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_sqrt (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_tan (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_tanh (jit_function_t func, jit_value_t value1)
+ * @deftypefun jit_value_t jit_insn_acos (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_asin (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_atan (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_atan2 (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
+ * @deftypefunx jit_value_t jit_insn_ceil (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_cos (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_cosh (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_exp (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_floor (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_log (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_log10 (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_pow (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
+ * @deftypefunx jit_value_t jit_insn_rint (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_round (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_sin (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_sinh (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_sqrt (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_tan (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_tanh (jit_function_t @var{func}, jit_value_t @var{value1})
  * Apply a mathematical function to floating-point arguments.
  * @end deftypefun
 @*/
@@ -3246,9 +3247,9 @@ jit_value_t jit_insn_tanh(jit_function_t func, jit_value_t value1)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_is_nan (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_is_finite (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_is_inf (jit_function_t func, jit_value_t value1)
+ * @deftypefun jit_value_t jit_insn_is_nan (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_is_finite (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_is_inf (jit_function_t @var{func}, jit_value_t @var{value1})
  * Test a floating point value for not a number, finite, or infinity.
  * @end deftypefun
 @*/
@@ -3307,10 +3308,10 @@ jit_value_t jit_insn_is_inf(jit_function_t func, jit_value_t value1)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_abs (jit_function_t func, jit_value_t value1)
- * @deftypefunx jit_value_t jit_insn_min (jit_function_t func, jit_value_t value1, jit_value_t value2)
- * @deftypefunx jit_value_t jit_insn_max (jit_function_t func, jit_value_t value1, jit_value_t value2)
- * @deftypefunx jit_value_t jit_insn_sign (jit_function_t func, jit_value_t value1)
+ * @deftypefun jit_value_t jit_insn_abs (jit_function_t @var{func}, jit_value_t @var{value1})
+ * @deftypefunx jit_value_t jit_insn_min (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
+ * @deftypefunx jit_value_t jit_insn_max (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
+ * @deftypefunx jit_value_t jit_insn_sign (jit_function_t @var{func}, jit_value_t @var{value1})
  * Calculate the absolute value, minimum, maximum, or sign of the
  * specified values.
  * @end deftypefun
@@ -3509,7 +3510,7 @@ jit_value_t jit_insn_sign(jit_function_t func, jit_value_t value1)
 }
 
 /*@
- * @deftypefun int jit_insn_branch (jit_function_t func, {jit_label_t *} label)
+ * @deftypefun int jit_insn_branch (jit_function_t @var{func}, jit_label_t *@var{label})
  * Terminate the current block by branching unconditionally
  * to a specific label.  Returns zero if out of memory.
  * @end deftypefun
@@ -3546,11 +3547,11 @@ int jit_insn_branch(jit_function_t func, jit_label_t *label)
 }
 
 /*@
- * @deftypefun int jit_insn_branch_if (jit_function_t func, jit_value_t value, {jit_label_t *} label)
+ * @deftypefun int jit_insn_branch_if (jit_function_t @var{func}, jit_value_t @var{value}, jit_label_t *@var{label})
  * Terminate the current block by branching to a specific label if
  * the specified value is non-zero.  Returns zero if out of memory.
  *
- * If @code{value} refers to a conditional expression that was created
+ * If @var{value} refers to a conditional expression that was created
  * by @code{jit_insn_eq}, @code{jit_insn_ne}, etc, then the conditional
  * expression will be replaced by an appropriate conditional branch
  * instruction.
@@ -3746,11 +3747,11 @@ add_block:
 }
 
 /*@
- * @deftypefun int jit_insn_branch_if_not (jit_function_t func, jit_value_t value, {jit_label_t *} label)
+ * @deftypefun int jit_insn_branch_if_not (jit_function_t @var{func}, jit_value_t @var{value}, jit_label_t *@var{label})
  * Terminate the current block by branching to a specific label if
  * the specified value is zero.  Returns zero if out of memory.
  *
- * If @code{value} refers to a conditional expression that was created
+ * If @var{value} refers to a conditional expression that was created
  * by @code{jit_insn_eq}, @code{jit_insn_ne}, etc, then the conditional
  * expression will be replaced by an appropriate conditional branch
  * instruction.
@@ -3946,8 +3947,8 @@ add_block:
 }
 
 /*@
- * @deftypefun int jit_insn_jump_table (jit_function_t func, jit_value_t value, {jit_label_t *} labels, unsigned int num_labels)
- * Branch to a label from the @code{labels} table. The @code{value} is the
+ * @deftypefun int jit_insn_jump_table (jit_function_t @var{func}, jit_value_t @var{value}, jit_label_t *@var{labels}, unsigned int @var{num_labels})
+ * Branch to a label from the @var{labels} table. The @var{value} is the
  * index of the label. It is allowed to have identical labels in the table.
  * If an entry in the table has @code{jit_label_undefined} value then it is
  * replaced with a newly allocated label.
@@ -4049,7 +4050,7 @@ int jit_insn_jump_table
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_address_of (jit_function_t func, jit_value_t value1)
+ * @deftypefun jit_value_t jit_insn_address_of (jit_function_t @var{func}, jit_value_t @var{value1})
  * Get the address of a value into a new temporary.
  * @end deftypefun
 @*/
@@ -4077,8 +4078,8 @@ jit_value_t jit_insn_address_of(jit_function_t func, jit_value_t value1)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_address_of_label (jit_function_t func, {jit_label_t *} label)
- * Get the address of @code{label} into a new temporary.  This is typically
+ * @deftypefun jit_value_t jit_insn_address_of_label (jit_function_t @var{func}, jit_label_t *@var{label})
+ * Get the address of @var{label} into a new temporary.  This is typically
  * used for exception handling, to track where in a function an exception
  * was actually thrown.
  * @end deftypefun
@@ -4224,7 +4225,7 @@ static jit_value_t apply_unary_conversion
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_convert (jit_function_t func, jit_value_t value, jit_type_t type, int overflow_check)
+ * @deftypefun jit_value_t jit_insn_convert (jit_function_t @var{func}, jit_value_t @var{value}, jit_type_t @var{type}, int @var{overflow_check})
  * Convert the contents of a value into a new type, with optional
  * overflow checking.
  * @end deftypefun
@@ -5353,16 +5354,16 @@ static int create_call_setup_insns
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_call (jit_function_t func, {const char *} name, jit_function_t jit_func, jit_type_t signature, {jit_value_t *} args, {unsigned int} num_args, int flags)
- * Call the function @code{jit_func}, which may or may not be translated yet.
- * The @code{name} is for diagnostic purposes only, and can be NULL.
+ * @deftypefun jit_value_t jit_insn_call (jit_function_t @var{func}, const char *@var{name}, jit_function_t @var{jit_func}, jit_type_t @var{signature}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{flags})
+ * Call the function @var{jit_func}, which may or may not be translated yet.
+ * The @var{name} is for diagnostic purposes only, and can be NULL.
  *
- * If @code{signature} is NULL, then the actual signature of @code{jit_func}
+ * If @var{signature} is NULL, then the actual signature of @var{jit_func}
  * is used in its place.  This is the usual case.  However, if the function
  * takes a variable number of arguments, then you may need to construct
  * an explicit signature for the non-fixed argument values.
  *
- * The @code{flags} parameter specifies additional information about the
+ * The @var{flags} parameter specifies additional information about the
  * type of call to perform:
  *
  * @table @code
@@ -5385,7 +5386,7 @@ static int create_call_setup_insns
  * to local variables.
  * @end table
  *
- * If @code{jit_func} has already been compiled, then @code{jit_insn_call}
+ * If @var{jit_func} has already been compiled, then @code{jit_insn_call}
  * may be able to intuit some of the above flags for itself.  Otherwise
  * it is up to the caller to determine when the flags may be appropriate.
  * @end deftypefun
@@ -5596,7 +5597,7 @@ jit_value_t jit_insn_call
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_call_indirect (jit_function_t func, jit_value_t value, jit_type_t signature, {jit_value_t *} args, {unsigned int} num_args, int flags)
+ * @deftypefun jit_value_t jit_insn_call_indirect (jit_function_t @var{func}, jit_value_t @var{value}, jit_type_t @var{signature}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{flags})
  * Call a function via an indirect pointer.
  * @end deftypefun
 @*/
@@ -5737,9 +5738,9 @@ jit_value_t jit_insn_call_indirect
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_call_indirect_vtable (jit_function_t func, jit_value_t value, jit_type_t signature, {jit_value_t *} args, {unsigned int} num_args, int flags)
+ * @deftypefun jit_value_t jit_insn_call_indirect_vtable (jit_function_t @var{func}, jit_value_t @var{value}, jit_type_t @var{signature}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{flags})
  * Call a function via an indirect pointer.  This version differs from
- * @code{jit_insn_call_indirect} in that we assume that @code{value}
+ * @code{jit_insn_call_indirect} in that we assume that @var{value}
  * contains a pointer that resulted from calling
  * @code{jit_function_to_vtable_pointer}.  Indirect vtable pointer
  * calls may be more efficient on some platforms than regular indirect calls.
@@ -5873,9 +5874,9 @@ jit_value_t jit_insn_call_indirect_vtable
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_call_native (jit_function_t func, {const char *} name, {void *} native_func, jit_type_t signature, {jit_value_t *} args, {unsigned int} num_args, int exception_return, int flags)
+ * @deftypefun jit_value_t jit_insn_call_native (jit_function_t @var{func}, const char *@var{name}, void *@var{native_func}, jit_type_t @var{signature}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{exception_return}, int @var{flags})
  * Output an instruction that calls an external native function.
- * The @code{name} is for diagnostic purposes only, and can be NULL.
+ * The @var{name} is for diagnostic purposes only, and can be NULL.
  * @end deftypefun
 @*/
 jit_value_t jit_insn_call_native
@@ -6012,7 +6013,7 @@ jit_value_t jit_insn_call_native
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_call_intrinsic (jit_function_t func, {const char *} name, {void *} intrinsic_func, {const jit_intrinsic_descr_t *} descriptor, jit_value_t arg1, jit_value_t arg2)
+ * @deftypefun jit_value_t jit_insn_call_intrinsic (jit_function_t @var{func}, const char *@var{name}, void *@var{intrinsic_func}, const jit_intrinsic_descr_t *@var{descriptor}, jit_value_t @var{arg1}, jit_value_t @var{arg2})
  * Output an instruction that calls an intrinsic function.  The descriptor
  * contains the following fields:
  *
@@ -6036,7 +6037,7 @@ jit_value_t jit_insn_call_native
  * If the constant computation will result in an exception, then
  * code is output to cause the exception at runtime.
  *
- * The @code{name} is for diagnostic purposes only, and can be NULL.
+ * The @var{name} is for diagnostic purposes only, and can be NULL.
  * @end deftypefun
 @*/
 jit_value_t jit_insn_call_intrinsic
@@ -6217,9 +6218,9 @@ jit_value_t jit_insn_call_intrinsic
 }
 
 /*@
- * @deftypefun int jit_insn_incoming_reg (jit_function_t func, jit_value_t value, int reg)
- * Output an instruction that notes that the contents of @code{value}
- * can be found in the register @code{reg} at this point in the code.
+ * @deftypefun int jit_insn_incoming_reg (jit_function_t @var{func}, jit_value_t @var{value}, int @var{reg})
+ * Output an instruction that notes that the contents of @var{value}
+ * can be found in the register @var{reg} at this point in the code.
  *
  * You normally wouldn't call this yourself - it is used internally
  * by the CPU back ends to set up the function's entry frame and the
@@ -6238,9 +6239,9 @@ int jit_insn_incoming_reg(jit_function_t func, jit_value_t value, int reg)
 }
 
 /*@
- * @deftypefun int jit_insn_incoming_frame_posn (jit_function_t func, jit_value_t value, jit_nint frame_offset)
- * Output an instruction that notes that the contents of @code{value}
- * can be found in the stack frame at @code{frame_offset} at this point
+ * @deftypefun int jit_insn_incoming_frame_posn (jit_function_t @var{func}, jit_value_t @var{value}, jit_nint @var{frame_offset})
+ * Output an instruction that notes that the contents of @var{value}
+ * can be found in the stack frame at @var{frame_offset} at this point
  * in the code.
  *
  * You normally wouldn't call this yourself - it is used internally
@@ -6256,9 +6257,9 @@ int jit_insn_incoming_frame_posn
 }
 
 /*@
- * @deftypefun int jit_insn_outgoing_reg (jit_function_t func, jit_value_t value, int reg)
- * Output an instruction that copies the contents of @code{value}
- * into the register @code{reg} at this point in the code.  This is
+ * @deftypefun int jit_insn_outgoing_reg (jit_function_t @var{func}, jit_value_t @var{value}, int @var{reg})
+ * Output an instruction that copies the contents of @var{value}
+ * into the register @var{reg} at this point in the code.  This is
  * typically used just before making an outgoing subroutine call.
  *
  * You normally wouldn't call this yourself - it is used internally
@@ -6273,9 +6274,9 @@ int jit_insn_outgoing_reg(jit_function_t func, jit_value_t value, int reg)
 }
 
 /*@
- * @deftypefun int jit_insn_outgoing_frame_posn (jit_function_t func, jit_value_t value, jit_nint frame_offset)
- * Output an instruction that notes that the contents of @code{value}
- * should be stored in the stack frame at @code{frame_offset} at this point
+ * @deftypefun int jit_insn_outgoing_frame_posn (jit_function_t @var{func}, jit_value_t @var{value}, jit_nint @var{frame_offset})
+ * Output an instruction that notes that the contents of @var{value}
+ * should be stored in the stack frame at @var{frame_offset} at this point
  * in the code.
  *
  * You normally wouldn't call this yourself - it is used internally
@@ -6291,9 +6292,9 @@ int jit_insn_outgoing_frame_posn
 }
 
 /*@
- * @deftypefun int jit_insn_return_reg (jit_function_t func, jit_value_t value, int reg)
- * Output an instruction that notes that the contents of @code{value}
- * can be found in the register @code{reg} at this point in the code.
+ * @deftypefun int jit_insn_return_reg (jit_function_t @var{func}, jit_value_t @var{value}, int @var{reg})
+ * Output an instruction that notes that the contents of @var{value}
+ * can be found in the register @var{reg} at this point in the code.
  * This is similar to @code{jit_insn_incoming_reg}, except that it
  * refers to return values, not parameter values.
  *
@@ -6309,13 +6310,13 @@ int jit_insn_return_reg(jit_function_t func, jit_value_t value, int reg)
 }
 
 /*@
- * @deftypefun int jit_insn_setup_for_nested (jit_function_t func, int nested_level, int reg)
+ * @deftypefun int jit_insn_setup_for_nested (jit_function_t @var{func}, int @var{nested_level}, int @var{reg})
  * Output an instruction to set up for a nested function call.
- * The @code{nested_level} value will be -1 to call a child, zero to call a
- * sibling of @code{func}, 1 to call a sibling of the parent, 2 to call
- * a sibling of the grandparent, etc.  If @code{reg} is not -1, then
+ * The @var{nested_level} value will be -1 to call a child, zero to call a
+ * sibling of @var{func}, 1 to call a sibling of the parent, 2 to call
+ * a sibling of the grandparent, etc.  If @var{reg} is not -1, then
  * it indicates the register to receive the parent frame information.
- * If @code{reg} is -1, then the frame information will be pushed on the stack.
+ * If @var{reg} is -1, then the frame information will be pushed on the stack.
  *
  * You normally wouldn't call this yourself - it is used internally by the
  * CPU back ends to set up the parameters for a nested subroutine call.
@@ -6342,7 +6343,7 @@ int jit_insn_setup_for_nested(jit_function_t func, int nested_level, int reg)
 }
 
 /*@
- * @deftypefun int jit_insn_flush_struct (jit_function_t func, jit_value_t value)
+ * @deftypefun int jit_insn_flush_struct (jit_function_t @var{func}, jit_value_t @var{value})
  * Flush a small structure return value out of registers and back
  * into the local variable frame.  You normally wouldn't call this
  * yourself - it is used internally by the CPU back ends to handle
@@ -6359,11 +6360,11 @@ int jit_insn_flush_struct(jit_function_t func, jit_value_t value)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_import (jit_function_t func, jit_value_t value)
- * Import @code{value} from an outer nested scope into @code{func}.  Returns
+ * @deftypefun jit_value_t jit_insn_import (jit_function_t @var{func}, jit_value_t @var{value})
+ * Import @var{value} from an outer nested scope into @var{func}.  Returns
  * the effective address of the value for local access via a pointer.
  * Returns NULL if out of memory or the value is not accessible via a
- * parent, grandparent, or other ancestor of @code{func}.
+ * parent, grandparent, or other ancestor of @var{func}.
  * @end deftypefun
 @*/
 jit_value_t jit_insn_import(jit_function_t func, jit_value_t value)
@@ -6408,7 +6409,7 @@ jit_value_t jit_insn_import(jit_function_t func, jit_value_t value)
 }
 
 /*@
- * @deftypefun int jit_insn_push (jit_function_t func, jit_value_t value)
+ * @deftypefun int jit_insn_push (jit_function_t @var{func}, jit_value_t @var{value})
  * Push a value onto the function call stack, in preparation for a call.
  * You normally wouldn't call this yourself - it is used internally
  * by the CPU back ends to set up the stack for a subroutine call.
@@ -6480,18 +6481,17 @@ int jit_insn_push(jit_function_t func, jit_value_t value)
 }
 
 /*@
- * @deftypefun int jit_insn_push_ptr (jit_function_t func, jit_value_t value, jit_type_t type)
- * Push @code{*value} onto the function call stack, in preparation for a call.
+ * @deftypefun int jit_insn_push_ptr (jit_function_t @var{func}, jit_value_t @var{value}, jit_type_t @var{type})
+ * Push @code{*@var{value}} onto the function call stack, in preparation for a call.
  * This is normally used for returning @code{struct} and @code{union}
  * values where you have the effective address of the structure, rather
- * than the structure's contents, in @code{value}.
+ * than the structure's contents, in @var{value}.
  *
  * You normally wouldn't call this yourself - it is used internally
  * by the CPU back ends to set up the stack for a subroutine call.
  * @end deftypefun
 @*/
-int jit_insn_push_ptr
-	(jit_function_t func, jit_value_t value, jit_type_t type)
+int jit_insn_push_ptr(jit_function_t func, jit_value_t value, jit_type_t type)
 {
 	if(!value || !type)
 	{
@@ -6521,9 +6521,9 @@ int jit_insn_push_ptr
 }
 
 /*@
- * @deftypefun int jit_insn_set_param (jit_function_t func, jit_value_t value, jit_nint offset)
- * Set the parameter slot at @code{offset} in the outgoing parameter area
- * to @code{value}.  This may be used instead of @code{jit_insn_push}
+ * @deftypefun int jit_insn_set_param (jit_function_t @var{func}, jit_value_t @var{value}, jit_nint @var{offset})
+ * Set the parameter slot at @var{offset} in the outgoing parameter area
+ * to @var{value}.  This may be used instead of @code{jit_insn_push}
  * if it is more efficient to store directly to the stack than to push.
  * The outgoing parameter area is allocated within the frame when
  * the function is first entered.
@@ -6610,9 +6610,9 @@ int jit_insn_set_param(jit_function_t func, jit_value_t value, jit_nint offset)
 }
 
 /*@
- * @deftypefun int jit_insn_set_param_ptr (jit_function_t func, jit_value_t value, jit_type_t type, jit_nint offset)
+ * @deftypefun int jit_insn_set_param_ptr (jit_function_t @var{func}, jit_value_t @var{value}, jit_type_t @var{type}, jit_nint @var{offset})
  * Same as @code{jit_insn_set_param_ptr}, except that the parameter is
- * at @code{*value}.
+ * at @code{*@var{value}}.
  * @end deftypefun
 @*/
 int jit_insn_set_param_ptr
@@ -6648,7 +6648,7 @@ int jit_insn_set_param_ptr
 }
 
 /*@
- * @deftypefun int jit_insn_push_return_area_ptr (jit_function_t func)
+ * @deftypefun int jit_insn_push_return_area_ptr (jit_function_t @var{func})
  * Push the interpreter's return area pointer onto the stack.
  * You normally wouldn't call this yourself - it is used internally
  * by the CPU back ends to set up the stack for a subroutine call.
@@ -6660,8 +6660,8 @@ int jit_insn_push_return_area_ptr(jit_function_t func)
 }
 
 /*@
- * @deftypefun int jit_insn_pop_stack (jit_function_t func, jit_nint num_items)
- * Pop @code{num_items} items from the function call stack.  You normally
+ * @deftypefun int jit_insn_pop_stack (jit_function_t @var{func}, jit_nint @var{num_items})
+ * Pop @var{num_items} items from the function call stack.  You normally
  * wouldn't call this yourself - it is used by CPU back ends to clean up
  * the stack after calling a subroutine.  The size of an item is specific
  * to the back end (it could be bytes, words, or some other measurement).
@@ -6675,7 +6675,7 @@ int jit_insn_pop_stack(jit_function_t func, jit_nint num_items)
 }
 
 /*@
- * @deftypefun int jit_insn_defer_pop_stack (jit_function_t func, jit_nint num_items)
+ * @deftypefun int jit_insn_defer_pop_stack (jit_function_t @var{func}, jit_nint @var{num_items})
  * This is similar to @code{jit_insn_pop_stack}, except that it tries to
  * defer the pop as long as possible.  Multiple subroutine calls may
  * result in parameters collecting up on the stack, and only being popped
@@ -6694,9 +6694,9 @@ int jit_insn_defer_pop_stack(jit_function_t func, jit_nint num_items)
 }
 
 /*@
- * @deftypefun int jit_insn_flush_defer_pop (jit_function_t func, jit_nint num_items)
+ * @deftypefun int jit_insn_flush_defer_pop (jit_function_t @var{func}, jit_nint @var{num_items})
  * Flush any deferred items that were scheduled for popping by
- * @code{jit_insn_defer_pop_stack} if there are @code{num_items}
+ * @code{jit_insn_defer_pop_stack} if there are @var{num_items}
  * or more items scheduled.  You normally wouldn't call this
  * yourself - it is used by CPU back ends to clean up the stack just
  * prior to a subroutine call when too many items have collected up.
@@ -6721,9 +6721,9 @@ int jit_insn_flush_defer_pop(jit_function_t func, jit_nint num_items)
 }
 
 /*@
- * @deftypefun int jit_insn_return (jit_function_t func, jit_value_t value)
- * Output an instruction to return @code{value} as the function's result.
- * If @code{value} is NULL, then the function is assumed to return
+ * @deftypefun int jit_insn_return (jit_function_t @var{func}, jit_value_t @var{value})
+ * Output an instruction to return @var{value} as the function's result.
+ * If @var{value} is NULL, then the function is assumed to return
  * @code{void}.  If the function returns a structure, this will copy
  * the value into the memory at the structure return address.
  * @end deftypefun
@@ -6890,11 +6890,11 @@ int jit_insn_return(jit_function_t func, jit_value_t value)
 }
 
 /*@
- * @deftypefun int jit_insn_return_ptr (jit_function_t func, jit_value_t value, jit_type_t type)
- * Output an instruction to return @code{*value} as the function's result.
+ * @deftypefun int jit_insn_return_ptr (jit_function_t @var{func}, jit_value_t @var{value}, jit_type_t @var{type})
+ * Output an instruction to return @code{*@var{value}} as the function's result.
  * This is normally used for returning @code{struct} and @code{union}
  * values where you have the effective address of the structure, rather
- * than the structure's contents, in @code{value}.
+ * than the structure's contents, in @var{value}.
  * @end deftypefun
 @*/
 int jit_insn_return_ptr
@@ -6993,7 +6993,7 @@ int jit_insn_return_ptr
 }
 
 /*@
- * @deftypefun int jit_insn_default_return (jit_function_t func)
+ * @deftypefun int jit_insn_default_return (jit_function_t @var{func})
  * Add an instruction to return a default value if control reaches this point.
  * This is typically used at the end of a function to ensure that all paths
  * return to the caller.  Returns zero if out of memory, 1 if a default
@@ -7024,8 +7024,8 @@ int jit_insn_default_return(jit_function_t func)
 }
 
 /*@
- * @deftypefun int jit_insn_throw (jit_function_t func, jit_value_t value)
- * Throw a pointer @code{value} as an exception object.  This can also
+ * @deftypefun int jit_insn_throw (jit_function_t @var{func}, jit_value_t @var{value})
+ * Throw a pointer @var{value} as an exception object.  This can also
  * be used to "rethrow" an object from a catch handler that is not
  * interested in handling the exception.
  * @end deftypefun
@@ -7047,7 +7047,7 @@ int jit_insn_throw(jit_function_t func, jit_value_t value)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_get_call_stack (jit_function_t func)
+ * @deftypefun jit_value_t jit_insn_get_call_stack (jit_function_t @var{func})
  * Get an object that represents the current position in the code,
  * and all of the functions that are currently on the call stack.
  * This is equivalent to calling @code{jit_exception_get_stack_trace},
@@ -7079,7 +7079,7 @@ jit_value_t jit_insn_get_call_stack(jit_function_t func)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_thrown_exception (jit_function_t func)
+ * @deftypefun jit_value_t jit_insn_thrown_exception (jit_function_t @var{func})
  * Get the value that holds the most recent thrown exception.  This is
  * typically used in @code{catch} clauses.
  * @end deftypefun
@@ -7333,8 +7333,8 @@ static int initialize_setjmp_block(jit_function_t func)
 }
 
 /*@
- * @deftypefun int jit_insn_uses_catcher (jit_function_t func)
- * Notify the function building process that @code{func} contains
+ * @deftypefun int jit_insn_uses_catcher (jit_function_t @var{func})
+ * Notify the function building process that @var{func} contains
  * some form of @code{catch} clause for catching exceptions.  This must
  * be called before any instruction that is covered by a @code{try},
  * ideally at the start of the function output process.
@@ -7357,8 +7357,8 @@ int jit_insn_uses_catcher(jit_function_t func)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_start_catcher (jit_function_t func)
- * Start the catcher block for @code{func}.  There should be exactly one
+ * @deftypefun jit_value_t jit_insn_start_catcher (jit_function_t @var{func})
+ * Start the catcher block for @var{func}.  There should be exactly one
  * catcher block for any function that involves a @code{try}.  All
  * exceptions that are thrown within the function will cause control
  * to jump to this point.  Returns a value that holds the exception
@@ -7408,9 +7408,9 @@ jit_value_t jit_insn_start_catcher(jit_function_t func)
 }
 
 /*@
- * @deftypefun int jit_insn_branch_if_pc_not_in_range (jit_function_t func, jit_label_t start_label, jit_label_t end_label, {jit_label_t *} label)
- * Branch to @code{label} if the program counter where an exception occurred
- * does not fall between @code{start_label} and @code{end_label}.
+ * @deftypefun int jit_insn_branch_if_pc_not_in_range (jit_function_t @var{func}, jit_label_t @var{start_label}, jit_label_t @var{end_label}, jit_label_t *@var{label})
+ * Branch to @var{label} if the program counter where an exception occurred
+ * does not fall between @var{start_label} and @var{end_label}.
  * @end deftypefun
 @*/
 int jit_insn_branch_if_pc_not_in_range
@@ -7473,7 +7473,7 @@ int jit_insn_branch_if_pc_not_in_range
 }
 
 /*@
- * @deftypefun int jit_insn_rethrow_unhandled (jit_function_t func)
+ * @deftypefun int jit_insn_rethrow_unhandled (jit_function_t @var{func})
  * Rethrow the current exception because it cannot be handled by
  * any of the @code{catch} blocks in the current function.
  *
@@ -7551,7 +7551,7 @@ int jit_insn_rethrow_unhandled(jit_function_t func)
 }
 
 /*@
- * @deftypefun int jit_insn_start_finally (jit_function_t func, {jit_label_t *} finally_label)
+ * @deftypefun int jit_insn_start_finally (jit_function_t @var{func}, jit_label_t *@var{finally_label})
  * Start a @code{finally} clause.
  * @end deftypefun
 @*/
@@ -7565,7 +7565,7 @@ int jit_insn_start_finally(jit_function_t func, jit_label_t *finally_label)
 }
 
 /*@
- * @deftypefun int jit_insn_return_from_finally (jit_function_t func)
+ * @deftypefun int jit_insn_return_from_finally (jit_function_t @var{func})
  * Return from the @code{finally} clause to where it was called from.
  * This is usually the last instruction in a @code{finally} clause.
  * @end deftypefun
@@ -7592,7 +7592,7 @@ int jit_insn_return_from_finally(jit_function_t func)
 }
 
 /*@
- * @deftypefun int jit_insn_call_finally (jit_function_t func, {jit_label_t *} finally_label)
+ * @deftypefun int jit_insn_call_finally (jit_function_t @var{func}, jit_label_t *@var{finally_label})
  * Call a @code{finally} clause.
  * @end deftypefun
 @*/
@@ -7635,7 +7635,7 @@ int jit_insn_call_finally(jit_function_t func, jit_label_t *finally_label)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_start_filter (jit_function_t func, {jit_label_t *} label, jit_type_t type)
+ * @deftypefun jit_value_t jit_insn_start_filter (jit_function_t @var{func}, jit_label_t *@var{label}, jit_type_t @var{type})
  * Define the start of a filter.  Filters are embedded subroutines within
  * functions that are used to filter exceptions in @code{catch} blocks.
  *
@@ -7644,7 +7644,7 @@ int jit_insn_call_finally(jit_function_t func, jit_label_t *finally_label)
  * access to the local variables of the function, and can use any of
  * them in the filtering process.
  *
- * This function returns a temporary value of the specified @code{type},
+ * This function returns a temporary value of the specified @var{type},
  * indicating the parameter that is supplied to the filter.
  * @end deftypefun
 @*/
@@ -7662,7 +7662,7 @@ jit_value_t jit_insn_start_filter
 }
 
 /*@
- * @deftypefun int jit_insn_return_from_filter (jit_function_t func, jit_value_t value)
+ * @deftypefun int jit_insn_return_from_filter (jit_function_t @var{func}, jit_value_t @var{value})
  * Return from a filter subroutine with the specified @code{value} as
  * its result.
  * @end deftypefun
@@ -7689,10 +7689,10 @@ int jit_insn_return_from_filter(jit_function_t func, jit_value_t value)
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_call_filter (jit_function_t func, {jit_label_t *} label, jit_value_t value, jit_type_t type)
- * Call the filter subroutine at @code{label}, passing it @code{value} as
+ * @deftypefun jit_value_t jit_insn_call_filter (jit_function_t @var{func}, jit_label_t *@var{label}, jit_value_t @var{value}, jit_type_t @var{type})
+ * Call the filter subroutine at @var{label}, passing it @var{value} as
  * its argument.  This function returns a value of the specified
- * @code{type}, indicating the filter's result.
+ * @var{type}, indicating the filter's result.
  * @end deftypefun
 @*/
 jit_value_t jit_insn_call_filter
@@ -7744,8 +7744,8 @@ jit_value_t jit_insn_call_filter
 }
 
 /*@
- * @deftypefun int jit_insn_memcpy (jit_function_t func, jit_value_t dest, jit_value_t src, jit_value_t size)
- * Copy the @code{size} bytes of memory at @code{src} to @code{dest}.
+ * @deftypefun int jit_insn_memcpy (jit_function_t @var{func}, jit_value_t @var{dest}, jit_value_t @var{src}, jit_value_t @var{size})
+ * Copy the @var{size} bytes of memory at @var{src} to @var{dest}.
  * It is assumed that the source and destination do not overlap.
  * @end deftypefun
 @*/
@@ -7758,8 +7758,8 @@ int jit_insn_memcpy
 }
 
 /*@
- * @deftypefun int jit_insn_memmove (jit_function_t func, jit_value_t dest, jit_value_t src, jit_value_t size)
- * Copy the @code{size} bytes of memory at @code{src} to @code{dest}.
+ * @deftypefun int jit_insn_memmove (jit_function_t @var{func}, jit_value_t @var{dest}, jit_value_t @var{src}, jit_value_t @var{size})
+ * Copy the @var{size} bytes of memory at @var{src} to @var{dest}.
  * This is save to use if the source and destination overlap.
  * @end deftypefun
 @*/
@@ -7772,8 +7772,8 @@ int jit_insn_memmove
 }
 
 /*@
- * @deftypefun int jit_insn_memset (jit_function_t func, jit_value_t dest, jit_value_t value, jit_value_t size)
- * Set the @code{size} bytes at @code{dest} to @code{value}.
+ * @deftypefun int jit_insn_memset (jit_function_t @var{func}, jit_value_t @var{dest}, jit_value_t @var{value}, jit_value_t @var{size})
+ * Set the @var{size} bytes at @var{dest} to @var{value}.
  * @end deftypefun
 @*/
 int jit_insn_memset
@@ -7786,8 +7786,8 @@ int jit_insn_memset
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_alloca (jit_function_t func, jit_value_t size)
- * Allocate @code{size} bytes of memory from the stack.
+ * @deftypefun jit_value_t jit_insn_alloca (jit_function_t @var{func}, jit_value_t @var{size})
+ * Allocate @var{size} bytes of memory from the stack.
  * @end deftypefun
 @*/
 jit_value_t jit_insn_alloca(jit_function_t func, jit_value_t size)
@@ -7864,9 +7864,9 @@ static void attach_block_after(jit_block_t block, jit_block_t after)
 }
 
 /*@
- * @deftypefun int jit_insn_move_blocks_to_end (jit_function_t func, jit_label_t from_label, jit_label_t to_label)
- * Move all of the blocks between @code{from_label} (inclusive) and
- * @code{to_label} (exclusive) to the end of the current function.
+ * @deftypefun int jit_insn_move_blocks_to_end (jit_function_t @var{func}, jit_label_t @var{from_label}, jit_label_t @var{to_label})
+ * Move all of the blocks between @var{from_label} (inclusive) and
+ * @var{to_label} (exclusive) to the end of the current function.
  * This is typically used to move the expression in a @code{while}
  * loop to the end of the body, where it can be executed more
  * efficiently.
@@ -7911,9 +7911,9 @@ int jit_insn_move_blocks_to_end
 }
 
 /*@
- * @deftypefun int jit_insn_move_blocks_to_start (jit_function_t func, jit_label_t from_label, jit_label_t to_label)
- * Move all of the blocks between @code{from_label} (inclusive) and
- * @code{to_label} (exclusive) to the start of the current function.
+ * @deftypefun int jit_insn_move_blocks_to_start (jit_function_t @var{func}, jit_label_t @var{from_label}, jit_label_t @var{to_label})
+ * Move all of the blocks between @var{from_label} (inclusive) and
+ * @var{to_label} (exclusive) to the start of the current function.
  * This is typically used to move initialization code to the head
  * of the function.
  * @end deftypefun
@@ -8004,9 +8004,9 @@ int jit_insn_move_blocks_to_start
 }
 
 /*@
- * @deftypefun int jit_insn_mark_offset (jit_function_t func, jit_int offset)
- * Mark the current position in @code{func} as corresponding to the
- * specified bytecode @code{offset}.  This value will be returned
+ * @deftypefun int jit_insn_mark_offset (jit_function_t @var{func}, jit_int @var{offset})
+ * Mark the current position in @var{func} as corresponding to the
+ * specified bytecode @var{offset}.  This value will be returned
  * by @code{jit_stack_trace_get_offset}, and is useful for associating
  * code positions with source line numbers.
  * @end deftypefun
@@ -8105,8 +8105,8 @@ int jit_insn_mark_breakpoint
 }
 
 /*@
- * @deftypefun void jit_insn_iter_init ({jit_insn_iter_t *} iter, jit_block_t block)
- * Initialize an iterator to point to the first instruction in @code{block}.
+ * @deftypefun void jit_insn_iter_init (jit_insn_iter_t *@var{iter}, jit_block_t @var{block})
+ * Initialize an iterator to point to the first instruction in @var{block}.
  * @end deftypefun
 @*/
 void jit_insn_iter_init(jit_insn_iter_t *iter, jit_block_t block)
@@ -8116,8 +8116,8 @@ void jit_insn_iter_init(jit_insn_iter_t *iter, jit_block_t block)
 }
 
 /*@
- * @deftypefun void jit_insn_iter_init_last ({jit_insn_iter_t *} iter, jit_block_t block)
- * Initialize an iterator to point to the last instruction in @code{block}.
+ * @deftypefun void jit_insn_iter_init_last (jit_insn_iter_t *@var{iter}, jit_block_t @var{block})
+ * Initialize an iterator to point to the last instruction in @var{block}.
  * @end deftypefun
 @*/
 void jit_insn_iter_init_last(jit_insn_iter_t *iter, jit_block_t block)
@@ -8127,7 +8127,7 @@ void jit_insn_iter_init_last(jit_insn_iter_t *iter, jit_block_t block)
 }
 
 /*@
- * @deftypefun jit_insn_t jit_insn_iter_next ({jit_insn_iter_t *} iter)
+ * @deftypefun jit_insn_t jit_insn_iter_next (jit_insn_iter_t *@var{iter})
  * Get the next instruction in an iterator's block.  Returns NULL
  * when there are no further instructions in the block.
  * @end deftypefun
@@ -8145,7 +8145,7 @@ jit_insn_t jit_insn_iter_next(jit_insn_iter_t *iter)
 }
 
 /*@
- * @deftypefun jit_insn_t jit_insn_iter_previous ({jit_insn_iter_t *} iter)
+ * @deftypefun jit_insn_t jit_insn_iter_previous (jit_insn_iter_t *@var{iter})
  * Get the previous instruction in an iterator's block.  Returns NULL
  * when there are no further instructions in the block.
  * @end deftypefun

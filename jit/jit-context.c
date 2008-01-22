@@ -93,7 +93,7 @@ jit_context_t jit_context_create(void)
 }
 
 /*@
- * @deftypefun void jit_context_destroy (jit_context_t context)
+ * @deftypefun void jit_context_destroy (jit_context_t @var{context})
  * Destroy a JIT context block and everything that is associated with it.
  * It is very important that no threads within the program are currently
  * running compiled code when this function is called.
@@ -124,7 +124,7 @@ void jit_context_destroy(jit_context_t context)
 }
 
 /*@
- * @deftypefun int jit_context_supports_threads (jit_context_t context)
+ * @deftypefun int jit_context_supports_threads (jit_context_t @var{context})
  * Determine if the JIT supports threads.
  * @end deftypefun
 @*/
@@ -134,7 +134,7 @@ int jit_context_supports_threads(jit_context_t context)
 }
 
 /*@
- * @deftypefun void jit_context_build_start (jit_context_t context)
+ * @deftypefun void jit_context_build_start (jit_context_t @var{context})
  * This routine should be called before you start building a function
  * to be JIT'ed.  It acquires a lock on the context to prevent other
  * threads from accessing the build process, since only one thread
@@ -147,7 +147,7 @@ void jit_context_build_start(jit_context_t context)
 }
 
 /*@
- * @deftypefun void jit_context_build_end (jit_context_t context)
+ * @deftypefun void jit_context_build_end (jit_context_t @var{context})
  * This routine should be called once you have finished building
  * and compiling a function and are ready to resume normal execution.
  * This routine will release the build lock, allowing other threads
@@ -160,7 +160,7 @@ void jit_context_build_end(jit_context_t context)
 }
 
 /*@
- * @deftypefun void jit_context_set_on_demand_driver (jit_context_t context, jit_on_demand_driver_func driver)
+ * @deftypefun void jit_context_set_on_demand_driver (jit_context_t @var{context}, jit_on_demand_driver_func @var{driver})
  * Specify the C function to be called to drive on-demand compilation.
  *
  * When on-demand compilation is requested the default driver provided by
@@ -215,7 +215,7 @@ void jit_context_set_on_demand_driver(jit_context_t context, jit_on_demand_drive
 }
 
 /*@
- * @deftypefun int jit_context_set_meta (jit_context_t context, int type, {void *} data, jit_meta_free_func free_data)
+ * @deftypefun int jit_context_set_meta (jit_context_t @var{context}, int @var{type}, void *@var{data}, jit_meta_free_func @var{free_data})
  * Tag a context with some metadata.  Returns zero if out of memory.
  *
  * Metadata may be used to store dependency graphs, branch prediction
@@ -224,7 +224,7 @@ void jit_context_set_on_demand_driver(jit_context_t context, jit_on_demand_drive
  * to store information about the context that is specific to the
  * virtual machine or language.
  *
- * If the @code{type} already has some metadata associated with it, then
+ * If the @var{type} already has some metadata associated with it, then
  * the previous value will be freed.
  * @end deftypefun
 @*/
@@ -236,7 +236,7 @@ int jit_context_set_meta
 }
 
 /*@
- * @deftypefun int jit_context_set_meta_numeric (jit_context_t context, int type, jit_nuint data)
+ * @deftypefun int jit_context_set_meta_numeric (jit_context_t @var{context}, int @var{type}, jit_nuint @var{data})
  * Tag a context with numeric metadata.  Returns zero if out of memory.
  * This function is more convenient for accessing the context's
  * special option values:
@@ -287,9 +287,9 @@ int jit_context_set_meta_numeric
 }
 
 /*@
- * @deftypefun {void *} jit_context_get_meta (jit_context_t context, int type)
+ * @deftypefun {void *} jit_context_get_meta (jit_context_t @var{context}, int @var{type})
  * Get the metadata associated with a particular tag.  Returns NULL
- * if @code{type} does not have any metadata associated with it.
+ * if @var{type} does not have any metadata associated with it.
  * @end deftypefun
 @*/
 void *jit_context_get_meta(jit_context_t context, int type)
@@ -298,9 +298,9 @@ void *jit_context_get_meta(jit_context_t context, int type)
 }
 
 /*@
- * @deftypefun jit_nuint jit_context_get_meta_numeric (jit_context_t context, int type)
+ * @deftypefun jit_nuint jit_context_get_meta_numeric (jit_context_t @var{context}, int @var{type})
  * Get the metadata associated with a particular tag.  Returns zero
- * if @code{type} does not have any metadata associated with it.
+ * if @var{type} does not have any metadata associated with it.
  * This version is more convenient for the pre-defined numeric option values.
  * @end deftypefun
 @*/
@@ -310,9 +310,9 @@ jit_nuint jit_context_get_meta_numeric(jit_context_t context, int type)
 }
 
 /*@
- * @deftypefun void jit_context_free_meta (jit_context_t context, int type)
+ * @deftypefun void jit_context_free_meta (jit_context_t @var{context}, int @var{type})
  * Free metadata of a specific type on a context.  Does nothing if
- * the @code{type} does not have any metadata associated with it.
+ * the @var{type} does not have any metadata associated with it.
  * @end deftypefun
 @*/
 void jit_context_free_meta(jit_context_t context, int type)
