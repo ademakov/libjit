@@ -15,8 +15,8 @@ not yet available, then libjit will fall back to interpreting the code.
 This way, you don't need to write your own interpreter for your
 bytecode format if you don't want to.
 
-The library is distributed under the terms of the GNU General Public
-License.  See the COPYING file for details.
+The library is distributed under the terms of the GNU Lesser General
+Public License.  See the COPYING.LESSER file for details.
 
 The documentation for libjit is in Texinfo format.  A general overview
 is in "doc/libjit.texi" with the remainder of the function documentation

@@ -1,3 +1,8 @@
+2008-01-25  Aleksey Demakov  <ademakov@gmail.com>
+
+	* include/*, jit/*, jitplus/*, jitdynamic/*: use LGPL 2.1.
+	* doc/libjit.texi: Remove "Why GPL?" chapter.
+
 2008-01-22  Aleksey Demakov  <ademakov@gmail.com>
 
 	* COPYING.LESSER: add LGPL v2.1 file.

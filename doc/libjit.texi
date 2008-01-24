@@ -51,7 +51,6 @@ Copyright @copyright{} 2004 Southern Storm Software, Pty Ltd
 * Diagnostic Routines::     Diagnostic routines
 * C++ Interface::           Using libjit from C++
 * Porting::                 Porting libjit to new architectures
-* Why GPL?::                Why we use GPL and not LGPL for libjit
 * Index::                   Index of concepts and facilities
 @end menu
 
@@ -1256,7 +1255,7 @@ on platforms that require it.
 
 @c -----------------------------------------------------------------------
 
-@node Register Allocation, Why GPL?, Architecture Rules, Porting
+@node Register Allocation, Index, Architecture Rules, Porting
 @section Allocating registers in the back end
 @cindex Register allocation
 
@@ -1264,52 +1263,9 @@ on platforms that require it.
 
 @c -----------------------------------------------------------------------
 
-@node Why GPL?, Index, Register Allocation, Top
-@chapter Why we use GPL and not LGPL for libjit
-@cindex Why GPL?
-
-A common question about @code{libjit} is likely to be why we use the
-GNU General Public License instead of the GNU Lesser General Public
-License.
-
-At its core, the issue is "Who are we helping gain extra value?".  We wish
-to help the authors of other Free Software projects, as well as those who
-are working on Open Source projects with licenses that are compatible with
-the GPL.  But we do not wish to help proprietary software companies
-without adequate compensation to the community.
-
-Consider the following scenario: a proprietary software company devises
-a new programming language and a new virtual machine to go with it.
-However, their implementation isn't very compelling to customers
-because its bytecode interpreter is too slow.
-
-If @code{libjit} was distributed under the terms of the LGPL, the
-company could link against the library and get a compelling implementation.
-This would increase the sale value of their software considerably.
-However, they wouldn't be compelled to give anything back to the
-Free Software community in exchange for this extra value.
-
-Under the GPL, the company must either GPL their own code, write their
-own JIT from scratch, or negotiate a separate license with the authors
-of @code{libjit}.  In the first instance, they give back to the community
-the value they have used.  In the second instance, they neither give value
-to nor take value from the community.  In the third instance, the authors
-are compensated for their work, which allows those authors to continue
-contributing Free Software to the community.
-
-For more information on why we have taken this stance, please read the
-document "Why you shouldn't use the Library GPL for your next library" on
-the Free Software Foundation's Web site:
-
-@quotation
-@uref{http://www.gnu.org/licenses/why-not-lgpl.html}.
-@end quotation
-
-@c -----------------------------------------------------------------------
-
 @page
 
-@node Index, , Why GPL?, Top
+@node Index, , Register Allocation, Top
 @unnumbered Index of concepts and facilities
 
 @printindex cp
