@@ -143,11 +143,11 @@
 #define	jit_builtin_return_int(return_buf)	\
 		do { \
 			__asm__ ( \
-				"movq %0, %%rcx\n\t" \
+				"lea %0, %%rcx\n\t" \
 				"movq (%%rcx), %%rax\n\t" \
 				"movq 0x08(%%rcx), %%rdx\n\t" \
 				"movaps 0x10(%%rcx), %%xmm0\n\t" \
-				: : "m"((return_buf)) \
+				: : "m"(*(return_buf)) \
 				: "rax", "rcx", "rdx", "xmm0" \
 			); \
 			return; \
@@ -156,15 +156,22 @@
 #define	jit_builtin_return_float(return_buf)	\
 		do { \
 			__asm__ ( \
-				"movq %0, %%rcx\n\t" \
+				"lea %0, %%rcx\n\t" \
 				"movaps 0x10(%%rcx), %%xmm0\n\t" \
 				"fldt 0x20(%%rcx)\n\t" \
-				: : "m"((return_buf)) \
+				: : "m"(*(return_buf)) \
 				: "rcx", "xmm0", "st" \
 			); \
 			return; \
 		} while (0)
 
 #endif /* GNUC */
+
+/*
+ * The maximum number of bytes that are needed to represent a closure,
+ * and the alignment to use for the closure.
+ */
+#define	jit_closure_size		0x90
+#define	jit_closure_align		0x20
 
 #endif	/* _JIT_APPLY_X86_64_H */

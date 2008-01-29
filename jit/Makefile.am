@@ -12,6 +12,7 @@ libjit_la_SOURCES = \
 		jit-apply-x86.h \
 		jit-apply-x86.c \
 		jit-apply-x86-64.h \
+		jit-apply-x86-64.c \
 		jit-bitset.h \
 		jit-bitset.c \
 		jit-block.c \
@@ -33,6 +34,7 @@ libjit_la_SOURCES = \
 		jit-gen-arm.h \
 		jit-gen-arm.c \
 		jit-gen-x86.h \
+		jit-gen-x86_64.h \
 		jit-insn.c \
 		jit-init.c \
 		jit-internal.h \
