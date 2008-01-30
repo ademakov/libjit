@@ -34,7 +34,7 @@ libjit_la_SOURCES = \
 		jit-gen-arm.h \
 		jit-gen-arm.c \
 		jit-gen-x86.h \
-		jit-gen-x86_64.h \
+		jit-gen-x86-64.h \
 		jit-insn.c \
 		jit-init.c \
 		jit-internal.h \

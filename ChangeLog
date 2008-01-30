@@ -1,4 +1,8 @@
-2008-01-29  Klaus Treichel  <ktreichel@web.de
+2008-01-30  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/Makefile.am: Fix typo in my last commit.
+
+2008-01-29  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-apply-x86-64.h: Fix the macros jit_builtin_return_int
 	and jit_builtin_return_float.
