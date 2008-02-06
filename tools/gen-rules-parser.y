@@ -2,7 +2,7 @@
 /*
  * gen-rules-parser.y - Bison grammar for the "gen-rules" program.
  *
- * Copyright (C) 2006  Southern Storm Software, Pty Ltd.
+ * Copyright (C) 2004, 2006-2007  Southern Storm Software, Pty Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1985,21 +1985,23 @@ Literal
 %%
 
 #define	COPYRIGHT_MSG	\
-" * Copyright (C) 2004  Southern Storm Software, Pty Ltd.\n" \
+" * Copyright (C) 2004, 2006-2007  Southern Storm Software, Pty Ltd.\n" \
 " *\n" \
-" * This program is free software; you can redistribute it and/or modify\n" \
-" * it under the terms of the GNU General Public License as published by\n" \
-" * the Free Software Foundation; either version 2 of the License, or\n" \
-" * (at your option) any later version.\n" \
+" * This file is part of the libjit library.\n" \
 " *\n" \
-" * This program is distributed in the hope that it will be useful,\n" \
+" * The libjit library is free software: you can redistribute it and/or\n" \
+" * modify it under the terms of the GNU Lesser General Public License\n" \
+" * as published by the Free Software Foundation, either version 2.1 of\n" \
+" * the License, or (at your option) any later version.\n" \
+" *\n" \
+" * The libjit library is distributed in the hope that it will be useful,\n" \
 " * but WITHOUT ANY WARRANTY; without even the implied warranty of\n" \
-" * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n" \
-" * GNU General Public License for more details.\n" \
+" * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\n" \
+" * Lesser General Public License for more details.\n" \
 " *\n" \
-" * You should have received a copy of the GNU General Public License\n" \
-" * along with this program; if not, write to the Free Software\n" \
-" * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA\n"
+" * You should have received a copy of the GNU Lesser General Public\n" \
+" * License along with the libjit library.  If not, see\n" \
+" * <http://www.gnu.org/licenses/>.\n"
  
 int main(int argc, char *argv[])
 {
