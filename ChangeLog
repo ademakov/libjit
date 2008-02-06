@@ -1,5 +1,8 @@
 2008-02-06  Aleksey Demakov  <ademakov@gmail.com>
 
+	* auto_gen.sh: by popular demand restore this file although it only
+	does "autoreconf -i -f" now.
+
 	* tools/gen-rules-parser.y: update license and copyright notices.
 
 2008-01-30  Klaus Treichel  <ktreichel@web.de>
