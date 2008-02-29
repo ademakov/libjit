@@ -25,6 +25,15 @@
 
 #ifdef __cplusplus
 
+class jit_build_exception
+{
+public:
+	jit_build_exception(int result) { this->result = result; }
+	~jit_build_exception() {}
+
+	int result;
+};
+
 class jit_value
 {
 public:
@@ -108,6 +117,30 @@ public:
 
 private:
 	jit_label_t label;
+};
+
+class jit_jump_table
+{
+ public:
+
+	jit_jump_table(int size);
+	~jit_jump_table();
+
+	int size() { return num_labels; }
+	jit_label_t *raw() { return labels; }
+
+	jit_label get(int index);
+
+	void set(int index, jit_label label);
+
+ private:
+
+	jit_label_t *labels;
+	int num_labels;
+
+	// forbid copying
+	jit_jump_table(const jit_jump_table&);
+	jit_jump_table& operator=(const jit_jump_table&);
 };
 
 class jit_context
@@ -286,6 +319,7 @@ public:
 	void insn_branch(jit_label& label);
 	void insn_branch_if(const jit_value& value, jit_label& label);
 	void insn_branch_if_not(const jit_value& value, jit_label& label);
+	void insn_jump_table(const jit_value& value, jit_jump_table& jump_table);
 	jit_value insn_address_of(const jit_value& value1);
 	jit_value insn_address_of_label(jit_label& label);
 	jit_value insn_convert

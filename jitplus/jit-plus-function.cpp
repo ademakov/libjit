@@ -42,15 +42,6 @@ for more information on creating and managing instructions.
 
 #define	JITPP_MAPPING		20000
 
-class jit_build_exception
-{
-public:
-	jit_build_exception(int result) { this->result = result; }
-	~jit_build_exception() {}
-
-	int result;
-};
-
 jit_type_t const jit_function::end_params = (jit_type_t)0;
 
 /*@
@@ -1076,6 +1067,14 @@ void jit_function::insn_branch_if(const jit_value& value, jit_label& label)
 void jit_function::insn_branch_if_not(const jit_value& value, jit_label& label)
 {
 	if(!jit_insn_branch_if_not(func, value.raw(), label.rawp()))
+	{
+		out_of_memory();
+	}
+}
+
+void jit_function::insn_jump_table(const jit_value& value, jit_jump_table& jump_table)
+{
+	if(!jit_insn_jump_table(func, value.raw(), jump_table.raw(), jump_table.size()))
 	{
 		out_of_memory();
 	}

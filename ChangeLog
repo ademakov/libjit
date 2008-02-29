@@ -1,3 +1,11 @@
+2008-02-29  Aleksey Demakov  <ademakov@gmail.com>
+
+	* include/jit/jit-plus.h, jitplus/jit-plus-jump-table.cpp:
+	* jitplus/jit-plus-function.cpp, jitplus/Makefile.am: add
+	jit_jump_table class and jit_function::insn_jump_table method, add
+	jit-plus-jump-table.cpp file, move jit_build_exception class from
+	jit-plus-function.cpp to jit-plus.h.
+
 2008-02-26  Aleksey Demakov  <ademakov@gmail.com>
 
 	* use LGPL 2.1 for all the rest - dpas, tools, tests, and doc.
