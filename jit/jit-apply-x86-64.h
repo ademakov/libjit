@@ -174,4 +174,17 @@
 #define	jit_closure_size		0x90
 #define	jit_closure_align		0x20
 
+/*
+ * The number of bytes that are needed for a redirector stub.
+ * This includes any extra bytes that are needed for alignment.
+ */
+#define	jit_redirector_size		0x100
+
+/*
+ * The number of bytes that are needed for a indirector stub.
+ * This includes any extra bytes that are needed for alignment.
+ */
+#define	jit_indirector_size		0x10
+
+
 #endif	/* _JIT_APPLY_X86_64_H */

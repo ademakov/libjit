@@ -447,8 +447,13 @@ jit_value_t jit_value_create_constant
 
 		case JIT_TYPE_LONG:
 		case JIT_TYPE_ULONG:
+#ifdef JIT_NATIVE_INT64
+			return jit_value_create_nint_constant
+				(func, const_value->type, const_value->un.long_value);
+#else
 			return jit_value_create_long_constant
 				(func, const_value->type, const_value->un.long_value);
+#endif
 
 		case JIT_TYPE_FLOAT32:
 			return jit_value_create_float32_constant

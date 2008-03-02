@@ -95,6 +95,22 @@ typedef enum
 } X86_64_REX_Bits;
 
 /*
+ * Third part of the opcodes for xmm instructions which are encoded
+ * Opcode1: 0xF3 (single precision) or 0xF2 (double precision)
+ *          This is handled as a prefix.
+ * Opcode2: 0x0F
+ */
+typedef enum
+{
+	XMM1_MOV		= 0x10,
+	XMM1_MOV_REV	= 0x11,
+	XMM1_ADD		= 0x58,
+	XMM1_MUL		= 0x59,
+	XMM1_SUB		= 0x5C,
+	XMM1_DIV		= 0x5E
+} X86_64_XMM1_OP;
+
+/*
  * Helper union for emmitting 64 bit immediate values.
  */
 typedef union
@@ -175,17 +191,28 @@ typedef union
 		} \
 	} while(0)
 
+/*
+ * Emit the Rex prefix.
+ * The natural size is a power of 2 (1, 2, 4 or 8).
+ * For accessing the low byte registers DIL, SIL, BPL and SPL we have to
+ * generate a Rex prefix with the value 0x40 too.
+ * To enable this OR the natural size with 1.
+ */
 #define x86_64_rex(rex_bits)	(0x40 | (rex_bits))
 #define x86_64_rex_emit(inst, width, modrm_reg, index_reg, rm_base_opcode_reg) \
 	do { \
 		unsigned char __rex_bits = \
-			(((width) > 4) ? X86_64_REX_W : 0) | \
-			(((modrm_reg) > 7) ? X86_64_REX_R : 0) | \
-			(((index_reg) > 7) ? X86_64_REX_X : 0) | \
-			(((rm_base_opcode_reg) > 7) ? X86_64_REX_B : 0); \
+			(((width) & 8) ? X86_64_REX_W : 0) | \
+			(((modrm_reg) & 8) ? X86_64_REX_R : 0) | \
+			(((index_reg) & 8) ? X86_64_REX_X : 0) | \
+			(((rm_base_opcode_reg) & 8) ? X86_64_REX_B : 0); \
 		if((__rex_bits != 0)) \
 		{ \
 			 *(inst)++ = x86_64_rex(__rex_bits); \
+		} \
+		else if(((width) & 1) && ((modrm_reg & 4) || (rm_base_opcode_reg & 4))) \
+		{ \
+			 *(inst)++ = x86_64_rex(0); \
 		} \
 	} while(0)
 
@@ -854,6 +881,9 @@ typedef union
  * Instructions with one opcode (plus optional r/m)
  */
 
+/*
+ * Unary opcodes
+ */
 #define x86_64_alu1_reg(inst, opc1, r, reg) \
 	do { \
 		x86_64_rex_emit((inst), 0, 0, 0, (reg)); \
@@ -943,6 +973,61 @@ typedef union
 		x86_64_memindex_emit((inst), (r), (basereg), (disp), (indexreg), (shift)); \
 	} while(0)
 
+#define x86_64_alu1_reg_reg_size(inst, opc1, dreg, sreg, size) \
+	do { \
+		if((size) == 2) \
+		{ \
+			*(inst)++ = (unsigned char)0x66; \
+		} \
+		x86_64_rex_emit((inst), (size), (dreg), 0, (sreg)); \
+		*(inst)++ = (unsigned char)(opc1); \
+		x86_64_reg_emit((inst), (dreg), (sreg));	\
+	} while(0)
+
+#define x86_64_alu1_reg_regp_size(inst, opc1, dreg, sregp, size) \
+	do { \
+		if((size) == 2) \
+		{ \
+			*(inst)++ = (unsigned char)0x66; \
+		} \
+		x86_64_rex_emit((inst), (size), (dreg), 0, (sregp)); \
+		*(inst)++ = (unsigned char)(opc1); \
+		x86_64_regp_emit((inst), (dreg), (sregp));	\
+	} while(0)
+
+#define x86_64_alu1_reg_mem_size(inst, opc1, dreg, mem, size) \
+	do { \
+		if((size) == 2) \
+		{ \
+			*(inst)++ = (unsigned char)0x66; \
+		} \
+		x86_64_rex_emit((inst), (size), (dreg), 0, 0); \
+		*(inst)++ = (unsigned char)(opc1); \
+		x86_64_mem_emit((inst), (dreg), (mem)); \
+	} while(0)
+
+#define x86_64_alu1_reg_membase_size(inst, opc1, dreg, basereg, disp, size) \
+	do { \
+		if((size) == 2) \
+		{ \
+			*(inst)++ = (unsigned char)0x66; \
+		} \
+		x86_64_rex_emit((inst), (size), (dreg), 0, (basereg)); \
+		*(inst)++ = (unsigned char)(opc1); \
+		x86_64_membase_emit((inst), (dreg), (basereg), (disp)); \
+	} while(0)
+	
+#define x86_64_alu1_reg_memindex_size(inst, opc1, dreg, basereg, disp, indexreg, shift, size) \
+	do { \
+		if((size) == 2) \
+		{ \
+			*(inst)++ = (unsigned char)0x66; \
+		} \
+		x86_64_rex_emit((inst), (size), (dreg), (indexreg), (basereg)); \
+		*(inst)++ = (unsigned char)(opc1); \
+		x86_64_memindex_emit((inst), (dreg), (basereg), (disp), (indexreg), (shift)); \
+	} while(0)
+
 #define x86_64_alu2_reg_reg_size(inst, opc1, opc2, dreg, sreg, size) \
 	do { \
 		if((size) == 2) \
@@ -1001,80 +1086,6 @@ typedef union
 		*(inst)++ = (unsigned char)(opc1); \
 		*(inst)++ = (unsigned char)(opc2); \
 		x86_64_memindex_emit((inst), (dreg), (basereg), (disp), (indexreg), (shift)); \
-	} while(0)
-
-/*
- * xmm instructions with two opcodes
- */
-#define x86_64_xmm2_reg_reg(inst, opc1, opc2, r, reg) \
-	do { \
-		x86_64_rex_emit(inst, 0, (r), 0, (reg)); \
-		*(inst)++ = (unsigned char)(opc1); \
-		*(inst)++ = (unsigned char)(opc2); \
-		x86_64_reg_emit(inst, (r), (reg)); \
-	} while(0)
-
-#define x86_64_xmm2_reg_regp(inst, opc1, opc2, r, regp) \
-	do { \
-		x86_64_rex_emit(inst, 0, (r), 0, (regp)); \
-		*(inst)++ = (unsigned char)(opc1); \
-		*(inst)++ = (unsigned char)(opc2); \
-		x86_64_regp_emit(inst, (r), (regp)); \
-	} while(0)
-
-#define x86_64_xmm2_reg_membase(inst, opc1, opc2, r, basereg, disp) \
-	do { \
-		x86_64_rex_emit(inst, 0, (r), 0, (basereg)); \
-		*(inst)++ = (unsigned char)(opc1); \
-		*(inst)++ = (unsigned char)(opc2); \
-		x86_64_membase_emit(inst, (r), (basereg), (disp)); \
-	} while(0)
-
-#define x86_64_xmm2_reg_memindex(inst, opc1, opc2, r, basereg, disp, indexreg, shift) \
-	do { \
-		x86_64_rex_emit(inst, 0, (r), (indexreg), (basereg)); \
-		*(inst)++ = (unsigned char)(opc1); \
-		*(inst)++ = (unsigned char)(opc2); \
-		x86_64_memindex_emit((inst), (r), (basereg), (disp), (indexreg), (shift)); \
-	} while(0)
-
-/*
- * xmm instructions with a prefix and two opcodes
- */
-#define x86_64_p1_xmm2_reg_reg(inst, p1, opc1, opc2, r, reg) \
-	do { \
-		*(inst)++ = (unsigned char)(p1); \
-		x86_64_rex_emit(inst, 0, (r), 0, (reg)); \
-		*(inst)++ = (unsigned char)(opc1); \
-		*(inst)++ = (unsigned char)(opc2); \
-		x86_64_reg_emit(inst, (r), (reg)); \
-	} while(0)
-
-#define x86_64_p1_xmm2_reg_regp(inst, p1, opc1, opc2, r, regp) \
-	do { \
-		*(inst)++ = (unsigned char)(p1); \
-		x86_64_rex_emit(inst, 0, (r), 0, (regp)); \
-		*(inst)++ = (unsigned char)(opc1); \
-		*(inst)++ = (unsigned char)(opc2); \
-		x86_64_regp_emit(inst, (r), (regp)); \
-	} while(0)
-
-#define x86_64_p1_xmm2_reg_membase(inst, p1, opc1, opc2, r, basereg, disp) \
-	do { \
-		*(inst)++ = (unsigned char)(p1); \
-		x86_64_rex_emit(inst, 0, (r), 0, (basereg)); \
-		*(inst)++ = (unsigned char)(opc1); \
-		*(inst)++ = (unsigned char)(opc2); \
-		x86_64_membase_emit(inst, (r), (basereg), (disp)); \
-	} while(0)
-
-#define x86_64_p1_xmm2_reg_memindex(inst, p1, opc1, opc2, r, basereg, disp, indexreg, shift) \
-	do { \
-		*(inst)++ = (unsigned char)(p1); \
-		x86_64_rex_emit(inst, 0, (r), (indexreg), (basereg)); \
-		*(inst)++ = (unsigned char)(opc1); \
-		*(inst)++ = (unsigned char)(opc2); \
-		x86_64_memindex_emit((inst), (r), (basereg), (disp), (indexreg), (shift)); \
 	} while(0)
 
 /*
@@ -1873,6 +1884,12 @@ typedef union
 	} while(0)
 
 /*
+ * Note: x86_64_clear_reg () changes the condition code!
+ */
+#define x86_64_clear_reg(inst, reg) \
+	x86_64_xor_reg_reg_size((inst), (reg), (reg), 4)
+
+/*
  * Lea instructions
  */
 #define x86_64_lea_mem_size(inst, dreg, mem, size) \
@@ -1986,15 +2003,43 @@ typedef union
 			*(inst)++ = (unsigned char)0x66; \
 		} \
 		x86_64_rex_emit(inst, (size), 0, 0, (dreg)); \
-		if((size) == 1) \
+		switch((size)) \
 		{ \
-			*(inst)++ = (unsigned char)0xb0 + ((dreg) & 0x7); \
+			case 1: \
+			{ \
+				*(inst)++ = (unsigned char)0xb0 + ((dreg) & 0x7); \
+				x86_imm_emit8(inst, (imm)); \
+			} \
+			break; \
+			case 2: \
+			{ \
+				*(inst)++ = (unsigned char)0xb8 + ((dreg) & 0x7); \
+				x86_imm_emit16(inst, (imm)); \
+			} \
+			break; \
+			case 4: \
+			{ \
+				*(inst)++ = (unsigned char)0xb8 + ((dreg) & 0x7); \
+				x86_imm_emit32(inst, (imm)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+				jit_nint __x86_64_imm = (imm); \
+				if(__x86_64_imm >= jit_min_int && __x86_64_imm <= jit_max_int) \
+				{ \
+					*(inst)++ = (unsigned char)0xc7; \
+					x86_64_reg_emit((inst), 0, (dreg)); \
+					x86_imm_emit32(inst, (__x86_64_imm)); \
+				} \
+				else \
+				{ \
+					*(inst)++ = (unsigned char)0xb8 + ((dreg) & 0x7); \
+					x86_64_imm_emit64(inst, (__x86_64_imm)); \
+				} \
+			} \
+			break; \
 		} \
-		else \
-		{ \
-			*(inst)++ = (unsigned char)0xb8 + ((dreg) & 0x7); \
-		} \
-		x86_64_imm_emit_max64(inst, (imm), (size)); \
 	} while(0)
 
 /*
@@ -2021,6 +2066,17 @@ typedef union
 			x86_imm_emit32 ((inst), (mem)); \
 		} \
 	} while (0)
+
+#define x86_64_mov_reg_regp_size(inst, dreg, sregp, size) \
+	do { \
+		if((size) == 2) \
+		{ \
+			*(inst)++ = (unsigned char)0x66; \
+		} \
+		x86_64_rex_emit(inst, (size), (dreg), 0, (sregp)); \
+		x86_64_opcode1_emit(inst, 0x8a, (size)); \
+		x86_64_regp_emit((inst), (dreg), (sregp)); \
+	} while(0)
 
 #define x86_64_mov_reg_membase_size(inst, dreg, basereg, disp, size) \
 	do { \
@@ -2062,6 +2118,18 @@ typedef union
 		x86_64_imm_emit_max32(inst, (imm), (size)); \
 	} while(0)
 
+#define x86_64_mov_regp_imm_size(inst, dregp, imm, size) \
+	do { \
+		if((size) == 2) \
+		{ \
+			*(inst)++ = (unsigned char)0x66; \
+		} \
+		x86_64_rex_emit(inst, (size), 0, 0, (dregp)); \
+		x86_64_opcode1_emit(inst, 0xc6, (size)); \
+		x86_64_regp_emit((inst), 0, (dregp)); \
+		x86_64_imm_emit_max32(inst, (imm), (size)); \
+	} while(0)
+
 #define x86_64_mov_membase_imm_size(inst, basereg, disp, imm, size) \
 	do { \
 		if((size) == 2) \
@@ -2087,11 +2155,11 @@ typedef union
 	} while(0)
 
 /*
- * Move with sign extension to the given size (unsigned)
+ * Move with sign extension to the given size (signed)
  */
 #define x86_64_movsx8_reg_reg_size(inst, dreg, sreg, size) \
 	do { \
-		x86_64_alu2_reg_reg_size((inst), 0x0f, 0xbe, (dreg), (sreg), (size)); \
+		x86_64_alu2_reg_reg_size((inst), 0x0f, 0xbe, (dreg), (sreg), (size) | 1); \
 	}while(0)
 
 #define x86_64_movsx8_reg_regp_size(inst, dreg, sregp, size) \
@@ -2139,12 +2207,37 @@ typedef union
 		x86_64_alu2_reg_memindex_size((inst), 0x0f, 0xbf, (dreg), (basereg), (disp), (indexreg), (shift), (size)); \
 	}while(0)
 
+#define x86_64_movsx32_reg_reg_size(inst, dreg, sreg, size) \
+	do { \
+		x86_64_alu1_reg_reg_size((inst), 0x63, (dreg), (sreg), (size)); \
+	}while(0)
+
+#define x86_64_movsx32_reg_regp_size(inst, dreg, sregp, size) \
+	do { \
+		x86_64_alu1_reg_regp_size((inst), 0x63, (dreg), (sregp), (size)); \
+	}while(0)
+
+#define x86_64_movsx32_reg_mem_size(inst, dreg, mem, size) \
+	do { \
+		x86_64_alu1_reg_mem_size((inst), 0x63, (dreg), (mem), (size)); \
+	}while(0)
+
+#define x86_64_movsx32_reg_membase_size(inst, dreg, basereg, disp, size) \
+	do { \
+		x86_64_alu1_reg_membase_size((inst), 0x63, (dreg), (basereg), (disp), (size)); \
+	}while(0)
+
+#define x86_64_movsx32_reg_memindex_size(inst, dreg, basereg, disp, indexreg, shift, size) \
+	do { \
+		x86_64_alu1_reg_memindex_size((inst), 0x63, (dreg), (basereg), (disp), (indexreg), (shift), (size)); \
+	}while(0)
+
 /*
  * Move with zero extension to the given size (unsigned)
  */
 #define x86_64_movzx8_reg_reg_size(inst, dreg, sreg, size) \
 	do { \
-		x86_64_alu2_reg_reg_size((inst), 0x0f, 0xb6, (dreg), (sreg), (size)); \
+		x86_64_alu2_reg_reg_size((inst), 0x0f, 0xb6, (dreg), (sreg), (size) | 1); \
 	}while(0)
 
 #define x86_64_movzx8_reg_regp_size(inst, dreg, sregp, size) \
@@ -2261,8 +2354,48 @@ typedef union
  */
 #define x86_64_push_imm(inst, imm) \
 	do { \
-		x86_push_imm((inst), (imm)); \
+		int _imm = (int) (imm); \
+		if(x86_is_imm8(_imm)) \
+		{ \
+			*(inst)++ = (unsigned char)0x6A; \
+			x86_imm_emit8 ((inst), (_imm)); \
+		} \
+		else \
+		{ \
+			*(inst)++ = (unsigned char)0x68; \
+			x86_imm_emit32((inst), (_imm)); \
+		} \
 	} while(0)
+
+/*
+ * Use this version if you need a specific width of the value
+ * pushed. The Value on the stack will allways be 64bit wide.
+ */
+#define x86_64_push_imm_size(inst, imm, size) \
+	do { \
+		switch(size) \
+		{ \
+			case 1: \
+			{ \
+				*(inst)++ = (unsigned char)0x6A; \
+				x86_imm_emit8((inst), (imm)); \
+			} \
+			break; \
+			case 2: \
+			{ \
+				*(inst)++ = (unsigned char)0x66; \
+				*(inst)++ = (unsigned char)0x68; \
+				x86_imm_emit16((inst), (imm)); \
+			} \
+			break; \
+			case 4: \
+			{ \
+				*(inst)++ = (unsigned char)0x68; \
+				x86_imm_emit32((inst), (imm)); \
+			}\
+		} \
+	} while (0)
+
 
 /*
  * Pop instructions have a default size of 64 bit in 64 bit mode.
@@ -2421,6 +2554,54 @@ typedef union
 	} while(0)
 
 /*
+ * Set the low byte in a register to 0x01 if a condition is met
+ * or 0x00 otherwise.
+ */
+#define x86_64_set_reg(inst, cond, dreg, is_signed) \
+	do { \
+		x86_64_rex_emit((inst), 1, 0, 0, (dreg)); \
+		*(inst)++ = (unsigned char)0x0f; \
+		if((is_signed)) \
+		{ \
+			*(inst)++ = x86_cc_signed_map[(cond)] + 0x20; \
+		} \
+		else \
+		{ \
+			*(inst)++ = x86_cc_unsigned_map[(cond)] + 0x20; \
+		} \
+		x86_64_reg_emit((inst), 0, (dreg)); \
+	} while(0)
+
+#define x86_64_set_mem(inst, cond, mem, is_signed) \
+	do { \
+		*(inst)++ = (unsigned char)0x0f; \
+		if((is_signed)) \
+		{ \
+			*(inst)++ = x86_cc_signed_map[(cond)] + 0x20; \
+		} \
+		else \
+		{ \
+			*(inst)++ = x86_cc_unsigned_map[(cond)] + 0x20; \
+		} \
+		x86_64_mem_emit((inst), 0, (mem)); \
+	} while(0)
+
+#define x86_64_set_membase(inst, cond, basereg, disp, is_signed) \
+	do { \
+		x86_64_rex_emit((inst), 4, 0, 0, (basereg)); \
+		*(inst)++ = (unsigned char)0x0f; \
+		if((is_signed)) \
+		{ \
+			*(inst)++ = x86_cc_signed_map[(cond)] + 0x20;	\
+		} \
+		else	\
+		{ \
+			*(inst)++ = x86_cc_unsigned_map[(cond)] + 0x20;	\
+		} \
+		x86_64_membase_emit((inst), 0, (basereg), (disp));	\
+	} while(0)
+
+/*
  * ret
  */
 #define x86_64_ret(inst) \
@@ -2433,11 +2614,144 @@ typedef union
  */
 
 /*
- * movaps
+ * xmm instructions with two opcodes
+ */
+#define x86_64_xmm2_reg_reg(inst, opc1, opc2, r, reg) \
+	do { \
+		x86_64_rex_emit(inst, 0, (r), 0, (reg)); \
+		*(inst)++ = (unsigned char)(opc1); \
+		*(inst)++ = (unsigned char)(opc2); \
+		x86_64_reg_emit(inst, (r), (reg)); \
+	} while(0)
+
+#define x86_64_xmm2_reg_regp(inst, opc1, opc2, r, regp) \
+	do { \
+		x86_64_rex_emit(inst, 0, (r), 0, (regp)); \
+		*(inst)++ = (unsigned char)(opc1); \
+		*(inst)++ = (unsigned char)(opc2); \
+		x86_64_regp_emit(inst, (r), (regp)); \
+	} while(0)
+
+#define x86_64_xmm2_reg_mem(inst, opc1, opc2, r, mem) \
+	do { \
+		x86_64_rex_emit(inst, 0, (r), 0, 0); \
+		*(inst)++ = (unsigned char)(opc1); \
+		*(inst)++ = (unsigned char)(opc2); \
+		x86_64_mem_emit(inst, (r), (mem)); \
+	} while(0)
+
+#define x86_64_xmm2_reg_membase(inst, opc1, opc2, r, basereg, disp) \
+	do { \
+		x86_64_rex_emit(inst, 0, (r), 0, (basereg)); \
+		*(inst)++ = (unsigned char)(opc1); \
+		*(inst)++ = (unsigned char)(opc2); \
+		x86_64_membase_emit(inst, (r), (basereg), (disp)); \
+	} while(0)
+
+#define x86_64_xmm2_reg_memindex(inst, opc1, opc2, r, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_rex_emit(inst, 0, (r), (indexreg), (basereg)); \
+		*(inst)++ = (unsigned char)(opc1); \
+		*(inst)++ = (unsigned char)(opc2); \
+		x86_64_memindex_emit((inst), (r), (basereg), (disp), (indexreg), (shift)); \
+	} while(0)
+
+/*
+ * xmm instructions with a prefix and two opcodes
+ */
+#define x86_64_p1_xmm2_reg_reg_size(inst, p1, opc1, opc2, r, reg, size) \
+	do { \
+		*(inst)++ = (unsigned char)(p1); \
+		x86_64_rex_emit(inst, (size), (r), 0, (reg)); \
+		*(inst)++ = (unsigned char)(opc1); \
+		*(inst)++ = (unsigned char)(opc2); \
+		x86_64_reg_emit(inst, (r), (reg)); \
+	} while(0)
+
+#define x86_64_p1_xmm2_reg_regp_size(inst, p1, opc1, opc2, r, regp, size) \
+	do { \
+		*(inst)++ = (unsigned char)(p1); \
+		x86_64_rex_emit(inst, (size), (r), 0, (regp)); \
+		*(inst)++ = (unsigned char)(opc1); \
+		*(inst)++ = (unsigned char)(opc2); \
+		x86_64_regp_emit(inst, (r), (regp)); \
+	} while(0)
+
+#define x86_64_p1_xmm2_reg_mem_size(inst, p1, opc1, opc2, r, mem, size) \
+	do { \
+		*(inst)++ = (unsigned char)(p1); \
+		x86_64_rex_emit(inst, (size), (r), 0, 0); \
+		*(inst)++ = (unsigned char)(opc1); \
+		*(inst)++ = (unsigned char)(opc2); \
+		x86_64_mem_emit(inst, (r), (mem)); \
+	} while(0)
+
+#define x86_64_p1_xmm2_reg_membase_size(inst, p1, opc1, opc2, r, basereg, disp, size) \
+	do { \
+		*(inst)++ = (unsigned char)(p1); \
+		x86_64_rex_emit(inst, (size), (r), 0, (basereg)); \
+		*(inst)++ = (unsigned char)(opc1); \
+		*(inst)++ = (unsigned char)(opc2); \
+		x86_64_membase_emit(inst, (r), (basereg), (disp)); \
+	} while(0)
+
+#define x86_64_p1_xmm2_reg_memindex_size(inst, p1, opc1, opc2, r, basereg, disp, indexreg, shift, size) \
+	do { \
+		*(inst)++ = (unsigned char)(p1); \
+		x86_64_rex_emit(inst, (size), (r), (indexreg), (basereg)); \
+		*(inst)++ = (unsigned char)(opc1); \
+		*(inst)++ = (unsigned char)(opc2); \
+		x86_64_memindex_emit((inst), (r), (basereg), (disp), (indexreg), (shift)); \
+	} while(0)
+
+/*
+ * xmm1: Macro for use of the X86_64_XMM1 enum
+ */
+#define x86_64_xmm1_reg_reg(inst, opc, dreg, sreg, is_double) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), ((is_double) ? 0xf2 : 0xf3), 0x0f, (opc), (dreg), (sreg), 0); \
+	} while(0)
+
+#define x86_64_xmm1_reg_regp(inst, opc, dreg, sregp, is_double) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), ((is_double) ? 0xf2 : 0xf3), 0x0f, (opc), (dreg), (sregp), 0); \
+	} while(0)
+
+#define x86_64_xmm1_reg_mem(inst, opc, dreg, mem, is_double) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), ((is_double) ? 0xf2 : 0xf3), 0x0f, (opc), (dreg), (mem), 0); \
+	} while(0)
+
+#define x86_64_xmm1_reg_membase(inst, opc, dreg, basereg, disp, is_double) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), ((is_double) ? 0xf2 : 0xf3), 0x0f, (opc), (dreg), (basereg), (disp), 0); \
+	} while(0)
+
+#define x86_64_xmm1_reg_memindex(inst, opc, dreg, basereg, disp, indexreg, shift, is_double) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), ((is_double) ? 0xf2 : 0xf3), 0x0f, (opc), (dreg), (basereg), (disp), (indexreg), (shift), 0); \
+	} while(0)
+
+/*
+ * Move instructions
+ */
+
+/*
+ * movaps: Move aligned quadword (16 bytes)
  */
 #define x86_64_movaps_reg_reg(inst, dreg, sreg) \
 	do { \
 		x86_64_xmm2_reg_reg((inst), 0x0f, 0x28, (dreg), (sreg)); \
+	} while(0)
+
+#define x86_64_movaps_regp_reg(inst, dregp, sreg) \
+	do { \
+		x86_64_xmm2_reg_regp((inst), 0x0f, 0x29, (sreg), (dregp)); \
+	} while(0)
+
+#define x86_64_movaps_mem_reg(inst, mem, sreg) \
+	do { \
+		x86_64_xmm2_reg_mem((inst), 0x0f, 0x29, (sreg), (mem)); \
 	} while(0)
 
 #define x86_64_movaps_membase_reg(inst, basereg, disp, sreg) \
@@ -2450,14 +2764,14 @@ typedef union
 		x86_64_xmm2_reg_memindex((inst), 0x0f, 0x29, (sreg), (basereg), (disp), (indexreg), (shift)); \
 	} while(0)
 
-#define x86_64_movaps_regp_reg(inst, dregp, sreg) \
-	do { \
-		x86_64_xmm2_reg_regp((inst), 0x0f, 0x29, (sreg), (dregp)); \
-	} while(0)
-
 #define x86_64_movaps_reg_regp(inst, dreg, sregp) \
 	do { \
 		x86_64_xmm2_reg_regp((inst), 0x0f, 0x28, (dreg), (sregp)); \
+	} while(0)
+
+#define x86_64_movaps_reg_mem(inst, dreg, mem) \
+	do { \
+		x86_64_xmm2_reg_mem((inst), 0x0f, 0x28, (dreg), (mem)); \
 	} while(0)
 
 #define x86_64_movaps_reg_membase(inst, dreg, basereg, disp) \
@@ -2471,41 +2785,931 @@ typedef union
 	} while(0)
 
 /*
- * movsd
+ * movups: Move unaligned quadword (16 bytes)
+ */
+#define x86_64_movups_reg_reg(inst, dreg, sreg) \
+	do { \
+		x86_64_xmm2_reg_reg((inst), 0x0f, 0x10, (dreg), (sreg)); \
+	} while(0)
+
+#define x86_64_movups_regp_reg(inst, dregp, sreg) \
+	do { \
+		x86_64_xmm2_reg_regp((inst), 0x0f, 0x11, (sreg), (dregp)); \
+	} while(0)
+
+#define x86_64_movups_mem_reg(inst, mem, sreg) \
+	do { \
+		x86_64_xmm2_reg_mem((inst), 0x0f, 0x11, (sreg), (mem)); \
+	} while(0)
+
+#define x86_64_movups_membase_reg(inst, basereg, disp, sreg) \
+	do { \
+		x86_64_xmm2_reg_membase((inst), 0x0f, 0x11, (sreg), (basereg), (disp)); \
+	} while(0)
+
+#define x86_64_movups_memindex_reg(inst, basereg, disp, indexreg, shift, sreg) \
+	do { \
+		x86_64_xmm2_reg_memindex((inst), 0x0f, 0x11, (sreg), (basereg), (disp), (indexreg), (shift)); \
+	} while(0)
+
+#define x86_64_movups_reg_regp(inst, dreg, sregp) \
+	do { \
+		x86_64_xmm2_reg_regp((inst), 0x0f, 0x10, (dreg), (sregp)); \
+	} while(0)
+
+#define x86_64_movups_reg_mem(inst, dreg, mem) \
+	do { \
+		x86_64_xmm2_reg_mem((inst), 0x0f, 0x10, (dreg), (mem)); \
+	} while(0)
+
+#define x86_64_movups_reg_membase(inst, dreg, basereg, disp) \
+	do { \
+		x86_64_xmm2_reg_membase((inst), 0x0f, 0x10, (dreg), (basereg), (disp)); \
+	} while(0)
+
+#define x86_64_movups_reg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_xmm2_reg_memindex((inst), 0x0f, 0x10, (dreg), (basereg), (disp), (indexreg), (shift)); \
+	} while(0)
+
+/*
+ * movsd: Move scalar double (64bit float)
  */
 #define x86_64_movsd_reg_reg(inst, dreg, sreg) \
 	do { \
-		x86_64_p1_xmm2_reg_reg((inst), 0xf2, 0x0f, 0x10, (dreg), (sreg)); \
-	} while(0)
-
-#define x86_64_movsd_membase_reg(inst, basereg, disp, sreg) \
-	do { \
-		x86_64_p1_xmm2_reg_membase((inst), 0xf2, 0x0f, 0x11, (sreg), (basereg), (disp)); \
-	} while(0)
-
-#define x86_64_movsd_memindex_reg(inst, basereg, disp, indexreg, shift, sreg) \
-	do { \
-		x86_64_p1_xmm2_reg_memindex((inst), 0xf2, 0x0f, 0x11, (sreg), (basereg), (disp), (indexreg), (shift)); \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf2, 0x0f, 0x10, (dreg), (sreg), 0); \
 	} while(0)
 
 #define x86_64_movsd_regp_reg(inst, dregp, sreg) \
 	do { \
-		x86_64_p1_xmm2_reg_regp((inst), 0xf2, 0x0f, 0x11, (sreg), (dregp)); \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf2, 0x0f, 0x11, (sreg), (dregp), 0); \
+	} while(0)
+
+#define x86_64_movsd_mem_reg(inst, mem, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf2, 0x0f, 0x11, (sreg), (mem), 0); \
+	} while(0)
+
+#define x86_64_movsd_membase_reg(inst, basereg, disp, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf2, 0x0f, 0x11, (sreg), (basereg), (disp), 0); \
+	} while(0)
+
+#define x86_64_movsd_memindex_reg(inst, basereg, disp, indexreg, shift, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf2, 0x0f, 0x11, (sreg), (basereg), (disp), (indexreg), (shift), 0); \
 	} while(0)
 
 #define x86_64_movsd_reg_regp(inst, dreg, sregp) \
 	do { \
-		x86_64_p1_xmm2_reg_regp((inst), 0xf2, 0x0f, 0x10, (dreg), (sregp)); \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf2, 0x0f, 0x10, (dreg), (sregp), 0); \
+	} while(0)
+
+#define x86_64_movsd_reg_mem(inst, dreg, mem) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf2, 0x0f, 0x10, (dreg), (mem), 0); \
 	} while(0)
 
 #define x86_64_movsd_reg_membase(inst, dreg, basereg, disp) \
 	do { \
-		x86_64_p1_xmm2_reg_membase((inst), 0xf2, 0x0f, 0x10, (dreg), (basereg), (disp)); \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf2, 0x0f, 0x10, (dreg), (basereg), (disp), 0); \
 	} while(0)
 
 #define x86_64_movsd_reg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
 	do { \
-		x86_64_p1_xmm2_reg_memindex((inst), 0xf2, 0x0f, 0x10, (dreg), (basereg), (disp), (indexreg), (shift)); \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf2, 0x0f, 0x10, (dreg), (basereg), (disp), (indexreg), (shift), 0); \
+	} while(0)
+
+/*
+ * movss: Move scalar single (32bit float)
+ */
+#define x86_64_movss_reg_reg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf3, 0x0f, 0x10, (dreg), (sreg), 0); \
+	} while(0)
+
+#define x86_64_movss_regp_reg(inst, dregp, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf3, 0x0f, 0x11, (sreg), (dregp), 0); \
+	} while(0)
+
+#define x86_64_movss_mem_reg(inst, mem, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf3, 0x0f, 0x11, (sreg), (mem), 0); \
+	} while(0)
+
+#define x86_64_movss_membase_reg(inst, basereg, disp, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf3, 0x0f, 0x11, (sreg), (basereg), (disp), 0); \
+	} while(0)
+
+#define x86_64_movss_memindex_reg(inst, basereg, disp, indexreg, shift, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf3, 0x0f, 0x11, (sreg), (basereg), (disp), (indexreg), (shift), 0); \
+	} while(0)
+
+#define x86_64_movss_reg_regp(inst, dreg, sregp) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf3, 0x0f, 0x10, (dreg), (sregp), 0); \
+	} while(0)
+
+#define x86_64_movss_reg_mem(inst, dreg, mem) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf3, 0x0f, 0x10, (dreg), (mem), 0); \
+	} while(0)
+
+#define x86_64_movss_reg_membase(inst, dreg, basereg, disp) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf3, 0x0f, 0x10, (dreg), (basereg), (disp), 0); \
+	} while(0)
+
+#define x86_64_movss_reg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf3, 0x0f, 0x10, (dreg), (basereg), (disp), (indexreg), (shift), 0); \
+	} while(0)
+
+/*
+ * Conversion opcodes
+ */
+
+/*
+ * cvtsi2ss: Convert signed integer to float32
+ * The size is the size of the integer value (4 or 8)
+ */
+#define x86_64_cvtsi2ss_reg_reg_size(inst, dxreg, sreg, size) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf3, 0x0f, 0x2a, (dxreg), (sreg), (size)); \
+	} while(0)
+
+#define x86_64_cvtsi2ss_reg_regp_size(inst, dxreg, sregp, size) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf3, 0x0f, 0x2a, (dxreg), (sregp), (size)); \
+	} while(0)
+
+#define x86_64_cvtsi2ss_reg_mem_size(inst, dxreg, mem, size) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf3, 0x0f, 0x2a, (dxreg), (mem), (size)); \
+	} while(0)
+
+#define x86_64_cvtsi2ss_reg_membase_size(inst, dreg, basereg, disp, size) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf3, 0x0f, 0x2a, (dreg), (basereg), (disp), (size)); \
+	} while(0)
+
+#define x86_64_cvtsi2ss_reg_memindex_size(inst, dreg, basereg, disp, indexreg, shift, size) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf3, 0x0f, 0x2a, (dreg), (basereg), (disp), (indexreg), (shift), (size)); \
+	} while(0)
+
+/*
+ * cvtsi2sd: Convert signed integer to float64
+ * The size is the size of the integer value (4 or 8)
+ */
+#define x86_64_cvtsi2sd_reg_reg_size(inst, dxreg, sreg, size) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf2, 0x0f, 0x2a, (dxreg), (sreg), (size)); \
+	} while(0)
+
+#define x86_64_cvtsi2sd_reg_regp_size(inst, dxreg, sregp, size) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf2, 0x0f, 0x2a, (dxreg), (sregp), (size)); \
+	} while(0)
+
+#define x86_64_cvtsi2sd_reg_mem_size(inst, dxreg, mem, size) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf2, 0x0f, 0x2a, (dxreg), (mem), (size)); \
+	} while(0)
+
+#define x86_64_cvtsi2sd_reg_membase_size(inst, dreg, basereg, disp, size) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf2, 0x0f, 0x2a, (dreg), (basereg), (disp), (size)); \
+	} while(0)
+
+#define x86_64_cvtsi2sd_reg_memindex_size(inst, dreg, basereg, disp, indexreg, shift, size) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf2, 0x0f, 0x2a, (dreg), (basereg), (disp), (indexreg), (shift), (size)); \
+	} while(0)
+
+/*
+ * cvtss2sd: Convert float32 to float64
+ */
+#define x86_64_cvtss2sd_reg_reg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf3, 0x0f, 0x5a, (dreg), (sreg), 0); \
+	} while(0)
+
+#define x86_64_cvtss2sd_reg_regp(inst, dxreg, sregp) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf3, 0x0f, 0x5a, (dxreg), (sregp), 0); \
+	} while(0)
+
+#define x86_64_cvtss2sd_reg_mem(inst, dxreg, mem) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf3, 0x0f, 0x5a, (dxreg), (mem), 0); \
+	} while(0)
+
+#define x86_64_cvtss2sd_reg_membase(inst, dreg, basereg, disp) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf3, 0x0f, 0x5a, (dreg), (basereg), (disp), 0); \
+	} while(0)
+
+#define x86_64_cvtss2sd_reg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf3, 0x0f, 0x5a, (dreg), (basereg), (disp), (indexreg), (shift), 0); \
+	} while(0)
+
+/*
+ * cvtsd2ss: Convert float64 to float32
+ */
+#define x86_64_cvtsd2ss_reg_reg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf2, 0x0f, 0x5a, (dreg), (sreg), 0); \
+	} while(0)
+
+#define x86_64_cvtsd2ss_reg_regp(inst, dxreg, sregp) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf2, 0x0f, 0x5a, (dxreg), (sregp), 0); \
+	} while(0)
+
+#define x86_64_cvtsd2ss_reg_mem(inst, dxreg, mem) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf2, 0x0f, 0x5a, (dxreg), (mem), 0); \
+	} while(0)
+
+#define x86_64_cvtsd2ss_reg_membase(inst, dreg, basereg, disp) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf2, 0x0f, 0x5a, (dreg), (basereg), (disp), 0); \
+	} while(0)
+
+#define x86_64_cvtsd2ss_reg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf2, 0x0f, 0x5a, (dreg), (basereg), (disp), (indexreg), (shift), 0); \
+	} while(0)
+
+/*
+ * Arithmetic opcodes
+ */
+
+/*
+ * addss: Add scalar single precision float values
+ */
+#define x86_64_addss_reg_reg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf3, 0x0f, 0x58, (dreg), (sreg), 0); \
+	} while(0)
+
+#define x86_64_addss_reg_regp(inst, dreg, sregp) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf3, 0x0f, 0x58, (dreg), (sregp), 0); \
+	} while(0)
+
+#define x86_64_addss_reg_mem(inst, dreg, mem) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf3, 0x0f, 0x58, (dreg), (mem), 0); \
+	} while(0)
+
+#define x86_64_addss_reg_membase(inst, dreg, basereg, disp) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf3, 0x0f, 0x58, (dreg), (basereg), (disp), 0); \
+	} while(0)
+
+#define x86_64_addss_reg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf3, 0x0f, 0x58, (dreg), (basereg), (disp), (indexreg), (shift), 0); \
+	} while(0)
+
+/*
+ * subss: Substract scalar single precision float values
+ */
+#define x86_64_subss_reg_reg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf3, 0x0f, 0x5c, (dreg), (sreg), 0); \
+	} while(0)
+
+#define x86_64_subss_reg_regp(inst, dreg, sregp) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf3, 0x0f, 0x5c, (dreg), (sregp), 0); \
+	} while(0)
+
+#define x86_64_subss_reg_mem(inst, dreg, mem) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf3, 0x0f, 0x5c, (dreg), (mem), 0); \
+	} while(0)
+
+#define x86_64_subss_reg_membase(inst, dreg, basereg, disp) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf3, 0x0f, 0x5c, (dreg), (basereg), (disp), 0); \
+	} while(0)
+
+#define x86_64_subss_reg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf3, 0x0f, 0x5c, (dreg), (basereg), (disp), (indexreg), (shift), 0); \
+	} while(0)
+
+/*
+ * mulss: Multiply scalar single precision float values
+ */
+#define x86_64_mulss_reg_reg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf3, 0x0f, 0x59, (dreg), (sreg), 0); \
+	} while(0)
+
+#define x86_64_mulss_reg_regp(inst, dreg, sregp) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf3, 0x0f, 0x59, (dreg), (sregp), 0); \
+	} while(0)
+
+#define x86_64_mulss_reg_mem(inst, dreg, mem) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf3, 0x0f, 0x59, (dreg), (mem), 0); \
+	} while(0)
+
+#define x86_64_mulss_reg_membase(inst, dreg, basereg, disp) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf3, 0x0f, 0x59, (dreg), (basereg), (disp), 0); \
+	} while(0)
+
+#define x86_64_mulss_reg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf3, 0x0f, 0x59, (dreg), (basereg), (disp), (indexreg), (shift), 0); \
+	} while(0)
+
+/*
+ * divss: Divide scalar single precision float values
+ */
+#define x86_64_divss_reg_reg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf3, 0x0f, 0x5e, (dreg), (sreg), 0); \
+	} while(0)
+
+#define x86_64_divss_reg_regp(inst, dreg, sregp) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf3, 0x0f, 0x5e, (dreg), (sregp), 0); \
+	} while(0)
+
+#define x86_64_divss_reg_mem(inst, dreg, mem) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf3, 0x0f, 0x5e, (dreg), (mem), 0); \
+	} while(0)
+
+#define x86_64_divss_reg_membase(inst, dreg, basereg, disp) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf3, 0x0f, 0x5e, (dreg), (basereg), (disp), 0); \
+	} while(0)
+
+#define x86_64_divss_reg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf3, 0x0f, 0x5e, (dreg), (basereg), (disp), (indexreg), (shift), 0); \
+	} while(0)
+
+/*
+ * addsd: Add scalar double precision float values
+ */
+#define x86_64_addsd_reg_reg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf2, 0x0f, 0x58, (dreg), (sreg), 0); \
+	} while(0)
+
+#define x86_64_addsd_reg_regp(inst, dreg, sregp) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf2, 0x0f, 0x58, (dreg), (sregp), 0); \
+	} while(0)
+
+#define x86_64_addsd_reg_mem(inst, dreg, mem) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf2, 0x0f, 0x58, (dreg), (mem), 0); \
+	} while(0)
+
+#define x86_64_addsd_reg_membase(inst, dreg, basereg, disp) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf2, 0x0f, 0x58, (dreg), (basereg), (disp), 0); \
+	} while(0)
+
+#define x86_64_addsd_reg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf2, 0x0f, 0x58, (dreg), (basereg), (disp), (indexreg), (shift), 0); \
+	} while(0)
+
+/*
+ * subsd: Substract scalar double precision float values
+ */
+#define x86_64_subsd_reg_reg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf2, 0x0f, 0x5c, (dreg), (sreg), 0); \
+	} while(0)
+
+#define x86_64_subsd_reg_regp(inst, dreg, sregp) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf2, 0x0f, 0x5c, (dreg), (sregp), 0); \
+	} while(0)
+
+#define x86_64_subsd_reg_mem(inst, dreg, mem) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf2, 0x0f, 0x5c, (dreg), (mem), 0); \
+	} while(0)
+
+#define x86_64_subsd_reg_membase(inst, dreg, basereg, disp) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf2, 0x0f, 0x5c, (dreg), (basereg), (disp), 0); \
+	} while(0)
+
+#define x86_64_subsd_reg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf2, 0x0f, 0x5c, (dreg), (basereg), (disp), (indexreg), (shift), 0); \
+	} while(0)
+
+/*
+ * mulsd: Multiply scalar double precision float values
+ */
+#define x86_64_mulsd_reg_reg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf2, 0x0f, 0x59, (dreg), (sreg), 0); \
+	} while(0)
+
+#define x86_64_mulsd_reg_regp(inst, dreg, sregp) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf2, 0x0f, 0x59, (dreg), (sregp), 0); \
+	} while(0)
+
+#define x86_64_mulsd_reg_mem(inst, dreg, mem) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf2, 0x0f, 0x59, (dreg), (mem), 0); \
+	} while(0)
+
+#define x86_64_mulsd_reg_membase(inst, dreg, basereg, disp) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf2, 0x0f, 0x59, (dreg), (basereg), (disp), 0); \
+	} while(0)
+
+#define x86_64_mulsd_reg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf2, 0x0f, 0x59, (dreg), (basereg), (disp), (indexreg), (shift), 0); \
+	} while(0)
+
+/*
+ * divsd: Divide scalar double precision float values
+ */
+#define x86_64_divsd_reg_reg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf2, 0x0f, 0x5e, (dreg), (sreg), 0); \
+	} while(0)
+
+#define x86_64_divsd_reg_regp(inst, dreg, sregp) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf2, 0x0f, 0x5e, (dreg), (sregp), 0); \
+	} while(0)
+
+#define x86_64_divsd_reg_mem(inst, dreg, mem) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf2, 0x0f, 0x5e, (dreg), (mem), 0); \
+	} while(0)
+
+#define x86_64_divsd_reg_membase(inst, dreg, basereg, disp) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf2, 0x0f, 0x5e, (dreg), (basereg), (disp), 0); \
+	} while(0)
+
+#define x86_64_divsd_reg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf2, 0x0f, 0x5e, (dreg), (basereg), (disp), (indexreg), (shift), 0); \
+	} while(0)
+
+/*
+ * fpu instructions
+ */
+
+/*
+ * fld
+ */
+
+#define x86_64_fld_regp_size(inst, sregp, size) \
+	do { \
+		x86_64_rex_emit((inst), 0, 0, 0, (sregp)); \
+		switch(size) \
+		{ \
+			case 4: \
+			{ \
+			    *(inst)++ = (unsigned char)0xd9; \
+				x86_64_regp_emit((inst), 0, (sregp)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdd; \
+				x86_64_regp_emit((inst), 0, (sregp)); \
+			} \
+			break; \
+			case 10: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdb; \
+				x86_64_regp_emit((inst), 5, (sregp)); \
+			} \
+			break; \
+		} \
+	} while(0)
+
+#define x86_64_fld_mem_size(inst, mem, size) \
+	do { \
+		switch(size) \
+		{ \
+			case 4: \
+			{ \
+			    *(inst)++ = (unsigned char)0xd9; \
+				x86_64_mem_emit((inst), 0, (mem)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdd; \
+				x86_64_mem_emit((inst), 0, (mem)); \
+			} \
+			break; \
+			case 10: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdb; \
+				x86_64_mem_emit((inst), 5, (mem)); \
+			} \
+			break; \
+		} \
+	} while(0)
+
+#define x86_64_fld_membase_size(inst, basereg, disp, size) \
+	do { \
+		x86_64_rex_emit((inst), 0, 0, 0, (basereg)); \
+		switch(size) \
+		{ \
+			case 4: \
+			{ \
+			    *(inst)++ = (unsigned char)0xd9; \
+				x86_64_membase_emit((inst), 0, (basereg), (disp)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdd; \
+				x86_64_membase_emit((inst), 0, (basereg), (disp)); \
+			} \
+			break; \
+			case 10: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdb; \
+				x86_64_membase_emit((inst), 5, (basereg), (disp)); \
+			} \
+			break; \
+		} \
+	} while(0)
+
+#define x86_64_fld_memindex_size(inst, basereg, disp, indexreg, shift, size) \
+	do { \
+		x86_64_rex_emit((inst), 0, 0, (indexreg), (basereg)); \
+		switch(size) \
+		{ \
+			case 4: \
+			{ \
+			    *(inst)++ = (unsigned char)0xd9; \
+				x86_64_memindex_emit((inst), 0, (basereg), (disp), (indexreg), (shift)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdd; \
+				x86_64_memindex_emit((inst), 0, (basereg), (disp), (indexreg), (shift)); \
+			} \
+			break; \
+			case 10: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdb; \
+				x86_64_memindex_emit((inst), 5, (basereg), (disp), (indexreg), (shift)); \
+			} \
+			break; \
+		} \
+	} while(0)
+
+/*
+ * fild: Load an integer and convert it to long double
+ */
+#define x86_fild_mem_size(inst, mem, size) \
+	do { \
+		switch(size) \
+		{ \
+			case 2: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdf; \
+				x86_64_mem_emit((inst), 0, (mem));	\
+			} \
+			break; \
+			case 4: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdb; \
+				x86_64_mem_emit((inst), 0, (mem));	\
+			} \
+			break; \
+			case 8: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdf; \
+				x86_64_mem_emit((inst), 5, (mem));	\
+			} \
+			break; \
+		} \
+	} while (0)
+
+#define x86_fild_membase_size(inst, mem, size) \
+	do { \
+		x86_64_rex_emit((inst), 0, 0, 0, (basereg)); \
+		switch(size) \
+		{ \
+			case 2: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdf; \
+				x86_64_membase_emit((inst), 0, (basereg), (disp)); \
+			} \
+			break; \
+			case 4: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdb; \
+				x86_64_membase_emit((inst), 0, (basereg), (disp)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdf; \
+				x86_64_membase_emit((inst), 5, (basereg), (disp)); \
+			} \
+			break; \
+		} \
+	} while (0)
+
+/*
+ * fst: Store fpu register to memory (only float32 and float64 allowed)
+ */
+
+#define x86_64_fst_regp_size(inst, sregp, size) \
+	do { \
+		x86_64_rex_emit((inst), 0, 0, 0, (sregp)); \
+		switch(size) \
+		{ \
+			case 4: \
+			{ \
+			    *(inst)++ = (unsigned char)0xd9; \
+				x86_64_regp_emit((inst), 2, (sregp)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdd; \
+				x86_64_regp_emit((inst), 2, (sregp)); \
+			} \
+			break; \
+		} \
+	} while(0)
+
+#define x86_64_fst_mem_size(inst, mem, size) \
+	do { \
+		switch(size) \
+		{ \
+			case 4: \
+			{ \
+			    *(inst)++ = (unsigned char)0xd9; \
+				x86_64_mem_emit((inst), 2, (mem)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdd; \
+				x86_64_mem_emit((inst), 2, (mem)); \
+			} \
+			break; \
+		} \
+	} while(0)
+
+#define x86_64_fst_membase_size(inst, basereg, disp, size) \
+	do { \
+		x86_64_rex_emit((inst), 0, 0, 0, (basereg)); \
+		switch(size) \
+		{ \
+			case 4: \
+			{ \
+			    *(inst)++ = (unsigned char)0xd9; \
+				x86_64_membase_emit((inst), 2, (basereg), (disp)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdd; \
+				x86_64_membase_emit((inst), 2, (basereg), (disp)); \
+			} \
+			break; \
+		} \
+	} while(0)
+
+#define x86_64_fst_memindex_size(inst, basereg, disp, indexreg, shift, size) \
+	do { \
+		x86_64_rex_emit((inst), 0, 0, (indexreg), (basereg)); \
+		switch(size) \
+		{ \
+			case 4: \
+			{ \
+			    *(inst)++ = (unsigned char)0xd9; \
+				x86_64_memindex_emit((inst), 2, (basereg), (disp), (indexreg), (shift)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdd; \
+				x86_64_memindex_emit((inst), 2, (basereg), (disp), (indexreg), (shift)); \
+			} \
+			break; \
+		} \
+	} while(0)
+
+/*
+ * fstp: store top fpu register to memory and pop it from the fpu stack
+ */
+
+#define x86_64_fstp_regp_size(inst, sregp, size) \
+	do { \
+		x86_64_rex_emit((inst), 0, 0, 0, (sregp)); \
+		switch(size) \
+		{ \
+			case 4: \
+			{ \
+			    *(inst)++ = (unsigned char)0xd9; \
+				x86_64_regp_emit((inst), 3, (sregp)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdd; \
+				x86_64_regp_emit((inst), 3, (sregp)); \
+			} \
+			break; \
+			case 10: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdb; \
+				x86_64_regp_emit((inst), 7, (sregp)); \
+			} \
+			break; \
+		} \
+	} while(0)
+
+#define x86_64_fstp_mem_size(inst, mem, size) \
+	do { \
+		switch(size) \
+		{ \
+			case 4: \
+			{ \
+			    *(inst)++ = (unsigned char)0xd9; \
+				x86_64_mem_emit((inst), 3, (mem)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdd; \
+				x86_64_mem_emit((inst), 3, (mem)); \
+			} \
+			break; \
+			case 10: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdb; \
+				x86_64_mem_emit((inst), 7, (mem)); \
+			} \
+			break; \
+		} \
+	} while(0)
+
+#define x86_64_fstp_membase_size(inst, basereg, disp, size) \
+	do { \
+		x86_64_rex_emit((inst), 0, 0, 0, (basereg)); \
+		switch(size) \
+		{ \
+			case 4: \
+			{ \
+			    *(inst)++ = (unsigned char)0xd9; \
+				x86_64_membase_emit((inst), 3, (basereg), (disp)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdd; \
+				x86_64_membase_emit((inst), 3, (basereg), (disp)); \
+			} \
+			break; \
+			case 10: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdb; \
+				x86_64_membase_emit((inst), 7, (basereg), (disp)); \
+			} \
+			break; \
+		} \
+	} while(0)
+
+#define x86_64_fstp_memindex_size(inst, basereg, disp, indexreg, shift, size) \
+	do { \
+		x86_64_rex_emit((inst), 0, 0, (indexreg), (basereg)); \
+		switch(size) \
+		{ \
+			case 4: \
+			{ \
+			    *(inst)++ = (unsigned char)0xd9; \
+				x86_64_memindex_emit((inst), 3, (basereg), (disp), (indexreg), (shift)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdd; \
+				x86_64_memindex_emit((inst), 3, (basereg), (disp), (indexreg), (shift)); \
+			} \
+			break; \
+			case 10: \
+			{ \
+			    *(inst)++ = (unsigned char)0xdb; \
+				x86_64_memindex_emit((inst), 7, (basereg), (disp), (indexreg), (shift)); \
+			} \
+			break; \
+		} \
+	} while(0)
+
+/*
+ * Convert long double to integer
+ */
+#define x86_64_fistp_mem_size(inst, mem, size) \
+	do { \
+		switch((size)) \
+		{ \
+			case 2: \
+			{ \
+				*(inst)++ = (unsigned char)0xdf; \
+				x86_64_mem_emit((inst), 3, (mem)); \
+			} \
+			break; \
+			case 4: \
+			{ \
+				*(inst)++ = (unsigned char)0xdb; \
+				x86_64_mem_emit((inst), 3, (mem)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+				*(inst)++ = (unsigned char)0xdf; \
+				x86_64_mem_emit((inst), 7, (mem)); \
+			} \
+			break; \
+		} \
+	} while(0)
+
+#define x86_64_fistp_membase_size(inst, basereg, disp, size) \
+	do { \
+		switch((size)) \
+		{ \
+			case 2: \
+			{ \
+				*(inst)++ = (unsigned char)0xdf; \
+				x86_64_membase_emit((inst), 3, (basereg), (disp)); \
+			} \
+			break; \
+			case 4: \
+			{ \
+				*(inst)++ = (unsigned char)0xdb; \
+				x86_64_membase_emit((inst), 3, (basereg), (disp)); \
+			} \
+			break; \
+			case 8: \
+			{ \
+				*(inst)++ = (unsigned char)0xdf; \
+				x86_64_membase_emit((inst), 7, (basereg), (disp)); \
+			} \
+			break; \
+		} \
+	} while(0)
+
+/*
+ * Store fpu control word after checking for pending unmasked fpu exceptions
+ */
+#define x86_64_fnstcw(inst, mem) \
+	do { \
+		*(inst)++ = (unsigned char)0xd9; \
+		x86_64_mem_emit((inst), 7, (mem)); \
+	} while (0)
+
+#define x86_64_fnstcw_membase(inst, basereg, disp) \
+	do { \
+		*(inst)++ = (unsigned char)0xd9; \
+		x86_64_membase_emit((inst), 7, (basereg), (disp)); \
+	} while(0)
+
+/*
+ * Load fpu control word
+ */
+#define x86_64_fldcw(inst, mem) \
+	do { \
+		*(inst)++ = (unsigned char)0xd9; \
+		x86_64_mem_emit((inst), 5, (mem)); \
+	} while(0)
+
+#define x86_64_fldcw_membase(inst, basereg, disp) \
+	do { \
+		*(inst)++ = (unsigned char)0xd9; \
+		x86_64_membase_emit ((inst), 5, (basereg), (disp)); \
 	} while(0)
 
 #ifdef	__cplusplus

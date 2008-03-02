@@ -62,6 +62,8 @@ libjit_la_SOURCES = \
 		jit-rules-arm.c \
 		jit-rules-x86.h \
 		jit-rules-x86.c \
+		jit-rules-x86-64.h \
+		jit-rules-x86-64.c \
 		jit-setjmp.h \
 		jit-signal.c \
 		jit-string.c \
@@ -76,7 +78,8 @@ EXTRA_DIST = \
 		mklabel.sh \
 		jit-rules-alpha.ins \
 		jit-rules-arm.sel \
-		jit-rules-x86.ins
+		jit-rules-x86.ins \
+		jit-rules-x86-64.ins
 
 AM_CFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include -I. -I$(srcdir)
 
@@ -107,6 +110,12 @@ jit-rules-alpha.lo: jit-rules-alpha.inc
 jit-rules-alpha.inc: jit-rules-alpha.ins $(top_builddir)/tools/gen-rules$(EXEEXT)
 	$(top_builddir)/tools/gen-rules$(EXEEXT) $(srcdir)/jit-rules-alpha.ins \
 			>jit-rules-alpha.inc
+
+jit-rules-x86-64.lo: jit-rules-x86-64.inc
+
+jit-rules-x86-64.inc: jit-rules-x86-64.ins $(top_builddir)/tools/gen-rules$(EXEEXT)
+	$(top_builddir)/tools/gen-rules$(EXEEXT) $(srcdir)/jit-rules-x86-64.ins \
+			>jit-rules-x86-64.inc
 
 CLEANFILES = \
 	jit-interp-labels.h \

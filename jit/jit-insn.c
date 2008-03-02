@@ -6206,9 +6206,6 @@ jit_value_t jit_insn_call_intrinsic
 		 JIT_CALL_NORETURN);
 	jit_type_free(signature);
 
-	/* The "jit_exception_builtin" function will never return */
-	func->builder->current_block->ends_in_dead = 1;
-
 	/* Execution continues here if there was no exception */
 	if(!jit_insn_label(func, &label))
 	{

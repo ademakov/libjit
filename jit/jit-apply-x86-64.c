@@ -171,21 +171,30 @@ void *_jit_create_redirector(unsigned char *buf, void *func,
 
 void *_jit_create_indirector(unsigned char *buf, void **entry)
 {
-	jit_nint offset;
 	void *start = (void *)buf;
 
 	/* Jump to the entry point. */
-	offset = (jit_nint)entry - ((jit_nint)buf + 5);
-	if((offset < jit_min_int) || (offset > jit_max_int))
+	if(((jit_nint)entry >= jit_min_int) && ((jit_nint)entry <= jit_max_int))
 	{
-		/* offset is outside the 32 bit offset range */
-		/* so we have to do an indirect jump via register. */
-		x86_64_mov_reg_imm_size(buf, X86_64_R11, (jit_nint)entry, 8);
-		x86_64_jmp_reg(buf, X86_64_R11);
+		/* We are in the 32bit range so we can use the entry directly. */
+		x86_64_jmp_mem(buf, (jit_nint)entry);
 	}
 	else
 	{
-		x86_64_jmp_mem(buf, offset);
+		jit_nint offset = (jit_nint)entry - ((jit_nint)buf + 7);
+
+		if((offset >= jit_min_int) && (offset <= jit_max_int))
+		{
+			/* We are in the 32bit range so we can use RIP relative addressing. */
+			x86_64_jmp_membase(buf, X86_64_RIP, offset);
+		}
+		else
+		{
+			/* offset is outside the 32 bit offset range */
+			/* so we have to do an indirect jump via register. */
+			x86_64_mov_reg_imm_size(buf, X86_64_R11, (jit_nint)entry, 8);
+			x86_64_jmp_regp(buf, X86_64_R11);
+		}
 	}
 
 	return start;

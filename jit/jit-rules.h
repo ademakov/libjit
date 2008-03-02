@@ -42,6 +42,9 @@ extern	"C" {
 #elif defined(__alpha) || defined(__alpha__)
 	#define JIT_BACKEND_ALPHA		1
 	#define	JIT_HAVE_BACKEND		1
+#elif defined(__amd64) || defined(__amd64__) || defined(_x86_64) || defined(_x86_64__)
+	#define JIT_BACKEND_X86_64		1
+	#define	JIT_HAVE_BACKEND		1
 #endif
 /*#define	JIT_BACKEND_ARM		1*/
 #if !defined(JIT_HAVE_BACKEND)
@@ -88,6 +91,8 @@ typedef struct
 	#include "jit-rules-arm.h"
 #elif defined(JIT_BACKEND_ALPHA)
 	#include "jit-rules-alpha.h"
+#elif defined(JIT_BACKEND_X86_64)
+	#include "jit-rules-x86-64.h"
 #else
 	#error "unknown jit backend type"
 #endif

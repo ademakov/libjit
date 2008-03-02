@@ -1,3 +1,31 @@
+2008-03-02  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-apply-x86-64.h: define the sizes for indirector and
+	redirector.
+
+	* jit/jit-apply-x86-64.c: do either a memory indirect, RIP relative
+	or register relative jump in the redirector whatever is appropriate
+	for the address location in _jit_create_indirector.
+
+	* jit/jit-gen-x86-64.h: add lots of additional code generation
+	macros and fix some bugs.
+
+	* jit/jit-insn.c: don't mark the current block dead after throwing
+	an exception in jit_insn_call_intrinsic because this is handled in
+	jit_insn_call_native if the flag JIT_CALL_NORETURN is specified.
+
+	* jit/Makefile.am: Add the new files jit-rules-x86-64.c,
+	jit-rules-x86-64.h and jit-rules-x86-64.ins to the sources.
+
+	* jit/jit-rules.h: add the native backend for X86_64.
+
+	* jit/jit-rules-x86-64.c, jit/jit-rules-x86-64.h,
+	jit/jit-rules-x86-64.ins: add the first native  code generation for
+	X86_64.
+
+	* jit/jit-value.c: create a nint constant for long/ulong types in
+	jit_value_create_constant on 64bit archs.
+
 2008-02-29  Aleksey Demakov  <ademakov@gmail.com>
 
 	* include/jit/jit-plus.h, jitplus/jit-plus-jump-table.cpp:
