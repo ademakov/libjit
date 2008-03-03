@@ -1,7 +1,7 @@
 /*
  * jit-cache.c - Translated function cache implementation.
  *
- * Copyright (C) 2002, 2003  Southern Storm Software, Pty Ltd.
+ * Copyright (C) 2002, 2003, 2008  Southern Storm Software, Pty Ltd.
  *
  * This file is part of the libjit library.
  *
@@ -34,11 +34,19 @@ extern	"C" {
 
 /*
  * Tune the default size of a cache page.  Memory is allocated from
- * the system in chunks of this size.  This will also determine
- * the maximum method size that can be translated.
+ * the system in chunks of this size.
  */
 #ifndef	JIT_CACHE_PAGE_SIZE
-#define	JIT_CACHE_PAGE_SIZE		(128 * 1024)
+#define	JIT_CACHE_PAGE_SIZE		(64 * 1024)
+#endif
+
+/*
+ * Tune the maximum size of a cache page.  The size of a page might be
+ * up to (JIT_CACHE_PAGE_SIZE * JIT_CACHE_MAX_PAGE_FACTOR).  This will
+ * also determine the maximum method size that can be translated.
+ */
+#ifndef JIT_CACHE_MAX_PAGE_FACTOR
+#define JIT_CACHE_MAX_PAGE_FACTOR	1024
 #endif
 
 /*
@@ -61,14 +69,23 @@ struct jit_cache_debug
 typedef struct jit_cache_method *jit_cache_method_t;
 struct jit_cache_method
 {
-	void		      *method;		/* Method containing the region */
-	void		      *cookie;		/* Cookie value for the region */
-	unsigned char     *start;		/* Start of the region */
-	unsigned char     *end;			/* End of the region */
-	jit_cache_debug_t  debug;		/* Debug information for method */
-	jit_cache_method_t left;		/* Left sub-tree and red/black bit */
-	jit_cache_method_t right;		/* Right sub-tree */
+	void			*method;	/* Method containing the region */
+	void			*cookie;	/* Cookie value for the region */
+	unsigned char		*start;		/* Start of the region */
+	unsigned char		*end;		/* End of the region */
+	jit_cache_debug_t	debug;		/* Debug information for method */
+	jit_cache_method_t	left;		/* Left sub-tree and red/black bit */
+	jit_cache_method_t	right;		/* Right sub-tree */
 
+};
+
+/*
+ * Structure of the page list entry.
+ */
+struct jit_cache_page
+{
+	void			*page;		/* Page memory */
+	long			factor;		/* Page size factor */
 };
 
 /*
@@ -77,22 +94,22 @@ struct jit_cache_method
 #define	JIT_CACHE_DEBUG_SIZE		64
 struct jit_cache
 {
-	void		    **pages;		/* List of pages currently in the cache */
-	unsigned long	  numPages;		/* Number of pages currently in the cache */
-	unsigned long	  pageSize;		/* Size of a page for allocation */
-	unsigned char    *freeStart;	/* Start of the current free region */
-	unsigned char    *freeEnd;		/* End of the current free region */
-	int				  outOfMemory;	/* True when cache is out of memory */
-	int				  needRestart;	/* True when page restart is required */
-	long			  pagesLeft;	/* Number of pages left to allocate */
-	jit_cache_method_t method;		/* Information for the current method */
-	struct jit_cache_method head;	/* Head of the lookup tree */
-	struct jit_cache_method nil;	/* Nil pointer for the lookup tree */
-	unsigned char    *start;		/* Start of the current method */
-	unsigned char	  debugData[JIT_CACHE_DEBUG_SIZE];
-	int				  debugLen;		/* Length of temporary debug data */
-	jit_cache_debug_t firstDebug;	/* First debug block for method */
-	jit_cache_debug_t lastDebug;	/* Last debug block for method */
+	struct jit_cache_page	*pages;		/* List of pages currently in the cache */
+	unsigned long		numPages;	/* Number of pages currently in the cache */
+	unsigned long		maxNumPages;	/* Maximum number of pages that could be in the list */
+	unsigned long		pageSize;	/* Default size of a page for allocation */
+	unsigned int		maxPageFactor;	/* Maximum page size factor */
+	unsigned char		*freeStart;	/* Start of the current free region */
+	unsigned char		*freeEnd;	/* End of the current free region */
+	long			pagesLeft;	/* Number of pages left to allocate */
+	jit_cache_method_t	method;		/* Information for the current method */
+	struct jit_cache_method	head;		/* Head of the lookup tree */
+	struct jit_cache_method	nil;		/* Nil pointer for the lookup tree */
+	unsigned char		*start;		/* Start of the current method */
+	unsigned char		debugData[JIT_CACHE_DEBUG_SIZE];
+	int			debugLen;	/* Length of temporary debug data */
+	jit_cache_debug_t	firstDebug;	/* First debug block for method */
+	jit_cache_debug_t	lastDebug;	/* Last debug block for method */
 
 };
 
@@ -172,9 +189,9 @@ static int CompressInt(unsigned char *buf, long data)
  */
 typedef struct
 {
-	const unsigned char *data;		/* Current data position */
+	const unsigned char	*data;		/* Current data position */
 	unsigned long		 len;		/* Length remaining to read */
-	int					 error;		/* Set to non-zero if error encountered */
+	int			 error;		/* Set to non-zero if error encountered */
 
 } UncompressReader;
 
@@ -281,19 +298,32 @@ static long UncompressInt(UncompressReader *meta)
 /*
  * Allocate a cache page and add it to the cache.
  */
-static void AllocCachePage(jit_cache_t cache)
+static void AllocCachePage(jit_cache_t cache, int factor)
 {
-	void *ptr;
-	void **list;
+	long num;
+	unsigned char *ptr;
+	struct jit_cache_page *list;
 
-	/* If we are already out of memory, then bail out */
-	if(cache->outOfMemory || !(cache->pagesLeft))
+	/* The minimum page factor is 1 */
+	if(factor <= 0)
+	{
+		factor = 1;
+	}
+
+	/* If too big a page is requested, then bail out */
+	if(((unsigned int) factor) > cache->maxPageFactor)
+	{
+		goto failAlloc;
+	}
+
+	/* If the page limit is hit, then bail out */
+	if(cache->pagesLeft >= 0 && cache->pagesLeft < factor)
 	{
 		goto failAlloc;
 	}
 
 	/* Try to allocate a physical page */
-	ptr = jit_malloc_exec((unsigned int)(cache->pageSize));
+	ptr = (unsigned char *) jit_malloc_exec((unsigned int) cache->pageSize * factor);
 	if(!ptr)
 	{
 		goto failAlloc;
@@ -304,29 +334,48 @@ static void AllocCachePage(jit_cache_t cache)
 	   have to "touch" the pages to free them.  Touching the pages
 	   may cause them to be swapped in if they are currently out.
 	   There's no point doing that if we are trying to free them */
-	list = (void **)jit_realloc
-		(cache->pages, sizeof(void *) * (cache->numPages + 1));
-	if(!list)
+	if(cache->numPages == cache->maxNumPages)
 	{
-		jit_free_exec(ptr, cache->pageSize);
-	failAlloc:
-		cache->outOfMemory = 1;
-		cache->freeStart = 0;
-		cache->freeEnd = 0;
-		return;
-	}
-	cache->pages = list;
-	list[(cache->numPages)++] = ptr;
+		if(cache->numPages == 0)
+		{
+			num = 16;
+		}
+		else
+		{
+			num = cache->numPages * 2;
+		}
+		if(cache->pagesLeft > 0 && num > (cache->numPages + cache->pagesLeft - factor + 1))
+		{
+			num = cache->numPages + cache->pagesLeft - factor + 1;
+		}
 
-	/* One less page before we hit the limit */
+		list = (struct jit_cache_page *) jit_realloc(cache->pages,
+							     sizeof(struct jit_cache_page) * num);
+		if(!list)
+		{
+			jit_free_exec(ptr, cache->pageSize * factor);
+		failAlloc:
+			cache->freeStart = 0;
+			cache->freeEnd = 0;
+			return;
+		}
+
+		cache->maxNumPages = num;
+		cache->pages = list;
+	}
+	cache->pages[cache->numPages].page = ptr;
+	cache->pages[cache->numPages].factor = factor;
+	++(cache->numPages);
+
+	/* Adjust te number of pages left before we hit the limit */
 	if(cache->pagesLeft > 0)
 	{
-		--(cache->pagesLeft);
+		cache->pagesLeft -= factor;
 	}
 
 	/* Set up the working region within the new page */
 	cache->freeStart = ptr;
-	cache->freeEnd = (void *)(((char *)ptr) + (int)(cache->pageSize));
+	cache->freeEnd = ptr + (int) cache->pageSize * factor;
 }
 
 /*
@@ -569,10 +618,10 @@ static void WriteCacheDebug(jit_cache_posn *posn, long offset, long nativeOffset
 	}
 }
 
-jit_cache_t _jit_cache_create(long limit, long cache_page_size)
+jit_cache_t _jit_cache_create(long limit, long cache_page_size, int max_page_factor)
 {
 	jit_cache_t cache;
-	unsigned long size;
+	unsigned long exec_page_size;
 
 	/* Allocate space for the cache control structure */
 	if((cache = (jit_cache_t )jit_malloc(sizeof(struct jit_cache))) == 0)
@@ -580,27 +629,38 @@ jit_cache_t _jit_cache_create(long limit, long cache_page_size)
 		return 0;
 	}
 
-	/* Initialize the rest of the cache fields */
-	cache->pages = 0;
-	cache->numPages = 0;
-	size = jit_exec_page_size();
-	if(!cache_page_size)
+	/* determine the default cache page size */
+	exec_page_size = jit_exec_page_size();
+	if(cache_page_size <= 0)
 	{
 		cache_page_size = JIT_CACHE_PAGE_SIZE;
 	}
-	size = (cache_page_size / size) * size;
-	if(!size)
+	if(cache_page_size < exec_page_size)
 	{
-		size = jit_exec_page_size();
+		cache_page_size = exec_page_size;
 	}
-	cache->pageSize = size;
+	else
+	{
+		cache_page_size = (cache_page_size / exec_page_size) * exec_page_size;
+	}
+
+	/* determine the maximum page size factor */
+	if(max_page_factor <= 0)
+	{
+		max_page_factor = JIT_CACHE_MAX_PAGE_FACTOR;
+	}
+
+	/* Initialize the rest of the cache fields */
+	cache->pages = 0;
+	cache->numPages = 0;
+	cache->maxNumPages = 0;
+	cache->pageSize = cache_page_size;
+	cache->maxPageFactor = max_page_factor;
 	cache->freeStart = 0;
 	cache->freeEnd = 0;
-	cache->outOfMemory = 0;
-	cache->needRestart = 0;
 	if(limit > 0)
 	{
-		cache->pagesLeft = limit / size;
+		cache->pagesLeft = limit / cache_page_size;
 		if(cache->pagesLeft < 1)
 		{
 			cache->pagesLeft = 1;
@@ -631,8 +691,8 @@ jit_cache_t _jit_cache_create(long limit, long cache_page_size)
 	cache->lastDebug = 0;
 
 	/* Allocate the initial cache page */
-	AllocCachePage(cache);
-	if(cache->outOfMemory)
+	AllocCachePage(cache, 0);
+	if(!cache->freeStart)
 	{
 		_jit_cache_destroy(cache);
 		return 0;
@@ -649,7 +709,8 @@ void _jit_cache_destroy(jit_cache_t cache)
 	/* Free all of the cache pages */
 	for(page = 0; page < cache->numPages; ++page)
 	{
-		jit_free_exec(cache->pages[page], cache->pageSize);
+		jit_free_exec(cache->pages[page].page,
+			      cache->pageSize * cache->pages[page].factor);
 	}
 	if(cache->pages)
 	{
@@ -662,25 +723,27 @@ void _jit_cache_destroy(jit_cache_t cache)
 
 int _jit_cache_is_full(jit_cache_t cache, jit_cache_posn *posn)
 {
-	return (cache->outOfMemory || (posn && posn->ptr >= posn->limit));
+	return (!cache->freeStart || (posn && posn->ptr >= posn->limit));
 }
 
-void *_jit_cache_start_method(jit_cache_t cache, jit_cache_posn *posn,
-					          int align, void *method)
+int _jit_cache_start_method(jit_cache_t cache,
+			    jit_cache_posn *posn,
+			    int page_factor,
+			    int align,
+			    void *method)
 {
-	jit_nuint temp;
+	unsigned char *ptr;
 
 	/* Do we need to allocate a new cache page? */
-	if(cache->needRestart)
+	if(page_factor > 0)
 	{
-		cache->needRestart = 0;
-		AllocCachePage(cache);
+		AllocCachePage(cache, page_factor);
 	}
 
 	/* Bail out if the cache is already full */
-	if(cache->outOfMemory)
+	if(!cache->freeStart)
 	{
-		return 0;
+		return JIT_CACHE_TOO_BIG;
 	}
 
 	/* Set up the initial cache position */
@@ -689,48 +752,41 @@ void *_jit_cache_start_method(jit_cache_t cache, jit_cache_posn *posn,
 	posn->limit = cache->freeEnd;
 
 	/* Align the method start */
-	if(align <= 1)
+	ptr = posn->ptr;
+	if(align > 1)
 	{
-		align = 1;
+		ptr = (unsigned char *)(((jit_nuint) (ptr + align - 1)) & ~((jit_nuint) (align - 1)));
 	}
-	temp = (((jit_nuint)(posn->ptr)) + ((jit_nuint)align) - 1) &
-		   ~(((jit_nuint)align) - 1);
-	if(((unsigned char *)temp) >= posn->limit)
+	if(ptr >= posn->limit)
 	{
-		/* There is insufficient space in this page, so create a new one */
-		AllocCachePage(cache);
-		if(cache->outOfMemory)
-		{
-			return 0;
-		}
-
-		/* Set up the cache position again and align it */
-		posn->ptr = cache->freeStart;
-		posn->limit = cache->freeEnd;
-		temp = (((jit_nuint)(posn->ptr)) + ((jit_nuint)align) - 1) &
-			   ~(((jit_nuint)align) - 1);
+		/* There is insufficient space in this page */
+		posn->ptr = posn->limit;
+		return JIT_CACHE_RESTART;
 	}
 #ifdef jit_should_pad
-	if(temp > (jit_nuint)(posn->ptr))
+	if(ptr > posn->ptr)
 	{
-		_jit_pad_buffer(posn->ptr, (int)(((jit_nuint)(posn->ptr)) - temp));
+		_jit_pad_buffer(posn->ptr, ptr - posn->ptr);
 	}
 #endif
-	posn->ptr = (unsigned char *)temp;
+	posn->ptr = ptr;
 
 	/* Allocate memory for the method information block */
-	cache->method = (jit_cache_method_t)
-		_jit_cache_alloc(posn, sizeof(struct jit_cache_method));
-	if(cache->method)
+	cache->method = (jit_cache_method_t) _jit_cache_alloc(posn, sizeof(struct jit_cache_method));
+	if(!cache->method)
 	{
-		cache->method->method = method;
-		cache->method->cookie = 0;
-		cache->method->start = posn->ptr;
-		cache->method->end = posn->ptr;
-		cache->method->debug = 0;
-		cache->method->left = 0;
-		cache->method->right = 0;
+		/* There is insufficient space in this page */
+		return JIT_CACHE_RESTART;
 	}
+	cache->method->method = method;
+	cache->method->cookie = 0;
+	cache->method->start = posn->ptr;
+	cache->method->end = posn->ptr;
+	cache->method->debug = 0;
+	cache->method->left = 0;
+	cache->method->right = 0;
+
+	/* Store the method start address */
 	cache->start = posn->ptr;
 
 	/* Clear the debug data */
@@ -738,8 +794,7 @@ void *_jit_cache_start_method(jit_cache_t cache, jit_cache_posn *posn,
 	cache->firstDebug = 0;
 	cache->lastDebug = 0;
 
-	/* Return the method entry point to the caller */
-	return (void *)(posn->ptr);
+	return JIT_CACHE_OK;
 }
 
 int _jit_cache_end_method(jit_cache_posn *posn)
@@ -751,20 +806,23 @@ int _jit_cache_end_method(jit_cache_posn *posn)
 	/* Determine if we ran out of space while writing the method */
 	if(posn->ptr >= posn->limit)
 	{
-		/* Determine if the method was too big, or we need a restart.
-		   The method is judged to be too big if we had a new page and
-		   yet it was insufficent to hold the method */
-		if(cache->freeStart ==
-				((unsigned char *)(cache->pages[cache->numPages - 1])) &&
-		   cache->freeEnd == (cache->freeStart + cache->pageSize))
+		/* If we had a newly allocated page then it has to be freed
+		   to let allocate another new page of appropriate size. */
+		if((cache->freeStart == ((unsigned char *)(cache->pages[cache->numPages - 1].page)))
+		    && (cache->freeEnd
+			== (cache->freeStart + (cache->pageSize * cache->pages[cache->numPages - 1].factor))))
 		{
-			return JIT_CACHE_END_TOO_BIG;
+			--(cache->numPages);
+			jit_free_exec(cache->pages[cache->numPages].page,
+				      cache->pageSize * cache->pages[cache->numPages].factor);
+			if (cache->pagesLeft >= 0)
+			{
+				cache->pagesLeft += cache->pages[cache->numPages].factor;
+			}
+			cache->freeStart = 0;
+			cache->freeEnd = 0;
 		}
-		else
-		{
-			cache->needRestart = 1;
-			return JIT_CACHE_END_RESTART;
-		}
+		return JIT_CACHE_RESTART;
 	}
 
 	/* Terminate the debug information and flush it */
@@ -799,7 +857,7 @@ int _jit_cache_end_method(jit_cache_posn *posn)
 	}
 
 	/* The method is ready to go */
-	return JIT_CACHE_END_OK;
+	return JIT_CACHE_OK;
 }
 
 void *_jit_cache_alloc(jit_cache_posn *posn, unsigned long size)
@@ -838,7 +896,7 @@ void *_jit_cache_alloc_no_method
 	/* Bail out if the request is too big to ever be satisfiable */
 	if(size > (unsigned long)(cache->freeEnd - cache->freeStart))
 	{
-		AllocCachePage(cache);
+		AllocCachePage(cache, 0);
 		if(size > (unsigned long)(cache->freeEnd - cache->freeStart))
 		{
 			return 0;
@@ -1371,9 +1429,17 @@ Using the cache
 To output the code for a method, first call _jit_cache_start_method:
 
 	jit_cache_posn posn;
-	void *start;
+	int result;
 
-	start = _jit_cache_start_method(cache, &posn, METHOD_ALIGNMENT, method);
+	result = _jit_cache_start_method(cache, &posn, factor,
+					 METHOD_ALIGNMENT, method);
+
+"factor" is used to control cache space allocation for the method.
+The cache space is allocated by pages.  The value 0 indicates that
+the method has to use the space left after the last allocation.
+The value 1 or more indicates that the method has to start on a
+newly allocated space that must contain the specified number of
+consecutive pages.
 
 "METHOD_ALIGNMENT" is used to align the start of the method on an
 appropriate boundary for the target CPU.  Use the value 1 if no
@@ -1383,9 +1449,21 @@ cache - it may alter the alignment value.
 "method" is a value that uniquely identifies the method that is being
 translated.  Usually this is the "jit_function_t" pointer.
 
-The function initializes the "posn" structure, and returns the starting
-address for the method.  If the function returns NULL, then it indicates
-that the cache is full and further method translation is not possible.
+The function initializes the "posn" structure to point to the start
+and end of the space available for the method output.  The function
+returns one of three result codes:
+
+	JIT_CACHE_OK       The function call was successful.
+	JIT_CACHE_RESTART  The cache does not currently have enough
+	                   space to fit any method.  This code may
+			   only be returned if the "factor" value
+			   was 0.  In this case it is necessary to
+			   restart the method output process by
+			   calling _jit_cache_start_method again
+			   with a bigger "factor" value.
+	JIT_CACHE_TOO_BIG  The cache does not have any space left
+	                   for allocation.  In this case a restart
+			   won't help.
 
 To write code to the method, use the following:
 
@@ -1396,7 +1474,7 @@ To write code to the method, use the following:
 	jit_cache_word64(&posn, value);
 
 These macros write the value to cache and then update the current
-position.  If the macros detect the end of the current cache page,
+position.  If the macros detect the end of the avaialable space,
 they will flag overflow, but otherwise do nothing (overflow is
 flagged when posn->ptr == posn->limit).  The current position
 in the method can be obtained using "jit_cache_get_posn".
@@ -1405,14 +1483,13 @@ Some CPU optimization guides recommend that labels should be aligned.
 This can be achieved using _jit_cache_align.
 
 Once the method code has been output, call _jit_cache_end_method to finalize
-the process.  This function returns one of three result codes:
+the process.  This function returns one of two result codes:
 
-	JIT_CACHE_END_OK       The translation process was successful.
-	JIT_CACHE_END_RESTART  The cache page overflowed.  It is necessary
-	                       to restart the translation process from
-	                       the beginning (_jit_cache_start_method).
-	JIT_CACHE_END_TOO_BIG  The cache page overflowed, but the method
-	                       is too big to fit and a restart won't help.
+	JIT_CACHE_OK       The method output process was successful.
+	JIT_CACHE_RESTART  The cache space overflowed. It is necessary
+	                   to restart the method output process by
+			   calling _jit_cache_start_method again
+			   with a bigger "factor" value.
 
 The caller should repeatedly translate the method while _jit_cache_end_method
 continues to return JIT_CACHE_END_RESTART.  Normally there will be no
@@ -1424,7 +1501,7 @@ Cache data structure
 --------------------
 
 The cache consists of one or more "cache pages", which contain method
-code and auxillary data.  The default size for a cache page is 128k
+code and auxillary data.  The default size for a cache page is 64k
 (JIT_CACHE_PAGE_SIZE).  The size is adjusted to be a multiple
 of the system page size (usually 4k), and then stored in "pageSize".
 
@@ -1433,9 +1510,10 @@ page, and growing upwards.  Auxillary data is written into a cache page
 starting at the top of the page, and growing downwards.  When the two
 regions meet, a new cache page is allocated and the process restarts.
 
-No method, plus its auxillary data, can be greater in size than one
-cache page.  The default should be sufficient for normal applications,
-but is easy to increase should the need arise.
+To allow methods bigger than a single cache page it is possible to
+allocate a block of consecutive pages as a single unit. The method
+code and auxillary data is written to such a multiple-page block in
+the same manner as into an ordinary page.
 
 Each method has one or more jit_cache_method auxillary data blocks associated
 with it.  These blocks indicate the start and end of regions within the

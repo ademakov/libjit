@@ -1,7 +1,7 @@
 /*
  * jit-cache.h - Translated method cache implementation.
  *
- * Copyright (C) 2002, 2004  Southern Storm Software, Pty Ltd.
+ * Copyright (C) 2002, 2004, 2008  Southern Storm Software, Pty Ltd.
  *
  * This file is part of the libjit library.
  *
@@ -37,7 +37,7 @@ typedef struct jit_cache *jit_cache_t;
  */
 typedef struct
 {
-	jit_cache_t	    cache;			/* Cache this position is attached to */
+	jit_cache_t    cache;			/* Cache this position is attached to */
 	unsigned char  *ptr;			/* Current code pointer */
 	unsigned char  *limit;			/* Limit of the current page */
 
@@ -47,9 +47,14 @@ typedef struct
  * Create a method cache.  Returns NULL if out of memory.
  * If "limit" is non-zero, then it specifies the maximum
  * size of the cache in bytes.  If "cache_page_size" is
- * non-zero, then it indicates the size of each cache page.
+ * non-zero, then it indicates the dafault/minimum cache
+ * page size.  If "max_page_factor" is not zero, then it
+ * indicates the maximum cache page size as multiple of
+ * "max_page_factor" and "cache_page_size".
  */
-jit_cache_t _jit_cache_create(long limit, long cache_page_size);
+jit_cache_t _jit_cache_create(long limit,
+			      long cache_page_size,
+			      int max_page_factor);
 
 /*
  * Destroy a method cache.
@@ -63,21 +68,29 @@ void _jit_cache_destroy(jit_cache_t cache);
 int _jit_cache_is_full(jit_cache_t cache, jit_cache_posn *posn);
 
 /*
+ * Return values for "_jit_cache_start_method" and "_jit_cache_end_method".
+ */
+#define	JIT_CACHE_OK		0		/* Function is OK */
+#define	JIT_CACHE_RESTART	1		/* Restart is required */
+#define	JIT_CACHE_TOO_BIG	2		/* Function is too big for the cache */
+
+/*
  * Start output of a method, returning a cache position.
+ * The "page_factor" value should be equal to zero unless
+ * the method is being recompiled because it did not fit
+ * into the current page. In the later case the value
+ * should gradually increase until either the methods fits
+ * or the maximum page factor value is exceeded.
  * The "align" value indicates the default alignment for
  * the start of the method.  The "cookie" value is a
  * cookie for referring to the method.  Returns the
  * method entry point, or NULL if the cache is full.
  */
-void *_jit_cache_start_method(jit_cache_t cache, jit_cache_posn *posn,
-					      	  int align, void *cookie);
-
-/*
- * Return values for "_jit_cache_end_method".
- */
-#define	JIT_CACHE_END_OK		0		/* Function is OK */
-#define	JIT_CACHE_END_RESTART	1		/* Restart is required */
-#define	JIT_CACHE_END_TOO_BIG	2		/* Function is too big for the cache */
+int _jit_cache_start_method(jit_cache_t cache,
+			    jit_cache_posn *posn,
+			    int page_factor,
+			    int align,
+			    void *cookie);
 
 /*
  * End output of a method.  Returns zero if a restart.

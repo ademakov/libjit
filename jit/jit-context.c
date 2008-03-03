@@ -330,7 +330,9 @@ struct jit_cache *_jit_context_get_cache(jit_context_t context)
 			((long)jit_context_get_meta_numeric
 				(context, JIT_OPTION_CACHE_LIMIT),
 			 (long)jit_context_get_meta_numeric
-				(context, JIT_OPTION_CACHE_PAGE_SIZE));
+			 	(context, JIT_OPTION_CACHE_PAGE_SIZE),
+			 (int)jit_context_get_meta_numeric
+				(context, JIT_OPTION_CACHE_MAX_PAGE_FACTOR));
 	}
 	return context->cache;
 }

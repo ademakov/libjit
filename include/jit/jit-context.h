@@ -53,6 +53,7 @@ void jit_context_free_meta(jit_context_t context, int type) JIT_NOTHROW;
 #define	JIT_OPTION_PRE_COMPILE		10002
 #define	JIT_OPTION_DONT_FOLD		10003
 #define JIT_OPTION_POSITION_INDEPENDENT	10004
+#define JIT_OPTION_CACHE_MAX_PAGE_FACTOR	10005
 
 #ifdef	__cplusplus
 };

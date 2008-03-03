@@ -1,7 +1,7 @@
 /*
  * jit-function.c - Functions for manipulating function blocks.
  *
- * Copyright (C) 2004  Southern Storm Software, Pty Ltd.
+ * Copyright (C) 2004, 2006-2008  Southern Storm Software, Pty Ltd.
  *
  * This file is part of the libjit library.
  *
@@ -511,16 +511,6 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 		printf("Start of binary code: 0x%08x\n", p1);
 #endif
 
-		/* The cache is full. */
-		if(!jit_cache_check_for_n(&gen->posn, 1))
-		{
-#ifdef _JIT_COMPILE_DEBUG
-			printf("No space left in the code cache.\n\n");
-			fflush(stdout);
-#endif
-			return;
-		}
-
 		switch(insn->opcode)
 		{
 			case JIT_OP_NOP:		break;		/* Ignore NOP's */
@@ -649,10 +639,6 @@ cleanup_on_restart(jit_gencode_t gen, jit_function_t func)
 	jit_insn_iter_t iter;
 	jit_insn_t insn;
 
-#ifdef _JIT_COMPILE_DEBUG
-	printf("\n*** Restart compilation ***\n\n");
-#endif
-
 	block = 0;
 	while((block = jit_block_next(func, block)) != 0)
 	{
@@ -714,27 +700,27 @@ compile(jit_function_t func, void **entry_point)
 {
 	struct jit_gencode gen;
 	jit_cache_t cache;
-	void *start;
-	void *end;
+	unsigned char *start;
+	unsigned char *end;
 	jit_block_t block;
+	int page_factor;
 	int result;
-#ifdef JIT_PROLOG_SIZE
-	int have_prolog;
-#endif
-
-	/* We need the cache lock while we are compiling the function */
-	jit_mutex_lock(&(func->context->cache_lock));
-
-	/* Get the method cache */
-	cache = _jit_context_get_cache(func->context);
-	if(!cache)
-	{
-		jit_mutex_unlock(&(func->context->cache_lock));
-		return 0;
-	}
 
 	/* Initialize the code generation state */
 	jit_memzero(&gen, sizeof(gen));
+	page_factor = 0;
+	start = 0;
+	end = 0;
+
+	/* Intuit "nothrow" and "noreturn" flags for this function */
+	if(!(func->builder->may_throw))
+	{
+		func->no_throw = 1;
+	}
+	if(!(func->builder->ordinary_return))
+	{
+		func->no_return = 1;
+	}
 
 	/* Compute liveness and "next use" information for this function */
 	_jit_function_compute_liveness(func);
@@ -744,28 +730,44 @@ compile(jit_function_t func, void **entry_point)
 	_jit_regs_alloc_global(&gen, func);
 #endif
 
-	/* We may need to perform output twice, if the first attempt fails
-	   due to a lack of space in the current method cache page */
-	do
-	{
+	/* We need the cache lock while we are compiling the function */
+	jit_mutex_lock(&(func->context->cache_lock));
+
 #ifdef _JIT_COMPILE_DEBUG
-		printf("\n*** Start compilation ***\n\n");
-		func->builder->block_count = 0;
-		func->builder->insn_count = 0;
+	printf("\n*** Start compilation ***\n\n");
+	func->builder->block_count = 0;
+	func->builder->insn_count = 0;
 #endif
 
-		/* Start function output to the cache */
-		start = _jit_cache_start_method
-			(cache, &(gen.posn), JIT_FUNCTION_ALIGNMENT, func);
-		if(!start)
-		{
-#ifdef jit_extra_gen_cleanup
-			/* Clean up the extra code generation state */
-			jit_extra_gen_cleanup(gen);
-#endif
-			jit_mutex_unlock(&(func->context->cache_lock));
-			return 0;
-		}
+	/* Get the method cache */
+	cache = _jit_context_get_cache(func->context);
+	if(!cache)
+	{
+		jit_mutex_unlock(&(func->context->cache_lock));
+		return 0;
+	}
+
+	/* Start function output to the cache */
+	result = _jit_cache_start_method(cache, &(gen.posn),
+					 page_factor++,
+					 JIT_FUNCTION_ALIGNMENT, func);
+	if (result == JIT_CACHE_RESTART)
+	{
+		/* No space left on the current cache page.  Allocate a new one. */
+		result = _jit_cache_start_method(cache, &(gen.posn),
+						 page_factor++,
+						 JIT_FUNCTION_ALIGNMENT, func);
+	}
+	if (result != JIT_CACHE_OK)
+	{
+		/* Failed to allocate any cache space */
+		jit_mutex_unlock(&(func->context->cache_lock));
+		return 0;
+	}
+
+	for(;;)
+	{
+		start = gen.posn.ptr;
 
 #ifdef jit_extra_gen_init
 		/* Initialize information that may need to be reset each loop */
@@ -774,20 +776,13 @@ compile(jit_function_t func, void **entry_point)
 
 #ifdef JIT_PROLOG_SIZE
 		/* Output space for the function prolog */
-		if(jit_cache_check_for_n(&(gen.posn), JIT_PROLOG_SIZE))
+		if(!jit_cache_check_for_n(&(gen.posn), JIT_PROLOG_SIZE))
 		{
-			gen.posn.ptr += JIT_PROLOG_SIZE;
-			have_prolog = 1;
+			/* No space left on the current cache page.  Restart. */
+			jit_cache_mark_full(&(gen.posn));
+			goto restart;
 		}
-		else
-		{
-			have_prolog = 0;
-		}
-#endif
-
-		/* Clear the register assignments for the first block */
-#ifndef JIT_BACKEND_INTERP
-		_jit_regs_init_for_block(&gen);
+		gen.posn.ptr += JIT_PROLOG_SIZE;
 #endif
 
 		/* Generate code for the blocks in the function */
@@ -802,22 +797,29 @@ compile(jit_function_t func, void **entry_point)
 
 			/* Notify the back end that the block is starting */
 			_jit_gen_start_block(&gen, block);
-	
+
+#ifndef JIT_BACKEND_INTERP
+			/* Clear the local register assignments */
+			_jit_regs_init_for_block(&gen);
+#endif
+
 			/* Generate the block's code */
 			compile_block(&gen, func, block);
 
-			/* Spill all live register values back to their frame positions */
 #ifndef JIT_BACKEND_INTERP
+			/* Spill all live register values back to their frame positions */
 			_jit_regs_spill_all(&gen);
 #endif
 
 			/* Notify the back end that the block is finished */
 			_jit_gen_end_block(&gen, block);
-	
-			/* Clear the local register assignments, ready for the next block */
-#ifndef JIT_BACKEND_INTERP
-			_jit_regs_init_for_block(&gen);
-#endif
+
+			/* Stop code generation if the cache page is full */
+			if(_jit_cache_is_full(cache, &(gen.posn)))
+			{
+				/* No space left on the current cache page.  Restart. */
+				goto restart;
+			}
 		}
 
 		/* Output the function epilog.  All return paths will jump to here */
@@ -826,10 +828,7 @@ compile(jit_function_t func, void **entry_point)
 
 #ifdef JIT_PROLOG_SIZE
 		/* Back-patch the function prolog and get the real entry point */
-		if(have_prolog)
-		{
-			start = _jit_gen_prolog(&gen, func, start);
-		}
+		start = _jit_gen_prolog(&gen, func, start);
 #endif
 
 #if !defined(JIT_BACKEND_INTERP) && (!defined(jit_redirector_size) || !defined(jit_indirector_size))
@@ -843,17 +842,38 @@ compile(jit_function_t func, void **entry_point)
 		}
 #endif
 
+	restart:
 		/* End the function's output process */
 		result = _jit_cache_end_method(&(gen.posn));
-
-		/* If we need to restart on a different cache page, then clean up
-		   the compilation state  */
-		if(result == JIT_CACHE_END_RESTART)
+		if(result != JIT_CACHE_RESTART)
 		{
-			cleanup_on_restart(&gen, func);
+			break;
 		}
+
+		/* Clean up the compilation state before restart */
+		cleanup_on_restart(&gen, func);
+
+#ifdef _JIT_COMPILE_DEBUG
+		printf("\n*** Restart compilation ***\n\n");
+		func->builder->block_count = 0;
+		func->builder->insn_count = 0;
+#endif
+
+		/* Restart function output to the cache */
+		result = _jit_cache_start_method(cache, &(gen.posn),
+						 page_factor,
+						 JIT_FUNCTION_ALIGNMENT, func);
+		if(result != JIT_CACHE_OK)
+		{
+#ifdef jit_extra_gen_cleanup
+			/* Clean up the extra code generation state */
+			jit_extra_gen_cleanup(gen);
+#endif
+			jit_mutex_unlock(&(func->context->cache_lock));
+			return 0;
+		}
+		page_factor *= 2;
 	}
-	while(result == JIT_CACHE_END_RESTART);
 
 #ifdef jit_extra_gen_cleanup
 	/* Clean up the extra code generation state */
@@ -861,7 +881,7 @@ compile(jit_function_t func, void **entry_point)
 #endif
 
 	/* Bail out if we ran out of memory while translating the function */
-	if(result != JIT_CACHE_END_OK)
+	if(result != JIT_CACHE_OK)
 	{
 		jit_mutex_unlock(&(func->context->cache_lock));
 		return 0;
@@ -869,25 +889,14 @@ compile(jit_function_t func, void **entry_point)
 
 #ifndef JIT_BACKEND_INTERP
 	/* Perform a CPU cache flush, to make the code executable */
-	jit_flush_exec(start, (unsigned int)(((unsigned char *)end) -
-										 ((unsigned char *)start)));
+	jit_flush_exec(start, (unsigned int)(end - start));
 #endif
-
-	/* Intuit "nothrow" and "noreturn" flags for this function */
-	if(!(func->builder->may_throw))
-	{
-		func->no_throw = 1;
-	}
-	if(!(func->builder->ordinary_return))
-	{
-		func->no_return = 1;
-	}
-
-	/* Free the builder structure, which we no longer require */
-	_jit_function_free_builder(func);
 
 	/* The function has been compiled successfully */
 	jit_mutex_unlock(&(func->context->cache_lock));
+
+	/* Free the builder structure, which we no longer require */
+	_jit_function_free_builder(func);
 
 	/* Record the entry point */
 	if(entry_point)

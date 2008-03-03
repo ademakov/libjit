@@ -1,3 +1,13 @@
+2008-03-03  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-cache.h, jit/jit-cache.c, jit/jit-function.c (compile):
+	modify cache algorithm to allow a method to occupy more than one
+	cache page.
+
+	* include/jit/jit-context.h: add JIT_OPTION_CACHE_MAX_PAGE_FACTOR
+	option.
+	* jit/jit-context.c (_jit_context_get_cache): use that option.
+
 2008-03-02  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-apply-x86-64.h: define the sizes for indirector and
