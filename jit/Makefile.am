@@ -121,4 +121,5 @@ CLEANFILES = \
 	jit-interp-labels.h \
 	jit-rules-alpha.inc \
 	jit-rules-arm.slc \
-	jit-rules-x86.inc
+	jit-rules-x86.inc \
+	jit-rules-x86-64.inc
