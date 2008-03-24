@@ -690,6 +690,9 @@ cleanup_on_restart(jit_gencode_t gen, jit_function_t func)
 	{
 		gen->touched = gen->permanent;
 	}
+
+	/* Reset the epilog fixup list */
+	gen->epilog_fixup = 0;
 }
 
 /*

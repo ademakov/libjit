@@ -1,3 +1,7 @@
+2008-03-24  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-function.c (cleanup_on_restart): Reset the epilog_fixup.
+
 2008-03-04  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/Makefile.am: Add jit-rules-x86-64.inc to CLEANFILES to fix
