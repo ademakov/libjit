@@ -1890,6 +1890,351 @@ typedef union
 	x86_64_xor_reg_reg_size((inst), (reg), (reg), 4)
 
 /*
+ * shift instructions
+ */
+#define x86_64_shift_reg_imm_size(inst, opc, dreg, imm, size) \
+	do { \
+		if((imm) == 1) \
+		{ \
+			if((size) == 2) \
+			{ \
+				*(inst)++ = (unsigned char)0x66; \
+			} \
+			x86_64_rex_emit((inst), (size), 0, 0, (dreg)); \
+			x86_64_opcode1_emit((inst), 0xd0, (size)); \
+			x86_64_reg_emit((inst), (opc), (dreg)); \
+		} \
+		else \
+		{ \
+			if((size) == 2) \
+			{ \
+				*(inst)++ = (unsigned char)0x66; \
+			} \
+			x86_64_rex_emit((inst), (size), 0, 0, (dreg)); \
+			x86_64_opcode1_emit((inst), 0xc0, (size)); \
+			x86_64_reg_emit((inst), (opc), (dreg)); \
+			x86_imm_emit8((inst), (imm)); \
+		} \
+	} while(0)
+
+#define x86_64_shift_mem_imm_size(inst, opc, mem, imm, size) \
+	do { \
+		if((imm) == 1) \
+		{ \
+			if((size) == 2) \
+			{ \
+				*(inst)++ = (unsigned char)0x66; \
+			} \
+			x86_64_rex_emit((inst), (size), 0, 0, 0); \
+			x86_64_opcode1_emit((inst), 0xd0, (size)); \
+			x86_64_mem_emit((inst), (opc), (mem)); \
+		} \
+		else \
+		{ \
+			if((size) == 2) \
+			{ \
+				*(inst)++ = (unsigned char)0x66; \
+			} \
+			x86_64_rex_emit((inst), (size), 0, 0, 0); \
+			x86_64_opcode1_emit((inst), 0xc0, (size)); \
+			x86_64_mem_emit((inst), (opc), (mem)); \
+			x86_imm_emit8((inst), (imm)); \
+		} \
+	} while(0)
+
+#define x86_64_shift_regp_imm_size(inst, opc, dregp, imm, size) \
+	do { \
+		if((imm) == 1) \
+		{ \
+			if((size) == 2) \
+			{ \
+				*(inst)++ = (unsigned char)0x66; \
+			} \
+			x86_64_rex_emit((inst), (size), 0, 0, (dregp)); \
+			x86_64_opcode1_emit((inst), 0xd0, (size)); \
+			x86_64_regp_emit((inst), (opc), (dregp)); \
+		} \
+		else \
+		{ \
+			if((size) == 2) \
+			{ \
+				*(inst)++ = (unsigned char)0x66; \
+			} \
+			x86_64_rex_emit((inst), (size), 0, 0, (dregp)); \
+			x86_64_opcode1_emit((inst), 0xc0, (size)); \
+			x86_64_regp_emit((inst), (opc), (dregp)); \
+			x86_imm_emit8((inst), (imm)); \
+		} \
+	} while(0)
+
+#define x86_64_shift_membase_imm_size(inst, opc, basereg, disp, imm, size) \
+	do { \
+		if((imm) == 1) \
+		{ \
+			if((size) == 2) \
+			{ \
+				*(inst)++ = (unsigned char)0x66; \
+			} \
+			x86_64_rex_emit((inst), (size), 0, 0, (basereg)); \
+			x86_64_opcode1_emit((inst), 0xd0, (size)); \
+			x86_64_membase_emit((inst), (opc), (basereg), (disp)); \
+		} \
+		else \
+		{ \
+			if((size) == 2) \
+			{ \
+				*(inst)++ = (unsigned char)0x66; \
+			} \
+			x86_64_rex_emit((inst), (size), 0, 0, (basereg)); \
+			x86_64_opcode1_emit((inst), 0xc0, (size)); \
+			x86_64_membase_emit((inst), (opc), (basereg), (disp)); \
+			x86_imm_emit8((inst), (imm)); \
+		} \
+	} while(0)
+
+#define x86_64_shift_memindex_imm_size(inst, opc, basereg, disp, indexreg, shift, imm, size) \
+	do { \
+		if((imm) == 1) \
+		{ \
+			if((size) == 2) \
+			{ \
+				*(inst)++ = (unsigned char)0x66; \
+			} \
+			x86_64_rex_emit((inst), (size), 0, (indexreg), (basereg)); \
+			x86_64_opcode1_emit((inst), 0xd0, (size)); \
+			x86_64_memindex_emit((inst), (opc), (basereg), (disp), (indexreg), (shift)); \
+		} \
+		else \
+		{ \
+			if((size) == 2) \
+			{ \
+				*(inst)++ = (unsigned char)0x66; \
+			} \
+			x86_64_rex_emit((inst), (size), 0, (indexreg), (basereg)); \
+			x86_64_opcode1_emit((inst), 0xc0, (size)); \
+			x86_64_memindex_emit((inst), (opc), (basereg), (disp), (indexreg), (shift)); \
+			x86_imm_emit8((inst), (imm)); \
+		} \
+	} while(0)
+
+/*
+ * shift by the number of bits in %cl
+ */
+#define x86_64_shift_reg_size(inst, opc, dreg, size) \
+	do { \
+		if((size) == 2) \
+		{ \
+			*(inst)++ = (unsigned char)0x66; \
+		} \
+		x86_64_rex_emit((inst), (size), 0, 0, (dreg)); \
+		x86_64_opcode1_emit((inst), 0xd2, (size)); \
+		x86_64_reg_emit((inst), (opc), (dreg)); \
+	} while(0)
+
+#define x86_64_shift_mem_size(inst, opc, mem, size) \
+	do { \
+		if((size) == 2) \
+		{ \
+			*(inst)++ = (unsigned char)0x66; \
+		} \
+		x86_64_rex_emit((inst), (size), 0, 0, 0); \
+		x86_64_opcode1_emit((inst), 0xd2, (size)); \
+		x86_64_mem_emit((inst), (opc), (mem)); \
+	} while(0)
+
+#define x86_64_shift_regp_size(inst, opc, dregp, size) \
+	do { \
+		if((size) == 2) \
+		{ \
+			*(inst)++ = (unsigned char)0x66; \
+		} \
+		x86_64_rex_emit((inst), (size), 0, 0, (dregp)); \
+		x86_64_opcode1_emit((inst), 0xd2, (size)); \
+		x86_64_regp_emit((inst), (opc), (dregp)); \
+	} while(0)
+
+#define x86_64_shift_membase_size(inst, opc, basereg, disp, size) \
+	do { \
+		if((size) == 2) \
+		{ \
+			*(inst)++ = (unsigned char)0x66; \
+		} \
+		x86_64_rex_emit((inst), (size), 0, 0, (basereg)); \
+		x86_64_opcode1_emit((inst), 0xd2, (size)); \
+		x86_64_membase_emit((inst), (opc), (basereg), (disp)); \
+	} while(0)
+
+#define x86_64_shift_memindex_size(inst, opc, basereg, disp, indexreg, shift, size) \
+	do { \
+		if((size) == 2) \
+		{ \
+			*(inst)++ = (unsigned char)0x66; \
+		} \
+		x86_64_rex_emit((inst), (size), 0, (indexreg), (basereg)); \
+		x86_64_opcode1_emit((inst), 0xd2, (size)); \
+		x86_64_memindex_emit((inst), (opc), (basereg), (disp), (indexreg), (shift)); \
+	} while(0)
+
+/*
+ * shl: Shit left (clear the least significant bit)
+ */
+#define x86_64_shl_reg_imm_size(inst, dreg, imm, size) \
+	do { \
+		x86_64_shift_reg_imm_size((inst), 4, (dreg), (imm), (size)); \
+	} while(0)
+
+#define x86_64_shl_mem_imm_size(inst, mem, imm, size) \
+	do { \
+		x86_64_shift_mem_imm_size((inst), 4, (mem), (imm), (size)); \
+	} while(0)
+
+#define x86_64_shl_regp_imm_size(inst, dregp, imm, size) \
+	do { \
+		x86_64_shift_regp_imm_size((inst), 4, (dregp), (imm), (size)); \
+	} while(0)
+
+#define x86_64_shl_membase_imm_size(inst, basereg, disp, imm, size) \
+	do { \
+		x86_64_shift_membase_imm_size((inst), 4, (basereg), (disp), (imm), (size)); \
+	} while(0)
+
+#define x86_64_shl_memindex_imm_size(inst, basereg, disp, indexreg, shift, imm, size) \
+	do { \
+		x86_64_shift_memindex_imm_size((inst), 4, (basereg), (disp), (indexreg), (shift), (imm), (size)); \
+	} while(0)
+
+#define x86_64_shl_reg_size(inst, dreg, size) \
+	do { \
+		x86_64_shift_reg_size((inst), 4, (dreg), (size)); \
+	} while(0)
+
+#define x86_64_shl_mem_size(inst, mem, size) \
+	do { \
+		x86_64_shift_mem_size((inst), 4, (mem), (size)); \
+	} while(0)
+
+#define x86_64_shl_regp_size(inst, dregp, size) \
+	do { \
+		x86_64_shift_regp_size((inst), 4, (dregp), (size)); \
+	} while(0)
+
+#define x86_64_shl_membase_size(inst, basereg, disp, size) \
+	do { \
+		x86_64_shift_membase_size((inst), 4, (basereg), (disp), (size)); \
+	} while(0)
+
+#define x86_64_shl_memindex_size(inst, basereg, disp, indexreg, shift, size) \
+	do { \
+		x86_64_shift_memindex_size((inst), 4, (basereg), (disp), (indexreg), (shift), (size)); \
+	} while(0)
+
+/*
+ * shr: Unsigned shit right (clear the most significant bit)
+ */
+#define x86_64_shr_reg_imm_size(inst, dreg, imm, size) \
+	do { \
+		x86_64_shift_reg_imm_size((inst), 5, (dreg), (imm), (size)); \
+	} while(0)
+
+#define x86_64_shr_mem_imm_size(inst, mem, imm, size) \
+	do { \
+		x86_64_shift_mem_imm_size((inst), 5, (mem), (imm), (size)); \
+	} while(0)
+
+#define x86_64_shr_regp_imm_size(inst, dregp, imm, size) \
+	do { \
+		x86_64_shift_regp_imm_size((inst), 5, (dregp), (imm), (size)); \
+	} while(0)
+
+#define x86_64_shr_membase_imm_size(inst, basereg, disp, imm, size) \
+	do { \
+		x86_64_shift_membase_imm_size((inst), 5, (basereg), (disp), (imm), (size)); \
+	} while(0)
+
+#define x86_64_shr_memindex_imm_size(inst, basereg, disp, indexreg, shift, imm, size) \
+	do { \
+		x86_64_shift_memindex_imm_size((inst), 5, (basereg), (disp), (indexreg), (shift), (imm), (size)); \
+	} while(0)
+
+#define x86_64_shr_reg_size(inst, dreg, size) \
+	do { \
+		x86_64_shift_reg_size((inst), 5, (dreg), (size)); \
+	} while(0)
+
+#define x86_64_shr_mem_size(inst, mem, size) \
+	do { \
+		x86_64_shift_mem_size((inst), 5, (mem), (size)); \
+	} while(0)
+
+#define x86_64_shr_regp_size(inst, dregp, size) \
+	do { \
+		x86_64_shift_regp_size((inst), 5, (dregp), (size)); \
+	} while(0)
+
+#define x86_64_shr_membase_size(inst, basereg, disp, size) \
+	do { \
+		x86_64_shift_membase_size((inst), 5, (basereg), (disp), (size)); \
+	} while(0)
+
+#define x86_64_shr_memindex_size(inst, basereg, disp, indexreg, shift, size) \
+	do { \
+		x86_64_shift_memindex_size((inst), 5, (basereg), (disp), (indexreg), (shift), (size)); \
+	} while(0)
+
+/*
+ * sar: Signed shit right (keep the most significant bit)
+ */
+#define x86_64_sar_reg_imm_size(inst, dreg, imm, size) \
+	do { \
+		x86_64_shift_reg_imm_size((inst), 7, (dreg), (imm), (size)); \
+	} while(0)
+
+#define x86_64_sar_mem_imm_size(inst, mem, imm, size) \
+	do { \
+		x86_64_shift_mem_imm_size((inst), 7, (mem), (imm), (size)); \
+	} while(0)
+
+#define x86_64_sar_regp_imm_size(inst, dregp, imm, size) \
+	do { \
+		x86_64_shift_regp_imm_size((inst), 7, (dregp), (imm), (size)); \
+	} while(0)
+
+#define x86_64_sar_membase_imm_size(inst, basereg, disp, imm, size) \
+	do { \
+		x86_64_shift_membase_imm_size((inst), 7, (basereg), (disp), (imm), (size)); \
+	} while(0)
+
+#define x86_64_sar_memindex_imm_size(inst, basereg, disp, indexreg, shift, imm, size) \
+	do { \
+		x86_64_shift_memindex_imm_size((inst), 7, (basereg), (disp), (indexreg), (shift), (imm), (size)); \
+	} while(0)
+
+#define x86_64_sar_reg_size(inst, dreg, size) \
+	do { \
+		x86_64_shift_reg_size((inst), 7, (dreg), (size)); \
+	} while(0)
+
+#define x86_64_sar_mem_size(inst, mem, size) \
+	do { \
+		x86_64_shift_mem_size((inst), 7, (mem), (size)); \
+	} while(0)
+
+#define x86_64_sar_regp_size(inst, dregp, size) \
+	do { \
+		x86_64_shift_regp_size((inst), 7, (dregp), (size)); \
+	} while(0)
+
+#define x86_64_sar_membase_size(inst, basereg, disp, size) \
+	do { \
+		x86_64_shift_membase_size((inst), 7, (basereg), (disp), (size)); \
+	} while(0)
+
+#define x86_64_sar_memindex_size(inst, basereg, disp, indexreg, shift, size) \
+	do { \
+		x86_64_shift_memindex_size((inst), 7, (basereg), (disp), (indexreg), (shift), (size)); \
+	} while(0)
+
+/*
  * Lea instructions
  */
 #define x86_64_lea_mem_size(inst, dreg, mem, size) \
@@ -2026,7 +2371,7 @@ typedef union
 			case 8: \
 			{ \
 				jit_nint __x86_64_imm = (imm); \
-				if(__x86_64_imm >= jit_min_int && __x86_64_imm <= jit_max_int) \
+				if(__x86_64_imm >= (jit_nint)jit_min_int && __x86_64_imm <= (jit_nint)jit_max_int) \
 				{ \
 					*(inst)++ = (unsigned char)0xc7; \
 					x86_64_reg_emit((inst), 0, (dreg)); \
@@ -2610,6 +2955,41 @@ typedef union
 	} while(0)
 
 /*
+ * xchg: Exchange values
+ */
+#define x86_64_xchg_reg_reg_size(inst, dreg, sreg, size) \
+	do { \
+		if(((size) > 1) && ((dreg) == X86_64_RAX || (sreg) == X86_64_RAX)) \
+		{ \
+			if((size) == 2) \
+			{ \
+				*(inst)++ = (unsigned char)0x66; \
+			} \
+			if((dreg) == X86_64_RAX) \
+			{ \
+				x86_64_rex_emit((inst), (size), 0, 0, (sreg)); \
+				*(inst)++ = (unsigned char)(0x90 + (unsigned char)(sreg & 0x7)); \
+			} \
+			else \
+			{ \
+				x86_64_rex_emit((inst), (size), 0, 0, (dreg)); \
+				*(inst)++ = (unsigned char)(0x90 + (unsigned char)(dreg & 0x7)); \
+			} \
+		} \
+		else \
+		{ \
+			if((size) == 1) \
+			{ \
+				x86_64_alu1_reg_reg_size((inst), 0x86, (dreg), (sreg), (size)); \
+			} \
+			else \
+			{ \
+				x86_64_alu1_reg_reg_size((inst), 0x87, (dreg), (sreg), (size)); \
+			} \
+		} \
+	} while(0)
+
+/*
  * XMM instructions
  */
 
@@ -2735,6 +3115,112 @@ typedef union
 /*
  * Move instructions
  */
+
+/*
+ * movd: Move doubleword from/to xmm register
+ */
+#define x86_64_movd_xreg_reg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0x66, 0x0f, 0x6e, (dreg), (sreg), 4); \
+	} while(0)
+
+#define x86_64_movd_xreg_mem(inst, dreg, mem) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0x66, 0x0f, 0x6e, (dreg), (mem), 4); \
+	} while(0)
+
+#define x86_64_movd_xreg_regp(inst, dreg, sregp) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0x66, 0x0f, 0x6e, (dreg), (sregp), 4); \
+	} while(0)
+
+#define x86_64_movd_xreg_membase(inst, dreg, basereg, disp) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0x66, 0x0f, 0x6e, (dreg), (basereg), (disp), 4); \
+	} while(0)
+
+#define x86_64_movd_xreg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0x66, 0x0f, 0x6e, (dreg), (basereg), (disp), (indexreg), (shift), 4); \
+	} while(0)
+
+#define x86_64_movd_reg_xreg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0x66, 0x0f, 0x7e, (sreg), (dreg), 4); \
+	} while(0)
+
+#define x86_64_movd_mem_xreg(inst, mem, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0x66, 0x0f, 0x7e, (sreg), (mem), 4); \
+	} while(0)
+
+#define x86_64_movd_regp_xreg(inst, dregp, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0x66, 0x0f, 0x7e, (sreg), (dregp), 4); \
+	} while(0)
+
+#define x86_64_movd_membase_xreg(inst, basereg, disp, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0x66, 0x0f, 0x7e, (sreg), (basereg), (disp), 4); \
+	} while(0)
+
+#define x86_64_movd_memindex_xreg(inst, basereg, disp, indexreg, shift, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0x66, 0x0f, 0x7e, (sreg), (basereg), (disp), (indexreg), (shift), 4); \
+	} while(0)
+
+/*
+ * movq: Move quadword from/to xmm register
+ */
+#define x86_64_movq_xreg_reg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0x66, 0x0f, 0x6e, (dreg), (sreg), 8); \
+	} while(0)
+
+#define x86_64_movq_xreg_mem(inst, dreg, mem) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0x66, 0x0f, 0x6e, (dreg), (mem), 8); \
+	} while(0)
+
+#define x86_64_movq_xreg_regp(inst, dreg, sregp) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0x66, 0x0f, 0x6e, (dreg), (sregp), 8); \
+	} while(0)
+
+#define x86_64_movq_xreg_membase(inst, dreg, basereg, disp) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0x66, 0x0f, 0x6e, (dreg), (basereg), (disp), 8); \
+	} while(0)
+
+#define x86_64_movq_xreg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0x66, 0x0f, 0x6e, (dreg), (basereg), (disp), (indexreg), (shift), 8); \
+	} while(0)
+
+#define x86_64_movq_reg_xreg(inst, dreg, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0x66, 0x0f, 0x7e, (sreg), (dreg), 8); \
+	} while(0)
+
+#define x86_64_movq_mem_xreg(inst, mem, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0x66, 0x0f, 0x7e, (sreg), (mem), 8); \
+	} while(0)
+
+#define x86_64_movq_regp_xreg(inst, dregp, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0x66, 0x0f, 0x7e, (sreg), (dregp), 8); \
+	} while(0)
+
+#define x86_64_movq_membase_xreg(inst, basereg, disp, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0x66, 0x0f, 0x7e, (sreg), (basereg), (disp), 8); \
+	} while(0)
+
+#define x86_64_movq_memindex_xreg(inst, basereg, disp, indexreg, shift, sreg) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0x66, 0x0f, 0x7e, (sreg), (basereg), (disp), (indexreg), (shift), 8); \
+	} while(0)
 
 /*
  * movaps: Move aligned quadword (16 bytes)

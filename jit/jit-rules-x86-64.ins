@@ -23,6 +23,7 @@
 %regclass reg x86_64_reg
 %regclass creg x86_64_creg
 %regclass rreg x86_64_rreg
+%regclass sreg x86_64_sreg
 %regclass freg x86_64_freg
 %regclass xreg x86_64_xreg
  
@@ -93,7 +94,7 @@ JIT_OP_EXPAND_UINT:
 JIT_OP_NFLOAT_TO_INT: stack
 	[=reg, freg] -> {
 		/* allocate space on the stack for 2 shorts and 1 int */
-		x86_64_sub_reg_imm_size(inst, X86_ESP, 8, 8);
+		x86_64_sub_reg_imm_size(inst, X86_64_RSP, 8, 8);
 		/* store FPU control word */
 		x86_64_fnstcw_membase(inst, X86_64_RSP, 0);
 		/* set "round toward zero" mode */
@@ -177,6 +178,9 @@ JIT_OP_COPY_INT: copy
 	[reg] -> {}
 
 JIT_OP_COPY_LONG: copy
+	[=local, imm, if("$2 >= jit_min_int && $2 <= jit_max_int")] -> {
+		x86_64_mov_membase_imm_size(inst, X86_64_RBP, $1, $2, 8);
+	}
 	[reg] -> {}
 
 JIT_OP_COPY_FLOAT32: copy
@@ -230,7 +234,7 @@ JIT_OP_PUSH_INT: note
 
 JIT_OP_PUSH_LONG: note
 	[imm] -> {
-		if(($1 >= jit_min_int) && ($1 <= jit_max_int))
+		if(($1 >= (jit_nint)jit_min_int) && ($1 <= (jit_nint)jit_max_int))
 		{
 			x86_64_push_imm(inst, $1);
 		}
@@ -252,7 +256,7 @@ JIT_OP_PUSH_LONG: note
 		gen->stack_changed = 1;
 	}
 
-JIT_OP_PUSH_FLOAT32: note, stack
+JIT_OP_PUSH_FLOAT32: note
 	[imm] -> {
 		jit_int *ptr = (jit_int *)($1);
 		x86_64_push_imm_size(inst, ptr[0], 4);
@@ -267,13 +271,8 @@ JIT_OP_PUSH_FLOAT32: note, stack
 		x86_64_movss_membase_reg(inst, X86_64_RSP, 0, $1);
 		gen->stack_changed = 1;
 	}
-	[freg] -> {
-		x86_64_sub_reg_imm_size(inst, X86_64_RSP, 8, 8);
-		x86_64_fstp_membase_size(inst, X86_64_RSP, 0, 4);
-		gen->stack_changed = 1;
-	}
 
-JIT_OP_PUSH_FLOAT64: note, stack
+JIT_OP_PUSH_FLOAT64: note
 	[imm] -> {
 		jit_int *ptr = (jit_int *)($1);
 		x86_64_sub_reg_imm_size(inst, X86_64_RSP, 8, 8);
@@ -288,11 +287,6 @@ JIT_OP_PUSH_FLOAT64: note, stack
 	[xreg] -> {
 		x86_64_sub_reg_imm_size(inst, X86_64_RSP, 8, 8);
 		x86_64_movsd_membase_reg(inst, X86_64_RSP, 0, $1);
-		gen->stack_changed = 1;
-	}
-	[freg] -> {
-		x86_64_sub_reg_imm_size(inst, X86_64_RSP, 8, 8);
-		x86_64_fstp_membase_size(inst, X86_64_RSP, 0, 8);
 		gen->stack_changed = 1;
 	}
 
@@ -541,7 +535,7 @@ JIT_OP_LOAD_RELATIVE_STRUCT: more_space
 								 jit_value_get_type(insn->dest), $4, $5);
 	}
 	[=frame, reg, imm, clobber(creg), clobber(xreg)] -> {
-		inst = memory_copy(gen, inst, X86_EBP, $1, $2, $3,
+		inst = memory_copy(gen, inst, X86_64_RBP, $1, $2, $3,
 				   jit_type_get_size(jit_value_get_type(insn->dest)));
 	}
 
@@ -612,7 +606,7 @@ JIT_OP_STORE_RELATIVE_INT: ternary
 	}
 
 JIT_OP_STORE_RELATIVE_LONG: ternary
-	[reg, imm, imm, if("$2 >= jit_min_int && $2 <= jit_max_int")] -> {
+	[reg, imm, imm, if("$2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int")] -> {
 		if($3 == 0)
 		{
 			x86_64_mov_regp_imm_size(inst, $1, $2, 8);
@@ -683,8 +677,8 @@ JIT_OP_STORE_RELATIVE_STRUCT: ternary
 	}
 
 JIT_OP_ADD_RELATIVE:
-	[reg, imm, if("$2 >= jit_min_int && $2 <= jit_max_int")] -> {
-		if(insn->value2->address != 0)
+	[reg, imm, if("$2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int")] -> {
+		if($2 != 0)
 		{
 			x86_64_add_reg_imm_size(inst, $1, $2, 8);
 		}
@@ -751,7 +745,7 @@ JIT_OP_STORE_ELEMENT_INT: ternary
 
 JIT_OP_STORE_ELEMENT_LONG: ternary
 	[reg, reg, imm] -> {
-		if($3 >= jit_min_int && $3 <= jit_max_int)
+		if($3 >= (jit_nint)jit_min_int && $3 <= (jit_nint)jit_max_int)
 		{
 			x86_64_mov_memindex_imm_size(inst, $1, 0, $2, 3, $3, 8);
 		}
@@ -831,7 +825,7 @@ JIT_OP_INEG:
  */
 
 JIT_OP_LADD: commutative
-	[reg, imm, if("$2 >= jit_min_int && $2 <= jit_max_int")] -> {
+	[reg, imm, if("$2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int")] -> {
 		if($2 == 1)
 		{
 			x86_64_inc_reg_size(inst, $1, 8);
@@ -849,7 +843,7 @@ JIT_OP_LADD: commutative
 	}
 
 JIT_OP_LSUB:
-	[reg, imm, if("$2 >= jit_min_int && $2 <= jit_max_int")] -> {
+	[reg, imm, if("$2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int")] -> {
 		if($2 == 1)
 		{
 			x86_64_dec_reg_size(inst, $1, 8);
@@ -1008,8 +1002,32 @@ JIT_OP_INOT:
 		x86_64_not_reg_size(inst, $1, 4);
 	}
 
+JIT_OP_ISHL:
+	[reg, imm] -> {
+		x86_64_shl_reg_imm_size(inst, $1, ($2 & 0x1F), 4);
+	}
+	[sreg, reg("rcx")] -> {
+		x86_64_shl_reg_size(inst, $1, 4);
+	}
+
+JIT_OP_ISHR:
+	[reg, imm] -> {
+		x86_64_sar_reg_imm_size(inst, $1, ($2 & 0x1F), 4);
+	}
+	[sreg, reg("rcx")] -> {
+		x86_64_sar_reg_size(inst, $1, 4);
+	}
+
+JIT_OP_ISHR_UN:
+	[reg, imm] -> {
+		x86_64_shr_reg_imm_size(inst, $1, ($2 & 0x1F), 4);
+	}
+	[sreg, reg("rcx")] -> {
+		x86_64_shr_reg_size(inst, $1, 4);
+	}
+
 JIT_OP_LAND: commutative
-	[reg, imm, if("($2 >= jit_min_int && $2 <= jit_max_int)")] -> {
+	[reg, imm, if("($2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int)")] -> {
 		x86_64_and_reg_imm_size(inst, $1, $2, 8);
 	}
 	[reg, local] -> {
@@ -1020,7 +1038,7 @@ JIT_OP_LAND: commutative
 	}
 
 JIT_OP_LOR: commutative
-	[reg, imm, if("($2 >= jit_min_int && $2 <= jit_max_int)")] -> {
+	[reg, imm, if("($2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int)")] -> {
 		x86_64_or_reg_imm_size(inst, $1, $2, 8);
 	}
 	[reg, local] -> {
@@ -1031,7 +1049,7 @@ JIT_OP_LOR: commutative
 	}
 
 JIT_OP_LXOR: commutative
-	[reg, imm, if("($2 >= jit_min_int && $2 <= jit_max_int)")] -> {
+	[reg, imm, if("($2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int)")] -> {
 		x86_64_xor_reg_imm_size(inst, $1, $2, 8);
 	}
 	[reg, local] -> {
@@ -1046,7 +1064,29 @@ JIT_OP_LNOT:
 		x86_64_not_reg_size(inst, $1, 8);
 	}
 
+JIT_OP_LSHL:
+	[reg, imm] -> {
+		x86_64_shl_reg_imm_size(inst, $1, ($2 & 0x3F), 8);
+	}
+	[sreg, reg("rcx")] -> {
+		x86_64_shl_reg_size(inst, $1, 8);
+	}
 
+JIT_OP_LSHR:
+	[reg, imm] -> {
+		x86_64_sar_reg_imm_size(inst, $1, ($2 & 0x3F), 8);
+	}
+	[sreg, reg("rcx")] -> {
+		x86_64_sar_reg_size(inst, $1, 8);
+	}
+
+JIT_OP_LSHR_UN:
+	[reg, imm] -> {
+		x86_64_shr_reg_imm_size(inst, $1, ($2 & 0x3F), 8);
+	}
+	[sreg, reg("rcx")] -> {
+		x86_64_shr_reg_size(inst, $1, 8);
+	}
 
 /*
  * Branch opcodes.
@@ -1234,7 +1274,7 @@ JIT_OP_BR_LEQ: branch
 		x86_64_or_reg_reg_size(inst, $1, $1, 8);
 		inst = output_branch(func, inst, 0x74 /* eq */, insn);
 	}
-	[reg, imm, if("($2 >= jit_min_int && $2 <= jit_max_int)")] -> {
+	[reg, imm, if("($2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int)")] -> {
 		x86_64_cmp_reg_imm_size(inst, $1, $2, 8);
 		inst = output_branch(func, inst, 0x74 /* eq */, insn);
 	}
@@ -1252,7 +1292,7 @@ JIT_OP_BR_LNE: branch
 		x86_64_or_reg_reg_size(inst, $1, $1, 8);
 		inst = output_branch(func, inst, 0x75 /* ne */, insn);
 	}
-	[reg, imm, if("($2 >= jit_min_int && $2 <= jit_max_int)")] -> {
+	[reg, imm, if("($2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int)")] -> {
 		x86_64_cmp_reg_imm_size(inst, $1, $2, 8);
 		inst = output_branch(func, inst, 0x75 /* ne */, insn);
 	}
@@ -1266,7 +1306,7 @@ JIT_OP_BR_LNE: branch
 	}
 
 JIT_OP_BR_LLT: branch
-	[reg, imm, if("($2 >= jit_min_int && $2 <= jit_max_int)")] -> {
+	[reg, imm, if("($2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int)")] -> {
 		x86_64_cmp_reg_imm_size(inst, $1, $2, 8);
 		inst = output_branch(func, inst, 0x7C /* lt */, insn);
 	}
@@ -1280,7 +1320,7 @@ JIT_OP_BR_LLT: branch
 	}
 
 JIT_OP_BR_LLT_UN: branch
-	[reg, imm, if("($2 >= jit_min_int && $2 <= jit_max_int)")] -> {
+	[reg, imm, if("($2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int)")] -> {
 		x86_64_cmp_reg_imm_size(inst, $1, $2, 8);
 		inst = output_branch(func, inst, 0x72 /* lt_un */, insn);
 	}
@@ -1294,7 +1334,7 @@ JIT_OP_BR_LLT_UN: branch
 	}
 
 JIT_OP_BR_LLE: branch
-	[reg, imm, if("($2 >= jit_min_int && $2 <= jit_max_int)")] -> {
+	[reg, imm, if("($2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int)")] -> {
 		x86_64_cmp_reg_imm_size(inst, $1, $2, 8);
 		inst = output_branch(func, inst, 0x7E /* le */, insn);
 	}
@@ -1308,7 +1348,7 @@ JIT_OP_BR_LLE: branch
 	}
 
 JIT_OP_BR_LLE_UN: branch
-	[reg, imm, if("($2 >= jit_min_int && $2 <= jit_max_int)")] -> {
+	[reg, imm, if("($2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int)")] -> {
 		x86_64_cmp_reg_imm_size(inst, $1, $2, 8);
 		inst = output_branch(func, inst, 0x76 /* le_un */, insn);
 	}
@@ -1322,7 +1362,7 @@ JIT_OP_BR_LLE_UN: branch
 	}
 
 JIT_OP_BR_LGT: branch
-	[reg, imm, if("($2 >= jit_min_int && $2 <= jit_max_int)")] -> {
+	[reg, imm, if("($2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int)")] -> {
 		x86_64_cmp_reg_imm_size(inst, $1, $2, 8);
 		inst = output_branch(func, inst, 0x7F /* gt */, insn);
 	}
@@ -1336,7 +1376,7 @@ JIT_OP_BR_LGT: branch
 	}
 
 JIT_OP_BR_LGT_UN: branch
-	[reg, imm, if("($2 >= jit_min_int && $2 <= jit_max_int)")] -> {
+	[reg, imm, if("($2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int)")] -> {
 		x86_64_cmp_reg_imm_size(inst, $1, $2, 8);
 		inst = output_branch(func, inst, 0x77 /* gt_un */, insn);
 	}
@@ -1350,7 +1390,7 @@ JIT_OP_BR_LGT_UN: branch
 	}
 
 JIT_OP_BR_LGE: branch
-	[reg, imm, if("($2 >= jit_min_int && $2 <= jit_max_int)")] -> {
+	[reg, imm, if("($2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int)")] -> {
 		x86_64_cmp_reg_imm_size(inst, $1, $2, 8);
 		inst = output_branch(func, inst, 0x7D /* ge */, insn);
 	}
@@ -1364,7 +1404,7 @@ JIT_OP_BR_LGE: branch
 	}
 
 JIT_OP_BR_LGE_UN: branch
-	[reg, imm, if("($2 >= jit_min_int && $2 <= jit_max_int)")] -> {
+	[reg, imm, if("($2 >= (jit_nint)jit_min_int && $2 <= (jit_nint)jit_max_int)")] -> {
 		x86_64_cmp_reg_imm_size(inst, $1, $2, 8);
 		inst = output_branch(func, inst, 0x73 /* ge_un */, insn);
 	}
@@ -1534,7 +1574,7 @@ JIT_OP_LEQ:
 		x86_64_or_reg_reg_size(inst, $2, $2, 8);
 		inst = setcc_reg(inst, $1, X86_CC_EQ, 0);
 	}
-	[=reg, reg, imm, if("$3 >= jit_min_int && $3 <= jit_max_int")] -> {
+	[=reg, reg, imm, if("$3 >= (jit_nint)jit_min_int && $3 <= (jit_nint)jit_max_int")] -> {
 		x86_64_cmp_reg_imm_size(inst, $2, $3, 8);
 		inst = setcc_reg(inst, $1, X86_CC_EQ, 0);
 	}
@@ -1552,7 +1592,7 @@ JIT_OP_LNE:
 		x86_64_or_reg_reg_size(inst, $2, $2, 8);
 		inst = setcc_reg(inst, $1, X86_CC_NE, 0);
 	}
-	[=reg, reg, imm, if("$3 >= jit_min_int && $3 <= jit_max_int")] -> {
+	[=reg, reg, imm, if("$3 >= (jit_nint)jit_min_int && $3 <= (jit_nint)jit_max_int")] -> {
 		x86_64_cmp_reg_imm_size(inst, $2, $3, 8);
 		inst = setcc_reg(inst, $1, X86_CC_NE, 0);
 	}
@@ -1566,7 +1606,7 @@ JIT_OP_LNE:
 	}
 
 JIT_OP_LLT:
-	[=reg, reg, imm, if("$3 >= jit_min_int && $3 <= jit_max_int")] -> {
+	[=reg, reg, imm, if("$3 >= (jit_nint)jit_min_int && $3 <= (jit_nint)jit_max_int")] -> {
 		x86_64_cmp_reg_imm_size(inst, $2, $3, 8);
 		inst = setcc_reg(inst, $1, X86_CC_LT, 1);
 	}
@@ -1580,7 +1620,7 @@ JIT_OP_LLT:
 	}
 
 JIT_OP_LLT_UN:
-	[=reg, reg, imm, if("$3 >= jit_min_int && $3 <= jit_max_int")] -> {
+	[=reg, reg, imm, if("$3 >= (jit_nint)jit_min_int && $3 <= (jit_nint)jit_max_int")] -> {
 		x86_64_cmp_reg_imm_size(inst, $2, $3, 8);
 		inst = setcc_reg(inst, $1, X86_CC_LT, 0);
 	}
@@ -1594,7 +1634,7 @@ JIT_OP_LLT_UN:
 	}
 
 JIT_OP_LLE:
-	[=reg, reg, imm, if("$3 >= jit_min_int && $3 <= jit_max_int")] -> {
+	[=reg, reg, imm, if("$3 >= (jit_nint)jit_min_int && $3 <= (jit_nint)jit_max_int")] -> {
 		x86_64_cmp_reg_imm_size(inst, $2, $3, 8);
 		inst = setcc_reg(inst, $1, X86_CC_LE, 1);
 	}
@@ -1608,7 +1648,7 @@ JIT_OP_LLE:
 	}
 
 JIT_OP_LLE_UN:
-	[=reg, reg, imm, if("$3 >= jit_min_int && $3 <= jit_max_int")] -> {
+	[=reg, reg, imm, if("$3 >= (jit_nint)jit_min_int && $3 <= (jit_nint)jit_max_int")] -> {
 		x86_64_cmp_reg_imm_size(inst, $2, $3, 8);
 		inst = setcc_reg(inst, $1, X86_CC_LE, 0);
 	}
@@ -1622,7 +1662,7 @@ JIT_OP_LLE_UN:
 	}
 
 JIT_OP_LGT:
-	[=reg, reg, imm, if("$3 >= jit_min_int && $3 <= jit_max_int")] -> {
+	[=reg, reg, imm, if("$3 >= (jit_nint)jit_min_int && $3 <= (jit_nint)jit_max_int")] -> {
 		x86_64_cmp_reg_imm_size(inst, $2, $3, 8);
 		inst = setcc_reg(inst, $1, X86_CC_GT, 1);
 	}
@@ -1636,7 +1676,7 @@ JIT_OP_LGT:
 	}
 
 JIT_OP_LGT_UN:
-	[=reg, reg, imm, if("$3 >= jit_min_int && $3 <= jit_max_int")] -> {
+	[=reg, reg, imm, if("$3 >= (jit_nint)jit_min_int && $3 <= (jit_nint)jit_max_int")] -> {
 		x86_64_cmp_reg_imm_size(inst, $2, $3, 8);
 		inst = setcc_reg(inst, $1, X86_CC_GT, 0);
 	}
@@ -1650,7 +1690,7 @@ JIT_OP_LGT_UN:
 	}
 
 JIT_OP_LGE:
-	[=reg, reg, imm, if("$3 >= jit_min_int && $3 <= jit_max_int")] -> {
+	[=reg, reg, imm, if("$3 >= (jit_nint)jit_min_int && $3 <= (jit_nint)jit_max_int")] -> {
 		x86_64_cmp_reg_imm_size(inst, $2, $3, 8);
 		inst = setcc_reg(inst, $1, X86_CC_GE, 1);
 	}
@@ -1664,7 +1704,7 @@ JIT_OP_LGE:
 	}
 
 JIT_OP_LGE_UN:
-	[=reg, reg, imm, if("$3 >= jit_min_int && $3 <= jit_max_int")] -> {
+	[=reg, reg, imm, if("$3 >= (jit_nint)jit_min_int && $3 <= (jit_nint)jit_max_int")] -> {
 		x86_64_cmp_reg_imm_size(inst, $2, $3, 8);
 		inst = setcc_reg(inst, $1, X86_CC_GE, 0);
 	}
@@ -1872,6 +1912,14 @@ JIT_OP_MEMCPY: ternary
 	}
 	[reg, reg, imm, clobber(creg), clobber(xreg)] -> {
 		inst = memory_copy(gen, inst, $1, 0, $2, 0, $3);
+	}
+	[reg("rdi"), reg("rsi"), reg("rdx"), clobber(creg), clobber(xreg)] -> {
+		inst = x86_64_call_code(inst, (jit_nint)jit_memcpy);
+	}
+
+JIT_OP_MEMSET: ternary
+	[reg("rdi"), reg("rsi"), reg("rdx"), clobber(creg), clobber(xreg)] -> {
+		inst = x86_64_call_code(inst, (jit_nint)jit_memset);
 	}
 
 JIT_OP_JUMP_TABLE: ternary, branch

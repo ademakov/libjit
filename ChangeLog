@@ -2,6 +2,22 @@
 
 	* jit/jit-function.c (cleanup_on_restart): Reset the epilog_fixup.
 
+	* jit/jit-apply-x86-64.c: Move parameter passing handling from
+	jit-rules-x86-64.c to this file because they are needed by apply too.
+
+	* jit/jit-apply-x86-64.h: Add declarations needed for parameter passing.
+
+	* jit/jit-gen-x86-64.h: Add macros for shift opcodes, register exchanges
+	and moves from general purpose register to xmm register and vice versa.
+
+	* jit/jit-rules-x86-64.c: Move parameter handling to jit-apply.x86-64.c.
+	Add handling of structs in _jit_gen_load_value and _spill_reg. Fix more
+	parameter passing issues.
+
+	* jit/jit-rules-x86-64.ins: Do some cleanup. Add casts to jit_nint when
+	checking for valid ranges. Add integer and long shift opcodes. Add
+	memset opcode.
+
 2008-03-04  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/Makefile.am: Add jit-rules-x86-64.inc to CLEANFILES to fix

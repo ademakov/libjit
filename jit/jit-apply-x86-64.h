@@ -23,6 +23,97 @@
 #ifndef	_JIT_APPLY_X86_64_H
 #define	_JIT_APPLY_X86_64_H
 
+#include "jit-internal.h"
+
+/*
+ * Flag that a parameter is passed on the stack.
+ */
+#define JIT_ARG_CLASS_STACK	0xFFFF
+
+/*
+ * Define the way the parameter is passed to a specific function
+ */
+typedef struct
+{
+	int reg;
+	jit_value_t value;
+} _jit_structpassing_t;
+
+typedef struct
+{
+	jit_value_t value;
+	jit_ushort arg_class;
+	jit_ushort stack_pad;		/* Number of stack words needed for padding */
+	union
+	{
+		_jit_structpassing_t reg_info[4];
+		jit_int offset;
+	} un;
+} _jit_param_t;
+
+/*
+ * Structure that is used to help with parameter passing.
+ */
+typedef struct
+{
+	int				stack_size;			/* Number of bytes needed on the */
+										/* stack for parameter passing */
+	int				stack_pad;			/* Number of stack words we have */
+										/* to push before pushing the */
+										/* parameters for keeping the stack */
+										/* aligned */
+	unsigned int	word_index;			/* Number of word registers */
+										/* allocated */
+	unsigned int	max_word_regs;		/* Number of word registers */
+										/* available for parameter passing */
+	const int	   *word_regs;
+	unsigned int	float_index;
+	unsigned int	max_float_regs;
+	const int	   *float_regs;
+	_jit_param_t   *params;
+
+} jit_param_passing_t;
+
+/*
+ * Determine how a parameter is passed.
+ */
+int
+_jit_classify_param(jit_param_passing_t *passing,
+					_jit_param_t *param, jit_type_t param_type);
+
+/*
+ * Determine how a struct type is passed.
+ */
+int
+_jit_classify_struct(jit_param_passing_t *passing,
+					_jit_param_t *param, jit_type_t param_type);
+
+/*
+ * We handle struct passing ourself
+ */
+#define HAVE_JIT_BUILTIN_APPLY_STRUCT 1
+
+/*
+ * We handle struct returning ourself
+ */
+#define HAVE_JIT_BUILTIN_APPLY_STRUCT_RETURN 1
+
+/*
+ * The granularity of the stack
+ */
+#define STACK_SLOT_SIZE	sizeof(void *)
+
+/*
+ * Get he number of complete stack slots used
+ */
+#define STACK_SLOTS_USED(size) ((size) >> 3)
+
+/*
+ * Round a size up to a multiple of the stack word size.
+ */
+#define	ROUND_STACK(size)	\
+		(((size) + (STACK_SLOT_SIZE - 1)) & ~(STACK_SLOT_SIZE - 1))
+
 /*
  * The "__builtin_apply" functionality in gcc orders the registers
  * in a strange way, which makes it difficult to use.  Our replacement
@@ -59,7 +150,7 @@
 		do { \
 			void *__func = (void *)(func); \
 			void *__args = (void *)(args); \
-			long __size = (long)(size); \
+			long __size = (((long)(size) + (long)0xf) & ~(long)0xf); \
 			void *__return_buf = alloca(64); \
 			(return_buf) = __return_buf; \
 			__asm__ ( \
@@ -163,6 +254,10 @@
 				: "rcx", "xmm0", "st" \
 			); \
 			return; \
+		} while (0)
+
+#define jit_builtin_return_struct(return_buf, type) \
+		do { \
 		} while (0)
 
 #endif /* GNUC */

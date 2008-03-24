@@ -104,36 +104,6 @@
 #define HAVE_RED_ZONE 1
 
 /*
- * X86_64 argument types as specified in the X86_64 SysV ABI.
- */
-#define X86_64_ARG_NO_CLASS		0x00
-#define X86_64_ARG_INTEGER		0x01
-#define X86_64_ARG_MEMORY		0x02
-#define X86_64_ARG_SSE			0x11
-#define X86_64_ARG_SSEUP		0x12
-#define X86_64_ARG_X87			0x21
-#define X86_64_ARG_X87UP		0x22
-
-#define X86_64_ARG_IS_SSE(arg)	(((arg) & 0x10) != 0)
-#define X86_64_ARG_IS_X87(arg)	(((arg) & 0x20) != 0)
-
-/*
- * The granularity of the stack
- */
-#define STACK_SLOT_SIZE	sizeof(void *)
-
-/*
- * Get he number of complete stack slots used
- */
-#define STACK_SLOTS_USED(size) ((size) >> 3)
-
-/*
- * Round a size up to a multiple of the stack word size.
- */
-#define	ROUND_STACK(size)	\
-		(((size) + (STACK_SLOT_SIZE - 1)) & ~(STACK_SLOT_SIZE - 1))
-
-/*
  * Setup or teardown the x86 code output process.
  */
 #define	jit_cache_setup_output(needed)	\
@@ -197,6 +167,10 @@ static _jit_regclass_t *x86_64_creg;	/* X86_64 call clobbered general */
 										/* purpose registers */
 static _jit_regclass_t *x86_64_rreg;	/* general purpose registers not used*/
 										/* for returning values */
+static _jit_regclass_t *x86_64_sreg;	/* general purpose registers that can*/
+										/* be used for the value to be */
+										/* shifted (all but %rcx)*/
+										/* for returning values */
 static _jit_regclass_t *x86_64_freg;	/* X86_64 fpu registers */
 static _jit_regclass_t *x86_64_xreg;	/* X86_64 xmm registers */
 
@@ -231,6 +205,17 @@ _jit_init_backend(void)
 		X86_64_REG_R10, X86_64_REG_R11,
 		X86_64_REG_R12, X86_64_REG_R13,
 		X86_64_REG_R14, X86_64_REG_R15);
+
+	/* register class with all registers that can be used for shifted values */
+	x86_64_sreg = _jit_regclass_create(
+		"sreg", JIT_REG_WORD | JIT_REG_LONG, 13,
+		X86_64_REG_RAX, X86_64_REG_RDX,
+		X86_64_REG_RBX, X86_64_REG_RSI,
+		X86_64_REG_RDI, X86_64_REG_R8,
+		X86_64_REG_R9, X86_64_REG_R10,
+		X86_64_REG_R11, X86_64_REG_R12,
+		X86_64_REG_R13, X86_64_REG_R14,
+		X86_64_REG_R15);
 
 	x86_64_freg = _jit_regclass_create(
 		"freg", JIT_REG_X86_64_FLOAT | JIT_REG_IN_STACK, 8,
@@ -716,11 +701,10 @@ setcc_reg(unsigned char *inst, int reg, int cond, int is_signed)
  *
  * We have only 4 bytes for the jump offsets.
  * Therefore we have do something tricky here.
- * We need some fixed value that is known to be fix throughout the
- * building of the function and that will be near the emitted code.
- * The posn limit looks like the perfect value to use.
+ * The fixup pointer in the block/gen points to the last fixup.
+ * The fixup itself contains the offset to the previous fixup or
+ * null if it's the last fixup in the list.
  */
-#define _JIT_GET_FIXVALUE(gen) ((gen)->posn.limit)
 
 /*
  * Calculate the fixup value
@@ -1028,8 +1012,17 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 				}
 				else
 				{
-					x86_64_mov_reg_imm_size(inst, _jit_reg_info[reg].cpu_reg,
-							(jit_nint)(value->address), 8);
+					if((jit_nint)(value->address) > 0 && (jit_nint)(value->address) <= (jit_nint)jit_max_uint)
+					{
+						x86_64_mov_reg_imm_size(inst, _jit_reg_info[reg].cpu_reg,
+								(jit_nint)(value->address), 4);
+
+					}
+					else
+					{
+						x86_64_mov_reg_imm_size(inst, _jit_reg_info[reg].cpu_reg,
+								(jit_nint)(value->address), 8);
+					}
 				}
 			}
 			break;
@@ -1416,6 +1409,49 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 				}
 			}
 			break;
+
+			case JIT_TYPE_STRUCT:
+			case JIT_TYPE_UNION:
+			{
+				if(IS_GENERAL_REG(reg))
+				{
+					if(IS_GENERAL_REG(src_reg))
+					{
+						x86_64_mov_reg_reg_size(inst, _jit_reg_info[reg].cpu_reg,
+												_jit_reg_info[src_reg].cpu_reg, 8);
+					}
+					else if(IS_XMM_REG(src_reg))
+					{
+						x86_64_movq_reg_xreg(inst, _jit_reg_info[reg].cpu_reg,
+											 _jit_reg_info[src_reg].cpu_reg);
+					}
+					else
+					{
+						fputs("Unsupported struct/union reg - reg move\n", stderr);
+					}
+				}
+				else if(IS_XMM_REG(reg))
+				{
+					if(IS_GENERAL_REG(src_reg))
+					{
+						x86_64_movq_xreg_reg(inst, _jit_reg_info[reg].cpu_reg,
+											 _jit_reg_info[src_reg].cpu_reg);
+					}
+					else if(IS_XMM_REG(src_reg))
+					{
+						x86_64_movaps_reg_reg(inst, _jit_reg_info[reg].cpu_reg,
+											  _jit_reg_info[src_reg].cpu_reg);
+					}
+					else
+					{
+						fputs("Unsupported struct/union reg - reg move\n", stderr);
+					}
+				}
+				else
+				{
+					fputs("Unsupported struct/union reg - reg move\n", stderr);
+				}
+			}
 		}
 	}
 	else
@@ -1936,7 +1972,6 @@ _jit_gen_start_block(jit_gencode_t gen, jit_block_t block)
 	if(DEBUG_FIXUPS && fixup)
 	{
 		fprintf(stderr, "Block: %lx\n", (jit_nint)block);
-		fprintf(stderr, "Limit: %lx\n", (jit_nint)_JIT_GET_FIXVALUE(gen));
 	}
 	while(fixup != 0)
 	{
@@ -1974,6 +2009,10 @@ _jit_gen_is_global_candidate(jit_type_t type)
 {
 	switch(jit_type_remove_tags(type)->kind)
 	{
+		case JIT_TYPE_SBYTE:
+		case JIT_TYPE_UBYTE:
+		case JIT_TYPE_SHORT:
+		case JIT_TYPE_USHORT:
 		case JIT_TYPE_INT:
 		case JIT_TYPE_UINT:
 		case JIT_TYPE_LONG:
@@ -1995,85 +2034,6 @@ _jit_gen_is_global_candidate(jit_type_t type)
  */
 
 /*
- * Flag that a parameter is passed on the stack.
- */
-#define JIT_ARG_CLASS_STACK	0xFFFF
-
-/*
- * Define the way the parameter is passed to a specific function
- */
-typedef struct
-{
-	jit_value_t value;
-	jit_ushort arg_class;
-	jit_ushort stack_pad;		/* Number of stack words needed for padding */
-	union
-	{
-		unsigned char reg[4];
-		jit_int offset;
-	} un;
-} _jit_param_t;
-
-/*
- * Structure that is used to help with parameter passing.
- */
-typedef struct
-{
-	int				stack_size;			/* Number of bytes needed on the */
-										/* stack for parameter passing */
-	int				stack_pad;			/* Number of stack words we have */
-										/* to push before pushing the */
-										/* parameters for keeping the stack */
-										/* aligned */
-	unsigned int	word_index;			/* Number of word registers */
-										/* allocated */
-	unsigned int	max_word_regs;		/* Number of word registers */
-										/* available for parameter passing */
-	const int	   *word_regs;
-	unsigned int	float_index;
-	unsigned int	max_float_regs;
-	const int	   *float_regs;
-	_jit_param_t   *params;
-
-} jit_param_passing_t;
-
-/*
- * Allcate the slot for a parameter passed on the stack.
- */
-static void
-_jit_alloc_param_slot(jit_param_passing_t *passing, _jit_param_t *param,
-					  jit_type_t type)
-{
-	jit_int size = jit_type_get_size(type);
-	jit_int alignment = jit_type_get_alignment(type);
-
-	/* Expand the size to a multiple of the stack slot size */
-	size = ROUND_STACK(size);
-
-	/* Expand the alignment to a multiple of the stack slot size */
-	/* We expect the alignment to be a power of two after this step */
-	alignment = ROUND_STACK(alignment);
-
-	/* Make sure the current offset is aligned propperly for the type */
-	if((passing->stack_size & (alignment -1)) != 0)
-	{
-		/* We need padding on the stack to fix the alignment constraint */
-		jit_int padding = passing->stack_size & (alignment -1);
-
-		/* Add the padding to the stack region */
-		passing->stack_size += padding;
-
-		/* record the number of pad words needed after pushing this arg */
-		param->stack_pad = STACK_SLOTS_USED(padding);
-	}
-	/* Record the offset of the parameter in the arg region. */
-	param->un.offset = passing->stack_size;
-
-	/* And increase the argument region used. */
-	passing->stack_size += size;
-}
-
-/*
  * Determine if a type corresponds to a structure or union.
  */
 static int
@@ -2088,430 +2048,6 @@ is_struct_or_union(jit_type_t type)
 		}
 	}
 	return 0;
-}
-
-/*
- * Classify the argument type.
- * The type has to be in it's normalized form.
- */
-static int
-_jit_classify_arg(jit_type_t arg_type, int is_return)
-{
-	switch(arg_type->kind)
-	{
-		case JIT_TYPE_SBYTE:
-		case JIT_TYPE_UBYTE:
-		case JIT_TYPE_SHORT:
-		case JIT_TYPE_USHORT:
-		case JIT_TYPE_INT:
-		case JIT_TYPE_UINT:
-		case JIT_TYPE_NINT:
-		case JIT_TYPE_NUINT:
-		case JIT_TYPE_LONG:
-		case JIT_TYPE_ULONG:
-		case JIT_TYPE_SIGNATURE:
-		case JIT_TYPE_PTR:
-		{
-			return X86_64_ARG_INTEGER;
-		}
-		break;
-
-		case JIT_TYPE_FLOAT32:
-		case JIT_TYPE_FLOAT64:
-		{
-			return X86_64_ARG_SSE;
-		}
-		break;
-
-		case JIT_TYPE_NFLOAT:
-		{
-			/* we assume the nfloat type to be long double (80bit) */
-			if(is_return)
-			{
-				return X86_64_ARG_X87;
-			}
-			else
-			{
-				return X86_64_ARG_MEMORY;
-			}
-		}
-		break;
-
-		case JIT_TYPE_STRUCT:
-		case JIT_TYPE_UNION:
-		{
-			int size = jit_type_get_size(arg_type);
-
-			if(size > 16)
-			{
-				return X86_64_ARG_MEMORY;
-			}
-			else if(size <= 8)
-			{
-				return X86_64_ARG_INTEGER;
-			}
-			/* For structs and unions with sizes between 8 ant 16 bytes */
-			/* we have to look at the elements. */
-			/* TODO */
-		}
-	}
-	return X86_64_ARG_NO_CLASS;
-}
-
-/*
- * On X86_64 the alignment of native types matches their size.
- * This leads to the result that all types except nfloats and aggregates
- * (structs and unions) must start and end in an eightbyte (or the part
- * we are looking at).
- */
-static int
-_jit_classify_structpart(jit_type_t struct_type, unsigned int start,
-						 unsigned int start_offset, unsigned int end_offset)
-{
-	int arg_class = X86_64_ARG_NO_CLASS;
-	unsigned int num_fields = jit_type_num_fields(struct_type);
-	unsigned int current_field;
-	
-	for(current_field = 0; current_field < num_fields; ++current_field)
-	{
-		jit_nuint field_offset = jit_type_get_offset(struct_type,
-													 current_field);
-
-		if(field_offset <= end_offset)
-		{
-			/* The field starts at a place that's inerresting for us */
-			jit_type_t field_type = jit_type_get_field(struct_type,
-													   current_field);
-			jit_nuint field_size = jit_type_get_size(field_type); 
-
-			if(field_offset + field_size > start_offset)
-			{
-				/* The field is at least partially in the part we are */
-				/* looking at */
-				int arg_class2 = X86_64_ARG_NO_CLASS;
-
-				if(is_struct_or_union(field_type))
-				{
-					/* We have to check this struct recursively */
-					unsigned int current_start;
-					unsigned int nested_struct_start;
-					unsigned int nested_struct_end;
-
-					current_start = start + start_offset;
-					if(field_offset < current_start)
-					{
-						nested_struct_start = current_start - field_offset;
-					}
-					else
-					{
-						nested_struct_start = 0;
-					}
-					if(field_offset + field_size - 1 > end_offset)
-					{
-						/* The struct ends beyond the part we are looking at */
-						nested_struct_end = field_offset + field_size -
-												(nested_struct_start + 1);
-					}
-					else
-					{
-						nested_struct_end = field_size - 1;
-					}
-					arg_class2 = _jit_classify_structpart(field_type,
-														  start + field_offset,
-														  nested_struct_start,
-														  nested_struct_end);
-				}
-				else
-				{
-					if((start + start_offset) & (field_size - 1))
-					{
-						/* The field is misaligned */
-						return X86_64_ARG_MEMORY;
-					}
-					arg_class2 = _jit_classify_arg(field_type, 0);
-				}
-				if(arg_class == X86_64_ARG_NO_CLASS)
-				{
-					arg_class = arg_class2;
-				}
-				else if(arg_class != arg_class2)
-				{
-					if(arg_class == X86_64_ARG_MEMORY ||
-					   arg_class2 == X86_64_ARG_MEMORY)
-					{
-						arg_class = X86_64_ARG_MEMORY;
-					}
-					else if(arg_class == X86_64_ARG_INTEGER ||
-					   arg_class2 == X86_64_ARG_INTEGER)
-					{
-						arg_class = X86_64_ARG_INTEGER;
-					}
-					else if(arg_class == X86_64_ARG_X87 ||
-					   arg_class2 == X86_64_ARG_X87)
-					{
-						arg_class = X86_64_ARG_MEMORY;
-					}
-					else
-					{
-						arg_class = X86_64_ARG_SSE;
-					}
-				}
-			}
-		}
-	}
-	return arg_class;
-}
-
-static int
-_jit_classify_struct(jit_param_passing_t *passing,
-					_jit_param_t *param, jit_type_t param_type)
-{
-	jit_nuint size = (jit_nuint)jit_type_get_size(param_type);
-
-	if(size <= 8)
-	{
-		int arg_class;
-	
-		arg_class = _jit_classify_structpart(param_type, 0, 0, size - 1);
-		if(arg_class == X86_64_ARG_NO_CLASS)
-		{
-			arg_class = X86_64_ARG_SSE;
-		}
-		if(arg_class == X86_64_ARG_INTEGER)
-		{
-			if(passing->word_index < passing->max_word_regs)
-			{
-				/* Set the arg class to the number of registers used */
-				param->arg_class = 1;
-
-				/* Set the first register to the register used */
-				param->un.reg[0] = passing->word_regs[passing->word_index];
-				++(passing->word_index);
-			}
-			else
-			{
-				/* Set the arg class to stack */
-				param->arg_class = JIT_ARG_CLASS_STACK;
-
-				/* Allocate the slot in the arg passing frame */
-				_jit_alloc_param_slot(passing, param, param_type);
-			}			
-		}
-		else if(arg_class == X86_64_ARG_SSE)
-		{
-			if(passing->float_index < passing->max_float_regs)
-			{
-				/* Set the arg class to the number of registers used */
-				param->arg_class = 1;
-
-				/* Set the first register to the register used */
-				param->un.reg[0] =	passing->float_regs[passing->float_index];
-				++(passing->float_index);
-			}
-			else
-			{
-				/* Set the arg class to stack */
-				param->arg_class = JIT_ARG_CLASS_STACK;
-
-				/* Allocate the slot in the arg passing frame */
-				_jit_alloc_param_slot(passing, param, param_type);
-			}
-		}
-		else
-		{
-			/* Set the arg class to stack */
-			param->arg_class = JIT_ARG_CLASS_STACK;
-
-			/* Allocate the slot in the arg passing frame */
-			_jit_alloc_param_slot(passing, param, param_type);
-		}
-	}
-	else if(size <= 16)
-	{
-		int arg_class1;
-		int arg_class2;
-
-		arg_class1 = _jit_classify_structpart(param_type, 0, 0, 7);
-		arg_class2 = _jit_classify_structpart(param_type, 0, 8, size - 1);
-		if(arg_class1 == X86_64_ARG_NO_CLASS)
-		{
-			arg_class1 = X86_64_ARG_SSE;
-		}
-		if(arg_class2 == X86_64_ARG_NO_CLASS)
-		{
-			arg_class2 = X86_64_ARG_SSE;
-		}
-		if(arg_class1 == X86_64_ARG_SSE && arg_class2 == X86_64_ARG_SSE)
-		{
-			/* We use only one sse register in this case */
-			if(passing->float_index < passing->max_float_regs)
-			{
-				/* Set the arg class to the number of registers used */
-				param->arg_class = 1;
-
-				/* Set the first register to the register used */
-				param->un.reg[0] =	passing->float_regs[passing->float_index];
-				++(passing->float_index);
-			}
-			else
-			{
-				/* Set the arg class to stack */
-				param->arg_class = JIT_ARG_CLASS_STACK;
-
-				/* Allocate the slot in the arg passing frame */
-				_jit_alloc_param_slot(passing, param, param_type);
-			}
-		}
-		else if(arg_class1 == X86_64_ARG_MEMORY ||
-				arg_class2 == X86_64_ARG_MEMORY)
-		{
-			/* Set the arg class to stack */
-			param->arg_class = JIT_ARG_CLASS_STACK;
-
-			/* Allocate the slot in the arg passing frame */
-			_jit_alloc_param_slot(passing, param, param_type);
-		}
-		else if(arg_class1 == X86_64_ARG_INTEGER &&
-				arg_class2 == X86_64_ARG_INTEGER)
-		{
-			/* We need two general purpose registers in this case */
-			if((passing->word_index + 1) < passing->max_word_regs)
-			{
-				/* Set the arg class to the number of registers used */
-				param->arg_class = 2;
-
-				/* Assign the registers */
-				param->un.reg[0] = passing->word_regs[passing->word_index];
-				++(passing->word_index);
-				param->un.reg[1] = passing->word_regs[passing->word_index];
-				++(passing->word_index);
-			}
-			else
-			{
-				/* Set the arg class to stack */
-				param->arg_class = JIT_ARG_CLASS_STACK;
-
-				/* Allocate the slot in the arg passing frame */
-				_jit_alloc_param_slot(passing, param, param_type);
-			}			
-		}
-		else
-		{
-			/* We need one xmm and one general purpose register */
-			if((passing->word_index < passing->max_word_regs) &&
-			   (passing->float_index < passing->max_float_regs))
-			{
-				/* Set the arg class to the number of registers used */
-				param->arg_class = 2;
-
-				if(arg_class1 == X86_64_ARG_INTEGER)
-				{
-					param->un.reg[0] = passing->word_regs[passing->word_index];
-					++(passing->word_index);
-					param->un.reg[1] =	passing->float_regs[passing->float_index];
-					++(passing->float_index);
-				}
-				else
-				{
-					param->un.reg[0] =	passing->float_regs[passing->float_index];
-					++(passing->float_index);
-					param->un.reg[1] = passing->word_regs[passing->word_index];
-					++(passing->word_index);
-				}
-			}
-			else
-			{
-				/* Set the arg class to stack */
-				param->arg_class = JIT_ARG_CLASS_STACK;
-
-				/* Allocate the slot in the arg passing frame */
-				_jit_alloc_param_slot(passing, param, param_type);
-			}
-		}
-	}
-	else
-	{
-		/* Set the arg class to stack */
-		param->arg_class = JIT_ARG_CLASS_STACK;
-
-		/* Allocate the slot in the arg passing frame */
-		_jit_alloc_param_slot(passing, param, param_type);
-	}
-	return 1;
-}
-
-int
-_jit_classify_param(jit_param_passing_t *passing,
-					_jit_param_t *param, jit_type_t param_type)
-{
-	if(is_struct_or_union(param_type))
-	{
-		return _jit_classify_struct(passing, param, param_type);
-	}
-	else
-	{
-		int arg_class;
-
-		arg_class = _jit_classify_arg(param_type, 0);
-
-		switch(arg_class)
-		{
-			case X86_64_ARG_INTEGER:
-			{
-				if(passing->word_index < passing->max_word_regs)
-				{
-					/* Set the arg class to the number of registers used */
-					param->arg_class = 1;
-
-					/* Set the first register to the register used */
-					param->un.reg[0] = passing->word_regs[passing->word_index];
-					++(passing->word_index);
-				}
-				else
-				{
-					/* Set the arg class to stack */
-					param->arg_class = JIT_ARG_CLASS_STACK;
-
-					/* Allocate the slot in the arg passing frame */
-					_jit_alloc_param_slot(passing, param, param_type);
-				}
-			}
-			break;
-
-			case X86_64_ARG_SSE:
-			{
-				if(passing->float_index < passing->max_float_regs)
-				{
-					/* Set the arg class to the number of registers used */
-					param->arg_class = 1;
-
-					/* Set the first register to the register used */
-					param->un.reg[0] =	passing->float_regs[passing->float_index];
-					++(passing->float_index);
-				}
-				else
-				{
-					/* Set the arg class to stack */
-					param->arg_class = JIT_ARG_CLASS_STACK;
-
-					/* Allocate the slot in the arg passing frame */
-					_jit_alloc_param_slot(passing, param, param_type);
-				}
-			}
-			break;
-
-			case X86_64_ARG_MEMORY:
-			{
-				/* Set the arg class to stack */
-				param->arg_class = JIT_ARG_CLASS_STACK;
-
-				/* Allocate the slot in the arg passing frame */
-				_jit_alloc_param_slot(passing, param, param_type);
-			}
-			break;
-		}
-	}
-	return 1;
 }
 
 static int
@@ -2562,9 +2098,9 @@ return_struct(unsigned char *inst, jit_function_t func, int ptr_reg)
 		if(size <= 8)
 		{
 			/* one register is used for returning the value */
-			if(IS_GENERAL_REG(return_param.un.reg[0]))
+			if(IS_GENERAL_REG(return_param.un.reg_info[0].reg))
 			{
-				int reg = _jit_reg_info[return_param.un.reg[0]].cpu_reg;
+				int reg = _jit_reg_info[return_param.un.reg_info[0].reg].cpu_reg;
 
 				if(size <= 4)
 				{
@@ -2577,7 +2113,7 @@ return_struct(unsigned char *inst, jit_function_t func, int ptr_reg)
 			}
 			else
 			{
-				int reg = _jit_reg_info[return_param.un.reg[0]].cpu_reg;
+				int reg = _jit_reg_info[return_param.un.reg_info[0].reg].cpu_reg;
 
 				if(size <= 4)
 				{
@@ -2595,7 +2131,7 @@ return_struct(unsigned char *inst, jit_function_t func, int ptr_reg)
 			if(return_param.arg_class == 1)
 			{
 				/* This must be one xmm register */
-				int reg = _jit_reg_info[return_param.un.reg[0]].cpu_reg;
+				int reg = _jit_reg_info[return_param.un.reg_info[0].reg].cpu_reg;
 				int alignment = jit_type_get_alignment(return_type);
 
 				if((alignment & 0xf) == 0)
@@ -2610,9 +2146,9 @@ return_struct(unsigned char *inst, jit_function_t func, int ptr_reg)
 			}
 			else
 			{
-				int reg = _jit_reg_info[return_param.un.reg[0]].cpu_reg;
+				int reg = _jit_reg_info[return_param.un.reg_info[0].reg].cpu_reg;
 
-				if(IS_GENERAL_REG(return_param.un.reg[0]))
+				if(IS_GENERAL_REG(return_param.un.reg_info[0].reg))
 				{
 					x86_64_mov_reg_regp_size(inst, reg,
 											 ptr_reg, 8);
@@ -2622,8 +2158,8 @@ return_struct(unsigned char *inst, jit_function_t func, int ptr_reg)
 					x86_64_movsd_reg_regp(inst, reg, ptr_reg);
 				}
 				size -= 8;
-				reg = _jit_reg_info[return_param.un.reg[1]].cpu_reg;
-				if(IS_GENERAL_REG(return_param.un.reg[1]))
+				reg = _jit_reg_info[return_param.un.reg_info[1].reg].cpu_reg;
+				if(IS_GENERAL_REG(return_param.un.reg_info[1].reg))
 				{
 					if(size <= 4)
 					{
@@ -2686,9 +2222,9 @@ flush_return_struct(unsigned char *inst, jit_value_t value)
 		if(size <= 8)
 		{
 			/* one register is used for returning the value */
-			if(IS_GENERAL_REG(return_param.un.reg[0]))
+			if(IS_GENERAL_REG(return_param.un.reg_info[0].reg))
 			{
-				int reg = _jit_reg_info[return_param.un.reg[0]].cpu_reg;
+				int reg = _jit_reg_info[return_param.un.reg_info[0].reg].cpu_reg;
 
 				if(size <= 4)
 				{
@@ -2701,7 +2237,7 @@ flush_return_struct(unsigned char *inst, jit_value_t value)
 			}
 			else
 			{
-				int reg = _jit_reg_info[return_param.un.reg[0]].cpu_reg;
+				int reg = _jit_reg_info[return_param.un.reg_info[0].reg].cpu_reg;
 
 				if(size <= 4)
 				{
@@ -2719,7 +2255,7 @@ flush_return_struct(unsigned char *inst, jit_value_t value)
 			if(return_param.arg_class == 1)
 			{
 				/* This must be one xmm register */
-				int reg = _jit_reg_info[return_param.un.reg[0]].cpu_reg;
+				int reg = _jit_reg_info[return_param.un.reg_info[0].reg].cpu_reg;
 				int alignment = jit_type_get_alignment(return_type);
 
 				if((alignment & 0xf) == 0)
@@ -2734,9 +2270,9 @@ flush_return_struct(unsigned char *inst, jit_value_t value)
 			}
 			else
 			{
-				int reg = _jit_reg_info[return_param.un.reg[0]].cpu_reg;
+				int reg = _jit_reg_info[return_param.un.reg_info[0].reg].cpu_reg;
 
-				if(IS_GENERAL_REG(return_param.un.reg[0]))
+				if(IS_GENERAL_REG(return_param.un.reg_info[0].reg))
 				{
 					x86_64_mov_membase_reg_size(inst, X86_64_RBP, offset,
 												reg, 8);
@@ -2746,8 +2282,8 @@ flush_return_struct(unsigned char *inst, jit_value_t value)
 					x86_64_movsd_membase_reg(inst, X86_64_RBP, offset, reg);
 				}
 				size -= 8;
-				reg = _jit_reg_info[return_param.un.reg[1]].cpu_reg;
-				if(IS_GENERAL_REG(return_param.un.reg[1]))
+				reg = _jit_reg_info[return_param.un.reg_info[1].reg].cpu_reg;
+				if(IS_GENERAL_REG(return_param.un.reg_info[1].reg))
 				{
 					if(size <= 4)
 					{
@@ -2932,6 +2468,113 @@ push_param(jit_function_t func, _jit_param_t *param, jit_type_t type)
 }
 
 int
+_jit_setup_reg_param(jit_function_t func, _jit_param_t *param,
+					 jit_type_t param_type)
+{
+	if(param->arg_class == 1)
+	{
+		param->un.reg_info[0].value = param->value;
+	}
+	else if(param->arg_class == 2)
+	{
+		jit_nint size = jit_type_get_size(param_type);
+		jit_value_t value_ptr;
+
+		if(!(value_ptr = jit_insn_address_of(func, param->value)))
+		{
+			return 0;
+		}
+		if(IS_GENERAL_REG(param->un.reg_info[0].reg))
+		{
+			param->un.reg_info[0].value =
+				jit_insn_load_relative(func, value_ptr, 0, jit_type_long);
+			if(!(param->un.reg_info[0].value))
+			{
+				return 0;
+			}
+		}
+		else
+		{
+			param->un.reg_info[0].value =
+				jit_insn_load_relative(func, value_ptr, 0, jit_type_float64);
+			if(!(param->un.reg_info[0].value))
+			{
+				return 0;
+			}
+		}
+		size -= 8;
+		if(IS_GENERAL_REG(param->un.reg_info[1].reg))
+		{
+			if(size <= 4)
+			{
+				param->un.reg_info[1].value =
+					jit_insn_load_relative(func, value_ptr, 8, jit_type_int);
+				if(!(param->un.reg_info[1].value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				param->un.reg_info[1].value =
+					jit_insn_load_relative(func, value_ptr, 8, jit_type_long);
+				if(!(param->un.reg_info[1].value))
+				{
+					return 0;
+				}
+			}
+		}
+		else
+		{
+			if(size <= 4)
+			{
+				param->un.reg_info[1].value =
+					jit_insn_load_relative(func, value_ptr, 8, jit_type_float32);
+				if(!(param->un.reg_info[1].value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				param->un.reg_info[1].value =
+					jit_insn_load_relative(func, value_ptr, 8, jit_type_float64);
+				if(!(param->un.reg_info[1].value))
+				{
+					return 0;
+				}
+			}
+		}
+	}
+	return 1;
+}
+
+int
+_jit_flush_incoming_struct(jit_function_t func, _jit_param_t *param,
+						  jit_type_t param_type)
+{
+	if(param->arg_class == 2)
+	{
+		jit_value_t address;
+
+		/* Now store the two values in place */
+		if(!(address = jit_insn_address_of(func, param->value)))
+		{
+			return 0;
+		}
+		if(!jit_insn_store_relative(func, address, 0, param->un.reg_info[0].value))
+		{
+			return 0;
+		}
+		if(!jit_insn_store_relative(func, address, 8, param->un.reg_info[1].value))
+		{
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int
 _jit_setup_incoming_param(jit_function_t func, _jit_param_t *param,
 						  jit_type_t param_type)
 {
@@ -2955,7 +2598,7 @@ _jit_setup_incoming_param(jit_function_t func, _jit_param_t *param,
 			{
 				if(param->arg_class == 1)
 				{
-					if(!jit_insn_incoming_reg(func, param->value, param->un.reg[0]))
+					if(!jit_insn_incoming_reg(func, param->value, param->un.reg_info[0].reg))
 					{
 						return 0;
 					}
@@ -2963,13 +2606,83 @@ _jit_setup_incoming_param(jit_function_t func, _jit_param_t *param,
 				else
 				{
 					/* These cases have to be handled specially */
+					/* The struct is passed in two registers */
+					jit_nuint size = jit_type_get_size(param_type);
+
+					/* The first part is allways a full eightbyte */
+					if(IS_GENERAL_REG(param->un.reg_info[0].reg))
+					{
+						if(!(param->un.reg_info[0].value = jit_value_create(func, jit_type_long)))
+						{
+							return 0;
+						}
+					}
+					else
+					{
+						if(!(param->un.reg_info[0].value = jit_value_create(func, jit_type_float64)))
+						{
+							return 0;
+						}
+					}
+					size -= 8;
+					/* The second part might be of any size <= 8 */
+					if(IS_GENERAL_REG(param->un.reg_info[1].reg))
+					{
+						if(size <= 4)
+						{
+							if(!(param->un.reg_info[1].value = 
+									jit_value_create(func, jit_type_int)))
+							{
+								return 0;
+							}
+						}
+						else
+						{
+							if(!(param->un.reg_info[1].value =
+									jit_value_create(func, jit_type_long)))
+							{
+								return 0;
+							}
+						}
+					}
+					else
+					{
+						if(size <= 4)
+						{
+							if(!(param->un.reg_info[1].value =
+									jit_value_create(func, jit_type_float32)))
+							{
+								return 0;
+							}
+						}
+						else
+						{
+							if(!(param->un.reg_info[1].value =
+									jit_value_create(func, jit_type_float64)))
+							{
+								return 0;
+							}
+						}
+					}
+					if(!jit_insn_incoming_reg(func,
+											  param->un.reg_info[0].value,
+											  param->un.reg_info[0].reg))
+					{
+						return 0;
+					}
+					if(!jit_insn_incoming_reg(func,
+											  param->un.reg_info[1].value,
+											  param->un.reg_info[1].reg))
+					{
+						return 0;
+					}
 				}
 			}
 			break;
 
 			default:
 			{
-				if(!jit_insn_incoming_reg(func, param->value, param->un.reg[0]))
+				if(!jit_insn_incoming_reg(func, param->value, param->un.reg_info[0].reg))
 				{
 					return 0;
 				}
@@ -2994,172 +2707,18 @@ _jit_setup_outgoing_param(jit_function_t func, _jit_param_t *param,
 	}
 	else
 	{
-		param_type = jit_type_remove_tags(param_type);
-
-		switch(param_type->kind)
+		if(!jit_insn_outgoing_reg(func, param->un.reg_info[0].value,
+										param->un.reg_info[0].reg))
 		{
-			case JIT_TYPE_STRUCT:
-			case JIT_TYPE_UNION:
+			return 0;
+		}
+		if(param->arg_class == 2)
+		{
+			if(!jit_insn_outgoing_reg(func, param->un.reg_info[1].value,
+											param->un.reg_info[1].reg))
 			{
-				/* These cases have to be handled specially */
-				if(param->arg_class == 1)
-				{
-					/* Only one xmm register is used for passing this argument */
-					if(!jit_insn_outgoing_reg(func, param->value, param->un.reg[0]))
-					{
-						return 0;
-					}
-				}
-				else
-				{
-					/* We need two registers for passing the value */
-					jit_nuint size = (jit_nuint)jit_type_get_size(param_type);
-
-					jit_value_t struct_ptr;
-
-					if(!(struct_ptr = jit_insn_address_of(func, param->value)))
-					{
-						return 0;
-					}
-					if(IS_GENERAL_REG(param->un.reg[0]))
-					{
-						jit_value_t param_value;
-
-						param_value = jit_insn_load_relative(func, struct_ptr,
-															 0, jit_type_ulong);
-						if(!param_value)
-						{
-							return 0;
-						}
-						if(!jit_insn_outgoing_reg(func, param_value, param->un.reg[0]))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						jit_value_t param_value;
-
-						param_value = jit_insn_load_relative(func, struct_ptr,
-															 0, jit_type_float64);
-						if(!param_value)
-						{
-							return 0;
-						}
-						if(!jit_insn_outgoing_reg(func, param_value, param->un.reg[0]))
-						{
-							return 0;
-						}
-					}
-					size -= 8;
-					if(IS_GENERAL_REG(param->un.reg[1]))
-					{
-						if(size == 1)
-						{
-							jit_value_t param_value;
-
-							param_value = jit_insn_load_relative(func, struct_ptr,
-																 8, jit_type_ubyte);
-							if(!param_value)
-							{
-								return 0;
-							}
-							if(!jit_insn_outgoing_reg(func, param_value, param->un.reg[1]))
-							{
-								return 0;
-							}
-						}
-						else if(size == 2)
-						{
-							jit_value_t param_value;
-
-							param_value = jit_insn_load_relative(func, struct_ptr,
-																 8, jit_type_ushort);
-							if(!param_value)
-							{
-								return 0;
-							}
-							if(!jit_insn_outgoing_reg(func, param_value, param->un.reg[0]))
-							{
-								return 0;
-							}
-						}
-						else if(size <= 4)
-						{
-							jit_value_t param_value;
-
-							param_value = jit_insn_load_relative(func, struct_ptr,
-																 8, jit_type_uint);
-							if(!param_value)
-							{
-								return 0;
-							}
-							if(!jit_insn_outgoing_reg(func, param_value, param->un.reg[0]))
-							{
-								return 0;
-							}
-						}
-						else
-						{
-							jit_value_t param_value;
-
-							param_value = jit_insn_load_relative(func, struct_ptr,
-																 8, jit_type_ulong);
-							if(!param_value)
-							{
-								return 0;
-							}
-							if(!jit_insn_outgoing_reg(func, param_value, param->un.reg[0]))
-							{
-								return 0;
-							}
-						}
-					}
-					else
-					{
-						if(size <= 4)
-						{
-							jit_value_t param_value;
-
-							param_value = jit_insn_load_relative(func, struct_ptr,
-																 8, jit_type_float32);
-							if(!param_value)
-							{
-								return 0;
-							}
-							if(!jit_insn_outgoing_reg(func, param_value, param->un.reg[0]))
-							{
-								return 0;
-							}
-						}
-						else
-						{
-							jit_value_t param_value;
-
-							param_value = jit_insn_load_relative(func, struct_ptr,
-																 8, jit_type_float64);
-							if(!param_value)
-							{
-								return 0;
-							}
-							if(!jit_insn_outgoing_reg(func, param_value, param->un.reg[0]))
-							{
-								return 0;
-							}
-						}
-					}
-				}
+				return 0;
 			}
-			break;
-
-			default:
-			{
-				if(!jit_insn_outgoing_reg(func, param->value, param->un.reg[0]))
-				{
-					return 0;
-				}
-			}
-			break;
 		}
 	}
 	return 1;
@@ -3186,7 +2745,7 @@ _jit_setup_return_value(jit_function_t func, jit_value_t return_value,
 		if(return_param.arg_class == 1)
 		{
 			if(!jit_insn_return_reg(func, return_value,
-									return_param.un.reg[0]))
+									return_param.un.reg_info[0].reg))
 			{
 				return 0;
 			}
@@ -3236,6 +2795,8 @@ _jit_init_args(int abi, jit_param_passing_t *passing)
 int
 _jit_create_entry_insns(jit_function_t func)
 {
+	jit_value_t value;
+	int has_struct_return = 0;
 	jit_type_t signature = func->signature;
 	int abi = jit_type_get_abi(signature);
 	unsigned int num_args = jit_type_num_params(signature);
@@ -3271,7 +2832,7 @@ _jit_create_entry_insns(jit_function_t func)
 	}
 
 	/* Allocate the structure return pointer */
-	if(jit_value_get_struct_pointer(func))
+	if((value = jit_value_get_struct_pointer(func)))
 	{
 		jit_memset(&struct_return_param, 0, sizeof(_jit_param_t));
 		if(!(_jit_classify_param(&passing, &struct_return_param,
@@ -3279,6 +2840,8 @@ _jit_create_entry_insns(jit_function_t func)
 		{
 			return 0;
 		}
+		struct_return_param.value = value;
+		has_struct_return = 1;
 	}
 
 	/* Let the backend classify the parameters */
@@ -3312,6 +2875,30 @@ _jit_create_entry_insns(jit_function_t func)
 		if(!_jit_setup_incoming_param(func, &(param[current_param]), param_type))
 		{
 			return 0;
+		}
+	}
+
+	if(has_struct_return)
+	{
+		if(!_jit_setup_incoming_param(func, &struct_return_param, jit_type_void_ptr))
+		{
+			return 0;
+		}
+	}
+
+	/* Now we flush the incoming structs passed in registers */
+	for(current_param = 0; current_param < num_args; current_param++)
+	{
+		if(param[current_param].arg_class != JIT_ARG_CLASS_STACK)
+		{
+			jit_type_t param_type;
+
+			param_type = jit_type_get_param(signature, current_param);
+			if(!_jit_flush_incoming_struct(func, &(param[current_param]),
+										   param_type))
+			{
+				return 0;
+			}
 		}
 	}
 
@@ -3372,12 +2959,12 @@ int _jit_create_call_setup_insns
 			return 0;
 		}
 		jit_memset(&struct_return_param, 0, sizeof(_jit_param_t));
+		struct_return_param.value = return_ptr;
 		if(!(_jit_classify_param(&passing, &struct_return_param,
 								 jit_type_void_ptr)))
 		{
 			return 0;
 		}
-		struct_return_param.value = return_ptr;
 	}
 	else
 	{
@@ -3425,25 +3012,95 @@ int _jit_create_call_setup_insns
 #endif
 
 	/* Now setup the arguments on the stack or in the registers in reverse order */
+	/* First process the params passed on the stack */
 	current_param = num_args;
 	while(current_param > 0)
 	{
-		jit_type_t param_type;
-
 		--current_param;
-		param_type = jit_type_get_param(signature, current_param);
-		if(!_jit_setup_outgoing_param(func, &(param[current_param]), param_type))
+		if(param[current_param].arg_class == JIT_ARG_CLASS_STACK)
 		{
-			return 0;
+			jit_type_t param_type;
+
+			param_type = jit_type_get_param(signature, current_param);
+			if(!_jit_setup_outgoing_param(func, &(param[current_param]), param_type))
+			{
+				return 0;
+			}
+		}
+	}
+
+	/* Handle the structure return pointer if it's passed on the stack */
+	if(return_ptr)
+	{
+		if(struct_return_param.arg_class == JIT_ARG_CLASS_STACK)
+		{
+			if(!_jit_setup_outgoing_param(func, &struct_return_param,
+										  jit_type_void_ptr))
+			{
+				return 0;
+			}
+		}
+	}
+
+	/* Now setup the values passed in registers */
+	current_param = num_args;
+	while(current_param > 0)
+	{
+		--current_param;
+
+		if(param[current_param].arg_class != JIT_ARG_CLASS_STACK)
+		{
+			jit_type_t param_type;
+
+			param_type = jit_type_get_param(signature, current_param);
+			if(!_jit_setup_reg_param(func, &(param[current_param]), param_type))
+			{
+				return 0;
+			}
+		}
+	}
+
+	/* Handle the structure return pointer if required */
+	if(return_ptr)
+	{
+		if(struct_return_param.arg_class != JIT_ARG_CLASS_STACK)
+		{
+			if(!_jit_setup_reg_param(func, &struct_return_param,
+									 jit_type_void_ptr))
+			{
+				return 0;
+			}
+		}
+	}
+
+	/* And finally assign the registers */
+	current_param = num_args;
+	while(current_param > 0)
+	{
+		--current_param;
+		if(param[current_param].arg_class != JIT_ARG_CLASS_STACK)
+		{
+			jit_type_t param_type;
+
+			param_type = jit_type_get_param(signature, current_param);
+			if(!_jit_setup_outgoing_param(func, &(param[current_param]),
+										  param_type))
+			{
+				return 0;
+			}
 		}
 	}
 
 	/* Add the structure return pointer if required */
 	if(return_ptr)
 	{
-		if(!_jit_setup_outgoing_param(func, &struct_return_param, return_type))
+		if(struct_return_param.arg_class != JIT_ARG_CLASS_STACK)
 		{
-			return 0;
+			if(!_jit_setup_outgoing_param(func, &struct_return_param,
+										  jit_type_void_ptr))
+			{
+				return 0;
+			}
 		}
 	}
 
