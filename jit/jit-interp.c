@@ -4989,7 +4989,7 @@ int jit_function_apply_vararg
 	if(setjmp(jbuf.buf))
 	{
 		_jit_unwind_pop_setjmp();
-		return 1;
+		return 0;
 	}
 
 	/* Initialize the backtrace information */
