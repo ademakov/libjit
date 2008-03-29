@@ -1,3 +1,8 @@
+2008-03-29  Klaus treichel  <ktreichel@web.de>
+
+	* jit/jit-rules-x86.ins: Fix signed division of negative values by a
+	constant positive power of two.
+
 2008-03-29  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-apply.c, tools/gen-apply.c: changes to apply needed for
