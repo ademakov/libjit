@@ -85,6 +85,8 @@ the "jit-apply-rules.h" file.
 #ifndef JIT_APPLY_NUM_WORD_REGS
 int num_word_regs = 0;
 int num_float_regs = 0;
+int num_double_regs = 0;
+int num_nfloat_regs = 0;
 int pass_stack_float_as_double = 0;
 int pass_stack_float_as_nfloat = 0;
 int pass_stack_double_as_nfloat = 0;
@@ -98,6 +100,8 @@ int return_float_as_nfloat = 0;
 int return_double_as_nfloat = 0;
 int return_nfloat_as_double = 0;
 int floats_in_word_regs = 0;
+int doubles_in_word_regs = 0;
+int nfloats_in_word_regs = 0;
 int return_floats_after = 0;
 int varargs_on_stack = 0;
 int struct_return_special_reg = 0;
@@ -116,6 +120,8 @@ int pad_float_regs = 0;
 #else
 int num_word_regs = JIT_APPLY_NUM_WORD_REGS;
 int num_float_regs = JIT_APPLY_NUM_FLOAT_REGS;
+int num_double_regs = JIT_APPLY_NUM_DOUBLE_REGS;
+int num_nfloat_regs = JIT_APPLY_NUM_NFLOAT_REGS;
 int pass_stack_float_as_double = JIT_APPLY_PASS_STACK_FLOAT_AS_DOUBLE;
 int pass_stack_float_as_nfloat = JIT_APPLY_PASS_STACK_FLOAT_AS_NFLOAT;
 int pass_stack_double_as_nfloat = JIT_APPLY_PASS_STACK_DOUBLE_AS_NFLOAT;
@@ -129,6 +135,8 @@ int return_float_as_nfloat = JIT_APPLY_RETURN_FLOAT_AS_NFLOAT;
 int return_double_as_nfloat = JIT_APPLY_RETURN_DOUBLE_AS_NFLOAT;
 int return_nfloat_as_double = JIT_APPLY_RETURN_NFLOAT_AS_DOUBLE;
 int floats_in_word_regs = JIT_APPLY_FLOATS_IN_WORD_REGS;
+int doubles_in_word_regs = JIT_APPLY_DOUBLES_IN_WORD_REGS;
+int nfloats_in_word_regs = JIT_APPLY_NFLOATS_IN_WORD_REGS;
 int return_floats_after = JIT_APPLY_RETURN_FLOATS_AFTER;
 int varargs_on_stack = JIT_APPLY_VARARGS_ON_STACK;
 int struct_return_special_reg = JIT_APPLY_STRUCT_RETURN_SPECIAL_REG;
@@ -320,17 +328,43 @@ struct detect_struct_reg detect_struct_overlap(jit_nint arg1, jit_nint arg2)
 /*
  * Detect the number of floating-point registers.
  */
-void detect_float_regs(double arg1, double arg2, double arg3,
-					   double arg4, double arg5, double arg6,
-					   double arg7, double arg8, double arg9,
-					   double arg10, double arg11, double arg12,
-					   double arg13, double arg14, double arg15,
-					   double arg16, double arg17, double arg18,
-					   double arg19, double arg20, double arg21,
-					   double arg22, double arg23, double arg24,
-					   double arg25, double arg26, double arg27,
-					   double arg28, double arg29, double arg30,
-					   double arg31, double arg32)
+void detect_float_regs(float arg1, float arg2, float arg3,
+					   float arg4, float arg5, float arg6,
+					   float arg7, float arg8, float arg9,
+					   float arg10, float arg11, float arg12,
+					   float arg13, float arg14, float arg15,
+					   float arg16, float arg17, float arg18,
+					   float arg19, float arg20, float arg21,
+					   float arg22, float arg23, float arg24,
+					   float arg25, float arg26, float arg27,
+					   float arg28, float arg29, float arg30,
+					   float arg31, float arg32)
+{
+	jit_nint *args;
+	float *stack_args;
+	jit_builtin_apply_args(jit_nint *, args);
+	stack_args = (float *)(args[0]);
+
+	/* The first stack argument indicates the number of floating-point
+	   registers.  At the moment we don't know if they overlap with
+	   the word registers or not */
+	num_float_regs = (int)(stack_args[0]);
+}
+
+/*
+ * Detect the number of floating-point registers.
+ */
+void detect_double_regs(double arg1, double arg2, double arg3,
+						double arg4, double arg5, double arg6,
+						double arg7, double arg8, double arg9,
+						double arg10, double arg11, double arg12,
+						double arg13, double arg14, double arg15,
+						double arg16, double arg17, double arg18,
+						double arg19, double arg20, double arg21,
+						double arg22, double arg23, double arg24,
+						double arg25, double arg26, double arg27,
+						double arg28, double arg29, double arg30,
+						double arg31, double arg32)
 {
 	jit_nint *args;
 	double *stack_args;
@@ -340,7 +374,33 @@ void detect_float_regs(double arg1, double arg2, double arg3,
 	/* The first stack argument indicates the number of floating-point
 	   registers.  At the moment we don't know if they overlap with
 	   the word registers or not */
-	num_float_regs = (int)(stack_args[0]);
+	num_double_regs = (int)(stack_args[0]);
+}
+
+/*
+ * Detect the number of native floating-point registers.
+ */
+void detect_nfloat_regs(jit_nfloat arg1, jit_nfloat arg2, jit_nfloat arg3,
+						jit_nfloat arg4, jit_nfloat arg5, jit_nfloat arg6,
+						jit_nfloat arg7, jit_nfloat arg8, jit_nfloat arg9,
+						jit_nfloat arg10, jit_nfloat arg11, jit_nfloat arg12,
+						jit_nfloat arg13, jit_nfloat arg14, jit_nfloat arg15,
+						jit_nfloat arg16, jit_nfloat arg17, jit_nfloat arg18,
+						jit_nfloat arg19, jit_nfloat arg20, jit_nfloat arg21,
+						jit_nfloat arg22, jit_nfloat arg23, jit_nfloat arg24,
+						jit_nfloat arg25, jit_nfloat arg26, jit_nfloat arg27,
+						jit_nfloat arg28, jit_nfloat arg29, jit_nfloat arg30,
+						jit_nfloat arg31, jit_nfloat arg32)
+{
+	jit_nint *args;
+	jit_nfloat *stack_args;
+	jit_builtin_apply_args(jit_nint *, args);
+	stack_args = (jit_nfloat *)(args[0]);
+
+	/* The first stack argument indicates the number of floating-point
+	   registers.  At the moment we don't know if they overlap with
+	   the word registers or not */
+	num_nfloat_regs = (int)(stack_args[0]);
 }
 
 #ifdef JIT_NATIVE_INT32
@@ -374,8 +434,25 @@ void detect_double_overlap(double x, jit_nint y, jit_nint z)
 	mem_copy(&temp, args + struct_return_special_reg + 1, sizeof(temp));
 	if(!mem_cmp(&temp, &x, sizeof(double)))
 	{
-		floats_in_word_regs = 1;
-		num_float_regs = 0;
+		doubles_in_word_regs = 1;
+		num_double_regs = 0;
+	}
+}
+
+/*
+ * Detect if a "nfloat" value will use a word register.
+ */
+void detect_nfloat_overlap(jit_nfloat x, jit_nint y, jit_nint z)
+{
+	/* We have an overlap if "x" is in the first word register slot */
+	jit_nfloat temp;
+	jit_nint *args;
+	jit_builtin_apply_args(jit_nint *, args);
+	mem_copy(&temp, args + struct_return_special_reg + 1, sizeof(temp));
+	if(!mem_cmp(&temp, &x, sizeof(double)))
+	{
+		nfloats_in_word_regs = 1;
+		num_nfloat_regs = 0;
 	}
 }
 
@@ -389,7 +466,7 @@ void detect_float_reg_size_regs(double x, double y)
 	jit_builtin_apply_args(jit_nint *, args);
 	mem_copy(&temp, args + 1 + struct_return_special_reg + num_word_regs,
 			 sizeof(temp));
-	if(!mem_cmp(&temp, &x, sizeof(double)))
+	if((num_nfloat_regs > 0) && !mem_cmp(&temp, &x, sizeof(double)))
 	{
 		pass_reg_nfloat_as_double = 1;
 	}
@@ -400,7 +477,10 @@ void detect_float_reg_size_regs(double x, double y)
 				 sizeof(temp));
 		if(!mem_cmp(&temp, &x, sizeof(double)))
 		{
-			pass_reg_nfloat_as_double = 1;
+			if(num_nfloat_regs > 0)
+			{
+				pass_reg_nfloat_as_double = 1;
+			}
 			pad_float_regs = 1;
 		}
 		else
@@ -410,7 +490,10 @@ void detect_float_reg_size_regs(double x, double y)
 					 sizeof(temp));
 			if(!mem_cmp(&temp, &x, sizeof(double)))
 			{
-				pass_reg_nfloat_as_double = 1;
+				if(num_nfloat_regs > 0)
+				{
+					pass_reg_nfloat_as_double = 1;
+				}
 				pad_float_regs = 2;
 			}
 			else
@@ -541,13 +624,16 @@ void detect_float_promotion(float arg1, float arg2, float arg3,
 	if(reg_promote)
 	{
 		/* Promoting "float" to "nfloat" in registers */
-		if(pass_reg_nfloat_as_double)
+		if(num_nfloat_regs > 0)
 		{
-			pass_reg_float_as_double = 1;
-		}
-		else
-		{
-			pass_reg_float_as_nfloat = 1;
+			if(pass_reg_nfloat_as_double)
+			{
+				pass_reg_float_as_double = 1;
+			}
+			else
+			{
+				pass_reg_float_as_nfloat = 1;
+			}
 		}
 	}
 	if(stack_promote == 2)
@@ -596,7 +682,7 @@ void detect_double_promotion(double arg1, double arg2, double arg3,
 
 	/* Skip the arguments that will be stored in registers */
 	index = 1;
-	if(floats_in_word_regs)
+	if(doubles_in_word_regs)
 	{
 		if(sizeof(jit_nint) == sizeof(jit_int))
 		{
@@ -1523,13 +1609,69 @@ void dump_return_union(void)
 void dump_apply_structure(void)
 {
 	const char *name;
-	if(pass_reg_nfloat_as_double)
-		name = "jit_float64";
-	else
-		name = "jit_nfloat";
 	if(num_float_regs > 0)
 	{
+		if(pass_reg_float_as_double)
+		{
+			name = "jit_float64";
+		}
+		else if(pass_reg_float_as_nfloat)
+		{
+			name = "jit_nfloat";
+		}	
+		else
+		{
+			name = "jit_float32";
+		}
 		printf("typedef %s jit_reg_float;\n\n", name);
+	}
+	if(num_double_regs > 0)
+	{
+		if(pass_reg_double_as_nfloat)
+		{
+			name = "jit_nfloat";
+		}
+		else
+		{
+			name = "jit_float64";
+		}
+		printf("typedef %s jit_reg_double;\n\n", name);
+	}
+	if(num_nfloat_regs > 0)
+	{
+		if(pass_reg_nfloat_as_double)
+		{
+			name = "jit_float64";
+		}
+		else
+		{
+			name = "jit_nfloat";
+		}
+		printf("typedef %s jit_reg_nfloat;\n\n", name);
+	}
+	if((num_float_regs > 0) ||
+	   (num_double_regs > 0) ||
+	   (num_nfloat_regs > 0))
+	{
+		printf("typedef union\n{\n");
+		if(num_float_regs > 0)
+		{
+			printf("\tjit_reg_float float_value;\n");
+		}
+		if(num_double_regs > 0)
+		{
+			printf("\tjit_reg_double double_value;\n");
+		}
+		if(num_nfloat_regs > 0)
+		{
+			printf("\tjit_reg_nfloat nfloat_value;\n");
+		}
+		if(pad_float_regs > 0)
+		{
+			printf("\tchar __pad[%i];\n",
+				   (int)(sizeof(double) + pad_float_regs * sizeof(jit_nint)));
+		}
+		printf("} jit_reg_float_struct;\n\n");
 	}
 	printf("typedef struct\n{\n");
 	printf("\tunsigned char *stack_args;\n");
@@ -1549,9 +1691,11 @@ void dump_apply_structure(void)
 	{
 		printf("\tjit_nint pad[%d];\n", pad_float_regs);
 	}
-	if(num_float_regs > 0)
+	if((num_float_regs > 0) ||
+	   (num_double_regs > 0) ||
+	   (num_nfloat_regs > 0))
 	{
-		printf("\tjit_reg_float float_regs[%d];\n", num_float_regs);
+		printf("\tjit_reg_float_struct float_regs[%d];\n", num_float_regs);
 	}
 	printf("\n} jit_apply_struct;\n\n");
 }
@@ -1584,6 +1728,15 @@ void dump_apply_macros(void)
 	}
 	printf("\tvoid *struct_return;\n");
 	printf("\n} jit_apply_builder;\n\n");
+
+	/* Include jit-apply-func.h here to allow the backend to add it's definitions */
+	printf("#include \"jit-apply-func.h\"\n\n");
+
+	printf("void\n_jit_builtin_apply_add_struct(jit_apply_builder *builder, void *value, jit_type_t struct_type);\n\n");
+
+	printf("void\n_jit_builtin_apply_get_struct(jit_apply_builder *builder, void *value, jit_type_t struct_type);\n\n");
+
+	printf("void\n_jit_builtin_apply_get_struct_return(jit_apply_builder *builder, void *return_value, jit_apply_return *apply_return, jit_type_t struct_type);\n\n");
 
 	/* Macro to initialize the apply builder */
 	printf("#define jit_apply_builder_init(builder,type)\t\\\n");
@@ -1959,7 +2112,7 @@ void dump_apply_macros(void)
 		printf("\tdo { \\\n");
 		printf("\t\tif((builder)->float_used < %d) \\\n", num_float_regs);
 		printf("\t\t{ \\\n");
-		printf("\t\t\t(builder)->apply_args->float_regs[(builder)->float_used] = (jit_reg_float)(value); \\\n");
+		printf("\t\t\t(builder)->apply_args->float_regs[(builder)->float_used].float_value = (jit_reg_float)(value); \\\n");
 		printf("\t\t\t++((builder)->float_used); \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
@@ -1970,44 +2123,6 @@ void dump_apply_macros(void)
 			name = "jit_nfloat";
 		else
 			name = "jit_float32";
-		printf("\t\t\t%s __temp = (%s)(value); \\\n", name, name);
-		printf("\t\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
-		printf("\t\t\t(builder)->stack_used += (sizeof(%s) + sizeof(jit_nint) - 1) & ~(sizeof(jit_nint) - 1); \\\n", name);
-		printf("\t\t} \\\n");
-		printf("\t} while (0)\n");
-
-		printf("#define jit_apply_builder_add_float64(builder,value) \\\n");
-		printf("\tdo { \\\n");
-		printf("\t\tif((builder)->float_used < %d) \\\n", num_float_regs);
-		printf("\t\t{ \\\n");
-		printf("\t\t\t(builder)->apply_args->float_regs[(builder)->float_used] = (jit_reg_float)(value); \\\n");
-		printf("\t\t\t++((builder)->float_used); \\\n");
-		printf("\t\t} \\\n");
-		printf("\t\telse \\\n");
-		if(pass_stack_double_as_nfloat)
-			name = "jit_nfloat";
-		else
-			name = "jit_float64";
-		printf("\t\t{ \\\n");
-		printf("\t\t\t%s __temp = (%s)(value); \\\n", name, name);
-		printf("\t\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
-		printf("\t\t\t(builder)->stack_used += (sizeof(%s) + sizeof(jit_nint) - 1) & ~(sizeof(jit_nint) - 1); \\\n", name);
-		printf("\t\t} \\\n");
-		printf("\t} while (0)\n");
-
-		printf("#define jit_apply_builder_add_nfloat(builder,value) \\\n");
-		printf("\tdo { \\\n");
-		printf("\t\tif((builder)->float_used < %d) \\\n", num_float_regs);
-		printf("\t\t{ \\\n");
-		printf("\t\t\t(builder)->apply_args->float_regs[(builder)->float_used] = (jit_reg_float)(value); \\\n");
-		printf("\t\t\t++((builder)->float_used); \\\n");
-		printf("\t\t} \\\n");
-		printf("\t\telse \\\n");
-		if(pass_stack_nfloat_as_double)
-			name = "jit_float64";
-		else
-			name = "jit_nfloat";
-		printf("\t\t{ \\\n");
 		printf("\t\t\t%s __temp = (%s)(value); \\\n", name, name);
 		printf("\t\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
 		printf("\t\t\t(builder)->stack_used += (sizeof(%s) + sizeof(jit_nint) - 1) & ~(sizeof(jit_nint) - 1); \\\n", name);
@@ -2025,20 +2140,6 @@ void dump_apply_macros(void)
 			name = "jit_float32";
 		printf("#define jit_apply_builder_add_float32(builder,value) \\\n");
 		printf("\tjit_apply_builder_add_large((builder), %s, (value));\n", name);
-
-		if(pass_reg_double_as_nfloat)
-			name = "jit_nfloat";
-		else
-			name = "jit_float64";
-		printf("#define jit_apply_builder_add_float64(builder,value) \\\n");
-		printf("\tjit_apply_builder_add_large((builder), %s, (value));\n", name);
-
-		if(pass_reg_nfloat_as_double)
-			name = "jit_float64";
-		else
-			name = "jit_nfloat";
-		printf("#define jit_apply_builder_add_nfloat(builder,value) \\\n");
-		printf("\tjit_apply_builder_add_large((builder), %s, (value));\n", name);
 	}
 	else
 	{
@@ -2051,14 +2152,82 @@ void dump_apply_macros(void)
 			name = "jit_float32";
 		printf("#define jit_apply_builder_add_float32(builder,value) \\\n");
 		printf("\tjit_apply_builder_add_large_stack((builder), %s, (value));\n", name);
-
+	}
+	if(num_double_regs > 0)
+	{
+		printf("#define jit_apply_builder_add_float64(builder,value) \\\n");
+		printf("\tdo { \\\n");
+		printf("\t\tif((builder)->float_used < %d) \\\n", num_double_regs);
+		printf("\t\t{ \\\n");
+		printf("\t\t\t(builder)->apply_args->float_regs[(builder)->float_used].double_value = (jit_reg_double)(value); \\\n");
+		printf("\t\t\t++((builder)->float_used); \\\n");
+		printf("\t\t} \\\n");
+		printf("\t\telse \\\n");
+		if(pass_stack_double_as_nfloat)
+			name = "jit_nfloat";
+		else
+			name = "jit_float64";
+		printf("\t\t{ \\\n");
+		printf("\t\t\t%s __temp = (%s)(value); \\\n", name, name);
+		printf("\t\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
+		printf("\t\t\t(builder)->stack_used += (sizeof(%s) + sizeof(jit_nint) - 1) & ~(sizeof(jit_nint) - 1); \\\n", name);
+		printf("\t\t} \\\n");
+		printf("\t} while (0)\n");
+	}
+	else if(doubles_in_word_regs)
+	{
+		/* Pass double values in word registers */
+		if(pass_reg_double_as_nfloat)
+			name = "jit_nfloat";
+		else
+			name = "jit_float64";
+		printf("#define jit_apply_builder_add_float64(builder,value) \\\n");
+		printf("\tjit_apply_builder_add_large((builder), %s, (value));\n", name);
+	}
+	else
+	{
+		/* Pass double values on the stack */
 		if(pass_stack_double_as_nfloat)
 			name = "jit_nfloat";
 		else
 			name = "jit_float64";
 		printf("#define jit_apply_builder_add_float64(builder,value) \\\n");
 		printf("\tjit_apply_builder_add_large_stack((builder), %s, (value));\n", name);
-
+	}
+	if(num_nfloat_regs > 0)
+	{
+		printf("#define jit_apply_builder_add_nfloat(builder,value) \\\n");
+		printf("\tdo { \\\n");
+		printf("\t\tif((builder)->float_used < %d) \\\n", num_nfloat_regs);
+		printf("\t\t{ \\\n");
+		printf("\t\t\t(builder)->apply_args->float_regs[(builder)->float_used].nfloat_value = (jit_reg_nfloat)(value); \\\n");
+		printf("\t\t\t++((builder)->float_used); \\\n");
+		printf("\t\t} \\\n");
+		printf("\t\telse \\\n");
+		if(pass_stack_nfloat_as_double)
+			name = "jit_float64";
+		else
+			name = "jit_nfloat";
+		printf("\t\t{ \\\n");
+		printf("\t\t\t%s __temp = (%s)(value); \\\n", name, name);
+		printf("\t\t\tjit_memcpy((builder)->apply_args->stack_args + (builder)->stack_used, &__temp, sizeof(__temp)); \\\n");
+		printf("\t\t\t(builder)->stack_used += (sizeof(%s) + sizeof(jit_nint) - 1) & ~(sizeof(jit_nint) - 1); \\\n", name);
+		printf("\t\t} \\\n");
+		printf("\t} while (0)\n");
+	}
+	else if(nfloats_in_word_regs)
+	{
+		/* Pass nfloat values in word registers */
+		if(pass_reg_nfloat_as_double)
+			name = "jit_float64";
+		else
+			name = "jit_nfloat";
+		printf("#define jit_apply_builder_add_nfloat(builder,value) \\\n");
+		printf("\tjit_apply_builder_add_large((builder), %s, (value));\n", name);
+	}
+	else
+	{
+		/* Pass nfloat values on the stack */
 		if(pass_stack_nfloat_as_double)
 			name = "jit_float64";
 		else
@@ -2105,12 +2274,12 @@ void dump_apply_macros(void)
 #endif
 	if(num_float_regs > 0)
 	{
-		/* Pass floating point values in registers, if possible */
+		/* Pass float values in registers, if possible */
 		printf("#define jit_apply_parser_get_float32(builder,value) \\\n");
 		printf("\tdo { \\\n");
 		printf("\t\tif((builder)->float_used < %d) \\\n", num_float_regs);
 		printf("\t\t{ \\\n");
-		printf("\t\t\t(value) = (jit_float32)((builder)->apply_args->float_regs[(builder)->float_used]); \\\n");
+		printf("\t\t\t(value) = (jit_float32)((builder)->apply_args->float_regs[(builder)->float_used].float_value); \\\n");
 		printf("\t\t\t++((builder)->float_used); \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
@@ -2127,12 +2296,39 @@ void dump_apply_macros(void)
 		printf("\t\t\t(value) = (jit_float32)__temp; \\\n");
 		printf("\t\t} \\\n");
 		printf("\t} while (0)\n");
-
+	}
+	else if(floats_in_word_regs)
+	{
+		/* Pass float values in word registers */
+		if(pass_reg_float_as_double)
+			name = "jit_float64";
+		else if(pass_reg_float_as_nfloat)
+			name = "jit_nfloat";
+		else
+			name = "jit_float32";
+		printf("#define jit_apply_parser_get_float32(builder,value) \\\n");
+		printf("\tjit_apply_parser_get_large((builder), %s, jit_float32, (value));\n", name);
+	}
+	else
+	{
+		/* Pass float values on the stack */
+		if(pass_stack_float_as_double)
+			name = "jit_float64";
+		else if(pass_stack_float_as_nfloat)
+			name = "jit_nfloat";
+		else
+			name = "jit_float32";
+		printf("#define jit_apply_parser_get_float32(builder,value) \\\n");
+		printf("\tjit_apply_parser_get_large_stack((builder), %s, jit_float32, (value));\n", name);
+	}
+	if(num_double_regs > 0)
+	{
+		/* Pass double values in registers, if possible */
 		printf("#define jit_apply_parser_get_float64(builder,value) \\\n");
 		printf("\tdo { \\\n");
-		printf("\t\tif((builder)->float_used < %d) \\\n", num_float_regs);
+		printf("\t\tif((builder)->float_used < %d) \\\n", num_double_regs);
 		printf("\t\t{ \\\n");
-		printf("\t\t\t(value) = (jit_float64)((builder)->apply_args->float_regs[(builder)->float_used]); \\\n");
+		printf("\t\t\t(value) = (jit_float64)((builder)->apply_args->float_regs[(builder)->float_used].double_value); \\\n");
 		printf("\t\t\t++((builder)->float_used); \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
@@ -2147,12 +2343,35 @@ void dump_apply_macros(void)
 		printf("\t\t\t(value) = (jit_float64)__temp; \\\n");
 		printf("\t\t} \\\n");
 		printf("\t} while (0)\n");
-
+	}
+	else if(doubles_in_word_regs)
+	{
+		/* Pass double values in word registers */
+		if(pass_reg_double_as_nfloat)
+			name = "jit_nfloat";
+		else
+			name = "jit_float64";
+		printf("#define jit_apply_parser_get_float64(builder,value) \\\n");
+		printf("\tjit_apply_parser_get_large((builder), %s, jit_float64, (value));\n", name);
+	}
+	else
+	{
+		/* Pass double values on the stack */
+		/* Pass nfloat values in registers, if possible */
+		if(pass_stack_double_as_nfloat)
+			name = "jit_nfloat";
+		else
+			name = "jit_float64";
+		printf("#define jit_apply_parser_get_float64(builder,value) \\\n");
+		printf("\tjit_apply_parser_get_large_stack((builder), %s, jit_float64, (value));\n", name);
+	}
+	if(num_nfloat_regs > 0)
+	{
 		printf("#define jit_apply_parser_get_nfloat(builder,value) \\\n");
 		printf("\tdo { \\\n");
-		printf("\t\tif((builder)->float_used < %d) \\\n", num_float_regs);
+		printf("\t\tif((builder)->float_used < %d) \\\n", num_nfloat_regs);
 		printf("\t\t{ \\\n");
-		printf("\t\t\t(value) = (jit_nfloat)((builder)->apply_args->float_regs[(builder)->float_used]); \\\n");
+		printf("\t\t\t(value) = (jit_nfloat)((builder)->apply_args->float_regs[(builder)->float_used].nfloat_value); \\\n");
 		printf("\t\t\t++((builder)->float_used); \\\n");
 		printf("\t\t} \\\n");
 		printf("\t\telse \\\n");
@@ -2168,25 +2387,9 @@ void dump_apply_macros(void)
 		printf("\t\t} \\\n");
 		printf("\t} while (0)\n");
 	}
-	else if(floats_in_word_regs)
+	else if(nfloats_in_word_regs)
 	{
-		/* Pass floating point values in word registers */
-		if(pass_reg_float_as_double)
-			name = "jit_float64";
-		else if(pass_reg_float_as_nfloat)
-			name = "jit_nfloat";
-		else
-			name = "jit_float32";
-		printf("#define jit_apply_parser_get_float32(builder,value) \\\n");
-		printf("\tjit_apply_parser_get_large((builder), %s, jit_float32, (value));\n", name);
-
-		if(pass_reg_double_as_nfloat)
-			name = "jit_nfloat";
-		else
-			name = "jit_float64";
-		printf("#define jit_apply_parser_get_float64(builder,value) \\\n");
-		printf("\tjit_apply_parser_get_large((builder), %s, jit_float64, (value));\n", name);
-
+		/* Pass nfloat values in word registers */
 		if(pass_reg_nfloat_as_double)
 			name = "jit_float64";
 		else
@@ -2196,23 +2399,7 @@ void dump_apply_macros(void)
 	}
 	else
 	{
-		/* Pass floating point values on the stack */
-		if(pass_stack_float_as_double)
-			name = "jit_float64";
-		else if(pass_stack_float_as_nfloat)
-			name = "jit_nfloat";
-		else
-			name = "jit_float32";
-		printf("#define jit_apply_parser_get_float32(builder,value) \\\n");
-		printf("\tjit_apply_parser_get_large_stack((builder), %s, jit_float32, (value));\n", name);
-
-		if(pass_stack_double_as_nfloat)
-			name = "jit_nfloat";
-		else
-			name = "jit_float64";
-		printf("#define jit_apply_parser_get_float64(builder,value) \\\n");
-		printf("\tjit_apply_parser_get_large_stack((builder), %s, jit_float64, (value));\n", name);
-
+		/* Pass nfloat values on the stack */
 		if(pass_stack_nfloat_as_double)
 			name = "jit_float64";
 		else
@@ -2279,8 +2466,20 @@ int main(int argc, char *argv[])
 	/* Determine if the special structure register overlaps a word register */
 	detect_struct_buf = detect_struct_overlap(1, 2);
 
-	/* Detect the number of floating-point registers */
+	/* Detect the number of float registers */
 	detect_float_regs(0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0,
+					  9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0,
+					  17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0,
+					  25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0);
+
+	/* Detect the number of double registers */
+	detect_double_regs(0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0,
+					   9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0,
+					   17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0,
+					   25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0);
+
+	/* Detect the number of native floating-point registers */
+	detect_nfloat_regs(0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0,
 					  9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0,
 					  17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0,
 					  25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0);
@@ -2298,6 +2497,11 @@ int main(int argc, char *argv[])
 		{
 			detect_double_overlap(123.78, 1, 2);
 		}
+	}
+
+	if(num_nfloat_regs > 0 && num_word_regs > 0)
+	{
+		detect_nfloat_overlap(123.78, 1, 2);
 	}
 
 	/* Determine if "long double" values should be demoted to "double" */
@@ -2371,6 +2575,8 @@ int main(int argc, char *argv[])
 	printf("#define _JIT_APPLY_RULES_H\n\n");
 	printf("#define JIT_APPLY_NUM_WORD_REGS %d\n", num_word_regs);
 	printf("#define JIT_APPLY_NUM_FLOAT_REGS %d\n", num_float_regs);
+	printf("#define JIT_APPLY_NUM_DOUBLE_REGS %d\n", num_double_regs);
+	printf("#define JIT_APPLY_NUM_NFLOAT_REGS %d\n", num_nfloat_regs);
 	printf("#define JIT_APPLY_PASS_STACK_FLOAT_AS_DOUBLE %d\n",
 		   pass_stack_float_as_double);
 	printf("#define JIT_APPLY_PASS_STACK_FLOAT_AS_NFLOAT %d\n",
@@ -2392,6 +2598,8 @@ int main(int argc, char *argv[])
 	printf("#define JIT_APPLY_RETURN_DOUBLE_AS_NFLOAT %d\n", return_double_as_nfloat);
 	printf("#define JIT_APPLY_RETURN_NFLOAT_AS_DOUBLE %d\n", return_nfloat_as_double);
 	printf("#define JIT_APPLY_FLOATS_IN_WORD_REGS %d\n", floats_in_word_regs);
+	printf("#define JIT_APPLY_DOUBLES_IN_WORD_REGS %d\n", doubles_in_word_regs);
+	printf("#define JIT_APPLY_NFLOATS_IN_WORD_REGS %d\n", nfloats_in_word_regs);
 	printf("#define JIT_APPLY_RETURN_FLOATS_AFTER %d\n", return_floats_after);
 	printf("#define JIT_APPLY_VARARGS_ON_STACK %d\n", varargs_on_stack);
 	printf("#define JIT_APPLY_STRUCT_RETURN_SPECIAL_REG %d\n", struct_return_special_reg);

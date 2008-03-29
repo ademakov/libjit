@@ -258,9 +258,13 @@ static void jit_apply_builder_add_arguments
 			case JIT_TYPE_STRUCT:
 			case JIT_TYPE_UNION:
 			{
-				jit_apply_builder_add_struct
-					(builder, args[param], jit_type_get_size(type),
-					 jit_type_get_alignment(type));
+#ifdef HAVE_JIT_BUILTIN_APPLY_STRUCT
+				_jit_builtin_apply_add_struct(builder, args[param], type);
+#else
+				jit_apply_builder_add_struct(builder, args[param],
+							     jit_type_get_size(type),
+							     jit_type_get_alignment(type));
+#endif
 			}
 			break;
 		}
@@ -372,9 +376,12 @@ static void jit_apply_builder_get_return
 		case JIT_TYPE_STRUCT:
 		case JIT_TYPE_UNION:
 		{
+#ifdef HAVE_JIT_BUILTIN_APPLY_STRUCT_RETURN
+			_jit_builtin_apply_get_struct_return(builder, return_value, result, type);
+#else
 			unsigned int size = jit_type_get_size(type);
-			jit_apply_builder_get_struct_return
-				(builder, size, return_value, result);
+			jit_apply_builder_get_struct_return(builder, size, return_value, result);
+#endif
 		}
 		break;
 	}
@@ -679,9 +686,12 @@ static void closure_handler(jit_closure_t closure, void *apply_args)
 			case JIT_TYPE_STRUCT:
 			case JIT_TYPE_UNION:
 			{
-				jit_apply_parser_get_struct
-					(&parser, jit_type_get_size(type),
-		 			 jit_type_get_alignment(type), temp_arg);
+#ifdef HAVE_JIT_BUILTIN_APPLY_STRUCT
+				_jit_builtin_apply_get_struct(&parser, temp_arg, type);
+#else
+				jit_apply_parser_get_struct(&parser, jit_type_get_size(type),
+							    jit_type_get_alignment(type), temp_arg);
+#endif
 			}
 			break;
 		}
@@ -976,7 +986,11 @@ void *jit_closure_va_get_ptr(jit_closure_va_list_t va)
 void jit_closure_va_get_struct
 	(jit_closure_va_list_t va, void *buf, jit_type_t type)
 {
+#ifdef HAVE_JIT_BUILTIN_APPLY_STRUCT
+	_jit_builtin_apply_get_struct(&(va->builder), buf, type);
+#else
 	jit_apply_parser_get_struct
 		(&(va->builder), jit_type_get_size(type),
 		 jit_type_get_alignment(type), buf);
+#endif
 }
