@@ -349,7 +349,7 @@ jit_int jit_int_sign(jit_int value1)
 	}
 	else if(value1 > 0)
 	{
-		return 0;
+		return 1;
 	}
 	else
 	{
@@ -876,7 +876,7 @@ jit_int jit_long_sign(jit_long value1)
 	}
 	else if(value1 > 0)
 	{
-		return 0;
+		return 1;
 	}
 	else
 	{

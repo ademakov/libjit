@@ -3,6 +3,9 @@
 	* jit/jit-gen-x86-64.h: Add macros for the test, imul, cdw/cdq/cqo
 	and cmov instructions.
 
+	* jit/jit-intrinsic.c (jit_int_sign, jit_long_sign): Return 1 for
+	values greater than 0 instead of 0.
+
 	* jit/jit-rules-x84-64.ins: Add IMUL, IDIV, IDIV_UN, IREM, IREM_UN,
 	LMUL, LDIV, LDIV_UN, LREM and LREM_UN opcodes. Replace the compares
 	with zero done with or with test instructions.
