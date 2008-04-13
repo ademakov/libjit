@@ -1,3 +1,15 @@
+2008-04-13  Klaus Treichel  <ktreichel@web.de>
+
+	* include/jit/Makefile.am:
+	* include/jit/jit-arch-x86-64.h: new file with x86-64 architecture
+	specific macros for stack frame inspection.
+
+	* configure.in: check for x86-64 arch, add -fno-omit-frame-pointer
+	flag.
+
+	* include/jit/jit-walk.h: use _JIT_ARCH_GET_RETURN_ADDRESS and
+	_JIT_ARCH_GET_CURRENT_RETURN if available.
+
 2008-03-31  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-rules-x86.ins: Fix the sign opcode for integers and the

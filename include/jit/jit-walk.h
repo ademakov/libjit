@@ -71,6 +71,14 @@ void *jit_get_next_frame_address(void *frame);
  * Get the return address for a specific frame.
  */
 void *_jit_get_return_address(void *frame, void *frame0, void *return0);
+#if defined(_JIT_ARCH_GET_RETURN_ADDRESS)
+#define jit_get_return_address(frame)				\
+	({							\
+		void *address;					\
+		_JIT_ARCH_GET_RETURN_ADDRESS(address, (frame));	\
+		address;					\
+	})
+#else
 #if defined(__GNUC__)
 #define	jit_get_return_address(frame)	\
 		(_jit_get_return_address	\
@@ -79,16 +87,26 @@ void *_jit_get_return_address(void *frame, void *frame0, void *return0);
 #define	jit_get_return_address(frame)	\
 		(_jit_get_return_address((frame), 0, 0))
 #endif
+#endif
 
 /*
  * Get the return address for the current frame.  May be more efficient
  * than using "jit_get_return_address(0)".
  */
+#if defined(_JIT_ARCH_GET_CURRENT_RETURN)
+#define	jit_get_current_return()			\
+	({						\
+		void *address;				\
+		_JIT_ARCH_GET_CURRENT_RETURN(address);	\
+		address;				\
+	})
+#else
 #if defined(__GNUC__)
 #define	jit_get_current_return()	(__builtin_return_address(0))
 #else
 #define	jit_get_current_return()	\
 			(jit_get_return_address(jit_get_current_frame()))
+#endif
 #endif
 
 /*

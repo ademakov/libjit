@@ -29,7 +29,7 @@ libjitinclude_HEADERS = jit.h \
 						jit-value.h \
 						jit-walk.h
 
-noinst_HEADERS = jit-arch-generic.h jit-arch-x86.h
+noinst_HEADERS = jit-arch-generic.h jit-arch-x86.h jit-arch-x86-64.h
 
 DISTCLEANFILES = jit-arch.h jit-defs.h
 

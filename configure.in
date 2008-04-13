@@ -19,6 +19,9 @@ case "$host" in
 	i[[3456789]]86-*-*)
 		JIT_ARCH=x86
 		;;
+	x86_64-*-*)
+		JIT_ARCH=x86-64
+		;;
 	*)
 		JIT_ARCH=generic
 		;;
@@ -332,6 +335,13 @@ case "x$CXXFLAGS" in
 		CXXFLAGS=`echo "$CXXFLAGS" | sed 's/-fomit-frame-pointer//'` ;;
 	*)	;;
 esac
+
+dnl Add "-fno-omit-frame-pointer" to the CFLAGS because current gcc versions
+dnl have no frame pointers by default on some archs.
+if test x$GCC = xyes ; then
+	CFLAGS="$CFLAGS -fno-omit-frame-pointer"
+	CXXFLAGS="$CXXFLAGS -fno-omit-frame-pointer"
+fi
 
 dnl Find the option to use to turn on C++ exception handling.
 AC_CACHE_CHECK(for C++ exception handling option, ac_cv_prog_cxx_exceptions,
