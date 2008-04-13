@@ -104,6 +104,22 @@
 #define HAVE_RED_ZONE 1
 
 /*
+ * Some declarations that should be replaced by querying the cpuinfo
+ * if generating code for the current cpu.
+ */
+/*
+#define HAVE_X86_SSE_4_1 0
+#define HAVE_X86_SSE_4 0
+#define HAVE_X86_SSE_3 0
+#define HAVE_X86_FISTTP 0
+*/
+
+#define	TODO() \
+do { \
+	fprintf(stderr, "TODO at %s, %d\n", __FILE__, (int)__LINE__); \
+} while(0)
+
+/*
  * Setup or teardown the x86 code output process.
  */
 #define	jit_cache_setup_output(needed)	\
@@ -165,6 +181,9 @@ static int _jit_sse_return_regs[] = {X86_64_REG_XMM0, X86_64_REG_XMM1};
 static _jit_regclass_t *x86_64_reg;		/* X86_64 general purpose registers */
 static _jit_regclass_t *x86_64_creg;	/* X86_64 call clobbered general */
 										/* purpose registers */
+static _jit_regclass_t *x86_64_dreg;	/* general purpose registers that */
+										/* can be used as divisor */
+										/* (all but %rax and %rdx) */
 static _jit_regclass_t *x86_64_rreg;	/* general purpose registers not used*/
 										/* for returning values */
 static _jit_regclass_t *x86_64_sreg;	/* general purpose registers that can*/
@@ -195,6 +214,16 @@ _jit_init_backend(void)
 		X86_64_REG_RDI, X86_64_REG_R8,
 		X86_64_REG_R9, X86_64_REG_R10,
 		X86_64_REG_R11);
+
+	/* r egister class for divisors */
+	x86_64_dreg = _jit_regclass_create(
+		"dreg", JIT_REG_WORD | JIT_REG_LONG, 12,
+		X86_64_REG_RCX, X86_64_REG_RBX,
+		X86_64_REG_RSI, X86_64_REG_RDI,
+		X86_64_REG_R8, X86_64_REG_R9,
+		X86_64_REG_R10, X86_64_REG_R11,
+		X86_64_REG_R12, X86_64_REG_R13,
+		X86_64_REG_R14, X86_64_REG_R15);
 
 	/* register class with all registers not used for returning values */
 	x86_64_rreg = _jit_regclass_create(
@@ -338,6 +367,452 @@ _jit_xmm1_reg_imm_size_float64(jit_gencode_t gen, unsigned char **inst_ptr,
 	}
 	*inst_ptr = inst;
 	return 1;
+}
+
+/*
+ * Do a logical xmm operation with packed float32 values
+ */
+static int
+_jit_plops_reg_imm(jit_gencode_t gen, unsigned char **inst_ptr,
+				   X86_64_XMM_PLOP opc, int reg, void *packed_value)
+{
+	void *ptr;
+	jit_nint offset;
+	unsigned char *inst;
+
+	inst = *inst_ptr;
+	ptr = _jit_cache_alloc(&(gen->posn), 16);
+	if(!ptr)
+	{
+		return 0;
+	}
+	jit_memcpy(ptr, packed_value, 16);
+
+	/* calculate the offset for membase addressing */
+	offset = (jit_nint)ptr - ((jit_nint)inst + (reg > 7 ? 8 : 7));
+	if((offset >= jit_min_int) && (offset <= jit_max_int))
+	{
+		/* We can use RIP relative addressing here */
+		x86_64_plops_reg_membase(inst, opc, reg, X86_64_RIP, offset);
+		*inst_ptr = inst;
+		return 1;
+	}
+	/* Check if mem addressing can be used */
+	if(((jit_nint)ptr >= jit_min_int) &&
+		((jit_nint)ptr <= jit_max_int))
+	{
+		/* We can use absolute addressing */
+		x86_64_plops_reg_mem(inst, opc, reg, (jit_nint)ptr);
+		*inst_ptr = inst;
+		return 1;
+	}
+	/* We have to use an extra general register */
+	TODO();
+	return 0;
+}
+
+/*
+ * Do a logical xmm operation with packed float64 values
+ */
+static int
+_jit_plopd_reg_imm(jit_gencode_t gen, unsigned char **inst_ptr,
+				   X86_64_XMM_PLOP opc, int reg, void *packed_value)
+{
+	void *ptr;
+	jit_nint offset;
+	unsigned char *inst;
+
+	inst = *inst_ptr;
+	ptr = _jit_cache_alloc(&(gen->posn), 16);
+	if(!ptr)
+	{
+		return 0;
+	}
+	jit_memcpy(ptr, packed_value, 16);
+
+	/* calculate the offset for membase addressing */
+	offset = (jit_nint)ptr - ((jit_nint)inst + (reg > 7 ? 9 : 8));
+	if((offset >= jit_min_int) && (offset <= jit_max_int))
+	{
+		/* We can use RIP relative addressing here */
+		x86_64_plopd_reg_membase(inst, opc, reg, X86_64_RIP, offset);
+		*inst_ptr = inst;
+		return 1;
+	}
+	/* Check if mem addressing can be used */
+	if(((jit_nint)ptr >= jit_min_int) &&
+		((jit_nint)ptr <= jit_max_int))
+	{
+		/* We can use absolute addressing */
+		x86_64_plopd_reg_mem(inst, opc, reg, (jit_nint)ptr);
+		*inst_ptr = inst;
+		return 1;
+	}
+	/* We have to use an extra general register */
+	TODO();
+	return 0;
+}
+
+/*
+ * Helpers for saving and setting roundmode in the fpu control word
+ * and restoring it afterwards.
+ * The rounding mode bits are bit 10 and 11 in the fpu control word.
+ * sp_offset is the start offset of a temporary eight byte block.
+ */
+static unsigned char *
+_x86_64_set_fpu_roundmode(unsigned char *inst, int scratch_reg,
+						  int sp_offset, X86_64_ROUNDMODE mode)
+{
+	int fpcw_save_offset = sp_offset + 4;
+	int fpcw_new_offset = sp_offset;
+	int round_mode = ((int)mode) << 10;
+	int round_mode_mask = ~(((int)X86_ROUND_ZERO) << 10);
+
+	/* store FPU control word */
+	x86_64_fnstcw_membase(inst, X86_64_RSP, fpcw_save_offset);
+	/* load the value into the scratch register */
+	x86_64_mov_reg_membase_size(inst, scratch_reg, X86_64_RSP, fpcw_save_offset, 2);
+	/* Set the rounding mode */
+	if(mode != X86_ROUND_ZERO)
+	{
+		/* Not all bits are set in the mask so we have to clear it first */
+		x86_64_and_reg_imm_size(inst, scratch_reg, round_mode_mask, 2);
+	}
+	x86_64_or_reg_imm_size(inst, scratch_reg, round_mode, 2);
+	/* Store the new round mode */
+	x86_64_mov_membase_reg_size(inst, X86_64_RSP, fpcw_new_offset, scratch_reg, 2);
+	/* Now load the new control word */
+	x86_64_fldcw_membase(inst, X86_64_RSP, fpcw_new_offset);
+
+	return inst;
+}
+
+static unsigned char *
+_x86_64_restore_fpcw(unsigned char *inst, int sp_offset)
+{
+	int fpcw_save_offset = sp_offset + 4;
+
+	/* Now load the saved control word */
+	x86_64_fldcw_membase(inst, X86_64_RSP, fpcw_save_offset);
+
+	return inst;
+}
+
+/*
+ * Helpers for saving and setting roundmode in the mxcsr register and
+ * restoring it afterwards.
+ * The rounding mode bits are bit 13 and 14 in the mxcsr register.
+ * sp_offset is the start offset of a temporary eight byte block.
+ */
+static unsigned char *
+_x86_64_set_xmm_roundmode(unsigned char *inst, int scratch_reg,
+						  int sp_offset, X86_64_ROUNDMODE mode)
+{
+	int mxcsr_save_offset = sp_offset + 4;
+	int mxcsr_new_offset = sp_offset;
+	int round_mode = ((int)mode) << 13;
+	int round_mode_mask = ~(((int)X86_ROUND_ZERO) << 13);
+
+	/* save the mxcsr register */
+	x86_64_stmxcsr_membase(inst, X86_64_RSP, mxcsr_save_offset);
+	/* Load the contents of the mxcsr register into the scratch register */
+	x86_64_mov_reg_membase_size(inst, scratch_reg, X86_64_RSP, mxcsr_save_offset, 4);
+	/* Set the rounding mode */
+	if(mode != X86_ROUND_ZERO)
+	{
+		/* Not all bits are set in the mask so we have to clear it first */
+		x86_64_and_reg_imm_size(inst, scratch_reg, round_mode_mask, 4);
+	}
+	x86_64_or_reg_imm_size(inst, scratch_reg, round_mode, 4);
+	/* Store the new round mode */
+	x86_64_mov_membase_reg_size(inst, X86_64_RSP, mxcsr_new_offset, scratch_reg, 4);
+	/* and load it to the mxcsr register */
+	x86_64_ldmxcsr_membase(inst, X86_64_RSP, mxcsr_new_offset);
+
+	return inst;
+}
+
+static unsigned char *
+_x86_64_restore_mxcsr(unsigned char *inst, int sp_offset)
+{
+	int mxcsr_save_offset = sp_offset + 4;
+
+	/* restore the mxcsr register */
+	x86_64_ldmxcsr_membase(inst, X86_64_RSP, mxcsr_save_offset);
+
+	return inst;
+}
+
+/*
+ * perform rounding of scalar single precision values.
+ * We have to use the fpu where see4.1 is not supported.
+ */
+static unsigned char *
+x86_64_rounds_reg_reg(unsigned char *inst, int dreg, int sreg,
+					  int scratch_reg, X86_64_ROUNDMODE mode)
+{
+#ifdef HAVE_RED_ZONE
+#ifdef HAVE_X86_SSE_4_1
+	x86_64_roundss_reg_reg(inst, dreg, sreg, mode);
+#else
+	/* Copy the xmm register to the stack */
+	x86_64_movss_membase_reg(inst, X86_64_RSP, -16, sreg);
+	/* Set the fpu round mode */
+	inst = _x86_64_set_fpu_roundmode(inst, scratch_reg, -8, mode);
+	/* Load the value to the fpu */
+	x86_64_fld_membase_size(inst, X86_64_RSP, -16, 4);
+	/* And round it to integer */
+	x86_64_frndint(inst);
+	/* restore the fpu control word */
+	inst = _x86_64_restore_fpcw(inst, -8);
+	/* and move st(0) to the destination register */
+	x86_64_fstp_membase_size(inst, X86_64_RSP, -16, 4);
+	x86_64_movss_reg_membase(inst, dreg, X86_64_RSP, -16);
+#endif
+#else
+#ifdef HAVE_X86_SSE_4_1
+	x86_64_roundss_reg_reg(inst, dreg, sreg, mode);
+#else
+	/* allocate space on the stack for two ints and one long value */
+	x86_64_sub_reg_imm_size(inst, X86_64_RSP, 16, 8);
+	/* Copy the xmm register to the stack */
+	x86_64_movss_regp_reg(inst, X86_64_RSP, sreg);
+	/* Set the fpu round mode */
+	inst = _x86_64_set_fpu_roundmode(inst, scratch_reg, 8, mode);
+	/* Load the value to the fpu */
+	x86_64_fld_regp_size(inst, X86_64_RSP, 4);
+	/* And round it to integer */
+	x86_64_frndint(inst);
+	/* restore the fpu control word */
+	inst = _x86_64_restore_fpcw(inst, 8);
+	/* and move st(0) to the destination register */
+	x86_64_fstp_regp_size(inst, X86_64_RSP, 4);
+	x86_64_movss_reg_regp(inst, dreg, X86_64_RSP);
+	/* restore the stack pointer */
+	x86_64_add_reg_imm_size(inst, X86_64_RSP, 16, 8);
+#endif
+#endif
+	return inst;
+}
+
+static unsigned char *
+x86_64_rounds_reg_membase(unsigned char *inst, int dreg, int offset,
+						  int scratch_reg, X86_64_ROUNDMODE mode)
+{
+#ifdef HAVE_RED_ZONE
+#ifdef HAVE_X86_SSE_4_1
+	x86_64_roundss_reg_membase(inst, dreg, X86_64_RBP, offset, mode);
+#else
+	/* Load the value to the fpu */
+	x86_64_fld_membase_size(inst, X86_64_RBP, offset, 4);
+	/* Set the fpu round mode */
+	inst = _x86_64_set_fpu_roundmode(inst, scratch_reg, -8, mode);
+	/* And round it to integer */
+	x86_64_frndint(inst);
+	/* restore the fpu control word */
+	inst = _x86_64_restore_fpcw(inst, -8);
+	/* and move st(0) to the destination register */
+	x86_64_fstp_membase_size(inst, X86_64_RSP, -16, 4);
+	x86_64_movss_reg_membase(inst, dreg, X86_64_RSP, -16);
+#endif
+#else
+#ifdef HAVE_X86_SSE_4_1
+	x86_64_roundss_reg_membase(inst, dreg, X86_64_RBP, offset, mode);
+#else
+	/* allocate space on the stack for two ints and one long value */
+	x86_64_sub_reg_imm_size(inst, X86_64_RSP, 16, 8);
+	/* Load the value to the fpu */
+	x86_64_fld_membase_size(inst, X86_64_RBP, offset, 4);
+	/* Set the fpu round mode */
+	inst = _x86_64_set_fpu_roundmode(inst, scratch_reg, 8, mode);
+	/* And round it to integer */
+	x86_64_frndint(inst);
+	/* restore the fpu control word */
+	inst = _x86_64_restore_fpcw(inst, 8);
+	/* and move st(0) to the destination register */
+	x86_64_fstp_regp_size(inst, X86_64_RSP, 4);
+	x86_64_movss_reg_regp(inst, dreg, X86_64_RSP);
+	/* restore the stack pointer */
+	x86_64_add_reg_imm_size(inst, X86_64_RSP, 16, 8);
+#endif
+#endif
+	return inst;
+}
+
+/*
+ * perform rounding of scalar double precision values.
+ * We have to use the fpu where see4.1 is not supported.
+ */
+static unsigned char *
+x86_64_roundd_reg_reg(unsigned char *inst, int dreg, int sreg,
+					  int scratch_reg, X86_64_ROUNDMODE mode)
+{
+#ifdef HAVE_RED_ZONE
+#ifdef HAVE_X86_SSE_4_1
+	x86_64_roundsd_reg_reg(inst, dreg, sreg, mode);
+#else
+	/* Copy the xmm register to the stack */
+	x86_64_movsd_membase_reg(inst, X86_64_RSP, -16, sreg);
+	/* Set the fpu round mode */
+	inst = _x86_64_set_fpu_roundmode(inst, scratch_reg, -8, mode);
+	/* Load the value to the fpu */
+	x86_64_fld_membase_size(inst, X86_64_RSP, -16, 8);
+	/* And round it to integer */
+	x86_64_frndint(inst);
+	/* restore the fpu control word */
+	inst = _x86_64_restore_fpcw(inst, -8);
+	/* and move st(0) to the destination register */
+	x86_64_fstp_membase_size(inst, X86_64_RSP, -16, 8);
+	x86_64_movsd_reg_membase(inst, dreg, X86_64_RSP, -16);
+#endif
+#else
+#ifdef HAVE_X86_SSE_4_1
+	x86_64_roundsd_reg_reg(inst, dreg, sreg, mode);
+#else
+	/* allocate space on the stack for two ints and one long value */
+	x86_64_sub_reg_imm_size(inst, X86_64_RSP, 16, 8);
+	/* Copy the xmm register to the stack */
+	x86_64_movsd_regp_reg(inst, X86_64_RSP, sreg);
+	/* Set the fpu round mode */
+	inst = _x86_64_set_fpu_roundmode(inst, scratch_reg, 8, mode);
+	/* Load the value to the fpu */
+	x86_64_fld_regp_size(inst, X86_64_RSP, 8);
+	/* And round it to integer */
+	x86_64_frndint(inst);
+	/* restore the fpu control word */
+	inst = _x86_64_restore_fpcw(inst, 8);
+	/* and move st(0) to the destination register */
+	x86_64_fstp_regp_size(inst, X86_64_RSP, 8);
+	x86_64_movsd_reg_regp(inst, dreg, X86_64_RSP);
+	/* restore the stack pointer */
+	x86_64_add_reg_imm_size(inst, X86_64_RSP, 16, 8);
+#endif
+#endif
+	return inst;
+}
+
+static unsigned char *
+x86_64_roundd_reg_membase(unsigned char *inst, int dreg, int offset,
+						  int scratch_reg, X86_64_ROUNDMODE mode)
+{
+#ifdef HAVE_RED_ZONE
+#ifdef HAVE_X86_SSE_4_1
+	x86_64_roundsd_reg_membase(inst, dreg, X86_64_RBP, offset, mode);
+#else
+	/* Load the value to the fpu */
+	x86_64_fld_membase_size(inst, X86_64_RBP, offset, 8);
+	/* Set the fpu round mode */
+	inst = _x86_64_set_fpu_roundmode(inst, scratch_reg, -8, mode);
+	/* And round it to integer */
+	x86_64_frndint(inst);
+	/* restore the fpu control word */
+	inst = _x86_64_restore_fpcw(inst, -8);
+	/* and move st(0) to the destination register */
+	x86_64_fstp_membase_size(inst, X86_64_RSP, -16, 8);
+	x86_64_movsd_reg_membase(inst, dreg, X86_64_RSP, -16);
+#endif
+#else
+#ifdef HAVE_X86_SSE_4_1
+	x86_64_roundsd_reg_membase(inst, dreg, X86_64_RBP, offset, mode);
+#else
+	/* allocate space on the stack for two ints and one long value */
+	x86_64_sub_reg_imm_size(inst, X86_64_RSP, 16, 8);
+	/* Load the value to the fpu */
+	x86_64_fld_membase_size(inst, X86_64_RBP, offset, 8);
+	/* Set the fpu round mode */
+	inst = _x86_64_set_fpu_roundmode(inst, scratch_reg, 8, mode);
+	/* And round it to integer */
+	x86_64_frndint(inst);
+	/* restore the fpu control word */
+	inst = _x86_64_restore_fpcw(inst, 8);
+	/* and move st(0) to the destination register */
+	x86_64_fstp_regp_size(inst, X86_64_RSP, 8);
+	x86_64_movsd_reg_regp(inst, dreg, X86_64_RSP);
+	/* restore the stack pointer */
+	x86_64_add_reg_imm_size(inst, X86_64_RSP, 16, 8);
+#endif
+#endif
+	return inst;
+}
+
+/*
+ * Round the value in St(0) to integer according to the rounding
+ * mode specified.
+ */
+static unsigned char *
+x86_64_roundnf(unsigned char *inst, int scratch_reg, X86_64_ROUNDMODE mode)
+{
+#ifdef HAVE_RED_ZONE
+	/* Set the fpu round mode */
+	inst = _x86_64_set_fpu_roundmode(inst, scratch_reg, -8, mode);
+	/* And round it to integer */
+	x86_64_frndint(inst);
+	/* restore the fpu control word */
+	inst = _x86_64_restore_fpcw(inst, -8);
+#else
+	/* allocate space on the stack for two ints and one long value */
+	x86_64_sub_reg_imm_size(inst, X86_64_RSP, 8, 8);
+	/* Set the fpu round mode */
+	inst = _x86_64_set_fpu_roundmode(inst, scratch_reg, 0, mode);
+	/* And round it to integer */
+	x86_64_frndint(inst);
+	/* restore the fpu control word */
+	inst = _x86_64_restore_fpcw(inst, 0);
+	/* restore the stack pointer */
+	x86_64_add_reg_imm_size(inst, X86_64_RSP, 8, 8);
+#endif
+	return inst;
+}
+
+/*
+ * Round the value in the fpu register st(0) to integer and
+ * store the value in dreg. St(0) is popped from the fpu stack.
+ */
+static unsigned char *
+x86_64_nfloat_to_int(unsigned char *inst, int dreg, int scratch_reg, int size)
+{
+#ifdef HAVE_RED_ZONE
+#ifdef HAVE_X86_FISTTP
+	/* convert float to int */
+	x86_64_fisttp_membase_size(inst, X86_64_RSP, -8, 4);
+	/* move result to the destination */
+	x86_64_mov_reg_membase_size(inst, dreg, X86_64_RSP, -8, 4);
+#else
+	/* Set the fpu round mode */
+	inst = _x86_64_set_fpu_roundmode(inst, scratch_reg, -8, X86_ROUND_ZERO);
+	/* And round the value in st(0) to integer and store it on the stack */
+	x86_64_fistp_membase_size(inst, X86_64_RSP, -16, size);
+	/* restore the fpu control word */
+	inst = _x86_64_restore_fpcw(inst, -8);
+	/* and load the integer to the destination register */
+	x86_64_mov_reg_membase_size(inst, dreg, X86_64_RSP, -16, size);
+#endif
+#else
+#ifdef HAVE_X86_FISTTP
+	/* allocate space on the stack for one long value */
+	x86_64_sub_reg_imm_size(inst, X86_64_RSP, 8, 8);
+	/* convert float to int */
+	x86_64_fisttp_regp_size(inst, X86_64_RSP, 4);
+	/* move result to the destination */
+	x86_64_mov_reg_regp_size(inst, dreg, X86_64_RSP, 4);
+	/* restore the stack pointer */
+	x86_64_add_reg_imm_size(inst, X86_64_RSP, 8, 8);
+#else
+	/* allocate space on the stack for 2 ints and one long value */
+	x86_64_sub_reg_imm_size(inst, X86_64_RSP, 16, 8);
+	/* Set the fpu round mode */
+	inst = _x86_64_set_fpu_roundmode(inst, scratch_reg, 8, X86_ROUND_ZERO);
+	/* And round the value in st(0) to integer and store it on the stack */
+	x86_64_fistp_regp_size(inst, X86_64_RSP, size);
+	/* restore the fpu control word */
+	inst = _x86_64_restore_fpcw(inst, 8);
+	/* and load the integer to the destination register */
+	x86_64_mov_reg_regp_size(inst, dreg, X86_64_RSP, size);
+	/* restore the stack pointer */
+	x86_64_add_reg_imm_size(inst, X86_64_RSP, 16, 8);
+#endif
+#endif
+	return inst;
 }
 
 /*
@@ -1049,8 +1524,15 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 				{
 					int xmm_reg = _jit_reg_info[reg].cpu_reg;
 
-					_jit_xmm1_reg_imm_size_float32(gen, &inst, XMM1_MOV,
-												   xmm_reg, &float32_value);
+					if(float32_value == (jit_float32) 0.0)
+					{
+						x86_64_clear_xreg(inst, xmm_reg);
+					}
+					else
+					{
+						_jit_xmm1_reg_imm_size_float32(gen, &inst, XMM1_MOV,
+													   xmm_reg, &float32_value);
+					}
 				}
 				else
 				{
@@ -1069,7 +1551,7 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 						ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float32));
 						jit_memcpy(ptr, &float32_value, sizeof(float32_value));
 
-						offset = (jit_nint)ptr - ((jit_nint)inst + 7);
+						offset = (jit_nint)ptr - ((jit_nint)inst + 6);
 						if((offset >= jit_min_int) && (offset <= jit_max_int))
 						{
 							/* We can use RIP relative addressing here */
@@ -1084,7 +1566,7 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 						else
 						{
 							/* We have to use an extra general register */
-							/* TODO */
+							TODO();
 						}
 					}
 				}
@@ -1111,8 +1593,15 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 				{
 					int xmm_reg = _jit_reg_info[reg].cpu_reg;
 
-					_jit_xmm1_reg_imm_size_float64(gen, &inst, XMM1_MOV,
-												   xmm_reg, &float64_value);
+					if(float64_value == (jit_float64) 0.0)
+					{
+						x86_64_clear_xreg(inst, xmm_reg);
+					}
+					else
+					{
+						_jit_xmm1_reg_imm_size_float64(gen, &inst, XMM1_MOV,
+													   xmm_reg, &float64_value);
+					}
 				}
 				else
 				{
@@ -1131,7 +1620,7 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 						ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float64));
 						jit_memcpy(ptr, &float64_value, sizeof(float64_value));
 
-						offset = (jit_nint)ptr - ((jit_nint)inst + 7);
+						offset = (jit_nint)ptr - ((jit_nint)inst + 6);
 						if((offset >= jit_min_int) && (offset <= jit_max_int))
 						{
 							/* We can use RIP relative addressing here */
@@ -1146,7 +1635,7 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 						else
 						{
 							/* We have to use an extra general register */
-							/* TODO */
+							TODO();
 						}
 					}
 				}
@@ -1192,7 +1681,7 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 					else
 					{
 						/* We have to use an extra general register */
-						/* TODO */
+						TODO();
 					}
 				}
 				else
@@ -1212,7 +1701,7 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 						ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_nfloat));
 						jit_memcpy(ptr, &nfloat_value, sizeof(nfloat_value));
 
-						offset = (jit_nint)ptr - ((jit_nint)inst + 7);
+						offset = (jit_nint)ptr - ((jit_nint)inst + 6);
 						if((offset >= jit_min_int) && (offset <= jit_max_int))
 						{
 							/* We can use RIP relative addressing here */
@@ -1241,7 +1730,7 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 						else
 						{
 							/* We have to use an extra general register */
-							/* TODO */
+							TODO();
 						}
 					}
 				}
@@ -2314,11 +2803,6 @@ flush_return_struct(unsigned char *inst, jit_value_t value)
 	}
 	return inst;
 }
-
-#define	TODO()		\
-	do { \
-		fprintf(stderr, "TODO at %s, %d\n", __FILE__, (int)__LINE__); \
-	} while (0)
 
 void
 _jit_gen_insn(jit_gencode_t gen, jit_function_t func,

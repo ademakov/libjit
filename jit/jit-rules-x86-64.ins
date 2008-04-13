@@ -22,6 +22,7 @@
  
 %regclass reg x86_64_reg
 %regclass creg x86_64_creg
+%regclass dreg x86_64_dreg
 %regclass rreg x86_64_rreg
 %regclass sreg x86_64_sreg
 %regclass freg x86_64_freg
@@ -91,62 +92,106 @@ JIT_OP_EXPAND_UINT:
 		x86_64_mov_reg_reg_size(inst, $1, $2, 4);
 	}
 
+JIT_OP_INT_TO_NFLOAT:
+	[=freg, local] -> {
+		x86_64_fild_membase_size(inst, X86_64_RBP, $2, 4);
+	}
+	[=freg, reg] -> {
+#ifdef HAVE_RED_ZONE
+		x86_64_mov_membase_reg_size(inst, X86_64_RSP, -8, $2, 4);
+		x86_64_fild_membase_size(inst, X86_64_RSP, -8, 4);
+#else
+		x86_64_push_reg_size(inst, $2, 8);
+		x86_64_fild_membase_size(inst, X86_64_RSP, 0, 4);
+		x86_64_add_reg_imm_size(inst, X86_64_RSP, sizeof(jit_nint), 8);
+#endif
+	}
+
+JIT_OP_LONG_TO_NFLOAT:
+	[=freg, local] -> {
+		x86_64_fild_membase_size(inst, X86_64_RBP, $2, 8);
+	}
+	[=freg, reg] -> {
+#ifdef HAVE_RED_ZONE
+		x86_64_mov_membase_reg_size(inst, X86_64_RSP, -8, $2, 8);
+		x86_64_fild_membase_size(inst, X86_64_RSP, -8, 8);
+#else
+		x86_64_push_reg_size(inst, $2, 8);
+		x86_64_fild_membase_size(inst, X86_64_RSP, 0, 8);
+		x86_64_add_reg_imm_size(inst, X86_64_RSP, sizeof(jit_nint), 8);
+#endif
+	}
+
 JIT_OP_NFLOAT_TO_INT: stack
-	[=reg, freg] -> {
-		/* allocate space on the stack for 2 shorts and 1 int */
-		x86_64_sub_reg_imm_size(inst, X86_64_RSP, 8, 8);
-		/* store FPU control word */
-		x86_64_fnstcw_membase(inst, X86_64_RSP, 0);
-		/* set "round toward zero" mode */
-		x86_64_mov_reg_membase_size(inst, $1, X86_64_RSP, 0, 2);
-		x86_64_or_reg_imm_size(inst, $1, 0xc00, 2);
-		x86_64_mov_membase_reg_size(inst, X86_64_RSP, 2, $1, 2);
-		x86_64_fldcw_membase(inst, X86_64_RSP, 2);
-		/* convert float to int */
-		x86_64_fistp_membase_size(inst, X86_64_RSP, 4, 4);
-		/* restore FPU control word */
-		x86_64_fldcw_membase(inst, X86_64_RSP, 0);
-		/* move result to the destination */
-		x86_64_mov_reg_membase_size(inst, $1, X86_64_RSP, 4, 4);
-		/* restore the stack */
-		x86_64_add_reg_imm_size(inst, X86_64_RSP, 8, 8);
+	[=reg, freg, scratch reg] -> {
+		inst = x86_64_nfloat_to_int(inst, $1, $3, 4);
 	}
 
 JIT_OP_NFLOAT_TO_LONG: stack
-	[=reg, freg] -> {
-		/* allocate space on the stack for 2 shorts and 1 long */
-		x86_64_sub_reg_imm_size(inst, X86_64_RSP, 12, 8);
-		/* store FPU control word */
-		x86_64_fnstcw_membase(inst, X86_64_RSP, 0);
-		/* set "round toward zero" mode */
-		x86_64_mov_reg_membase_size(inst, $1, X86_64_RSP, 0, 2);
-		x86_64_or_reg_imm_size(inst, $1, 0xc00, 2);
-		x86_64_mov_membase_reg_size(inst, X86_64_RSP, 2, $1, 2);
-		x86_64_fldcw_membase(inst, X86_64_RSP, 2);
-		/* convert float to long */
-		x86_64_fistp_membase_size(inst, X86_64_RSP, 4, 8);
-		/* restore FPU control word */
-		x86_64_fldcw_membase(inst, X86_64_RSP, 0);
-		/* move result to the destination */
-		x86_64_mov_reg_membase_size(inst, $1, X86_64_RSP, 4, 8);
-		/* restore the stack */
-		x86_64_add_reg_imm_size(inst, X86_64_RSP, 12, 8);
+	[=reg, freg, scratch reg] -> {
+		inst = x86_64_nfloat_to_int(inst, $1, $3, 8);
+	}
+
+JIT_OP_FLOAT32_TO_NFLOAT:
+	[=freg, local] -> {
+		x86_64_fld_membase_size(inst, X86_64_RBP, $2, 4);
+	}
+	[=freg, xreg] -> {
+#ifdef HAVE_RED_ZONE
+		x86_64_movss_membase_reg(inst, X86_64_RSP, -8, $2);
+		x86_64_fld_membase_size(inst, X86_64_RSP, -8, 4);
+#else
+		x86_64_sub_reg_imm_size(inst, X86_64_RSP, 8, 8);
+		x86_64_movss_regp_reg(inst, X86_64_RSP, $2);
+		x86_64_fld_regp_size(inst, X86_64_RSP, 4);
+		x86_64_add_reg_imm_size(inst, X86_64_RSP, 8, 8);
+#endif
+	}
+
+JIT_OP_FLOAT64_TO_NFLOAT:
+	[=freg, local] -> {
+		x86_64_fld_membase_size(inst, X86_64_RBP, $2, 8);
+	}
+	[=freg, xreg] -> {
+#ifdef HAVE_RED_ZONE
+		x86_64_movsd_membase_reg(inst, X86_64_RSP, -8, $2);
+		x86_64_fld_membase_size(inst, X86_64_RSP, -8, 8);
+#else
+		x86_64_sub_reg_imm_size(inst, X86_64_RSP, 8, 8);
+		x86_64_movsd_regp_reg(inst, X86_64_RSP, $2);
+		x86_64_fld_regp_size(inst, X86_64_RSP, 8);
+		x86_64_add_reg_imm_size(inst, X86_64_RSP, 8, 8);
+#endif
 	}
 
 JIT_OP_NFLOAT_TO_FLOAT32: stack
 	[=xreg, freg] -> {
+#ifdef HAVE_RED_ZONE
 		/* Avoid modifying the stack pointer by simply using negative */
 		/* offsets here. */
 		x86_64_fstp_membase_size(inst, X86_64_RSP, -8, 4);
 		x86_64_movss_reg_membase(inst, $1, X86_64_RSP, -8);
+#else
+		x86_64_sub_reg_imm_size(inst, X86_64_RSP, 8, 8);
+		x86_64_fstp_regp_size(inst, X86_64_RSP, 4);
+		x86_64_movss_reg_regp(inst, $1, X86_64_RSP);
+		x86_64_add_reg_imm_size(inst, X86_64_RSP, 8, 8);
+#endif
 	}
 
 JIT_OP_NFLOAT_TO_FLOAT64: stack
 	[=xreg, freg] -> {
+#ifdef HAVE_RED_ZONE
 		/* Avoid modifying the stack pointer by simply using negative */
 		/* offsets here. */
 		x86_64_fstp_membase_size(inst, X86_64_RSP, -8, 8);
 		x86_64_movsd_reg_membase(inst, $1, X86_64_RSP, -8);
+#else
+		x86_64_sub_reg_imm_size(inst, X86_64_RSP, 8, 8);
+		x86_64_fstp_regp_size(inst, X86_64_RSP, 8);
+		x86_64_movsd_reg_regp(inst, $1, X86_64_RSP);
+		x86_64_add_reg_imm_size(inst, X86_64_RSP, 8, 8);
+#endif
 	}
 
 /*
@@ -894,12 +939,12 @@ JIT_OP_IDIV: more_space
 		x86_64_cmov_reg_reg_size(inst, X86_CC_S, $1, $3, 1, 4);
 		x86_64_sar_reg_imm_size(inst, $1, shift, 4);
 	}
-	[reg("rax"), imm, scratch reg, scratch reg("rdx")] -> {
+	[reg("rax"), imm, scratch dreg, scratch reg("rdx")] -> {
 		x86_64_mov_reg_imm_size(inst, $3, $2, 4);
 		x86_64_cdq(inst);
 		x86_64_idiv_reg_size(inst, $3, 4);
 	}
-	[reg("rax"), reg, scratch reg("rdx")] -> {
+	[reg("rax"), dreg, scratch reg("rdx")] -> {
 		jit_int min_int = jit_min_int;
 		unsigned char *patch, *patch2;
 #ifndef JIT_USE_SIGNALS
@@ -937,12 +982,12 @@ JIT_OP_IDIV_UN: more_space
 		}
 		x86_64_shr_reg_imm_size(inst, $1, shift, 4);
 	}
-	[reg("rax"), imm, scratch reg, scratch reg("rdx")] -> {
+	[reg("rax"), imm, scratch dreg, scratch reg("rdx")] -> {
 		x86_64_mov_reg_imm_size(inst, $3, $2, 4);
 		x86_64_clear_reg(inst, X86_64_RDX);
 		x86_64_div_reg_size(inst, $3, 4);
 	}
-	[reg("rax"), reg, scratch reg("rdx")] -> {
+	[reg("rax"), dreg, scratch reg("rdx")] -> {
 #ifndef JIT_USE_SIGNALS
 		unsigned char *patch;
 		x86_64_test_reg_reg_size(inst, $2, $2, 4);
@@ -974,12 +1019,12 @@ JIT_OP_IREM: more_space
 		x86_patch(patch, inst);
 		x86_64_clear_reg(inst, $1);
 	}
-	[=reg("rdx"), *reg("rax"), imm, scratch reg, scratch reg("rdx")] -> {
+	[=reg("rdx"), *reg("rax"), imm, scratch dreg, scratch reg("rdx")] -> {
 		x86_64_mov_reg_imm_size(inst, $4, $3, 4);
 		x86_64_cdq(inst);
 		x86_64_idiv_reg_size(inst, $4, 4);
 	}
-	[=reg("rdx"), *reg("rax"), reg, scratch reg("rdx")] -> {
+	[=reg("rdx"), *reg("rax"), dreg, scratch reg("rdx")] -> {
 		jit_int min_int = jit_min_int;
 		unsigned char *patch, *patch2;
 #ifndef JIT_USE_SIGNALS
@@ -1009,16 +1054,16 @@ JIT_OP_IREM_UN: more_space
 	[reg, imm, if("$2 == 1")] -> {
 		x86_64_clear_reg(inst, $1);
 	}
-	[reg, imm, if("(((jit_nuint)$2) & (((jit_nuint)$2) - 1)) == 0")] -> {
+	[reg, imm, if("($2 & ($2 - 1)) == 0")] -> {
 		/* x & (x - 1) is equal to zero if x is a power of 2  */
 		x86_64_and_reg_imm_size(inst, $1, $2 - 1, 4);
 	}
-	[=reg("rdx"), *reg("rax"), imm, scratch reg, scratch reg("rdx")] -> {
+	[=reg("rdx"), *reg("rax"), imm, scratch dreg, scratch reg("rdx")] -> {
 		x86_64_mov_reg_imm_size(inst, $4, $3, 4);
 		x86_64_clear_reg(inst, X86_64_RDX);
 		x86_64_div_reg_size(inst, $4, 4);
 	}
-	[=reg("rdx"), *reg("rax"), reg, scratch reg("rdx")] -> {
+	[=reg("rdx"), *reg("rax"), dreg, scratch reg("rdx")] -> {
 #ifndef JIT_USE_SIGNALS
 		unsigned char *patch;
 		x86_64_test_reg_reg_size(inst, $3, $3, 4);
@@ -1170,12 +1215,12 @@ JIT_OP_LDIV: more_space
 		x86_64_cmov_reg_reg_size(inst, X86_CC_S, $1, $3, 1, 8);
 		x86_64_sar_reg_imm_size(inst, $1, shift, 8);
 	}
-	[reg("rax"), imm, scratch reg, scratch reg("rdx")] -> {
+	[reg("rax"), imm, scratch dreg, scratch reg("rdx")] -> {
 		x86_64_mov_reg_imm_size(inst, $3, $2, 8);
 		x86_64_cqo(inst);
 		x86_64_idiv_reg_size(inst, $3, 8);
 	}
-	[reg("rax"), reg, scratch reg("rdx")] -> {
+	[reg("rax"), dreg, scratch reg("rdx")] -> {
 		jit_long min_long = jit_min_long;
 		unsigned char *patch, *patch2;
 #ifndef JIT_USE_SIGNALS
@@ -1214,12 +1259,12 @@ JIT_OP_LDIV_UN: more_space
 		}
 		x86_64_shr_reg_imm_size(inst, $1, shift, 8);
 	}
-	[reg("rax"), imm, scratch reg, scratch reg("rdx")] -> {
+	[reg("rax"), imm, scratch dreg, scratch reg("rdx")] -> {
 		x86_64_mov_reg_imm_size(inst, $3, $2, 8);
 		x86_64_clear_reg(inst, X86_64_RDX);
 		x86_64_div_reg_size(inst, $3, 8);
 	}
-	[reg("rax"), reg, scratch reg("rdx")] -> {
+	[reg("rax"), dreg, scratch reg("rdx")] -> {
 #ifndef JIT_USE_SIGNALS
 		unsigned char *patch;
 		x86_64_test_reg_reg_size(inst, $2, $2, 8);
@@ -1251,12 +1296,12 @@ JIT_OP_LREM: more_space
 		x86_patch(patch, inst);
 		x86_64_clear_reg(inst, $1);
 	}
-	[=reg("rdx"), *reg("rax"), imm, scratch reg, scratch reg("rdx")] -> {
+	[=reg("rdx"), *reg("rax"), imm, scratch dreg, scratch reg("rdx")] -> {
 		x86_64_mov_reg_imm_size(inst, $4, $3, 8);
 		x86_64_cqo(inst);
 		x86_64_idiv_reg_size(inst, $4, 8);
 	}
-	[=reg("rdx"), *reg("rax"), reg, scratch reg("rdx")] -> {
+	[=reg("rdx"), *reg("rax"), dreg, scratch reg("rdx")] -> {
 		jit_long min_long = jit_min_long;
 		unsigned char *patch, *patch2;
 #ifndef JIT_USE_SIGNALS
@@ -1301,12 +1346,12 @@ JIT_OP_LREM_UN: more_space
 			x86_64_and_reg_reg_size(inst, $1, $3, 8);
 		}
 	}
-	[=reg("rdx"), *reg("rax"), imm, scratch reg, scratch reg("rdx")] -> {
+	[=reg("rdx"), *reg("rax"), imm, scratch dreg, scratch reg("rdx")] -> {
 		x86_64_mov_reg_imm_size(inst, $4, $3, 8);
 		x86_64_clear_reg(inst, X86_64_RDX);
 		x86_64_div_reg_size(inst, $4, 8);
 	}
-	[=reg("rdx"), *reg("rax"), reg, scratch reg("rdx")] -> {
+	[=reg("rdx"), *reg("rax"), dreg, scratch reg("rdx")] -> {
 #ifndef JIT_USE_SIGNALS
 		unsigned char *patch;
 		x86_64_test_reg_reg_size(inst, $3, $3, 8);
@@ -1367,6 +1412,22 @@ JIT_OP_FDIV:
 		x86_64_divss_reg_membase(inst, $1, X86_64_RBP, $2);
 	}
 
+JIT_OP_FABS:
+	[xreg] -> {
+		/* Simply clear the sign */
+		jit_uint values[4] = {0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff};
+
+		_jit_plops_reg_imm(gen, &inst, XMM_ANDP, $1, &(values[0]));
+	}
+
+JIT_OP_FNEG:
+	[xreg] -> {
+		/* Simply toggle the sign */
+		jit_uint values[4] = {0x80000000, 0x80000000, 0x80000000, 0x80000000};
+
+		_jit_plops_reg_imm(gen, &inst, XMM_XORP, $1, &(values[0]));
+	}
+
 /*
  * double precision float versions
  */
@@ -1413,6 +1474,35 @@ JIT_OP_DDIV:
 	}
 	[xreg, xreg] -> {
 		x86_64_divsd_reg_reg(inst, $1, $2);
+	}
+
+JIT_OP_DABS:
+	[xreg] -> {
+		/* Simply clear the sign */
+		jit_ulong values[2] = {0x7fffffffffffffff, 0x7fffffffffffffff};
+
+		_jit_plopd_reg_imm(gen, &inst, XMM_ANDP, $1, &(values[0]));
+	}
+
+JIT_OP_DNEG:
+	[xreg] -> {
+		/* Simply toggle the sign */
+		jit_ulong values[2] = {0x8000000000000000, 0x8000000000000000};
+
+		_jit_plopd_reg_imm(gen, &inst, XMM_XORP, $1, &(values[0]));
+	}
+
+/*
+ * native float versions
+ */
+JIT_OP_NFABS: stack
+	[freg] -> {
+		x86_64_fabs(inst);
+	}
+
+JIT_OP_NFNEG:  stack
+	[freg] -> {
+		x86_64_fchs(inst);
 	}
 
 /*
@@ -1872,13 +1962,133 @@ JIT_OP_BR_LGE_UN: branch
 		inst = output_branch(func, inst, 0x73 /* ge_un */, insn);
 	}
 
+JIT_OP_BR_FEQ:
+	[xreg, local] -> {
+		x86_64_comiss_reg_membase(inst, $1, X86_64_RBP, $2);
+		inst = output_branch(func, inst, 0x74 /* eq */, insn);
+	}
+	[xreg, xreg] -> {
+		x86_64_comiss_reg_reg(inst, $1, $2);
+		inst = output_branch(func, inst, 0x74 /* eq */, insn);
+	}
+
+JIT_OP_BR_FNE:
+	[xreg, local] -> {
+		x86_64_comiss_reg_membase(inst, $1, X86_64_RBP, $2);
+		inst = output_branch(func, inst, 0x75 /* ne */, insn);
+	}
+	[xreg, xreg] -> {
+		x86_64_comiss_reg_reg(inst, $1, $2);
+		inst = output_branch(func, inst, 0x75 /* ne */, insn);
+	}
+
+JIT_OP_BR_FLT:
+	[xreg, local] -> {
+		x86_64_comiss_reg_membase(inst, $1, X86_64_RBP, $2);
+		inst = output_branch(func, inst, 0x72 /* lt_un */, insn);
+	}
+	[xreg, xreg] -> {
+		x86_64_comiss_reg_reg(inst, $1, $2);
+		inst = output_branch(func, inst, 0x72 /* lt_un */, insn);
+	}
+
+JIT_OP_BR_FLE:
+	[xreg, local] -> {
+		x86_64_comiss_reg_membase(inst, $1, X86_64_RBP, $2);
+		inst = output_branch(func, inst, 0x76 /* le_un */, insn);
+	}
+	[xreg, xreg] -> {
+		x86_64_comiss_reg_reg(inst, $1, $2);
+		inst = output_branch(func, inst, 0x76 /* le_un */, insn);
+	}
+
+JIT_OP_BR_FGT:
+	[xreg, local] -> {
+		x86_64_comiss_reg_membase(inst, $1, X86_64_RBP, $2);
+		inst = output_branch(func, inst, 0x77 /* gt_un */, insn);
+	}
+	[xreg, xreg] -> {
+		x86_64_comiss_reg_reg(inst, $1, $2);
+		inst = output_branch(func, inst, 0x77 /* gt_un */, insn);
+	}
+
+JIT_OP_BR_FGE:
+	[xreg, local] -> {
+		x86_64_comiss_reg_membase(inst, $1, X86_64_RBP, $2);
+		inst = output_branch(func, inst, 0x73 /* ge_un */, insn);
+	}
+	[xreg, xreg] -> {
+		x86_64_comiss_reg_reg(inst, $1, $2);
+		inst = output_branch(func, inst, 0x73 /* ge_un */, insn);
+	}
+
+JIT_OP_BR_DEQ:
+	[xreg, local] -> {
+		x86_64_comisd_reg_membase(inst, $1, X86_64_RBP, $2);
+		inst = output_branch(func, inst, 0x74 /* eq */, insn);
+	}
+	[xreg, xreg] -> {
+		x86_64_comisd_reg_reg(inst, $1, $2);
+		inst = output_branch(func, inst, 0x74 /* eq */, insn);
+	}
+
+JIT_OP_BR_DNE:
+	[xreg, local] -> {
+		x86_64_comisd_reg_membase(inst, $1, X86_64_RBP, $2);
+		inst = output_branch(func, inst, 0x75 /* ne */, insn);
+	}
+	[xreg, xreg] -> {
+		x86_64_comisd_reg_reg(inst, $1, $2);
+		inst = output_branch(func, inst, 0x75 /* ne */, insn);
+	}
+
+JIT_OP_BR_DLT:
+	[xreg, local] -> {
+		x86_64_comisd_reg_membase(inst, $1, X86_64_RBP, $2);
+		inst = output_branch(func, inst, 0x72 /* lt_un */, insn);
+	}
+	[xreg, xreg] -> {
+		x86_64_comisd_reg_reg(inst, $1, $2);
+		inst = output_branch(func, inst, 0x72 /* lt_un */, insn);
+	}
+
+JIT_OP_BR_DLE:
+	[xreg, local] -> {
+		x86_64_comisd_reg_membase(inst, $1, X86_64_RBP, $2);
+		inst = output_branch(func, inst, 0x76 /* le_un */, insn);
+	}
+	[xreg, xreg] -> {
+		x86_64_comisd_reg_reg(inst, $1, $2);
+		inst = output_branch(func, inst, 0x76 /* le_un */, insn);
+	}
+
+JIT_OP_BR_DGT:
+	[xreg, local] -> {
+		x86_64_comisd_reg_membase(inst, $1, X86_64_RBP, $2);
+		inst = output_branch(func, inst, 0x77 /* gt_un */, insn);
+	}
+	[xreg, xreg] -> {
+		x86_64_comisd_reg_reg(inst, $1, $2);
+		inst = output_branch(func, inst, 0x77 /* gt_un */, insn);
+	}
+
+JIT_OP_BR_DGE:
+	[xreg, local] -> {
+		x86_64_comisd_reg_membase(inst, $1, X86_64_RBP, $2);
+		inst = output_branch(func, inst, 0x73 /* ge_un */, insn);
+	}
+	[xreg, xreg] -> {
+		x86_64_comisd_reg_reg(inst, $1, $2);
+		inst = output_branch(func, inst, 0x73 /* ge_un */, insn);
+	}
+
 /*
  * Comparison opcodes.
  */
 
 JIT_OP_IEQ:
 	[=reg, reg, immzero] -> {
-		x86_64_or_reg_reg_size(inst, $2, $2, 4);
+		x86_64_test_reg_reg_size(inst, $2, $2, 4);
 		inst = setcc_reg(inst, $1, X86_CC_EQ, 0);
 	}
 	[=reg, reg, imm] -> {
@@ -1896,7 +2106,7 @@ JIT_OP_IEQ:
 
 JIT_OP_INE:
 	[=reg, reg, immzero] -> {
-		x86_64_or_reg_reg_size(inst, $2, $2, 4);
+		x86_64_test_reg_reg_size(inst, $2, $2, 4);
 		inst = setcc_reg(inst, $1, X86_CC_NE, 0);
 	}
 	[=reg, reg, imm] -> {
@@ -2026,7 +2236,7 @@ JIT_OP_IGE_UN:
 
 JIT_OP_LEQ:
 	[=reg, reg, immzero] -> {
-		x86_64_or_reg_reg_size(inst, $2, $2, 8);
+		x86_64_test_reg_reg_size(inst, $2, $2, 8);
 		inst = setcc_reg(inst, $1, X86_CC_EQ, 0);
 	}
 	[=reg, reg, imm, if("$3 >= (jit_nint)jit_min_int && $3 <= (jit_nint)jit_max_int")] -> {
@@ -2044,7 +2254,7 @@ JIT_OP_LEQ:
 
 JIT_OP_LNE:
 	[=reg, reg, immzero] -> {
-		x86_64_or_reg_reg_size(inst, $2, $2, 8);
+		x86_64_test_reg_reg_size(inst, $2, $2, 8);
 		inst = setcc_reg(inst, $1, X86_CC_NE, 0);
 	}
 	[=reg, reg, imm, if("$3 >= (jit_nint)jit_min_int && $3 <= (jit_nint)jit_max_int")] -> {
@@ -2171,6 +2381,232 @@ JIT_OP_LGE_UN:
 		x86_64_cmp_reg_reg_size(inst, $2, $3, 8);
 		inst = setcc_reg(inst, $1, X86_CC_GE, 0);
 	}
+
+JIT_OP_FEQ:
+	[=reg, xreg, xreg] -> {
+		x86_64_comiss_reg_reg(inst, $2, $3);
+		inst = setcc_reg(inst, $1, X86_CC_EQ, 0);
+	}
+
+JIT_OP_FNE:
+	[=reg, xreg, xreg] -> {
+		x86_64_comiss_reg_reg(inst, $2, $3);
+		inst = setcc_reg(inst, $1, X86_CC_NE, 0);
+	}
+
+JIT_OP_FLT:
+	[=reg, xreg, xreg] -> {
+		x86_64_comiss_reg_reg(inst, $2, $3);
+		inst = setcc_reg(inst, $1, X86_CC_B, 0);
+	}
+
+JIT_OP_FLE:
+	[=reg, xreg, xreg] -> {
+		x86_64_comiss_reg_reg(inst, $2, $3);
+		inst = setcc_reg(inst, $1, X86_CC_BE, 0);
+	}
+
+JIT_OP_FGT:
+	[=reg, xreg, xreg] -> {
+		x86_64_comiss_reg_reg(inst, $2, $3);
+		inst = setcc_reg(inst, $1, X86_CC_A, 0);
+	}
+
+JIT_OP_FGE:
+	[=reg, xreg, xreg] -> {
+		x86_64_comiss_reg_reg(inst, $2, $3);
+		inst = setcc_reg(inst, $1, X86_CC_AE, 0);
+	}
+
+JIT_OP_DEQ:
+	[=reg, xreg, xreg] -> {
+		x86_64_comisd_reg_reg(inst, $2, $3);
+		inst = setcc_reg(inst, $1, X86_CC_EQ, 0);
+	}
+
+JIT_OP_DNE:
+	[=reg, xreg, xreg] -> {
+		x86_64_comisd_reg_reg(inst, $2, $3);
+		inst = setcc_reg(inst, $1, X86_CC_NE, 0);
+	}
+
+JIT_OP_DLT:
+	[=reg, xreg, xreg] -> {
+		x86_64_comisd_reg_reg(inst, $2, $3);
+		inst = setcc_reg(inst, $1, X86_CC_B, 0);
+	}
+
+JIT_OP_DLE:
+	[=reg, xreg, xreg] -> {
+		x86_64_comisd_reg_reg(inst, $2, $3);
+		inst = setcc_reg(inst, $1, X86_CC_BE, 0);
+	}
+
+JIT_OP_DGT:
+	[=reg, xreg, xreg] -> {
+		x86_64_comisd_reg_reg(inst, $2, $3);
+		inst = setcc_reg(inst, $1, X86_CC_A, 0);
+	}
+
+JIT_OP_DGE:
+	[=reg, xreg, xreg] -> {
+		x86_64_comisd_reg_reg(inst, $2, $3);
+		inst = setcc_reg(inst, $1, X86_CC_AE, 0);
+	}
+
+JIT_OP_FSQRT:
+	[=xreg, local] -> {
+		x86_64_sqrtss_reg_membase(inst, $1, X86_64_RBP, $2);
+	}
+	[=xreg, xreg] -> {
+		x86_64_sqrtss_reg_reg(inst, $1, $2);
+	}
+
+JIT_OP_DSQRT:
+	[=xreg, local] -> {
+		x86_64_sqrtsd_reg_membase(inst, $1, X86_64_RBP, $2);
+	}
+	[=xreg, xreg] -> {
+		x86_64_sqrtsd_reg_reg(inst, $1, $2);
+	}
+
+/*
+ * Absolute, minimum, maximum, and sign.
+ */
+JIT_OP_IMAX:
+	[reg, reg] -> {
+		x86_64_cmp_reg_reg_size(inst, $1, $2, 4);
+		x86_64_cmov_reg_reg_size(inst, X86_CC_LT, $1, $2, 1, 4);
+	}
+
+JIT_OP_IMAX_UN:
+	[reg, reg] -> {
+		x86_64_cmp_reg_reg_size(inst, $1, $2, 4);
+		x86_64_cmov_reg_reg_size(inst, X86_CC_LT, $1, $2, 0, 4);
+	}
+
+JIT_OP_IMIN:
+	[reg, reg] -> {
+		x86_64_cmp_reg_reg_size(inst, $1, $2, 4);
+		x86_64_cmov_reg_reg_size(inst, X86_CC_GT, $1, $2, 1, 4);
+	}
+
+JIT_OP_IMIN_UN:
+	[reg, reg] -> {
+		x86_64_cmp_reg_reg_size(inst, $1, $2, 4);
+		x86_64_cmov_reg_reg_size(inst, X86_CC_GT, $1, $2, 0, 4);
+	}
+
+JIT_OP_LMAX:
+	[reg, reg] -> {
+		x86_64_cmp_reg_reg_size(inst, $1, $2, 8);
+		x86_64_cmov_reg_reg_size(inst, X86_CC_LT, $1, $2, 1, 8);
+	}
+
+JIT_OP_LMAX_UN:
+	[reg, reg] -> {
+		x86_64_cmp_reg_reg_size(inst, $1, $2, 8);
+		x86_64_cmov_reg_reg_size(inst, X86_CC_LT, $1, $2, 0, 8);
+	}
+
+JIT_OP_LMIN:
+	[reg, reg] -> {
+		x86_64_cmp_reg_reg_size(inst, $1, $2, 8);
+		x86_64_cmov_reg_reg_size(inst, X86_CC_GT, $1, $2, 1, 8);
+	}
+
+JIT_OP_LMIN_UN:
+	[reg, reg] -> {
+		x86_64_cmp_reg_reg_size(inst, $1, $2, 8);
+		x86_64_cmov_reg_reg_size(inst, X86_CC_GT, $1, $2, 0, 8);
+	}
+
+JIT_OP_FMAX:
+	[xreg, local] -> {
+		x86_64_maxss_reg_membase(inst, $1, X86_64_RBP, $2);
+	}
+	[xreg, xreg] -> {
+		x86_64_maxss_reg_reg(inst, $1, $2);
+	}
+
+JIT_OP_FMIN:
+	[xreg, local] -> {
+		x86_64_minss_reg_membase(inst, $1, X86_64_RBP, $2);
+	}
+	[xreg, xreg] -> {
+		x86_64_minss_reg_reg(inst, $1, $2);
+	}
+
+JIT_OP_DMAX:
+	[xreg, local] -> {
+		x86_64_maxsd_reg_membase(inst, $1, X86_64_RBP, $2);
+	}
+	[xreg, xreg] -> {
+		x86_64_maxsd_reg_reg(inst, $1, $2);
+	}
+
+JIT_OP_DMIN:
+	[xreg, local] -> {
+		x86_64_minsd_reg_membase(inst, $1, X86_64_RBP, $2);
+	}
+	[xreg, xreg] -> {
+		x86_64_minsd_reg_reg(inst, $1, $2);
+	}
+
+/*
+ * Rounding
+ */
+JIT_OP_FFLOOR: more_space
+	[=xreg, local, scratch reg] -> {
+		inst = x86_64_rounds_reg_membase(inst, $1, $2, $3, X86_ROUND_DOWN);
+	}
+	[=xreg, xreg, scratch reg] -> {
+		inst = x86_64_rounds_reg_reg(inst, $1, $2, $3, X86_ROUND_DOWN);
+	}
+
+JIT_OP_DFLOOR: more_space
+	[=xreg, local, scratch reg] -> {
+		inst = x86_64_roundd_reg_membase(inst, $1, $2, $3, X86_ROUND_DOWN);
+	}
+	[=xreg, xreg, scratch reg] -> {
+		inst = x86_64_roundd_reg_reg(inst, $1, $2, $3, X86_ROUND_DOWN);
+	}
+
+JIT_OP_NFFLOOR: more_space
+	[freg, scratch reg] -> {
+		inst = x86_64_roundnf(inst, $2, X86_ROUND_DOWN);
+	}
+
+JIT_OP_FCEIL: more_space
+	[=xreg, local, scratch reg] -> {
+		inst = x86_64_rounds_reg_membase(inst, $1, $2, $3, X86_ROUND_UP);
+	}
+	[=xreg, xreg, scratch reg] -> {
+		inst = x86_64_rounds_reg_reg(inst, $1, $2, $3, X86_ROUND_UP);
+	}
+
+JIT_OP_DCEIL: more_space
+	[=xreg, local, scratch reg] -> {
+		inst = x86_64_roundd_reg_membase(inst, $1, $2, $3, X86_ROUND_UP);
+	}
+	[=xreg, xreg, scratch reg] -> {
+		inst = x86_64_roundd_reg_reg(inst, $1, $2, $3, X86_ROUND_UP);
+	}
+
+JIT_OP_NFCEIL: more_space
+	[freg, scratch reg] -> {
+		inst = x86_64_roundnf(inst, $2, X86_ROUND_UP);
+	}
+
+/*
+JIT_OP_FRINT: more_space
+	[=xreg, local, scratch reg] -> {
+		inst = x86_64_rounds_reg_membase(inst, $1, $2, $3, X86_ROUND_ZERO);
+	}
+	[=xreg, xreg, scratch reg] -> {
+		inst = x86_64_rounds_reg_reg(inst, $1, $2, $3, X86_ROUND_ZERO);
+	}
+*/
 
 /*
  * Pointer check opcodes.

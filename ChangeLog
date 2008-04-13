@@ -10,6 +10,20 @@
 	* include/jit/jit-walk.h: use _JIT_ARCH_GET_RETURN_ADDRESS and
 	_JIT_ARCH_GET_CURRENT_RETURN if available.
 
+	* jit/jit-gen-x86-64.h: Add additional macros for saving and
+	restoring the fpu controlword and the mxcsr register. Add
+	additional SSE conversion macros. Add SSE compare macros.
+	Add macros for the SSE bit operations on packed values.
+	Add macros for SSE sqrt and rounding. Add macros for fpu rounding.
+
+	* jit/jit-rules-x86-64.c: Add the dreg register class and functions
+	to handle rounding and SSE bit opcodes on packed values.
+
+	* jit/jit-rules-x86-64.ins: Add INT_TO_NFLOAT, LONG_TO_NFLOAT,
+	FLOAT32_TO_NFLOAT, FLOAT64_TO_NFLOAT.
+	Rewrite NFLOAT_TO_INT and NFLOAT_TO_LONG to use the new functions
+	in jit-rules-x86-64.c. Add handling of ABS, NEG and float compares.
+	
 2008-03-31  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-rules-x86.ins: Fix the sign opcode for integers and the
