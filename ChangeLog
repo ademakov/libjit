@@ -1,3 +1,8 @@
+2008-04-19  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-insn.c (jit_insn_sign): the dest value of the sign insn
+	has to be int regardless of the argument type.
+
 2008-04-13  Klaus Treichel  <ktreichel@web.de>
 
 	* include/jit/Makefile.am:

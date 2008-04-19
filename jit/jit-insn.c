@@ -3502,7 +3502,7 @@ jit_value_t jit_insn_sign(jit_function_t func, jit_value_t value1)
 	value1 = jit_insn_convert(func, value1, result_type, 0);
 	if(_jit_opcode_is_supported(oper))
 	{
-		return apply_unary(func, oper, value1, result_type);
+		return apply_unary(func, oper, value1, jit_type_int);
 	}
 	else
 	{
