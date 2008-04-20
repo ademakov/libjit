@@ -1481,17 +1481,17 @@ JIT_OP_ISIGN:
 			x86_clear_reg(inst, $1);
 		}
 	}
-	[reg, scratch reg] -> {
-		x86_clear_reg(inst, $2);
-		x86_test_reg_reg(inst, $1, $1);
-		x86_set_reg(inst,X86_CC_GT, $2, 1);
-		x86_shift_reg_imm(inst, X86_SAR, $1, 31);
-		x86_alu_reg_reg(inst, X86_ADD, $1, $2);
+	[=+reg, +reg] -> {
+		x86_clear_reg(inst, $1);
+		x86_test_reg_reg(inst, $2, $2);
+		x86_set_reg(inst, X86_CC_NZ, $1, 0);
+		x86_shift_reg_imm(inst, X86_SAR, $2, 31);
+		x86_alu_reg_reg(inst, X86_OR, $1, $2);
 	}
 
 JIT_OP_LSIGN:
 	[=reg, imm] -> {
-		jit_int value = ((jit_int *)($2))[1];
+		jit_long value = *((jit_long *)($2));
 		if(value < 0)
 		{
 			x86_mov_reg_imm(inst, $1, -1);
@@ -1505,12 +1505,12 @@ JIT_OP_LSIGN:
 			x86_clear_reg(inst, $1);
 		}
 	}
-	[=reg, lreg] -> {
-		if($1 != %2)
-		{
-			x86_mov_reg_reg(inst, $1, %2, 4);
-		}
-		x86_shift_reg_imm(inst, X86_SAR, $1, 31);
+	[=+reg, +lreg] -> {
+		x86_clear_reg(inst, $1);
+		x86_alu_reg_reg(inst, X86_OR, $2, %2);
+		x86_set_reg(inst, X86_CC_NZ, $1, 0);
+		x86_shift_reg_imm(inst, X86_SAR, %2, 31);
+		x86_alu_reg_reg(inst, X86_OR, $1, %2);
 	}
 
 /*
