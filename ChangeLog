@@ -1,3 +1,12 @@
+2008-04-20  Klaus Treichel  <ktreichel@web.de>
+
+	* tests/Makefile.am: Add cond.pas to the tests.
+
+	* tests/math.pas: Add tests for more opcodes and execute existing
+	tests for more types.
+
+	* tests/cond.pas: Add tests for conditions.
+
 2008-04-20  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86.ins: fix the sign opcode for longs (based on
