@@ -836,56 +836,46 @@ static jit_value_t apply_compare
 }
 
 /*
- * Apply a unary test operator, after coercing the
- * argument to an appropriate type.
+ * Apply a unary test to a floating point value.
  */
-static jit_value_t apply_test
-		(jit_function_t func, const jit_opcode_descr *descr,
-		 jit_value_t value1, int float_only)
+static jit_value_t
+test_float_value(jit_function_t func, const jit_opcode_descr *descr, jit_value_t value1)
 {
 	int oper;
-	jit_type_t result_type;
+	jit_type_t type;
+
+	/* Bail out if the parameters are invalid */
 	if(!value1)
 	{
 		return 0;
 	}
-	result_type = common_binary(value1->type, value1->type, 0, float_only);
-	if(result_type == jit_type_int)
-	{
-		oper = descr->ioper;
-	}
-	else if(result_type == jit_type_uint)
-	{
-		oper = descr->iuoper;
-	}
-	else if(result_type == jit_type_long)
-	{
-		oper = descr->loper;
-	}
-	else if(result_type == jit_type_ulong)
-	{
-		oper = descr->luoper;
-	}
-	else if(result_type == jit_type_float32)
+
+	type = jit_type_normalize(value1->type);
+	if(type == jit_type_float32)
 	{
 		oper = descr->foper;
 	}
-	else if(result_type == jit_type_float64)
+	else if(type == jit_type_float64)
 	{
 		oper = descr->doper;
 	}
-	else
+	else if(type == jit_type_nfloat)
 	{
 		oper = descr->nfoper;
 	}
-	value1 = jit_insn_convert(func, value1, result_type, 0);
+	else
+	{
+		/* if the value is not a float then the result is false */
+		return jit_value_create_nint_constant(func, jit_type_int, 0);
+	}
+
 	if(_jit_opcode_is_supported(oper))
 	{
 		return apply_unary(func, oper, value1, jit_type_int);
 	}
 	else
 	{
-		return apply_intrinsic(func, descr, value1, 0, result_type);
+		return apply_intrinsic(func, descr, value1, 0, type);
 	}
 }
 
@@ -2195,11 +2185,14 @@ jit_value_t jit_insn_neg
 	};
 	int oper;
 	jit_type_t result_type;
+
+	/* Bail out if the parameters are invalid */
 	if(!value1)
 	{
 		return 0;
 	}
-	result_type = common_binary(value1->type, value1->type, 0, 0);
+
+	result_type = jit_type_promote_int(jit_type_normalize(value1->type));
 	if(result_type == jit_type_int)
 	{
 		oper = neg_descr.ioper;
@@ -2230,6 +2223,7 @@ jit_value_t jit_insn_neg
 	{
 		oper = neg_descr.nfoper;
 	}
+
 	value1 = jit_insn_convert(func, value1, result_type, 0);
 	if(_jit_opcode_is_supported(oper))
 	{
@@ -3270,7 +3264,7 @@ jit_value_t jit_insn_is_nan(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_is_nan, descr_i_d),
 		jit_intrinsic(jit_nfloat_is_nan, descr_i_D)
 	};
-	return apply_test(func, &is_nan_descr, value1, 1);
+	return test_float_value(func, &is_nan_descr, value1);
 }
 
 jit_value_t jit_insn_is_finite(jit_function_t func, jit_value_t value1)
@@ -3288,7 +3282,7 @@ jit_value_t jit_insn_is_finite(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_is_finite, descr_i_d),
 		jit_intrinsic(jit_nfloat_is_finite, descr_i_D)
 	};
-	return apply_test(func, &is_finite_descr, value1, 1);
+	return test_float_value(func, &is_finite_descr, value1);
 }
 
 jit_value_t jit_insn_is_inf(jit_function_t func, jit_value_t value1)
@@ -3306,7 +3300,7 @@ jit_value_t jit_insn_is_inf(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_is_inf, descr_i_d),
 		jit_intrinsic(jit_nfloat_is_inf, descr_i_D)
 	};
-	return apply_test(func, &is_inf_descr, value1, 1);
+	return test_float_value(func, &is_inf_descr, value1);
 }
 
 /*@
@@ -3325,11 +3319,14 @@ jit_value_t jit_insn_abs(jit_function_t func, jit_value_t value1)
 	const char *name;
 	jit_type_t result_type;
 	const jit_intrinsic_descr_t *descr;
+
+	/* Bail out if the parameters are invalid */
 	if(!value1)
 	{
 		return 0;
 	}
-	result_type = common_binary(value1->type, value1->type, 0, 0);
+
+	result_type = jit_type_promote_int(jit_type_normalize(value1->type));
 	if(result_type == jit_type_int)
 	{
 		oper = JIT_OP_IABS;
@@ -3379,6 +3376,7 @@ jit_value_t jit_insn_abs(jit_function_t func, jit_value_t value1)
 		name = "jit_nfloat_abs";
 		descr = &descr_D_D;
 	}
+
 	value1 = jit_insn_convert(func, value1, result_type, 0);
 	if(!oper)
 	{
@@ -3447,11 +3445,14 @@ jit_value_t jit_insn_sign(jit_function_t func, jit_value_t value1)
 	const char *name;
 	jit_type_t result_type;
 	const jit_intrinsic_descr_t *descr;
+
+	/* Bail out if the parameters are invalid */
 	if(!value1)
 	{
 		return 0;
 	}
-	result_type = common_binary(value1->type, value1->type, 0, 0);
+
+	result_type = jit_type_promote_int(jit_type_normalize(value1->type));
 	if(result_type == jit_type_int)
 	{
 		oper = JIT_OP_ISIGN;
@@ -3499,6 +3500,7 @@ jit_value_t jit_insn_sign(jit_function_t func, jit_value_t value1)
 		name = "jit_nfloat_sign";
 		descr = &descr_i_D;
 	}
+
 	value1 = jit_insn_convert(func, value1, result_type, 0);
 	if(_jit_opcode_is_supported(oper))
 	{

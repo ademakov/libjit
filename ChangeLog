@@ -12,6 +12,14 @@
 	* jit/jit-rules-x86.ins: fix the sign opcode for longs (based on
 	a patch from Klaus) and slightly modify it for ints.
 
+	* jit/jit-insn.c: some code cleanup:
+	(jit_insn_neg, jit_insn_abs, jit_insn_sign): for these unary ops
+	replace common_binary()	with more basic function calls that should
+	suffice.
+	(jit_insn_is_nan, jit_insn_is_finite, jit_insn_is_inf): return
+	false for non-floating point values and do not use common_binary()
+	as well.
+
 2008-04-19  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-insn.c (jit_insn_sign): the dest value of the sign insn
