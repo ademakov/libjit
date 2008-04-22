@@ -1,16 +1,19 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(include/jit/jit.h)
+AC_PREREQ(2.61)
 
-dnl Determine the build, host, and target system types.
-AC_CANONICAL_SYSTEM
+AC_INIT([libjit], [0.1.1], [dotgnu-libjit@gnu.org])
+AC_CONFIG_SRCDIR([include/jit/jit.h])
+AC_CONFIG_HEADERS([config.h])
+
+dnl Determine the host system type.
+AC_CANONICAL_HOST
 
 dnl Initialize automake.
-AM_INIT_AUTOMAKE(libjit, 0.1.1)
-AM_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE([-Wall dist-bzip2])
 
 dnl Set the version number for the shared libraries.
 AC_SUBST(LIBJIT_VERSION)
-LIBJIT_VERSION=0:0:0
+LIBJIT_VERSION=0:1:0
 
 dnl Determine the architecture.
 AC_MSG_CHECKING([architecture])
@@ -69,24 +72,24 @@ AC_MSG_RESULT($platform_win32)
 
 dnl The "--enable-interpreter" option forces the use of the interpreter.
 AC_ARG_ENABLE(interpreter,
-[  --enable-interpreter    Enable the libjit interpreter],
+AS_HELP_STRING([--enable-interpreter], [Enable the libjit interpreter]),
 [case "${enableval}" in
   yes) interp=true ;;
   no)  interp=false ;;
   *) AC_MSG_ERROR(bad value ${enableval} for --enable-interpreter) ;;
-esac],[interp=false])
+esac], [interp=false])
 if test x$interp = xtrue; then
 	AC_DEFINE(USE_LIBJIT_INTERPRETER, 1, [Define if you want to use the libjit interpreter])
 fi
 
 dnl The "--enable-signals" option forces the use of the OS signals for exception handling.
 AC_ARG_ENABLE(signals,
-[  --enable-signals	    Enable OS signal handling],
+AS_HELP_STRING([--enable-signals], [Enable OS signal handling]),
 [case "${enableval}" in
   yes) use_signals=true ;;
   no)  use_signals=false ;;
   *) AC_MSG_ERROR(bad value ${enableval} for --enable-signals) ;;
-esac],[use_signals=false])
+esac], [use_signals=false])
 if test x$use_signals = xtrue; then
 	AC_DEFINE(JIT_USE_SIGNALS, 1, [Define if you want to use the OS signals for exception handling])
 fi
@@ -94,7 +97,7 @@ fi
 dnl The "--enable-long-double" option forces the use of long double for
 dnl jit_nfloat.
 AC_ARG_ENABLE(long-double,
-[  --enable-long-double    Enable the use of long double for jit_nfloat])
+AS_HELP_STRING([--enable-long-double], [Enable the use of long double for jit_nfloat]))
 
 dnl Checks for programs.
 AC_PROG_AWK
@@ -139,9 +142,9 @@ changequote([, ])dnl
 AC_MSG_CHECKING(size of $1)
 AC_CACHE_VAL(AC_CV_NAME,
 [for ac_size in 4 8 1 2 12 16 $2 ; do # List sizes in rough order of prevalence.
-  AC_TRY_COMPILE([#include "confdefs.h"
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include "confdefs.h"
 #include <sys/types.h>
-], [switch (0) case 0: case (sizeof ($1) == $ac_size):;], AC_CV_NAME=$ac_size)
+]], [[switch (0) case 0: case (sizeof ($1) == $ac_size):;]])], [AC_CV_NAME=$ac_size], [])
   if test x$AC_CV_NAME != x ; then break; fi
 done
 ])
@@ -158,8 +161,8 @@ dnl A macro that detects if "char" is unsigned in a cross-compile environment.
 AC_DEFUN([AC_COMPILE_CHAR_UNSIGNED],
 [AC_MSG_CHECKING(if char is unsigned)
 AC_CACHE_VAL(ac_cv_c_char_unsigned,
-AC_TRY_COMPILE([#include "confdefs.h"
-], [switch (-1) case -1: case (char)255:;], ac_cv_c_char_unsigned=yes))
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include "confdefs.h"
+]], [[switch (-1) case -1: case (char)255:;]])], [ac_cv_c_char_unsigned=yes], []))
 if test x$ac_cv_c_char_unsigned = x ; then
   ac_cv_c_char_unsigned=no
 fi
@@ -417,17 +420,17 @@ fi
 
 dnl Check for computed goto support in the compiler.
 AC_MSG_CHECKING(for computed goto support)
-AC_TRY_COMPILE([], [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[
 	static void *labels[] = {&&label0, &&label1, &&label2};
 	unsigned char *pc = 0;
 	goto *labels[*pc];
 	label0: ;
 	label1: ;
 	label2: ;
-], AC_DEFINE(HAVE_COMPUTED_GOTO, 1, [Define if you have support for computed gotos]) compgoto=yes, compgoto=no)
+]])], [AC_DEFINE(HAVE_COMPUTED_GOTO, 1, Define if you have support for computed gotos) compgoto=yes], [compgoto=no])
 AC_MSG_RESULT($compgoto)
 AC_MSG_CHECKING(for pic computed goto support)
-AC_TRY_COMPILE([], [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[
 	static int labelOffsets[] =
 		{&&label0 - &&label0, &&label1 - &&label0, &&label2 - &&label0};
 	unsigned char *pc = 0;
@@ -435,7 +438,7 @@ AC_TRY_COMPILE([], [
 	label0: ;
 	label1: ;
 	label2: ;
-], AC_DEFINE(HAVE_PIC_COMPUTED_GOTO, 1, [Define if you have PIC support for computed gotos]) piccompgoto=yes, piccompgoto=no)
+]])], [AC_DEFINE(HAVE_PIC_COMPUTED_GOTO, 1, Define if you have PIC support for computed gotos) piccompgoto=yes], [piccompgoto=no])
 AC_MSG_RESULT($piccompgoto)
 
 dnl Check for building on a multi os system
@@ -473,16 +476,17 @@ AC_CHECK_FUNCS(dlopen cygwin_conv_to_win32_path mmap munmap mprotect)
 AC_CHECK_FUNCS(sigsetjmp __sigsetjmp _setjmp)
 AC_FUNC_ALLOCA
 
-AC_OUTPUT([
-Makefile
-include/Makefile
-include/jit/Makefile
-include/jit/jit-defs.h
-tools/Makefile
-jit/Makefile
-jitdynamic/Makefile
-jitplus/Makefile
-dpas/Makefile
-tutorial/Makefile
-tests/Makefile
-doc/Makefile])
+AC_CONFIG_FILES([
+  Makefile
+  include/Makefile
+  include/jit/Makefile
+  include/jit/jit-defs.h
+  tools/Makefile
+  jit/Makefile
+  jitdynamic/Makefile
+  jitplus/Makefile
+  dpas/Makefile
+  tutorial/Makefile
+  tests/Makefile
+  doc/Makefile])
+AC_OUTPUT
