@@ -1,17 +1,20 @@
 Target Release: 0.1.2
 =====================
 
-* fix interpreter for x86 and amd64
+* LGPL [done]
+* amd64 port [done]
+* fix interpreter for x86 and amd64 [in progress]
 * sync jitplus with jit (jump tables, compile driver, debug)
-* LGPL
+  [partially done - the rest may be postponed as there is no much demand]
 
 Target release: 0.1.4
 =====================
 
 * jitruby
-* amd64 port
 * fix catch/throw within finally
 * get rid of manual rules
+* add direct conversion opcodes to/from float32 and float64
+* add rounding towards zero
 
 Target Release: 0.2.0
 =====================
@@ -27,7 +30,7 @@ Long-Term Tasks
 ===============
 
 * comprehensive test suite
-* ports to ppc, arm, sparc, alpha, mips...
+* ports to ppc, arm, sparc, alpha, coldfire, mips...
 * more optimizations:
 ** redundancy elimination
 ** alias analysis
