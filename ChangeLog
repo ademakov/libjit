@@ -1,6 +1,7 @@
 2008-04-22  Aleksey Demakov  <ademakov@gmail.com>
 
-	* configure.in: update for modern autoconf.
+	* configure.in: update to modern autoconf, rename to configure.ac.
+	* configure.ac: renamed from configure.in.
 
 2008-04-20  Klaus Treichel  <ktreichel@web.de>
 
