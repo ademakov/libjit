@@ -1,3 +1,4 @@
+INSTALL
 Makefile
 Makefile.in
 .deps
@@ -5,6 +6,11 @@ configure
 config.log
 config.cache
 config.status
+config.guess
+config.sub
+depcomp
+missing
+install-sh
 aclocal.m4
 confdefs.h
 config.h

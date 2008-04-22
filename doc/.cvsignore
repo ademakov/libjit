@@ -4,6 +4,7 @@ Makefile.in
 .libs
 libjit.info*
 libjitext-*
+texinfo.tex
 *.pdf
 *.lo
 *.la
