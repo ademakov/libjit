@@ -62,9 +62,9 @@ extern	"C" {
  */
 
 #define	_JIT_ALIGN_CHECK_TYPE(type,name)	\
-	struct _JIT_align_##name { \
-		jit_sbyte pad; \
-		type field; \
+	struct _JIT_align_##name {		\
+		jit_sbyte pad;			\
+		type field;			\
 	}
 
 #define	_JIT_ALIGN_FOR_TYPE(name)	\
@@ -89,13 +89,13 @@ _JIT_ALIGN_CHECK_TYPE(jit_nfloat, nfloat);
 /* Sometimes the code below guesses wrong on Win32 platforms */
 #define	JIT_BEST_ALIGNMENT	4
 #else
-#define	JIT_BEST_ALIGNMENT	\
-	_JIT_ALIGN_MAX(_JIT_ALIGN_MAX3(_JIT_ALIGN_FOR_TYPE(int), \
-						 		   _JIT_ALIGN_FOR_TYPE(long), \
-						 		   _JIT_ALIGN_FOR_TYPE(ptr)), \
-			  	   _JIT_ALIGN_MAX3(_JIT_ALIGN_FOR_TYPE(float), \
-			  			 		   _JIT_ALIGN_FOR_TYPE(double), \
-			  			 		   _JIT_ALIGN_FOR_TYPE(nfloat)))
+#define	JIT_BEST_ALIGNMENT						\
+	_JIT_ALIGN_MAX(_JIT_ALIGN_MAX3(_JIT_ALIGN_FOR_TYPE(int),	\
+				       _JIT_ALIGN_FOR_TYPE(long),	\
+				       _JIT_ALIGN_FOR_TYPE(ptr)),	\
+		       _JIT_ALIGN_MAX3(_JIT_ALIGN_FOR_TYPE(float),	\
+				       _JIT_ALIGN_FOR_TYPE(double),	\
+				       _JIT_ALIGN_FOR_TYPE(nfloat)))
 #endif
 
 /*
@@ -125,7 +125,7 @@ typedef struct jit_pool_block *jit_pool_block_t;
 struct jit_pool_block
 {
 	jit_pool_block_t	next;
-	char				data[1];
+	char			data[1];
 };
 typedef struct
 {
@@ -133,7 +133,7 @@ typedef struct
 	unsigned int		elems_per_block;
 	unsigned int		elems_in_last;
 	jit_pool_block_t	blocks;
-	void			   *free_list;
+	void			*free_list;
 
 } jit_memory_pool;
 
@@ -169,10 +169,10 @@ void _jit_memory_pool_dealloc(jit_memory_pool *pool, void *item);
  */
 struct _jit_meta
 {
-	int					type;
-	void			   *data;
+	int			type;
+	void			*data;
 	jit_meta_free_func	free_data;
-	jit_meta_t			next;
+	jit_meta_t		next;
 	jit_function_t		pool_owner;
 };
 
@@ -182,18 +182,18 @@ struct _jit_meta
 struct _jit_block
 {
 	jit_function_t		func;
-	jit_label_t			label;
-	int					first_insn;
-	int					last_insn;
+	jit_label_t		label;
+	int			first_insn;
+	int			last_insn;
 	jit_block_t 		next;
 	jit_block_t 		prev;
-	jit_meta_t			meta;
-	int					entered_via_top : 1;
-	int					entered_via_branch : 1;
-	int					ends_in_dead : 1;
-	void				*address;
-	void				*fixup_list;
-	void				*fixup_absolute_list;
+	jit_meta_t		meta;
+	int			entered_via_top : 1;
+	int			entered_via_branch : 1;
+	int			ends_in_dead : 1;
+	void			*address;
+	void			*fixup_list;
+	void			*fixup_absolute_list;
 };
 
 /*
@@ -201,32 +201,32 @@ struct _jit_block
  */
 struct _jit_value
 {
-	jit_block_t			block;
-	jit_type_t			type;
-	int					is_temporary : 1;
-	int					is_local : 1;
-	int					is_volatile : 1;
-	int					is_addressable : 1;
-	int					is_constant : 1;
-	int					is_nint_constant : 1;
-	int					is_parameter : 1;
-	int					is_reg_parameter : 1;
-	int					has_address : 1;
-	int					free_address : 1;
-	int					in_register : 1;
-	int					in_frame : 1;
-	int					in_global_register : 1;
-	int					live : 1;
-	int					next_use : 1;
-	int					has_frame_offset : 1;
-	int					global_candidate : 1;
-	int					has_global_register : 1;
-	short				reg;
-	short				global_reg;
-	jit_nint			address;
-	jit_nint			frame_offset;
-	jit_nuint			usage_count;
-	int				index;
+	jit_block_t		block;
+	jit_type_t		type;
+	int			is_temporary : 1;
+	int			is_local : 1;
+	int			is_volatile : 1;
+	int			is_addressable : 1;
+	int			is_constant : 1;
+	int			is_nint_constant : 1;
+	int			is_parameter : 1;
+	int			is_reg_parameter : 1;
+	int			has_address : 1;
+	int			free_address : 1;
+	int			in_register : 1;
+	int			in_frame : 1;
+	int			in_global_register : 1;
+	int			live : 1;
+	int			next_use : 1;
+	int			has_frame_offset : 1;
+	int			global_candidate : 1;
+	int			has_global_register : 1;
+	short			reg;
+	short			global_reg;
+	jit_nint		address;
+	jit_nint		frame_offset;
+	jit_nuint		usage_count;
+	int			index;
 };
 #define	JIT_INVALID_FRAME_OFFSET	((jit_nint)0x7FFFFFFF)
 
@@ -247,33 +247,33 @@ void _jit_value_ref_params(jit_function_t func);
  */
 struct _jit_insn
 {
-	short				opcode;
-	short				flags;
-	jit_value_t			dest;
-	jit_value_t			value1;
-	jit_value_t			value2;
+	short			opcode;
+	short			flags;
+	jit_value_t		dest;
+	jit_value_t		value1;
+	jit_value_t		value2;
 };
 
 /*
  * Instruction flags.
  */
-#define	JIT_INSN_DEST_LIVE				0x0001
-#define	JIT_INSN_DEST_NEXT_USE			0x0002
-#define	JIT_INSN_VALUE1_LIVE			0x0004
-#define	JIT_INSN_VALUE1_NEXT_USE		0x0008
-#define	JIT_INSN_VALUE2_LIVE			0x0010
-#define	JIT_INSN_VALUE2_NEXT_USE		0x0020
-#define	JIT_INSN_LIVENESS_FLAGS			0x003F
-#define	JIT_INSN_DEST_IS_LABEL			0x0040
-#define	JIT_INSN_DEST_IS_FUNCTION		0x0080
-#define	JIT_INSN_DEST_IS_NATIVE			0x0100
-#define	JIT_INSN_DEST_OTHER_FLAGS		0x01C0
-#define	JIT_INSN_VALUE1_IS_NAME			0x0200
-#define	JIT_INSN_VALUE1_IS_LABEL		0x0400
-#define	JIT_INSN_VALUE1_OTHER_FLAGS		0x0600
+#define	JIT_INSN_DEST_LIVE		0x0001
+#define	JIT_INSN_DEST_NEXT_USE		0x0002
+#define	JIT_INSN_VALUE1_LIVE		0x0004
+#define	JIT_INSN_VALUE1_NEXT_USE	0x0008
+#define	JIT_INSN_VALUE2_LIVE		0x0010
+#define	JIT_INSN_VALUE2_NEXT_USE	0x0020
+#define	JIT_INSN_LIVENESS_FLAGS		0x003F
+#define	JIT_INSN_DEST_IS_LABEL		0x0040
+#define	JIT_INSN_DEST_IS_FUNCTION	0x0080
+#define	JIT_INSN_DEST_IS_NATIVE		0x0100
+#define	JIT_INSN_DEST_OTHER_FLAGS	0x01C0
+#define	JIT_INSN_VALUE1_IS_NAME		0x0200
+#define	JIT_INSN_VALUE1_IS_LABEL	0x0400
+#define	JIT_INSN_VALUE1_OTHER_FLAGS	0x0600
 #define	JIT_INSN_VALUE2_IS_SIGNATURE	0x0800
-#define	JIT_INSN_VALUE2_OTHER_FLAGS		0x0800
-#define	JIT_INSN_DEST_IS_VALUE			0x1000
+#define	JIT_INSN_VALUE2_OTHER_FLAGS	0x0800
+#define	JIT_INSN_DEST_IS_VALUE		0x1000
 
 /*
  * Information that is associated with a function for building
@@ -284,53 +284,53 @@ typedef struct _jit_builder *jit_builder_t;
 struct _jit_builder
 {
 	/* List of blocks within this function */
-	jit_block_t			first_block;
-	jit_block_t			last_block;
+	jit_block_t		first_block;
+	jit_block_t		last_block;
 
 	/* The next block label to be allocated */
-	jit_label_t			next_label;
+	jit_label_t		next_label;
 
 	/* Mapping from label numbers to blocks */
-	jit_block_t		   *label_blocks;
-	jit_label_t			max_label_blocks;
+	jit_block_t		*label_blocks;
+	jit_label_t		max_label_blocks;
 
 	/* Entry point for the function */
-	jit_block_t			entry;
+	jit_block_t		entry;
 
 	/* The current block that is being constructed */
-	jit_block_t			current_block;
+	jit_block_t		current_block;
 
 	/* The position to insert initialization blocks */
-	jit_block_t			init_block;
-	int					init_insn;
+	jit_block_t		init_block;
+	int			init_insn;
 
 	/* Exception handling definitions for the function */
-	jit_value_t			setjmp_value;
-	jit_label_t			longjmp_label;
-	jit_value_t			thrown_exception;
-	jit_value_t			thrown_pc;
-	jit_label_t			catcher_label;
-	jit_value_t			eh_frame_info;
+	jit_value_t		setjmp_value;
+	jit_label_t		longjmp_label;
+	jit_value_t		thrown_exception;
+	jit_value_t		thrown_pc;
+	jit_label_t		catcher_label;
+	jit_value_t		eh_frame_info;
 
 	/* Flag that is set to indicate that this function is not a leaf */
-	int					non_leaf : 1;
+	int			non_leaf : 1;
 
 	/* Flag that indicates if we've seen code that may throw an exception */
-	int					may_throw : 1;
+	int			may_throw : 1;
 
 	/* Flag that indicates if the function has an ordinary return */
-	int					ordinary_return : 1;
+	int			ordinary_return : 1;
 
 	/* Flag that indicates that the current function contains a tail call */
-	int					has_tail_call : 1;
+	int			has_tail_call : 1;
 
 	/* Generate position-independent code */
-	int					position_independent : 1;
+	int			position_independent : 1;
 
 	/* List of all instructions in this function */
-	jit_insn_t		   *insns;
-	int					num_insns;
-	int					max_insns;
+	jit_insn_t		*insns;
+	int			num_insns;
+	int			max_insns;
 
 	/* Memory pools that contain values, instructions, and metadata blocks */
 	jit_memory_pool		value_pool;
@@ -338,29 +338,29 @@ struct _jit_builder
 	jit_memory_pool		meta_pool;
 
 	/* Common constants that have been cached */
-	jit_value_t			null_constant;
-	jit_value_t			zero_constant;
+	jit_value_t		null_constant;
+	jit_value_t		zero_constant;
 
 	/* The values for the parameters, structure return, and parent frame */
-	jit_value_t		   *param_values;
-	jit_value_t			struct_return;
-	jit_value_t			parent_frame;
+	jit_value_t		*param_values;
+	jit_value_t		struct_return;
+	jit_value_t		parent_frame;
 
 	/* Metadata that is stored only while the function is being built */
-	jit_meta_t			meta;
+	jit_meta_t		meta;
 
 	/* Current size of the local variable frame (used by the back end) */
-	jit_nint			frame_size;
+	jit_nint		frame_size;
 
 	/* Number of stack items that are queued for a deferred pop */
-	jit_nint			deferred_items;
+	jit_nint		deferred_items;
 
 	/* Size of the outgoing parameter area in the frame */
-	jit_nint			param_area_size;
+	jit_nint		param_area_size;
 
 #ifdef _JIT_COMPILE_DEBUG
-	int				block_count;
-	int				insn_count;
+	int			block_count;
+	int			insn_count;
 #endif
 };
 
@@ -378,20 +378,20 @@ struct _jit_function
 	jit_function_t		nested_parent;
 
 	/* Metadata that survives once the builder is discarded */
-	jit_meta_t			meta;
+	jit_meta_t		meta;
 
 	/* The signature for this function */
-	jit_type_t			signature;
+	jit_type_t		signature;
 
 	/* The builder information for this function */
 	jit_builder_t		builder;
 
 	/* Flag bits for this function */
-	int					is_recompilable : 1;
-	int					no_throw : 1;
-	int					no_return : 1;
-	int					has_try : 1;
-	int					optimization_level : 8;
+	int			is_recompilable : 1;
+	int			no_throw : 1;
+	int			no_return : 1;
+	int			has_try : 1;
+	int			optimization_level : 8;
 	int volatile		is_compiled;
 
 	/* The entry point for the function's compiled code */
@@ -457,30 +457,30 @@ struct jit_regsym
 struct _jit_context
 {
 	/* Lock that controls access to the building process */
-	jit_mutex_t			builder_lock;
+	jit_mutex_t		builder_lock;
 
 	/* Lock that controls access to the function code cache */
-	jit_mutex_t			cache_lock;
+	jit_mutex_t		cache_lock;
 
 	/* List of functions that are currently registered with the context */
 	jit_function_t		functions;
 	jit_function_t		last_function;
 
 	/* Metadata that is associated with the context */
-	jit_meta_t			meta;
+	jit_meta_t		meta;
 
 	/* The context's function code cache */
-	struct jit_cache   *cache;
+	struct jit_cache	*cache;
 
 	/* ELF binaries that have been loaded into this context */
 	jit_readelf_t		elf_binaries;
 
 	/* Table of symbols that have been registered with this context */
-	jit_regsym_t	   *registered_symbols;
-	int					num_registered_symbols;
+	jit_regsym_t		*registered_symbols;
+	int			num_registered_symbols;
 
 	/* Debugger support */
-	jit_debugger_hook_func debug_hook;
+	jit_debugger_hook_func	debug_hook;
 	jit_debugger_t		debugger;
 
 	/* On-demand compilation driver */
@@ -495,9 +495,9 @@ typedef struct jit_backtrace *jit_backtrace_t;
 struct jit_backtrace
 {
 	jit_backtrace_t		parent;
-	void			   *pc;
-	void			   *security_object;
-	jit_meta_free_func  free_security_object;
+	void			*pc;
+	void			*security_object;
+	jit_meta_free_func	free_security_object;
 };
 
 /*
@@ -521,10 +521,10 @@ void _jit_backtrace_set(jit_backtrace_t trace);
  */
 struct jit_thread_control
 {
-	void			   *last_exception;
+	void			*last_exception;
 	jit_exception_func	exception_handler;
 	jit_backtrace_t		backtrace_head;
-	struct jit_jmp_buf *setjmp_head;
+	struct jit_jmp_buf	*setjmp_head;
 };
 
 /*
@@ -611,25 +611,25 @@ struct jit_component
 {
 	jit_type_t		type;
 	jit_nuint		offset;
-	char		   *name;
+	char			*name;
 };
 struct _jit_type
 {
-	unsigned int	ref_count;
-	int				kind : 19;
-	int				abi : 8;
-	int				is_fixed : 1;
-	int				layout_flags : 4;
+	unsigned int		ref_count;
+	int			kind : 19;
+	int			abi : 8;
+	int			is_fixed : 1;
+	int			layout_flags : 4;
 	jit_nuint		size;
 	jit_nuint		alignment;
 	jit_type_t		sub_type;
-	unsigned int	num_components;
-	struct jit_component components[1];
+	unsigned int		num_components;
+	struct jit_component	components[1];
 };
 struct jit_tagged_type
 {
 	struct _jit_type	type;
-	void		   	   *data;
+	void			*data;
 	jit_meta_free_func	free_func;
 
 };
