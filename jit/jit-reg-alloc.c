@@ -3017,12 +3017,11 @@ _jit_regs_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value)
 		}
 
 		_jit_gen_load_value(gen, reg, other_reg, value);
-
-		jit_reg_set_used(gen->inhibit, reg);
-		if(other_reg > 0)
-		{
-			jit_reg_set_used(gen->inhibit, other_reg);
-		}
+	}
+	jit_reg_set_used(gen->inhibit, reg);
+	if(other_reg >= 0)
+	{
+		jit_reg_set_used(gen->inhibit, other_reg);
 	}
 }
 

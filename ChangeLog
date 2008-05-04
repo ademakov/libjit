@@ -1,3 +1,9 @@
+2008-05-04  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-reg-alloc.c (_jit_regs_set_outgoing): Set the outgoing
+	register inhibited regardless if the value was already in the
+	register or not.
+
 2008-04-22  Aleksey Demakov  <ademakov@gmail.com>
 
 	* configure.in: update to modern autoconf, rename to configure.ac.
