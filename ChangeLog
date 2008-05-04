@@ -4,6 +4,9 @@
 	register inhibited regardless if the value was already in the
 	register or not.
 
+	* jit/jit-insn.c (jit_insn_check_null): Emit the check only if the
+	value to check is no nint constant != 0.
+
 2008-04-22  Aleksey Demakov  <ademakov@gmail.com>
 
 	* configure.in: update to modern autoconf, rename to configure.ac.

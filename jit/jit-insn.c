@@ -1850,6 +1850,11 @@ int jit_insn_check_null(jit_function_t func, jit_value_t value)
 	{
 		return 0;
 	}
+	/* Do the check only if the value is no not Null constant */
+	if(value->is_nint_constant && (value->address != 0))
+	{
+		return 1;
+	}
 	func->builder->may_throw = 1;
 	return create_unary_note(func, JIT_OP_CHECK_NULL, value);
 }
