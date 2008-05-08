@@ -2915,8 +2915,8 @@ _jit_regs_spill_all(jit_gencode_t gen)
 /*@
  * @deftypefun void _jit_regs_set_incoming (jit_gencode_t gen, int reg, jit_value_t value)
  * Set pseudo register @code{reg} to record that it currently holds the
- * contents of @code{value}.  If the register was previously in use,
- * then spill its value first.
+ * contents of @code{value}.  The register must not contain any other
+ * live value at this point.
  * @end deftypefun
 @*/
 void
@@ -2934,12 +2934,18 @@ _jit_regs_set_incoming(jit_gencode_t gen, int reg, jit_value_t value)
 		other_reg = -1;
 	}
 
+	/* avd: It's too late to spill here, if there was any
+	   value it is already cloberred by the incoming value.
+	   So for correct code generation the register must be
+	   free by now (spilled at some earlier point). */
+#if 0
 	/* Eject any values that are currently in the register */
 	spill_register(gen, reg);
 	if(other_reg >= 0)
 	{
 		spill_register(gen, other_reg);
 	}
+#endif
 
 	/* Record that the value is in "reg", but not in the frame */
 #ifdef JIT_REG_STACK
@@ -3018,6 +3024,7 @@ _jit_regs_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value)
 
 		_jit_gen_load_value(gen, reg, other_reg, value);
 	}
+
 	jit_reg_set_used(gen->inhibit, reg);
 	if(other_reg >= 0)
 	{

@@ -1,3 +1,16 @@
+2008-05-08  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86.ins: 
+	* jit/jit-rules-x86-64.ins: 
+	* jit/jit-function.c (compile_block): let register allocator see
+	JIT_OP_INCOMING_REG and JIT_OP_RETURN_REG instructions so it can
+	free unused values on these instructions rather than on the block
+	end.
+
+	* jit/jit-reg-alloc.c (_jit_regs_set_incoming): it is not possible
+	to correctly spill the old register value at this point so do not
+	attempt this and do not promise this.
+
 2008-05-04  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-reg-alloc.c (_jit_regs_set_outgoing): Set the outgoing

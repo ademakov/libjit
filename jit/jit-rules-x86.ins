@@ -1990,9 +1990,15 @@ JIT_OP_ADDRESS_OF:
  * Stack pushes and pops.
  */
 
-JIT_OP_RETURN_REG: manual
-        [] -> {
-		/* Nothing to do here */;
+JIT_OP_INCOMING_REG, JIT_OP_RETURN_REG: note
+        [reg] -> {
+		/*
+		 * This rule does nothing itself. Also at this point
+		 * the value is supposed to be already in the register
+		 * so the "reg" pattern does not load it either. But
+		 * it allows the allocator to check the liveness flags
+		 * and free the register if the value is dead.
+		 */
 	}
 
 JIT_OP_PUSH_INT: note

@@ -532,6 +532,7 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 				_jit_regs_set_incoming
 					(gen, (int)jit_value_get_nint_constant(insn->value2),
 					 insn->value1);
+				_jit_gen_insn(gen, func, block, insn);
 			}
 			break;
 #endif
