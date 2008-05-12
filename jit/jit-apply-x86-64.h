@@ -23,7 +23,7 @@
 #ifndef	_JIT_APPLY_X86_64_H
 #define	_JIT_APPLY_X86_64_H
 
-#include "jit-internal.h"
+#include <jit/jit-common.h>
 
 /*
  * Flag that a parameter is passed on the stack.
