@@ -33,10 +33,10 @@ extern	"C" {
  */
 void *_jit_get_frame_address(void *start, unsigned int n);
 #if defined(__GNUC__)
-#define	jit_get_frame_address(n)	\
+# define jit_get_frame_address(n)	\
 	(_jit_get_frame_address(jit_get_current_frame(), (n)))
 #else
-#define	jit_get_frame_address(n)	(_jit_get_frame_address(0, (n)))
+# define jit_get_frame_address(n)	(_jit_get_frame_address(0, (n)))
 #endif
 
 /*
@@ -47,66 +47,81 @@ void *_jit_get_frame_address(void *start, unsigned int n);
  * _JIT_ARCH_GET_CURRENT_FRAME() if available. 
  */
 #if defined(__GNUC__)
-#if defined(_JIT_ARCH_GET_CURRENT_FRAME)
-#define	jit_get_current_frame()				\
+# define JIT_FAST_GET_CURRENT_FRAME	1
+# if defined(_JIT_ARCH_GET_CURRENT_FRAME)
+#  define jit_get_current_frame()			\
 	({						\
 		void *address;				\
 		_JIT_ARCH_GET_CURRENT_FRAME(address);	\
 		address;				\
 	})
+# else
+#  define jit_get_current_frame()	(__builtin_frame_address(0))
+# endif
 #else
-#define	jit_get_current_frame()		(__builtin_frame_address(0))
-#endif
-#else
-#define	jit_get_current_frame()		(jit_get_frame_address(0))
+# define JIT_FAST_GET_CURRENT_FRAME	0
+# define jit_get_current_frame()	(jit_get_frame_address(0))
 #endif
 
 /*
  * Get the next frame up the stack from a specified frame.
  * Returns NULL if it isn't possible to retrieve the next frame.
  */
-void *jit_get_next_frame_address(void *frame);
+void *_jit_get_next_frame_address(void *frame);
+#if defined(__GNUC__) && defined(_JIT_ARCH_GET_NEXT_FRAME)
+# define jit_get_next_frame_address(frame)		\
+	({						\
+		void *address;				\
+		_JIT_ARCH_GET_NEXT_FRAME(address);	\
+		address;				\
+	})
+#else
+# define jit_get_next_frame_address(frame)	\
+	(_jit_get_next_frame_address(frame))
+#endif
 
 /*
  * Get the return address for a specific frame.
  */
 void *_jit_get_return_address(void *frame, void *frame0, void *return0);
-#if defined(_JIT_ARCH_GET_RETURN_ADDRESS)
-#define jit_get_return_address(frame)				\
+#if defined(__GNUC__)
+# if defined(_JIT_ARCH_GET_RETURN_ADDRESS)
+#  define jit_get_return_address(frame)				\
 	({							\
 		void *address;					\
 		_JIT_ARCH_GET_RETURN_ADDRESS(address, (frame));	\
 		address;					\
 	})
+# else
+#  define jit_get_return_address(frame)			\
+	(_jit_get_return_address			\
+		((frame),				\
+		 __builtin_frame_address(0),		\
+		 __builtin_return_address(0)))
+# endif
 #else
-#if defined(__GNUC__)
-#define	jit_get_return_address(frame)	\
-		(_jit_get_return_address	\
-			((frame), __builtin_frame_address(0), __builtin_return_address(0)))
-#else
-#define	jit_get_return_address(frame)	\
-		(_jit_get_return_address((frame), 0, 0))
-#endif
+# define jit_get_return_address(frame)	\
+	(_jit_get_return_address((frame), 0, 0))
 #endif
 
 /*
  * Get the return address for the current frame.  May be more efficient
  * than using "jit_get_return_address(0)".
  */
-#if defined(_JIT_ARCH_GET_CURRENT_RETURN)
-#define	jit_get_current_return()			\
+#if defined(__GNUC__)
+# if defined(_JIT_ARCH_GET_CURRENT_RETURN)
+#  define jit_get_current_return()			\
 	({						\
 		void *address;				\
 		_JIT_ARCH_GET_CURRENT_RETURN(address);	\
 		address;				\
 	})
+# else
+#  define jit_get_current_return()	(__builtin_return_address(0))
+# endif
 #else
-#if defined(__GNUC__)
-#define	jit_get_current_return()	(__builtin_return_address(0))
-#else
-#define	jit_get_current_return()	\
-			(jit_get_return_address(jit_get_current_frame()))
-#endif
+# define jit_get_current_return()	\
+	(jit_get_return_address(jit_get_current_frame()))
 #endif
 
 /*

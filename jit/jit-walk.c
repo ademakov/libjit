@@ -159,7 +159,7 @@ void *_jit_get_frame_address(void *start, unsigned int n)
  * the next frame up the stack.
  * @end deftypefun
 @*/
-void *jit_get_next_frame_address(void *frame)
+void *_jit_get_next_frame_address(void *frame)
 {
 	if(frame)
 	{
