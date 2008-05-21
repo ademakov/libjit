@@ -69,11 +69,11 @@ void *_jit_get_frame_address(void *start, unsigned int n);
  */
 void *_jit_get_next_frame_address(void *frame);
 #if defined(__GNUC__) && defined(_JIT_ARCH_GET_NEXT_FRAME)
-# define jit_get_next_frame_address(frame)		\
-	({						\
-		void *address;				\
-		_JIT_ARCH_GET_NEXT_FRAME(address);	\
-		address;				\
+# define jit_get_next_frame_address(frame)			\
+	({							\
+		void *address;					\
+		_JIT_ARCH_GET_NEXT_FRAME(address, (frame));	\
+		address;					\
 	})
 #else
 # define jit_get_next_frame_address(frame)	\
