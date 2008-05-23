@@ -23,6 +23,10 @@
 
 #include "dpas-internal.h"
 #include "dpas-parser.h"
+#include <config.h>
+#ifndef HAVE_UNISTD_H
+	#define YY_NO_UNISTD_H
+#endif
 
 extern YYSTYPE yylval;
 

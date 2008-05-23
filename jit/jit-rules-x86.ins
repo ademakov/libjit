@@ -221,12 +221,12 @@ JIT_OP_ULONG_TO_NFLOAT: more_space
 		/* TODO: review wrt relocation for elf pre-compilation */
 		static float f2pow64;
 		static int inited;
+		unsigned char *patch;
 		if(!inited)
 		{
 			f2pow64 = jit_float32_pow(2.0, 64);
 			inited = 1;
 		}
-		unsigned char *patch;
 		x86_push_reg(inst, %2);
 		x86_push_reg(inst, $2);
 		x86_fild_membase(inst, X86_ESP, 0, 1);

@@ -32,6 +32,9 @@
 #ifdef HAVE_STDLIB_H
 	#include <stdlib.h>
 #endif
+#ifndef HAVE_UNISTD_H
+	#define YY_NO_UNISTD_H
+#endif
 
 extern YYSTYPE yylval;
 

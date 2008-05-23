@@ -44,10 +44,12 @@ struct _jit_arch_frame
 #elif defined(_MSC_VER) && defined(_M_IX86)
 #define	_JIT_ARCH_GET_CURRENT_FRAME(f)		\
 	do {					\
+		void *__ptr;			\
 		__asm				\
 		{				\
-			mov qword ptr f, rbp	\
+			__asm mov qword ptr __ptr, rbp	\
 		}				\
+		(f) = __ptr;			\
 	} while(0)
 #else
 #undef _JIT_ARCH_GET_CURRENT_FRAME

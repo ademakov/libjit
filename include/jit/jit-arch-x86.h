@@ -34,10 +34,12 @@
 #elif defined(_MSC_VER) && defined(_M_IX86)
 #define	_JIT_ARCH_GET_CURRENT_FRAME(f)		\
 	do {					\
+		void *__ptr;			\
 		__asm				\
 		{				\
-			mov dword ptr f, ebp	\
+			__asm mov dword ptr __ptr, ebp	\
 		}				\
+		(f) = __ptr;			\
 	} while(0)
 #else
 #undef _JIT_ARCH_GET_CURRENT_FRAME
