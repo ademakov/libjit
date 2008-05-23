@@ -143,10 +143,14 @@ void jit_free(void *ptr)
 @*/
 void *jit_malloc_exec(unsigned int size)
 {
-#ifdef JIT_USE_MMAP
-	void *ptr = mmap(0, size, PROT_READ | PROT_WRITE | PROT_EXEC,
-							  MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-
+#if defined(JIT_WIN32_PLATFORM)
+	return VirtualAlloc(NULL, size,
+			    MEM_COMMIT | MEM_RESERVE,
+			    PAGE_EXECUTE_READWRITE);
+#elif defined(JIT_USE_MMAP)
+	void *ptr = mmap(0, size,
+			 PROT_READ | PROT_WRITE | PROT_EXEC,
+			 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if(ptr == (void *)-1)
 	{
 		return (void *)0;
@@ -169,11 +173,13 @@ void jit_free_exec(void *ptr, unsigned int size)
 {
 	if(ptr)
 	{
-	#ifdef JIT_USE_MMAP
+#if defined(JIT_WIN32_PLATFORM)
+		VirtualFree(ptr, size, MEM_DECOMMIT | MEM_RELEASE);
+#elif defined(JIT_USE_MMAP)
 		munmap(ptr, size);
-	#else
+#else
 		free(ptr);
-	#endif
+#endif
 	}
 }
 

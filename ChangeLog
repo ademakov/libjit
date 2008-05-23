@@ -1,3 +1,8 @@
+2008-05-23  Juan Jesus Garcia de Soria  <juanj.g_soria@grupobbva.com>
+
+	* jit/jit-alloc.c (jit_malloc_exec, jit_free_exec): on win32 use
+	VirtualAlloc and VirtualFree to allocate/free executable memory.
+
 2008-05-23  Klaus Treichel   <ktreichel@web.de>
 
 	* dpas/dpas-scanner.l, tools/gen-rules-scanner.l,
