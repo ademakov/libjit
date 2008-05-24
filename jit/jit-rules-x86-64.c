@@ -2167,6 +2167,16 @@ _jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 	/* add the register save area to the initial frame size */
 	frame_size += (regs_to_save << 3);
 
+#ifdef JIT_USE_PARAM_AREA
+	/* Add the param area to the frame_size if the additional offset
+	   doesnt cause the offsets in the register saves become 4 bytes */
+	if(func->builder->param_area_size > 0 &&
+	   (func->builder->param_area_size <= 0x50 || regs_to_save == 0))
+	{
+		frame_size += func->builder->param_area_size;
+	}
+#endif /* JIT_USE_PARAM_AREA */
+
 	/* Make sure that the framesize is a multiple of 16 bytes */
 	/* so that the final RSP will be alligned on a 16byte boundary. */
 	frame_size = (frame_size + 0xf) & ~0xf;
@@ -2178,7 +2188,18 @@ _jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 
 	if(regs_to_save > 0)
 	{
-		int current_offset = 0;
+		int current_offset;
+#ifdef JIT_USE_PARAM_AREA
+		if(func->builder->param_area_size > 0 &&
+		   func->builder->param_area_size <= 0x50)
+		{
+			current_offset = func->builder->param_area_size;
+		}
+		else
+#endif /* JIT_USE_PARAM_AREA */
+		{
+			current_offset = 0;
+		}
 
 		/* Save registers that we need to preserve */
 		for(reg = 0; reg <= 14; ++reg)
@@ -2192,6 +2213,12 @@ _jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 			}
 		}
 	}
+#ifdef JIT_USE_PARAM_AREA
+	if(func->builder->param_area_size > 0x50 && regs_to_save > 0)
+	{
+		x86_64_sub_reg_imm_size(inst, X86_64_RSP, func->builder->param_area_size, 8);
+	}
+#endif /* JIT_USE_PARAM_AREA */
 
 	/* Copy the prolog into place and return the adjusted entry position */
 	reg = (int)(inst - prolog);
@@ -2233,6 +2260,26 @@ _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	gen->epilog_fixup = 0;
 
 	/* Restore the used callee saved registers */
+#ifdef JIT_USE_PARAM_AREA
+	if(func->builder->param_area_size > 0)
+	{
+		current_offset = func->builder->param_area_size;
+	}
+	else
+	{
+		current_offset = 0;
+	}
+	for(reg = 0; reg <= 14; ++reg)
+	{
+		if(jit_reg_is_used(gen->touched, reg) &&
+		   (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0)
+		{
+			x86_64_mov_reg_membase_size(inst, _jit_reg_info[reg].cpu_reg,
+						    X86_64_RSP, current_offset, 8);
+			current_offset += 8;
+		}
+	}
+#else /* !JIT_USE_PARAM_AREA */
 	if(gen->stack_changed)
 	{
 		int frame_size = func->builder->frame_size;
@@ -2282,6 +2329,7 @@ _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 			}
 		}
 	}
+#endif /* !JIT_USE_PARAM_AREA */
 
 	/* Restore stackpointer and frame register */
 	x86_64_mov_reg_reg_size(inst, X86_64_RSP, X86_64_RBP, 8);
@@ -2838,6 +2886,7 @@ _jit_fix_call_stack(jit_param_passing_t *passing)
 	}
 }
 
+#ifndef JIT_USE_PARAM_AREA
 /*
  * Setup the call stack before pushing any parameters.
  * This is used usually for pushing pad words for alignment.
@@ -2867,6 +2916,7 @@ _jit_setup_call_stack(jit_function_t func, jit_param_passing_t *passing)
 	}
 	return 1;
 }
+#endif /* !JIT_USE_PARAM_AREA */
 
 /*
  * Push a parameter onto the stack.
@@ -3473,15 +3523,15 @@ int _jit_create_call_setup_insns
 		passing.params[current_param].value = args[current_param];
 	}
 
+	/* Let the backend do final adjustments to the passing area */
+	_jit_fix_call_stack(&passing);
+
 #ifdef JIT_USE_PARAM_AREA
 	if(passing.stack_size > func->builder->param_area_size)
 	{
 		func->builder->param_area_size = passing.stack_size;
 	}
 #else
-	/* Let the backend do final adjustments to the passing area */
-	_jit_fix_call_stack(&passing);
-
 	/* Flush deferred stack pops from previous calls if too many
 	   parameters have collected up on the stack since last time */
 	if(!jit_insn_flush_defer_pop(func, 32 - passing.stack_size))
@@ -3596,11 +3646,11 @@ _jit_create_call_return_insns(jit_function_t func, jit_type_t signature,
 							  jit_value_t *args, unsigned int num_args,
 							  jit_value_t return_value, int is_nested)
 {
-	int abi = jit_type_get_abi(signature);
 	jit_type_t return_type;
 	int ptr_return;
-	int current_param;
 #ifndef JIT_USE_PARAM_AREA
+	int abi = jit_type_get_abi(signature);
+	int current_param;
 	jit_param_passing_t passing;
 	_jit_param_t param[num_args];
 	_jit_param_t nested_param;

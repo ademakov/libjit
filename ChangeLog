@@ -1,3 +1,21 @@
+2008-05-24  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-rules-x86-64.c (_jit_gen_prolog, _jit_gen_epilog): Add
+	support for the param area.
+	(_jit_setup_call_stack): Define this function only if not using
+	the param area.
+	(_jit_create_call_setup_insns): Call _jit_fix_call_stack with
+	and without usage of the param area.
+	(_jit_create_call_return_insns): Declare the locals abi and
+	current_param only if built without support of the param area to
+	avoid compiler warnings.
+
+	* jit/jit-rules-x86-64.ins: Add the support of the
+	JIT_OP_SET_PARAM_* opcodes for param area support.
+
+	* jit/jit-rules-x86-64.h: Define JIT_USE_PARAM_AREA and do some
+	code cleanup and reformatting.
+
 2008-05-23  Juan Jesus Garcia de Soria  <juanj.g_soria@grupobbva.com>
 
 	* jit/jit-alloc.c (jit_malloc_exec, jit_free_exec): on win32 use

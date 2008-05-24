@@ -429,6 +429,84 @@ JIT_OP_POP_STACK:
 		gen->stack_changed = 1;
 	}
 
+/*
+ * Parameter passing via parameter area
+ */
+
+JIT_OP_SET_PARAM_INT: note
+	[imm, imm] -> {
+		x86_64_mov_membase_imm_size(inst, X86_64_RSP, $2, $1, 4);
+	}
+	[reg, imm] -> {
+		x86_64_mov_membase_reg_size(inst, X86_64_RSP, $2, $1, 4);
+	}
+
+JIT_OP_SET_PARAM_LONG: note
+	[imm, imm, if("$1 >= jit_min_int && $1 <= jit_max_int")] -> {
+		x86_64_mov_membase_imm_size(inst, X86_64_RSP, $2, $1, 8);
+	}
+	[imm, imm] -> {
+		jit_int *ptr = (jit_int *)&($1);
+		x86_64_mov_membase_imm_size(inst, X86_64_RSP, $2 + 4, ptr[1], 4);
+		x86_64_mov_membase_imm_size(inst, X86_64_RSP, $2, ptr[0], 4);
+	}
+	[reg, imm] -> {
+		x86_64_mov_membase_reg_size(inst, X86_64_RSP, $2, $1, 8);
+	}
+
+JIT_OP_SET_PARAM_FLOAT32: note
+	[imm, imm] -> {
+		jit_int *ptr = (jit_int *)($1);
+		x86_64_mov_membase_imm_size(inst, X86_64_RSP, $2, ptr[0], 4);
+	}
+	[xreg, imm] -> {
+		x86_64_movss_membase_reg(inst, X86_64_RSP, $2, $1);
+	}
+
+JIT_OP_SET_PARAM_FLOAT64: note
+	[imm, imm] -> {
+		jit_int *ptr = (jit_int *)($1);
+		x86_64_mov_membase_imm_size(inst, X86_64_RSP, $2 + 4, ptr[1], 4);
+		x86_64_mov_membase_imm_size(inst, X86_64_RSP, $2, ptr[0], 4);
+	}
+	[xreg, imm] -> {
+		x86_64_movsd_membase_reg(inst, X86_64_RSP, $2, $1);
+	}
+
+JIT_OP_SET_PARAM_NFLOAT: note
+	[imm, imm] -> {
+		jit_int *ptr = (jit_int *)($1);
+		if(sizeof(jit_nfloat) != sizeof(jit_float64))
+		{
+			x86_64_mov_membase_imm_size(inst, X86_64_RSP, $2 + 8, ptr[2], 4);
+		}
+		x86_64_mov_membase_imm_size(inst, X86_64_RSP, $2 + 4, ptr[1], 4);
+		x86_64_mov_membase_imm_size(inst, X86_64_RSP, $2, ptr[0], 4);
+	}
+	[freg, imm] -> {
+		if(sizeof(jit_nfloat) != sizeof(jit_float64))
+		{
+			x86_64_fstp_membase_size(inst, X86_64_RSP, $2, 10);
+		}
+		else
+		{
+			x86_64_fstp_membase_size(inst, X86_64_RSP, $2, 8);
+		}
+	}
+
+JIT_OP_SET_PARAM_STRUCT: note
+	[reg, imm, clobber(creg), clobber(xreg)] -> {
+		/* Handle arbitrary-sized structures */
+		jit_nint offset = jit_value_get_nint_constant(insn->dest);
+		/* TODO: Maybe we should check for sizes > 2GB? */
+		inst = memory_copy(gen, inst, X86_64_RSP, offset, $1, 0, $2);
+	}
+
+
+/*
+ * Opcodes to handle return values
+ */
+
 JIT_OP_FLUSH_SMALL_STRUCT:
 	[] -> {
 		inst = flush_return_struct(inst, insn->value1);

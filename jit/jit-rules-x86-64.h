@@ -100,7 +100,7 @@ extern	"C" {
 /*
  * Preferred alignment for the start of functions.
  */
-#define	JIT_FUNCTION_ALIGNMENT	32
+#define	JIT_FUNCTION_ALIGNMENT		32
 
 /*
  * Define this to 1 if the platform allows reads and writes on
@@ -112,12 +112,13 @@ extern	"C" {
 /*
  * Parameter passing rules.
  */
+#define	JIT_INITIAL_STACK_OFFSET	(2 * sizeof(void *))
+#define	JIT_INITIAL_FRAME_SIZE		0
+
 /*
-#define	JIT_CDECL_WORD_REG_PARAMS		{5, 4, 2, 1, 6, 7, -1}
-#define	JIT_MAX_WORD_REG_PARAMS			6
-*/
-#define	JIT_INITIAL_STACK_OFFSET		(2 * sizeof(void *))
-#define	JIT_INITIAL_FRAME_SIZE			0
+ * We are using the param area on x86_64
+ */
+#define JIT_USE_PARAM_AREA
 
 #ifdef	__cplusplus
 };
