@@ -249,6 +249,27 @@ _jit_classify_struct(jit_param_passing_t *passing,
 			__asm__ ( \
 				"lea %0, %%rcx\n\t" \
 				"movaps 0x10(%%rcx), %%xmm0\n\t" \
+				: : "m"(*(return_buf)) \
+				: "rcx", "xmm0", "st" \
+			); \
+			return; \
+		} while (0)
+
+#define	jit_builtin_return_double(return_buf)	\
+		do { \
+			__asm__ ( \
+				"lea %0, %%rcx\n\t" \
+				"movaps 0x10(%%rcx), %%xmm0\n\t" \
+				: : "m"(*(return_buf)) \
+				: "rcx", "xmm0", "st" \
+			); \
+			return; \
+		} while (0)
+
+#define	jit_builtin_return_nfloat(return_buf)	\
+		do { \
+			__asm__ ( \
+				"lea %0, %%rcx\n\t" \
 				"fldt 0x20(%%rcx)\n\t" \
 				: : "m"(*(return_buf)) \
 				: "rcx", "xmm0", "st" \

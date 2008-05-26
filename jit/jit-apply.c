@@ -61,6 +61,14 @@ performed with @code{jit_closure_create}.
 
 @*/
 
+typedef enum
+{
+	_JIT_APPLY_RETURN_TYPE_OTHER = 0,
+	_JIT_APPLY_RETURN_TYPE_FLOAT32 = 1,
+	_JIT_APPLY_RETURN_TYPE_FLOAT64 = 2,
+	_JIT_APPLY_RETURN_TYPE_NFLOAT = 3
+} _jit_apply_return_type;
+
 /*
  * Flags that indicate which structure sizes are returned in registers.
  */
@@ -568,7 +576,7 @@ static void closure_handler(jit_closure_t closure, void *apply_args)
 	unsigned int num_params;
 	unsigned int param;
 	jit_apply_return apply_return;
-	int is_float_return;
+	_jit_apply_return_type return_type;
 
 	/* Initialize the argument parser */
 	jit_apply_parser_init(&parser, closure->signature, apply_args);
@@ -710,7 +718,7 @@ static void closure_handler(jit_closure_t closure, void *apply_args)
 	/* Set up the "apply return" buffer */
 	jit_memzero(&apply_return, sizeof(apply_return));
 	type = jit_type_normalize(jit_type_get_return(signature));
-	is_float_return = 0;
+	return_type = _JIT_APPLY_RETURN_TYPE_OTHER;
 	if(type)
 	{
 		switch(type->kind)
@@ -775,7 +783,7 @@ static void closure_handler(jit_closure_t closure, void *apply_args)
 			{
 				jit_apply_return_set_float32
 					(&apply_return, *((jit_float32 *)return_buffer));
-				is_float_return = 1;
+				return_type = _JIT_APPLY_RETURN_TYPE_FLOAT32;
 			}
 			break;
 
@@ -783,7 +791,7 @@ static void closure_handler(jit_closure_t closure, void *apply_args)
 			{
 				jit_apply_return_set_float64
 					(&apply_return, *((jit_float64 *)return_buffer));
-				is_float_return = 1;
+				return_type = _JIT_APPLY_RETURN_TYPE_FLOAT64;
 			}
 			break;
 
@@ -791,7 +799,7 @@ static void closure_handler(jit_closure_t closure, void *apply_args)
 			{
 				jit_apply_return_set_nfloat
 					(&apply_return, *((jit_nfloat *)return_buffer));
-				is_float_return = 1;
+				return_type = _JIT_APPLY_RETURN_TYPE_NFLOAT;
 			}
 			break;
 
@@ -809,13 +817,30 @@ static void closure_handler(jit_closure_t closure, void *apply_args)
 	}
 
 	/* Return the result to the caller */
-	if(!is_float_return)
+	switch(return_type)
 	{
-		jit_builtin_return_int(&apply_return);
-	}
-	else
-	{
-		jit_builtin_return_float(&apply_return);
+		case _JIT_APPLY_RETURN_TYPE_FLOAT32:
+		{
+			jit_builtin_return_float(&apply_return);
+		}
+		break;
+
+		case _JIT_APPLY_RETURN_TYPE_FLOAT64:
+		{
+			jit_builtin_return_double(&apply_return);
+		}
+		break;
+
+		case _JIT_APPLY_RETURN_TYPE_NFLOAT:
+		{
+			jit_builtin_return_nfloat(&apply_return);
+		}
+		break;
+
+		default:
+		{
+			jit_builtin_return_int(&apply_return);
+		}
 	}
 }
 

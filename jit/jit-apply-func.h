@@ -59,7 +59,22 @@
 			__builtin_return((return_buf)); \
 		} while (0)
 
+#define	jit_builtin_return_long(return_buf)	\
+		do { \
+			__builtin_return((return_buf)); \
+		} while (0)
+
 #define	jit_builtin_return_float(return_buf)	\
+		do { \
+			__builtin_return((return_buf)); \
+		} while (0)
+
+#define	jit_builtin_return_double(return_buf)	\
+		do { \
+			__builtin_return((return_buf)); \
+		} while (0)
+
+#define	jit_builtin_return_nfloat(return_buf)	\
 		do { \
 			__builtin_return((return_buf)); \
 		} while (0)

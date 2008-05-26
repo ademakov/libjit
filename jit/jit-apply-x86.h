@@ -119,7 +119,7 @@
 		do { \
 			jit_nfloat __value = \
 				((jit_apply_return *)(return_buf))-> \
-					f_value.inner_value.nfloat_value; \
+					nfloat_value.f_value; \
 			if(sizeof(jit_nfloat) == sizeof(double)) \
 			{ \
 				__asm__ ( \
@@ -229,7 +229,7 @@
 		do { \
 			jit_nfloat __value = \
 				((jit_apply_return *)(return_buf))-> \
-					f_value.inner_value.nfloat_value; \
+					nfloat_value.f_value; \
 			if(sizeof(jit_nfloat) == sizeof(double)) \
 			{ \
 				__asm__ ( \
@@ -289,9 +289,9 @@
 			{ \
 				__asm { \
 					__asm mov ecx, dword ptr __return_buf \
-					/*__asm fstpt [ecx + 8]*/ \
-					__asm _emit 0xDB \
-					__asm _emit 0x79 \
+					/*__asm fstpl [ecx + 8]*/ \
+					__asm _emit 0xDD \
+					__asm _emit 0x59 \
 					__asm _emit 0x08 \
 				} \
 			} \
@@ -323,11 +323,11 @@
 
 #define	jit_builtin_return_float(return_buf)	\
 		do { \
-			double __value = \
+			double __dvalue = \
 				((jit_apply_return *)(return_buf))-> \
-					f_value.inner_value.nfloat_value; \
+					nfloat_value.f_value; \
 			__asm { \
-				__asm lea ecx, dword ptr __value \
+				__asm lea ecx, dword ptr __dvalue \
 				/* __asm fldl [ecx] */ \
 				__asm _emit 0xDD \
 				__asm _emit 0x01 \
@@ -336,6 +336,12 @@
 		} while (0)
 
 #endif /* MSC_VER */
+
+#define	jit_builtin_return_double(return_buf)	\
+	jit_builtin_return_float((return_buf))
+
+#define	jit_builtin_return_nfloat(return_buf)	\
+	jit_builtin_return_float((return_buf))
 
 /*
  * The maximum number of bytes that are needed to represent a closure,

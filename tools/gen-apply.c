@@ -59,13 +59,20 @@ the "jit-apply-rules.h" file.
 	#define	PLATFORM_IS_X86_64	1
 #endif
 
+#if PLATFORM_IS_X86
 /*
  * On x86 the extended precision numbers are 10 bytes long. However certain
  * ABIs define the long double size equal to 12 bytes. The extra 2 bytes are
  * for alignment purposes only and has no significance in computations.
  */
-#if PLATFORM_IS_X86
 #define NFLOAT_SIGNIFICANT_BYTES (sizeof(jit_nfloat) != 12 ? sizeof(jit_nfloat) : 10)
+#elif PLATFORM_IS_X86_64
+/*
+ * On x86_64 the extended precision numbers are 10 bytes long. However certain
+ * ABIs define the long double size equal to 16 bytes. The extra 6 bytes are
+ * for alignment purposes only and has no significance in computations.
+ */
+#define NFLOAT_SIGNIFICANT_BYTES (sizeof(jit_nfloat) != 16 ? sizeof(jit_nfloat) : 10)
 #else
 #define NFLOAT_SIGNIFICANT_BYTES sizeof(jit_nfloat)
 #endif
@@ -103,6 +110,8 @@ int floats_in_word_regs = 0;
 int doubles_in_word_regs = 0;
 int nfloats_in_word_regs = 0;
 int return_floats_after = 0;
+int return_doubles_after = 0;
+int return_nfloats_after = 0;
 int varargs_on_stack = 0;
 int struct_return_special_reg = 0;
 int struct_reg_overlaps_word_reg = 0;
@@ -138,6 +147,8 @@ int floats_in_word_regs = JIT_APPLY_FLOATS_IN_WORD_REGS;
 int doubles_in_word_regs = JIT_APPLY_DOUBLES_IN_WORD_REGS;
 int nfloats_in_word_regs = JIT_APPLY_NFLOATS_IN_WORD_REGS;
 int return_floats_after = JIT_APPLY_RETURN_FLOATS_AFTER;
+int return_doubles_after = JIT_APPLY_RETURN_DOUBLES_AFTER;
+int return_nfloats_after = JIT_APPLY_RETURN_NFLOATS_AFTER;
 int varargs_on_stack = JIT_APPLY_VARARGS_ON_STACK;
 int struct_return_special_reg = JIT_APPLY_STRUCT_RETURN_SPECIAL_REG;
 int struct_reg_overlaps_word_reg = JIT_APPLY_STRUCT_REG_OVERLAPS_WORD_REG;
@@ -789,9 +800,9 @@ void detect_float_return(void)
 	float float_value;
 	double double_value;
 	jit_nfloat nfloat_value;
-	int float_size;
-	int double_size;
-	int nfloat_size;
+	int float_size = 0;
+	int double_size = 0;
+	int nfloat_size = 0;
 	float temp_float;
 	double temp_double;
 	jit_nfloat temp_nfloat;
@@ -803,6 +814,7 @@ void detect_float_return(void)
 	jit_builtin_apply(return_float, args, 0, 1, return_value);
 
 	/* Find the location of the return value */
+	/* and determine the size of the "float" return value */
 	offset = 0;
 	while(offset < 64)
 	{
@@ -819,70 +831,22 @@ void detect_float_return(void)
 				temp_nfloat = (jit_nfloat)123.0;
 				if(!mem_cmp(&nfloat_value, &temp_nfloat, NFLOAT_SIGNIFICANT_BYTES))
 				{
+					float_size = 3;
 					break;
 				}
 			}
 			else
 			{
+				float_size = 2;
 				break;
 			}
 		}
 		else
 		{
+			float_size = 1;
 			break;
 		}
 		offset += sizeof(void *);
-	}
-
-	/* Determine the size of the "float" return value */
-	mem_copy(&float_value, return_value + offset, sizeof(float));
-	temp_float = (float)123.0;
-	if(!mem_cmp(&float_value, &temp_float, sizeof(float)))
-	{
-		float_size = 1;
-	}
-	else
-	{
-		mem_copy(&double_value, return_value + offset, sizeof(double));
-		temp_double = (double)123.0;
-		if(!mem_cmp(&double_value, &temp_double, sizeof(double)))
-		{
-			float_size = 2;
-		}
-		else
-		{
-			float_size = 3;
-		}
-	}
-
-	/* Call "return_double" and get its return structure */
-	jit_builtin_apply(return_double, args, 0, 1, return_value);
-
-	/* Determine the size of the "double" return value */
-	mem_copy(&double_value, return_value + offset, sizeof(double));
-	temp_double = (double)456.7;
-	if(!mem_cmp(&double_value, &temp_double, sizeof(double)))
-	{
-		double_size = 2;
-	}
-	else
-	{
-		double_size = 3;
-	}
-
-	/* Call "return_nfloat" and get its return structure */
-	jit_builtin_apply(return_nfloat, args, 0, 1, return_value);
-
-	/* Determine the size of the "nfloat" return value */
-	mem_copy(&double_value, return_value + offset, sizeof(double));
-	temp_double = (double)8901.2;
-	if(!mem_cmp(&double_value, &temp_double, sizeof(double)))
-	{
-		nfloat_size = 2;
-	}
-	else
-	{
-		nfloat_size = 3;
 	}
 
 	/* Use the offset and size information to set the final parameters */
@@ -895,10 +859,74 @@ void detect_float_return(void)
 	{
 		return_float_as_nfloat = 1;
 	}
+
+	/* Call "return_double" and get its return structure */
+	jit_builtin_apply(return_double, args, 0, 1, return_value);
+
+	/* Find the location of the return value */
+	/* and determine the size of the "double" return value */
+	offset = 0;
+	while(offset < 64)
+	{
+		mem_copy(&double_value, return_value + offset, sizeof(double));
+		temp_double = (double)456.7;
+		if(mem_cmp(&double_value, &temp_double, sizeof(double)))
+		{
+			mem_copy(&nfloat_value, return_value + offset,
+					 sizeof(jit_nfloat));
+			temp_nfloat = (jit_nfloat)456.7;
+			if(!mem_cmp(&nfloat_value, &temp_nfloat, NFLOAT_SIGNIFICANT_BYTES))
+			{
+				double_size = 3;
+				break;
+			}
+		}
+		else
+		{
+			double_size = 2;
+			break;
+		}
+		offset += sizeof(void *);
+	}
+
+	/* Use the offset and size information to set the final parameters */
+	return_doubles_after = offset;
 	if(double_size == 3)
 	{
 		return_double_as_nfloat = 1;
 	}
+
+	/* Call "return_nfloat" and get its return structure */
+	jit_builtin_apply(return_nfloat, args, 0, 1, return_value);
+
+	/* Find the location of the return value */
+	/* and determine the size of the "nfloat" return value */
+	offset = 0;
+	while(offset < 64)
+	{
+		mem_copy(&double_value, return_value + offset, sizeof(double));
+		temp_double = (double)8901.2;
+		if(mem_cmp(&double_value, &temp_double, sizeof(double)))
+		{
+			mem_copy(&nfloat_value, return_value + offset,
+					 sizeof(jit_nfloat));
+			temp_nfloat = (jit_nfloat)8901.2;
+			if(!mem_cmp(&nfloat_value, &temp_nfloat, NFLOAT_SIGNIFICANT_BYTES))
+			{
+				nfloat_size = 3;
+				break;
+			}
+		}
+		else
+		{
+			nfloat_size = 2;
+			break;
+		}
+		offset += sizeof(void *);
+	}
+
+	/* Use the offset and size information to set the final parameters */
+	return_nfloats_after = offset;
 	if(nfloat_size == 2)
 	{
 		return_nfloat_as_double = 1;
@@ -1487,8 +1515,7 @@ void dump_return_union(void)
 	const char *double_type;
 	const char *nfloat_type;
 
-	/* Dump the definition of "jit_apply_float" */
-	printf("typedef union\n{\n");
+	/* Determine the float return types */
 	if(return_float_as_nfloat)
 	{
 		float_type = "jit_nfloat";
@@ -1517,10 +1544,6 @@ void dump_return_union(void)
 	{
 		nfloat_type = "jit_nfloat";
 	}
-	printf("\t%s float_value;\n", float_type);
-	printf("\t%s double_value;\n", double_type);
-	printf("\t%s nfloat_value;\n", nfloat_type);
-	printf("\n} jit_apply_float;\n");
 
 	/* Dump the definition of "jit_apply_return" */
 	printf("typedef union\n{\n");
@@ -1530,12 +1553,30 @@ void dump_return_union(void)
 	printf("\tjit_ulong ulong_value;\n");
 	if(return_floats_after)
 	{
-		printf("\tstruct { jit_ubyte pad[%d]; jit_apply_float inner_value; } f_value;\n",
-			   return_floats_after);
+		printf("\tstruct { jit_ubyte pad[%d]; %s f_value; } float_value;\n",
+			   return_floats_after, float_type);
 	}
 	else
 	{
-		printf("\tstruct { jit_apply_float inner_value; } f_value;\n");
+		printf("\tstruct { %s f_value; } float_value;\n", float_type);
+	}
+	if(return_doubles_after)
+	{
+		printf("\tstruct { jit_ubyte pad[%d]; %s f_value; } double_value;\n",
+			   return_doubles_after, double_type);
+	}
+	else
+	{
+		printf("\tstruct { %s f_value; } double_value;\n", double_type);
+	}
+	if(return_nfloats_after)
+	{
+		printf("\tstruct { jit_ubyte pad[%d]; %s f_value; } nfloat_value;\n",
+			   return_nfloats_after, nfloat_type);
+	}
+	else
+	{
+		printf("\tstruct { %s f_value; } nfloat_value;\n", nfloat_type);
 	}
 	if(max_struct_in_reg > 0)
 	{
@@ -1565,11 +1606,11 @@ void dump_return_union(void)
 	printf("#define jit_apply_return_get_ulong(result)\t\\\n");
 	printf("\t((jit_ulong)((result)->ulong_value))\n");
 	printf("#define jit_apply_return_get_float32(result)\t\\\n");
-	printf("\t((jit_float32)((result)->f_value.inner_value.float_value))\n");
+	printf("\t((jit_float32)((result)->float_value.f_value))\n");
 	printf("#define jit_apply_return_get_float64(result)\t\\\n");
-	printf("\t((jit_float64)((result)->f_value.inner_value.double_value))\n");
+	printf("\t((jit_float64)((result)->double_value.f_value))\n");
 	printf("#define jit_apply_return_get_nfloat(result)\t\\\n");
-	printf("\t((jit_nfloat)((result)->f_value.inner_value.nfloat_value))\n");
+	printf("\t((jit_nfloat)((result)->nfloat_value.f_value))\n");
 	printf("\n");
 	printf("#define jit_apply_return_set_sbyte(result,value)\t\\\n");
 	printf("\t(((result)->int_value) = ((jit_nint)(value)))\n");
@@ -1592,13 +1633,13 @@ void dump_return_union(void)
 	printf("#define jit_apply_return_set_ulong(result,value)\t\\\n");
 	printf("\t(((result)->ulong_value) = ((jit_ulong)(value)))\n");
 	printf("#define jit_apply_return_set_float32(result,value)\t\\\n");
-	printf("\t(((result)->f_value.inner_value.float_value) = ((%s)(value)))\n",
+	printf("\t(((result)->float_value.f_value) = ((%s)(value)))\n",
 		   float_type);
 	printf("#define jit_apply_return_set_float64(result,value)\t\\\n");
-	printf("\t(((result)->f_value.inner_value.double_value) = ((%s)(value)))\n",
+	printf("\t(((result)->double_value.f_value) = ((%s)(value)))\n",
 		   double_type);
 	printf("#define jit_apply_return_set_nfloat(result,value)\t\\\n");
-	printf("\t(((result)->f_value.inner_value.nfloat_value) = ((%s)(value)))\n",
+	printf("\t(((result)->nfloat_value.f_value) = ((%s)(value)))\n",
 		   nfloat_type);
 	printf("\n");
 }
@@ -2601,6 +2642,8 @@ int main(int argc, char *argv[])
 	printf("#define JIT_APPLY_DOUBLES_IN_WORD_REGS %d\n", doubles_in_word_regs);
 	printf("#define JIT_APPLY_NFLOATS_IN_WORD_REGS %d\n", nfloats_in_word_regs);
 	printf("#define JIT_APPLY_RETURN_FLOATS_AFTER %d\n", return_floats_after);
+	printf("#define JIT_APPLY_RETURN_DOUBLES_AFTER %d\n", return_doubles_after);
+	printf("#define JIT_APPLY_RETURN_NFLOATS_AFTER %d\n", return_nfloats_after);
 	printf("#define JIT_APPLY_VARARGS_ON_STACK %d\n", varargs_on_stack);
 	printf("#define JIT_APPLY_STRUCT_RETURN_SPECIAL_REG %d\n", struct_return_special_reg);
 	printf("#define JIT_APPLY_STRUCT_REG_OVERLAPS_WORD_REG %d\n",

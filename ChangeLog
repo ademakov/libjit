@@ -3,6 +3,26 @@
 	* tools/gen-rules-parser.y, tools/gen-rules-scanner-l: Add the imms32
 	and immu32 keywords for 32bit signed and unsigned immediate values.
 
+	* tools/gen-apply.c: Add support for apply return structs where
+	different float types are at different offsets in the return struct.
+
+	* jit/jit-apply.c (closure_handler): Handle return of different float
+	types with different macros.
+
+	* jit/jit-apply-x86.h (jit_builtin_return_float): Adjust macro to
+	the new apply return struct layout.
+	Add the new jit_builtin_return_double and jit_builtin_return_nfloat
+	macros.
+	Fix jit_builtin_return_float macro for MS cl.
+
+	* jit/jit-apply-x86-64.h (jit_builtin_return_float): Adjust macro
+	to the new apply return struct layout.
+	Add the new jit_builtin_return_double and jit_builtin_return_nfloat
+	macros.
+
+	* jit/jit-apply-func.h: Add the new jit_builtin_return_double,
+	jit_builtin_return_nfloat and jit_builtin_return_long macros.
+
 2008-05-26  Juan Jesus Garcia de Soria  <juanj.g_soria@grupobbva.com>
 
 	* include/jit/jit-defs.h.in: define JIT_EXPORT_DATA macro to support
