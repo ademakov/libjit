@@ -1,3 +1,11 @@
+2008-05-26  Juan Jesus Garcia de Soria  <juanj.g_soria@grupobbva.com>
+
+	* include/jit/jit-defs.h.in: define JIT_EXPORT_DATA macro to support
+	win32 DLL symbol import/export idiosyncrasy. On non-win32 this macro
+	is simply "extern".
+	* include/jit/jit-type.h, include/jit/jit-opcode.h: replace "extern"
+	with JIT_EXPORT_DATA in data declaration.
+
 2008-05-24  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-rules-x86-64.c (_jit_gen_prolog, _jit_gen_epilog): Add

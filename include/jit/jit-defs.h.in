@@ -25,6 +25,12 @@
 extern	"C" {
 #endif
 
+#ifdef _MSC_VER
+#define JIT_EXPORT_DATA extern __declspec(dllimport)
+#else
+#define JIT_EXPORT_DATA extern
+#endif
+
 @JIT_INT64_INCLUDE@
 
 typedef @JITINT8@ jit_sbyte;

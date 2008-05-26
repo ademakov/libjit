@@ -30,41 +30,41 @@ extern	"C" {
 /*
  * Pre-defined type descriptors.
  */
-extern jit_type_t const jit_type_void;
-extern jit_type_t const jit_type_sbyte;
-extern jit_type_t const jit_type_ubyte;
-extern jit_type_t const jit_type_short;
-extern jit_type_t const jit_type_ushort;
-extern jit_type_t const jit_type_int;
-extern jit_type_t const jit_type_uint;
-extern jit_type_t const jit_type_nint;
-extern jit_type_t const jit_type_nuint;
-extern jit_type_t const jit_type_long;
-extern jit_type_t const jit_type_ulong;
-extern jit_type_t const jit_type_float32;
-extern jit_type_t const jit_type_float64;
-extern jit_type_t const jit_type_nfloat;
-extern jit_type_t const jit_type_void_ptr;
+JIT_EXPORT_DATA jit_type_t const jit_type_void;
+JIT_EXPORT_DATA jit_type_t const jit_type_sbyte;
+JIT_EXPORT_DATA jit_type_t const jit_type_ubyte;
+JIT_EXPORT_DATA jit_type_t const jit_type_short;
+JIT_EXPORT_DATA jit_type_t const jit_type_ushort;
+JIT_EXPORT_DATA jit_type_t const jit_type_int;
+JIT_EXPORT_DATA jit_type_t const jit_type_uint;
+JIT_EXPORT_DATA jit_type_t const jit_type_nint;
+JIT_EXPORT_DATA jit_type_t const jit_type_nuint;
+JIT_EXPORT_DATA jit_type_t const jit_type_long;
+JIT_EXPORT_DATA jit_type_t const jit_type_ulong;
+JIT_EXPORT_DATA jit_type_t const jit_type_float32;
+JIT_EXPORT_DATA jit_type_t const jit_type_float64;
+JIT_EXPORT_DATA jit_type_t const jit_type_nfloat;
+JIT_EXPORT_DATA jit_type_t const jit_type_void_ptr;
 
 /*
  * Type descriptors for the system "char", "int", "long", etc types.
  * These are defined to one of the above values.
  */
-extern jit_type_t const jit_type_sys_bool;
-extern jit_type_t const jit_type_sys_char;
-extern jit_type_t const jit_type_sys_schar;
-extern jit_type_t const jit_type_sys_uchar;
-extern jit_type_t const jit_type_sys_short;
-extern jit_type_t const jit_type_sys_ushort;
-extern jit_type_t const jit_type_sys_int;
-extern jit_type_t const jit_type_sys_uint;
-extern jit_type_t const jit_type_sys_long;
-extern jit_type_t const jit_type_sys_ulong;
-extern jit_type_t const jit_type_sys_longlong;
-extern jit_type_t const jit_type_sys_ulonglong;
-extern jit_type_t const jit_type_sys_float;
-extern jit_type_t const jit_type_sys_double;
-extern jit_type_t const jit_type_sys_long_double;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_bool;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_char;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_schar;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_uchar;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_short;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_ushort;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_int;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_uint;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_long;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_ulong;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_longlong;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_ulonglong;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_float;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_double;
+JIT_EXPORT_DATA jit_type_t const jit_type_sys_long_double;
 
 /*
  * Type kinds that may be returned by "jit_type_get_kind".

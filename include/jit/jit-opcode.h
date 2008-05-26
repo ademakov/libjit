@@ -601,7 +601,7 @@ struct jit_opcode_info
 #define	JIT_OPCODE_SRC1_PTR				JIT_OPCODE_SRC1_LONG
 #define	JIT_OPCODE_SRC2_PTR				JIT_OPCODE_SRC2_LONG
 #endif
-extern jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES];
+JIT_EXPORT_DATA jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES];
 
 #ifdef	__cplusplus
 };
