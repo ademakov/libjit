@@ -1,3 +1,8 @@
+2008-05-26  Klaus Treichel  <ktreichel@web.de>
+
+	* tools/gen-rules-parser.y, tools/gen-rules-scanner-l: Add the imms32
+	and immu32 keywords for 32bit signed and unsigned immediate values.
+
 2008-05-26  Juan Jesus Garcia de Soria  <juanj.g_soria@grupobbva.com>
 
 	* include/jit/jit-defs.h.in: define JIT_EXPORT_DATA macro to support

@@ -132,12 +132,14 @@ static int gensel_reserve_more_space = 128;
 #define	GENSEL_PATT_IMMU8			7
 #define	GENSEL_PATT_IMMS16			8
 #define	GENSEL_PATT_IMMU16			9
-#define	GENSEL_PATT_LOCAL			10
-#define	GENSEL_PATT_FRAME			11
-#define	GENSEL_PATT_SCRATCH			12
-#define	GENSEL_PATT_CLOBBER			13
-#define	GENSEL_PATT_IF				14
-#define	GENSEL_PATT_SPACE			15
+#define	GENSEL_PATT_IMMS32			10
+#define	GENSEL_PATT_IMMU32			11
+#define	GENSEL_PATT_LOCAL			12
+#define	GENSEL_PATT_FRAME			13
+#define	GENSEL_PATT_SCRATCH			14
+#define	GENSEL_PATT_CLOBBER			15
+#define	GENSEL_PATT_IF				16
+#define	GENSEL_PATT_SPACE			17
 
 /*
  * Value types.
@@ -488,6 +490,8 @@ gensel_declare_regs(gensel_clause_t clauses, gensel_option_t options)
 			case GENSEL_PATT_IMMU8:
 			case GENSEL_PATT_IMMS16:
 			case GENSEL_PATT_IMMU16:
+			case GENSEL_PATT_IMMS32:
+			case GENSEL_PATT_IMMU32:
 				++imms;
 				break;
 
@@ -681,6 +685,8 @@ gensel_build_arg_index(
 		case GENSEL_PATT_IMMU8:
 		case GENSEL_PATT_IMMS16:
 		case GENSEL_PATT_IMMU16:
+		case GENSEL_PATT_IMMS32:
+		case GENSEL_PATT_IMMU32:
 			if(ternary || free_dest)
 			{
 				if(index < 3)
@@ -734,6 +740,8 @@ gensel_build_imm_arg_index(
 		case GENSEL_PATT_IMMU8:
 		case GENSEL_PATT_IMMS16:
 		case GENSEL_PATT_IMMU16:
+		case GENSEL_PATT_IMMS32:
+		case GENSEL_PATT_IMMU32:
 			if(ternary || free_dest)
 			{
 				if(index < 3)
@@ -802,6 +810,8 @@ gensel_build_var_index(
 		case GENSEL_PATT_IMMU8:
 		case GENSEL_PATT_IMMS16:
 		case GENSEL_PATT_IMMU16:
+		case GENSEL_PATT_IMMS32:
+		case GENSEL_PATT_IMMU32:
 			names[index] = gensel_imm_names[imms];
 			++imms;
 			++index;
@@ -1121,6 +1131,30 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 					++index;
 					break;
 
+				case GENSEL_PATT_IMMS32:
+					if(seen_option)
+					{
+						printf(" && ");
+					}
+					printf("insn->%s->is_nint_constant && ", args[index]);
+					printf("insn->%s->address >= -2147483648 && ", args[index]);
+					printf("insn->%s->address <= 2147483647", args[index]);
+					seen_option = 1;
+					++index;
+					break;
+
+				case GENSEL_PATT_IMMU32:
+					if(seen_option)
+					{
+						printf(" && ");
+					}
+					printf("insn->%s->is_nint_constant && ", args[index]);
+					printf("insn->%s->address >= 0 && ", args[index]);
+					printf("insn->%s->address <= 4294967295", args[index]);
+					seen_option = 1;
+					++index;
+					break;
+
 				case GENSEL_PATT_LOCAL:
 					if(seen_option)
 					{
@@ -1313,6 +1347,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			case GENSEL_PATT_IMMU8:
 			case GENSEL_PATT_IMMS16:
 			case GENSEL_PATT_IMMU16:
+			case GENSEL_PATT_IMMS32:
+			case GENSEL_PATT_IMMU32:
 				++index;
 				break;
 
@@ -1492,6 +1528,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			case GENSEL_PATT_IMMU8:
 			case GENSEL_PATT_IMMS16:
 			case GENSEL_PATT_IMMU16:
+			case GENSEL_PATT_IMMS32:
+			case GENSEL_PATT_IMMU32:
 				printf("\t\t%s = insn->%s->address;\n",
 				       gensel_imm_names[imms], args[index]);
 				++imms;
@@ -1654,6 +1692,8 @@ static void gensel_output_supported(void)
 %token K_IMMU8			"immediate unsigned 8-bit value"
 %token K_IMMS16			"immediate signed 16-bit value"
 %token K_IMMU16			"immediate unsigned 16-bit value"
+%token K_IMMS32			"immediate signed 32-bit value"
+%token K_IMMU32			"immediate unsigned 32-bit value"
 %token K_LOCAL			"local variable"
 %token K_FRAME			"local variable forced out into the stack frame"
 %token K_NOTE			"`note'"
@@ -1952,6 +1992,8 @@ InputTag
 	| K_IMMU8			{ $$ = GENSEL_PATT_IMMU8; }
 	| K_IMMS16			{ $$ = GENSEL_PATT_IMMS16; }
 	| K_IMMU16			{ $$ = GENSEL_PATT_IMMU16; }
+	| K_IMMS32			{ $$ = GENSEL_PATT_IMMS32; }
+	| K_IMMU32			{ $$ = GENSEL_PATT_IMMU32; }
 	| K_LOCAL			{ $$ = GENSEL_PATT_LOCAL; }
 	| K_FRAME			{ $$ = GENSEL_PATT_FRAME; }
 	| K_ANY				{ $$ = GENSEL_PATT_ANY; }

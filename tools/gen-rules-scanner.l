@@ -96,6 +96,8 @@ WHITE			[ \t\v\r\f]
 "immu8"			{ RETURNTOK(K_IMMU8); }
 "imms16"		{ RETURNTOK(K_IMMS16); }
 "immu16"		{ RETURNTOK(K_IMMU16); }
+"imms32"		{ RETURNTOK(K_IMMS32); }
+"immu32"		{ RETURNTOK(K_IMMU32); }
 "local"			{ RETURNTOK(K_LOCAL); }
 "frame"			{ RETURNTOK(K_FRAME); }
 "ternary"		{ RETURNTOK(K_TERNARY); }
