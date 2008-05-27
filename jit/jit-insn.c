@@ -7150,7 +7150,6 @@ static int initialize_setjmp_block(jit_function_t func)
 	{
 		return 1;
 	}
-	func->builder->longjmp_label = jit_label_undefined;
 	func->builder->catcher_label = jit_label_undefined;
 
 	/* Force the start of a new block to mark the start of the init code */
@@ -7246,12 +7245,6 @@ static int initialize_setjmp_block(jit_function_t func)
 
 	/* Branch to the end of the init code if "setjmp" returned zero */
 	if(!jit_insn_branch_if_not(func, value, &code_label))
-	{
-		return 0;
-	}
-
-	/* The current point in the code is where "longjmp" will resume from */
-	if(!jit_insn_label(func, &(func->builder->longjmp_label)))
 	{
 		return 0;
 	}

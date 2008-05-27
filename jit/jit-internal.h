@@ -306,7 +306,6 @@ struct _jit_builder
 
 	/* Exception handling definitions for the function */
 	jit_value_t		setjmp_value;
-	jit_label_t		longjmp_label;
 	jit_value_t		thrown_exception;
 	jit_value_t		thrown_pc;
 	jit_label_t		catcher_label;

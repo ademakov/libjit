@@ -1,6 +1,12 @@
+2008-05-27  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-internal.h (jit_builder_t):
+	* jit/jit-insn.c (initialize_setjmp_block): remove longjmp_label
+	field as useless.
+
 2008-05-26  Klaus Treichel  <ktreichel@web.de>
 
-	* tools/gen-rules-parser.y, tools/gen-rules-scanner-l: Add the imms32
+	* tools/gen-rules-parser.y, tools/gen-rules-scanner.l: Add the imms32
 	and immu32 keywords for 32bit signed and unsigned immediate values.
 
 	* tools/gen-apply.c: Add support for apply return structs where
