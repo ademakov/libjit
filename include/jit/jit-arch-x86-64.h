@@ -56,7 +56,7 @@ struct _jit_arch_frame
 #endif
 
 /*
- * If defined _JIT_ARCH_GET_NEXT_FRAME assigns the frame address following
+ * If defined _JIT_ARCH_GET_NEXT_FRAME() assigns the frame address following
  * the frame supplied as second arg to the value supplied as first argument.
  */
 #define _JIT_ARCH_GET_NEXT_FRAME(n, f)							\
@@ -65,14 +65,18 @@ struct _jit_arch_frame
 	} while(0)
 
 /*
- * If defined _JIT_ARCH_GET_RETURN_ADDRESS assigns the return address of the frame
- * supplied as second arg to the value supplied as first argument.
+ * If defined _JIT_ARCH_GET_RETURN_ADDRESS() assigns the return address of
+ * the frame supplied as second arg to the value supplied as first argument.
  */
 #define _JIT_ARCH_GET_RETURN_ADDRESS(r, f)						\
 	do {										\
 		(r) = (void *)((f) ? ((_jit_arch_frame_t *)(f))->return_address : 0);	\
 	} while(0)
 
+/*
+ * If defined _JIT_ARCH_GET_CURRENT_RETURN() assigns the return address of
+ * the current to the supplied argument.
+ */
 #define _JIT_ARCH_GET_CURRENT_RETURN(r)				\
 	do {							\
 		void *__frame;					\

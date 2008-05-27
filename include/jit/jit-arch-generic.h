@@ -29,4 +29,22 @@
  */
 #undef _JIT_ARCH_GET_CURRENT_FRAME
 
+/*
+ * If defined _JIT_ARCH_GET_NEXT_FRAME() assigns the frame address following
+ * the frame supplied as second arg to the value supplied as first argument.
+ */
+#undef _JIT_ARCH_GET_NEXT_FRAME
+
+/*
+ * If defined _JIT_ARCH_GET_RETURN_ADDRESS() assigns the return address of
+ * the frame supplied as second arg to the value supplied as first argument.
+ */
+#undef _JIT_ARCH_GET_RETURN_ADDRESS
+
+/*
+ * If defined _JIT_ARCH_GET_CURRENT_RETURN() assigns the return address of
+ * the current to the supplied argument.
+ */
+#define _JIT_ARCH_GET_CURRENT_RETURN
+
 #endif /* _JIT_ARCH_GENERIC_H */
