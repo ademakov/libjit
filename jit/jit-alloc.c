@@ -174,7 +174,7 @@ void jit_free_exec(void *ptr, unsigned int size)
 	if(ptr)
 	{
 #if defined(JIT_WIN32_PLATFORM)
-		VirtualFree(ptr, size, MEM_DECOMMIT | MEM_RELEASE);
+		VirtualFree(ptr, 0, MEM_RELEASE);
 #elif defined(JIT_USE_MMAP)
 		munmap(ptr, size);
 #else

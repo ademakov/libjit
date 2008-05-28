@@ -255,6 +255,7 @@ void _jit_function_destroy(jit_function_t func)
 	}
 	_jit_function_free_builder(func);
 	jit_meta_destroy(&(func->meta));
+	jit_type_free(func->signature);
 	jit_free(func);
 }
 
