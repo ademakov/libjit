@@ -4,7 +4,14 @@
 	type.
 
 	* include/jit/jit-except.h, include/jit/jit-common.h: move
-	JIT_NO_OFFSET from jit-except.h to jit-common.h
+	JIT_NO_OFFSET from jit-except.h to jit-common.h.
+
+	* include/jit/jit-unwind.h, jit/jit-unwind.c: new files.
+	* include/jit/jit.h, include/jit/Makefile.am: add jit-unwind.h.
+	* jit/Makefile.am: add jit-unwind.c.
+
+	* jit/jit-except.c (jit_exception_get_stack_trace): re-implement
+	using unwind routines.
 
 2008-05-28  Juan Jesus Garcia de Soria  <juanj.g_soria@grupobbva.com>
 

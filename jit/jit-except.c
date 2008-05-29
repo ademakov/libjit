@@ -305,32 +305,32 @@ struct jit_stack_trace
 @*/
 jit_stack_trace_t jit_exception_get_stack_trace(void)
 {
-	jit_stack_trace_t trace = 0;
-	unsigned int size = 0;
-#if JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
-	jit_thread_control_t control;
-	jit_backtrace_t top;
-	jit_backtrace_t item;
-	
+	jit_stack_trace_t trace;
+	unsigned int size;
+	jit_unwind_context_t unwind;
+
 	/* Count the number of items in the current thread's call stack */
-	control = _jit_thread_get_control();
-	if(!control)
+	size = 0;
+	if(jit_unwind_init(&unwind, NULL))
+	{
+		do
+		{
+			size++;
+		}
+		while(jit_unwind_next_pc(&unwind));
+		jit_unwind_free(&unwind);
+	}
+
+	/* Bail out if the stack is not available */
+	if(size == 0)
 	{
 		return 0;
 	}
-	size = 0;
-	top = control->backtrace_head;
-	item = top;
-	while(item != 0)
-	{
-		++size;
-		item = item->parent;
-	}
 
 	/* Allocate memory for the stack trace */
-	trace = (jit_stack_trace_t)jit_malloc
-		(sizeof(struct jit_stack_trace) +
-		 size * sizeof(void *) - sizeof(void *));
+	trace = (jit_stack_trace_t) jit_malloc(sizeof(struct jit_stack_trace)
+					       + size * sizeof(void *)
+					       - sizeof(void *));
 	if(!trace)
 	{
 		return 0;
@@ -339,43 +339,22 @@ jit_stack_trace_t jit_exception_get_stack_trace(void)
 
 	/* Populate the stack trace with the items we counted earlier */
 	size = 0;
-	item = top;
-	while(item != 0)
+	if(jit_unwind_init(&unwind, NULL))
 	{
-		trace->items[size] = item->pc;
-		++size;
-		item = item->parent;
+		do
+		{
+			trace->items[size] = jit_unwind_get_pc(&unwind);
+			size++;
+		}
+		while(jit_unwind_next_pc(&unwind));
+		jit_unwind_free(&unwind);
 	}
-#else
-	void *frame = jit_get_current_frame();
-
-	/* Count the number of items in the current thread's call stack */
-	while(frame != 0)
+	else
 	{
-		frame = jit_get_next_frame_address(frame);
-		++size;
-	}
-
-	/* Allocate memory for the stack trace */
-	trace = (jit_stack_trace_t)jit_malloc
-		(sizeof(struct jit_stack_trace) +
-		 size * sizeof(void *) - sizeof(void *));
-	if(!trace)
-	{
+		jit_free(trace);
 		return 0;
 	}
-	trace->size = size;
 
-	/* Populate the stack trace with the items we counted earlier */
-	size = 0;
-	frame = jit_get_current_frame();
-	while(frame != 0)
-	{
-		trace->items[size] = jit_get_return_address(frame);
-		frame = jit_get_next_frame_address(frame);
-		++size;
-	}
-#endif
 	return trace;
 }
 
@@ -469,7 +448,7 @@ unsigned int jit_stack_trace_get_offset
 			}
 		}
 	}
-	return JIT_CACHE_NO_OFFSET;
+	return JIT_NO_OFFSET;
 }
 
 /*@

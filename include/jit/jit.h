@@ -36,11 +36,12 @@ extern	"C" {
 #include <jit/jit-function.h>
 #include <jit/jit-init.h>
 #include <jit/jit-insn.h>
+#include <jit/jit-intrinsic.h>
 #include <jit/jit-meta.h>
 #include <jit/jit-objmodel.h>
 #include <jit/jit-opcode.h>
 #include <jit/jit-type.h>
-#include <jit/jit-intrinsic.h>
+#include <jit/jit-unwind.h>
 #include <jit/jit-util.h>
 #include <jit/jit-value.h>
 #include <jit/jit-walk.h>
