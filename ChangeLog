@@ -1,3 +1,11 @@
+2008-05-30  Aleksey Demakov  <ademakov@gmail.com>
+
+	* include/jit/jit-common.h: remove unused jit_function_compiled_t
+	type.
+
+	* include/jit/jit-except.h, include/jit/jit-common.h: move
+	JIT_NO_OFFSET from jit-except.h to jit-common.h
+
 2008-05-28  Juan Jesus Garcia de Soria  <juanj.g_soria@grupobbva.com>
 
 	* jit/jit-alloc.c (jit_free_exec): fix VirtualFree arguments.

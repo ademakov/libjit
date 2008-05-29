@@ -63,7 +63,6 @@ jit_function_t jit_stack_trace_get_function
 	(jit_context_t context, jit_stack_trace_t trace, unsigned int posn);
 void *jit_stack_trace_get_pc
 	(jit_stack_trace_t trace, unsigned int posn);
-#define	JIT_NO_OFFSET	(~((unsigned int)0))
 unsigned int jit_stack_trace_get_offset
 	(jit_context_t context, jit_stack_trace_t trace, unsigned int posn);
 void jit_stack_trace_free(jit_stack_trace_t trace);

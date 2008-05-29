@@ -38,11 +38,6 @@ typedef struct _jit_context *jit_context_t;
 typedef struct _jit_function *jit_function_t;
 
 /*
- * Opaque type that represents the compiled form of a function.
- */
-typedef void *jit_function_compiled_t;
-
-/*
  * Opaque structure that represents a block.
  */
 typedef struct _jit_block *jit_block_t;
@@ -75,7 +70,12 @@ typedef jit_nuint jit_label_t;
 /*
  * Value that represents an undefined label.
  */
-#define	jit_label_undefined		((jit_label_t)~((jit_uint)0))
+#define	jit_label_undefined	((jit_label_t)~((jit_uint)0))
+
+/*
+ * Value that represents an undefined offset.
+ */
+#define	JIT_NO_OFFSET		(~((unsigned int)0))
 
 /*
  * Function that is used to free user-supplied metadata.
