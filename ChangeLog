@@ -1,3 +1,11 @@
+2008-07-06  Juan Jesus Garcia de Soria  <juanj.g_soria@grupobbva.com>
+
+	* jit/jit-reg-alloc.c (choose_input_order): take into account global
+	registers to see if it is suitable to exchange input values. This
+	fixes a problem that took place when a commutative op is applied to
+	a value that resides in a global register and is both the dest and
+	the second source value of the op.
+
 2008-05-30  Aleksey Demakov  <ademakov@gmail.com>
 
 	* include/jit/jit-common.h: remove unused jit_function_compiled_t

@@ -1219,6 +1219,8 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 				{
 					if(regs->commutative)
 					{
+						/* This depends on choose_input_order()
+						   doing its job on the next step. */
 						use_cost = 0;
 					}
 					else
@@ -1273,11 +1275,15 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 			{
 				if(regs->commutative)
 				{
+					/* This depends on choose_input_order()
+					   doing its job on the next step. */
 					use_cost = 0;
 				}
 #ifdef JIT_REG_STACK
 				else if(regs->reversible && regs->no_pop)
 				{
+					/* This depends on choose_input_order()
+					   doing its job on the next step. */
 					use_cost = 0;
 				}
 #endif
@@ -1336,10 +1342,14 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 static void
 choose_input_order(jit_gencode_t gen, _jit_regs_t *regs)
 {
-	if(regs->descs[2].value
-	   && regs->descs[2].value->in_register
-	   && regs->descs[2].value->reg == regs->descs[0].reg
-	   && regs->descs[2].value != regs->descs[1].value)
+	jit_value_t value;
+
+	value = regs->descs[2].value;
+	if(value && value != regs->descs[1].value
+	   && ((value->in_register
+		&& value->reg == regs->descs[0].reg)
+	       || (value->in_global_register
+		   && value->global_reg == regs->descs[0].reg)))
 	{
 #ifdef JIT_REG_STACK
 		if(regs->reversible && regs->no_pop)
