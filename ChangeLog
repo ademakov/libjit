@@ -1,3 +1,10 @@
+2008-07-06  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-rules-x86-64.ins: Replace the check if an immediate value
+	is a signed 32bit value by using an if clause the new imms32 clause.
+	Flag rules for branch opcodes with the branch option and add the
+	commutative option where appropriate.
+
 2008-07-06  Juan Jesus Garcia de Soria  <juanj.g_soria@grupobbva.com>
 
 	* jit/jit-reg-alloc.c (choose_input_order): take into account global
