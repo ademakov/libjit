@@ -8,6 +8,15 @@
 
 	* tests/cond.pas: Add float compare tests where nan values are
 	involved. Add compare tests for the *_inv opcodes.
+	Add the same tests using branches for all float compare opcodes.
+
+	* jit/jit-rules-x86-64.c (xmm_setcc, xmm_cmp_setcc_reg_reg,
+	xmm_brcc, xmm_cmp_brcc_reg_reg, xmm_cmp_brcc_reg_membase): Add
+	functions to handle float compares with consideration of nan values.
+
+	* jit/jit-rules-x66-64.ins: Rewrite the float32 and float64 compare
+	and branch rules using the new functions in jit-rules-x86-64.c.
+	Add the corresponding *_inv rules.
 
 2008-07-06  Klaus Treichel  <ktreichel@web.de>
 

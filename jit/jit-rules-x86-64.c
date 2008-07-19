@@ -1142,7 +1142,7 @@ _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 
 void
 _jit_gen_free_reg(jit_gencode_t gen, int reg,
-				  int other_reg, int value_used)
+		  int other_reg, int value_used)
 {
 	/* We only need to take explicit action if we are freeing a
 	   floating-point register whose value hasn't been used yet */
@@ -1215,7 +1215,7 @@ long_form_branch(int opcode)
  */
 static unsigned char *
 output_branch(jit_function_t func, unsigned char *inst, int opcode,
-			  jit_insn_t insn)
+	      jit_insn_t insn)
 {
 	jit_block_t block;
 
@@ -1332,6 +1332,145 @@ jump_to_epilog(jit_gencode_t gen, unsigned char *inst, jit_block_t block)
 	gen->epilog_fixup = (void *)inst;
 	x86_imm_emit32(inst, fixup);
 	return inst;
+}
+
+/*
+ * Compare two scalar float or double values and set dreg depending on the
+ * flags set.
+ * The result for nan values depends on nan_result.
+ * If nan_result is == 0 then the result is 0 if any nan value is involved,
+ * otherwise the result is true.
+ */
+static unsigned char *
+xmm_setcc(unsigned char *inst, int dreg, int cond, int sreg, int nan_result)
+{
+	x86_64_set_reg(inst, cond, dreg, 0);
+	if(nan_result)
+	{
+		/*
+		 * Check pf only for comparisions where a flag is checked
+		 * for 0 because an unordered result sets all flags.
+		 * The cases where the additional check is not needed is
+		 * eq, lt and le.
+		 */
+		if((cond != 0) && (cond != 2) && (cond != 3))
+		{
+			x86_64_set_reg(inst, 8 /* p */ , sreg, 0);
+			x86_64_or_reg_reg_size(inst, dreg, sreg, 4);
+		}
+	}
+	else
+	{
+		/*
+		 * Check pf only for comparisions where a flag is checked
+		 * for 1 because an unordered result sets all flags.
+		 * The cases where the additional check is not needed is
+		 * ne, gt and ge.
+		 */
+		if((cond != 1) && (cond != 4) && (cond != 5))
+		{
+			x86_64_set_reg(inst, 9 /* np */ , sreg, 0);
+			x86_64_and_reg_reg_size(inst, dreg, sreg, 4);
+		}
+	}
+	x86_64_movzx8_reg_reg_size(inst, dreg, dreg, 4);
+	return inst;
+}
+
+static unsigned char *
+xmm_cmp_setcc_reg_reg(unsigned char *inst, int dreg, int cond, int xreg1,
+		      int xreg2, int sreg, int is_double, int nan_result)
+{
+	if(is_double)
+	{
+		x86_64_ucomisd_reg_reg(inst, xreg1, xreg2);
+	}
+	else
+	{
+		x86_64_ucomiss_reg_reg(inst, xreg1, xreg2);
+	}
+	return xmm_setcc(inst, dreg, cond, sreg, nan_result);
+}
+
+/*
+ * Compare two float values and branch depending on the flags.
+ */
+static unsigned char *
+xmm_brcc(jit_function_t func, unsigned char *inst, int cond, int nan_result,
+	 jit_insn_t insn)
+{
+	if(nan_result)
+	{
+		/*
+		 * Check pf only for comparisions where a flag is checked
+		 * for 0 because an unordered result sets all flags.
+		 * The cases where the additional check is not needed is
+		 * eq, lt and le.
+		 */
+		if((cond != 0) && (cond != 2) && (cond != 3))
+		{
+			/* Branch if the parity flag is set */
+			inst = output_branch(func, inst,
+					     x86_cc_unsigned_map[8], insn);
+		}
+		inst = output_branch(func, inst, x86_cc_unsigned_map[cond], insn);
+	}
+	else
+	{
+		/*
+		 * Check pf only for comparisions where a flag is checked
+		 * for 1 because an unordered result sets all flags.
+		 * The cases where the additional check is not needed is
+		 * ne, gt and ge.
+		 */
+		if((cond != 1) && (cond != 4) && (cond != 5))
+		{
+			unsigned char *patch;
+			patch = inst;
+			x86_branch8(inst, X86_CC_P, 0, 0);
+			inst = output_branch(func, inst,
+					     x86_cc_unsigned_map[cond], insn);
+			x86_patch(patch, inst);
+		}
+		else
+		{
+			inst = output_branch(func, inst,
+					     x86_cc_unsigned_map[cond], insn);
+		}
+	}
+	return inst;
+}
+
+static unsigned char *
+xmm_cmp_brcc_reg_reg(jit_function_t func, unsigned char *inst, int cond,
+		     int xreg1, int xreg2, int is_double, int nan_result,
+		     jit_insn_t insn)
+{
+	if(is_double)
+	{
+		x86_64_ucomisd_reg_reg(inst, xreg1, xreg2);
+	}
+	else
+	{
+		x86_64_ucomiss_reg_reg(inst, xreg1, xreg2);
+	}
+	return xmm_brcc(func, inst, cond, nan_result, insn);
+}
+
+static unsigned char *
+xmm_cmp_brcc_reg_membase(jit_function_t func, unsigned char *inst, int cond,
+			 int xreg1, int basereg, int offset, int is_double,
+			 int nan_result, jit_insn_t insn)
+{
+	if(is_double)
+	{
+		x86_64_ucomisd_reg_membase(inst, xreg1, basereg, offset);
+	}
+	else
+	{
+		x86_64_ucomiss_reg_membase(inst, xreg1, basereg, offset);
+	}
+	return xmm_brcc(func, inst, cond, nan_result, insn);
 }
 
 /*
