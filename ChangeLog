@@ -1,3 +1,14 @@
+2008-07-19  Klaus Treichel  <ktreichel@web.de>
+
+	* dpas/spas-parser.y (handle_boolean_binary): Add macro for binary
+	operators returning a boolean value.
+	(handle_compare_binary): Use handle_boolean_binary instead of
+	handle_binary for non pointer compares. Set the result type to
+	dpas_type_boolean instead of the common type for pointer compares.
+
+	* tests/cond.pas: Add float compare tests where nan values are
+	involved. Add compare tests for the *_inv opcodes.
+
 2008-07-06  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-rules-x86-64.ins: Replace the check if an immediate value

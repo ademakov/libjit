@@ -446,26 +446,114 @@ begin
 	shortreal_lt := (f1 < f2);
 end;
 
-procedure shortreal_tests;
+function shortreal_neq(f1, f2: ShortReal): Boolean;
 begin
+	shortreal_neq := not (f1 = f2);
+end;
+
+function shortreal_nne(f1, f2: ShortReal): Boolean;
+begin
+	shortreal_nne := not (f1 <> f2);
+end;
+
+function shortreal_nge(f1, f2: ShortReal): Boolean;
+begin
+	shortreal_nge := not (f1 >= f2);
+end;
+
+function shortreal_ngt(f1, f2: ShortReal): Boolean;
+begin
+	shortreal_ngt := not (f1 > f2);
+end;
+
+function shortreal_nle(f1, f2: ShortReal): Boolean;
+begin
+	shortreal_nle := not (f1 <= f2);
+end;
+
+function shortreal_nlt(f1, f2: ShortReal): Boolean;
+begin
+	shortreal_nlt := not (f1 < f2);
+end;
+
+procedure shortreal_tests;
+var
+	fnan :ShortReal;
+begin
+	fnan := sqrt(ShortReal(-1));
+
+	runcheck("cond_f_eq_nan_0.0", shortreal_eq(fnan, 0.0), False);
+	runcheck("cond_f_eq_0.0_nan", shortreal_eq(0.0, fnan), False);
+	runcheck("cond_f_eq_nan_nan", shortreal_eq(fnan, fnan), False);
 	runcheck("cond_f_eq_0.0_0.0", shortreal_eq(0.0, 0.0), True);
 	runcheck("cond_f_eq_1.0_0.0", shortreal_eq(1.0, 0.0), False);
 	runcheck("cond_f_eq_0.0_1.0", shortreal_eq(0.0, 1.0), False);
+	runcheck("cond_f_neq_nan_0.0", shortreal_neq(fnan, 0.0), True);
+	runcheck("cond_f_neq_0.0_nan", shortreal_neq(0.0, fnan), True);
+	runcheck("cond_f_neq_nan_nan", shortreal_neq(fnan, fnan), True);
+	runcheck("cond_f_neq_0.0_0.0", shortreal_neq(0.0, 0.0), False);
+	runcheck("cond_f_neq_1.0_0.0", shortreal_neq(1.0, 0.0), True);
+	runcheck("cond_f_neq_0.0_1.0", shortreal_neq(0.0, 1.0), True);
+	runcheck("cond_f_ne_nan_0.0", shortreal_ne(fnan, 0.0), True);
+	runcheck("cond_f_ne_0.0_nan", shortreal_ne(0.0, fnan), True);
+	runcheck("cond_f_ne_nan_nan", shortreal_ne(fnan, fnan), True);
 	runcheck("cond_f_ne_0.0_0.0", shortreal_ne(0.0, 0.0), False);
 	runcheck("cond_f_ne_1.0_0.0", shortreal_ne(1.0, 0.0), True);
 	runcheck("cond_f_ne_0.0_1.0", shortreal_ne(0.0, 1.0), True);
+	runcheck("cond_f_nne_nan_0.0", shortreal_nne(fnan, 0.0), False);
+	runcheck("cond_f_nne_0.0_nan", shortreal_nne(0.0, fnan), False);
+	runcheck("cond_f_nne_nan_nan", shortreal_nne(fnan, fnan), False);
+	runcheck("cond_f_nne_0.0_0.0", shortreal_nne(0.0, 0.0), True);
+	runcheck("cond_f_nne_1.0_0.0", shortreal_nne(1.0, 0.0), False);
+	runcheck("cond_f_nne_0.0_1.0", shortreal_nne(0.0, 1.0), False);
+	runcheck("cond_f_gt_nan_0.0", shortreal_gt(fnan, 0.0), False);
+	runcheck("cond_f_gt_0.0_nan", shortreal_gt(0.0, fnan), False);
+	runcheck("cond_f_gt_nan_nan", shortreal_gt(fnan, fnan), False);
 	runcheck("cond_f_gt_0.0_0.0", shortreal_gt(0.0, 0.0), False);
 	runcheck("cond_f_gt_1.0_0.0", shortreal_gt(1.0, 0.0), True);
 	runcheck("cond_f_gt_0.0_1.0", shortreal_gt(0.0, 1.0), False);
-	runcheck("cond_f_ge_0.0_0.0", shortreal_ge(0.0, 0.0), true);
+	runcheck("cond_f_ngt_nan_0.0", shortreal_ngt(fnan, 0.0), True);
+	runcheck("cond_f_ngt_0.0_nan", shortreal_ngt(0.0, fnan), True);
+	runcheck("cond_f_ngt_nan_nan", shortreal_ngt(fnan, fnan), True);
+	runcheck("cond_f_ngt_0.0_0.0", shortreal_ngt(0.0, 0.0), True);
+	runcheck("cond_f_ngt_1.0_0.0", shortreal_ngt(1.0, 0.0), False);
+	runcheck("cond_f_ngt_0.0_1.0", shortreal_ngt(0.0, 1.0), True);
+	runcheck("cond_f_ge_nan_0.0", shortreal_ge(fnan, 0.0), False);
+	runcheck("cond_f_ge_0.0_nan", shortreal_ge(0.0, fnan), False);
+	runcheck("cond_f_ge_nan_nan", shortreal_ge(fnan, fnan), False);
+	runcheck("cond_f_ge_0.0_0.0", shortreal_ge(0.0, 0.0), True);
 	runcheck("cond_f_ge_1.0_0.0", shortreal_ge(1.0, 0.0), True);
 	runcheck("cond_f_ge_0.0_1.0", shortreal_ge(0.0, 1.0), False);
+	runcheck("cond_f_nge_nan_0.0", shortreal_nge(fnan, 0.0), True);
+	runcheck("cond_f_nge_0.0_nan", shortreal_nge(0.0, fnan), True);
+	runcheck("cond_f_nge_nan_nan", shortreal_nge(fnan, fnan), True);
+	runcheck("cond_f_nge_0.0_0.0", shortreal_nge(0.0, 0.0), False);
+	runcheck("cond_f_nge_1.0_0.0", shortreal_nge(1.0, 0.0), False);
+	runcheck("cond_f_nge_0.0_1.0", shortreal_nge(0.0, 1.0), True);
+	runcheck("cond_f_lt_nan_0.0", shortreal_lt(fnan, 0.0), False);
+	runcheck("cond_f_lt_0.0_nan", shortreal_lt(0.0, fnan), False);
+	runcheck("cond_f_lt_nan_nan", shortreal_lt(fnan, fnan), False);
 	runcheck("cond_f_lt_0.0_0.0", shortreal_lt(0.0, 0.0), False);
 	runcheck("cond_f_lt_1.0_0.0", shortreal_lt(1.0, 0.0), False);
 	runcheck("cond_f_lt_0.0_1.0", shortreal_lt(0.0, 1.0), True);
+	runcheck("cond_f_nlt_nan_0.0", shortreal_nlt(fnan, 0.0), True);
+	runcheck("cond_f_nlt_0.0_nan", shortreal_nlt(0.0, fnan), True);
+	runcheck("cond_f_nlt_nan_nan", shortreal_nlt(fnan, fnan), True);
+	runcheck("cond_f_nlt_0.0_0.0", shortreal_nlt(0.0, 0.0), True);
+	runcheck("cond_f_nlt_1.0_0.0", shortreal_nlt(1.0, 0.0), True);
+	runcheck("cond_f_nlt_0.0_1.0", shortreal_nlt(0.0, 1.0), False);
+	runcheck("cond_f_le_nan_0.0", shortreal_le(fnan, 0.0), False);
+	runcheck("cond_f_le_0.0_nan", shortreal_le(0.0, fnan), False);
+	runcheck("cond_f_le_nan_nan", shortreal_le(fnan, fnan), False);
 	runcheck("cond_f_le_0.0_0.0", shortreal_le(0.0, 0.0), True);
 	runcheck("cond_f_le_1.0_0.0", shortreal_le(1.0, 0.0), False);
 	runcheck("cond_f_le_0.0_1.0", shortreal_le(0.0, 1.0), True);
+	runcheck("cond_f_nle_nan_0.0", shortreal_nle(fnan, 0.0), True);
+	runcheck("cond_f_nle_0.0_nan", shortreal_nle(0.0, fnan), True);
+	runcheck("cond_f_nle_nan_nan", shortreal_nle(fnan, fnan), True);
+	runcheck("cond_f_nle_0.0_0.0", shortreal_nle(0.0, 0.0), False);
+	runcheck("cond_f_nle_1.0_0.0", shortreal_nle(1.0, 0.0), True);
+	runcheck("cond_f_nle_0.0_1.0", shortreal_nle(0.0, 1.0), False);
 end;
 
 function real_eq(f1, f2: Real): Boolean;
@@ -498,26 +586,115 @@ begin
 	real_lt := (f1 < f2);
 end;
 
-procedure real_tests;
+function real_neq(f1, f2: Real): Boolean;
 begin
+	real_neq := not (f1 = f2);
+end;
+
+function real_nne(f1, f2: Real): Boolean;
+begin
+	real_nne := not (f1 <> f2);
+end;
+
+function real_nge(f1, f2: Real): Boolean;
+begin
+	real_nge := not (f1 >= f2);
+end;
+
+function real_ngt(f1, f2: Real): Boolean;
+begin
+	real_ngt := not (f1 > f2);
+end;
+
+function real_nle(f1, f2: Real): Boolean;
+begin
+	real_nle := not (f1 <= f2);
+end;
+
+function real_nlt(f1, f2: Real): Boolean;
+begin
+	real_nlt := not (f1 < f2);
+end;
+
+procedure real_tests;
+var
+	dnan :Real;
+begin
+	dnan := sqrt(Real(-1));
+
+	runcheck("cond_d_eq_nan_0.0", real_eq(dnan, 0.0), False);
+	runcheck("cond_d_eq_0.0_nan", real_eq(0.0, dnan), False);
+	runcheck("cond_d_eq_nan_nan", real_eq(dnan, dnan), False);
 	runcheck("cond_d_eq_0.0_0.0", real_eq(0.0, 0.0), True);
 	runcheck("cond_d_eq_1.0_0.0", real_eq(1.0, 0.0), False);
 	runcheck("cond_d_eq_0.0_1.0", real_eq(0.0, 1.0), False);
+	runcheck("cond_d_neq_nan_0.0", real_neq(dnan, 0.0), True);
+	runcheck("cond_d_neq_0.0_nan", real_neq(0.0, dnan), True);
+	runcheck("cond_d_neq_nan_nan", real_neq(dnan, dnan), True);
+	runcheck("cond_d_neq_0.0_0.0", real_neq(0.0, 0.0), False);
+	runcheck("cond_d_neq_1.0_0.0", real_neq(1.0, 0.0), True);
+	runcheck("cond_d_neq_0.0_1.0", real_neq(0.0, 1.0), True);
+	runcheck("cond_d_ne_nan_0.0", real_ne(dnan, 0.0), True);
+	runcheck("cond_d_ne_0.0_nan", real_ne(0.0, dnan), True);
+	runcheck("cond_d_ne_nan_nan", real_ne(dnan, dnan), True);
 	runcheck("cond_d_ne_0.0_0.0", real_ne(0.0, 0.0), False);
 	runcheck("cond_d_ne_1.0_0.0", real_ne(1.0, 0.0), True);
 	runcheck("cond_d_ne_0.0_1.0", real_ne(0.0, 1.0), True);
+	runcheck("cond_d_nne_nan_0.0", real_nne(dnan, 0.0), False);
+	runcheck("cond_d_nne_0.0_nan", real_nne(0.0, dnan), False);
+	runcheck("cond_d_nne_nan_nan", real_nne(dnan, dnan), False);
+	runcheck("cond_d_nne_0.0_0.0", real_nne(0.0, 0.0), True);
+	runcheck("cond_d_nne_1.0_0.0", real_nne(1.0, 0.0), False);
+	runcheck("cond_d_nne_0.0_1.0", real_nne(0.0, 1.0), False);
+	runcheck("cond_d_gt_nan_0.0", real_gt(dnan, 0.0), False);
+	runcheck("cond_d_gt_0.0_nan", real_gt(0.0, dnan), False);
+	runcheck("cond_d_gt_nan_nan", real_gt(dnan, dnan), False);
 	runcheck("cond_d_gt_0.0_0.0", real_gt(0.0, 0.0), False);
 	runcheck("cond_d_gt_1.0_0.0", real_gt(1.0, 0.0), True);
 	runcheck("cond_d_gt_0.0_1.0", real_gt(0.0, 1.0), False);
-	runcheck("cond_d_ge_0.0_0.0", real_ge(0.0, 0.0), true);
+	runcheck("cond_d_ngt_nan_0.0", real_ngt(dnan, 0.0), True);
+	runcheck("cond_d_ngt_0.0_nan", real_ngt(0.0, dnan), True);
+	runcheck("cond_d_ngt_nan_nan", real_ngt(dnan, dnan), True);
+	runcheck("cond_d_ngt_0.0_0.0", real_ngt(0.0, 0.0), True);
+	runcheck("cond_d_ngt_1.0_0.0", real_ngt(1.0, 0.0), False);
+	runcheck("cond_d_ngt_0.0_1.0", real_ngt(0.0, 1.0), True);
+	runcheck("cond_d_ge_nan_0.0", real_ge(dnan, 0.0), False);
+	runcheck("cond_d_ge_0.0_nan", real_ge(0.0, dnan), False);
+	runcheck("cond_d_ge_nan_nan", real_ge(dnan, dnan), False);
+	runcheck("cond_d_ge_0.0_0.0", real_ge(0.0, 0.0), True);
 	runcheck("cond_d_ge_1.0_0.0", real_ge(1.0, 0.0), True);
 	runcheck("cond_d_ge_0.0_1.0", real_ge(0.0, 1.0), False);
+	runcheck("cond_d_nge_nan_0.0", real_nge(dnan, 0.0), True);
+	runcheck("cond_d_nge_0.0_nan", real_nge(0.0, dnan), True);
+	runcheck("cond_d_nge_nan_nan", real_nge(dnan, dnan), True);
+	runcheck("cond_d_nge_0.0_0.0", real_nge(0.0, 0.0), False);
+	runcheck("cond_d_nge_1.0_0.0", real_nge(1.0, 0.0), False);
+	runcheck("cond_d_nge_0.0_1.0", real_nge(0.0, 1.0), True);
+	runcheck("cond_d_lt_nan_0.0", real_lt(dnan, 0.0), False);
+	runcheck("cond_d_lt_0.0_nan", real_lt(0.0, dnan), False);
+	runcheck("cond_d_lt_nan_nan", real_lt(dnan, dnan), False);
 	runcheck("cond_d_lt_0.0_0.0", real_lt(0.0, 0.0), False);
 	runcheck("cond_d_lt_1.0_0.0", real_lt(1.0, 0.0), False);
 	runcheck("cond_d_lt_0.0_1.0", real_lt(0.0, 1.0), True);
+	runcheck("cond_d_nlt_nan_0.0", real_nlt(dnan, 0.0), True);
+	runcheck("cond_d_nlt_0.0_nan", real_nlt(0.0, dnan), True);
+	runcheck("cond_d_nlt_nan_nan", real_nlt(dnan, dnan), True);
+	runcheck("cond_d_nlt_0.0_0.0", real_nlt(0.0, 0.0), True);
+	runcheck("cond_d_nlt_1.0_0.0", real_nlt(1.0, 0.0), True);
+	runcheck("cond_d_nlt_0.0_1.0", real_nlt(0.0, 1.0), False);
+	runcheck("cond_d_le_nan_0.0", real_le(dnan, 0.0), False);
+	runcheck("cond_d_le_0.0_nan", real_le(0.0, dnan), False);
+	runcheck("cond_d_le_nan_nan", real_le(dnan, dnan), False);
 	runcheck("cond_d_le_0.0_0.0", real_le(0.0, 0.0), True);
 	runcheck("cond_d_le_1.0_0.0", real_le(1.0, 0.0), False);
 	runcheck("cond_d_le_0.0_1.0", real_le(0.0, 1.0), True);
+	runcheck("cond_d_nle_nan_0.0", real_nle(dnan, 0.0), True);
+	runcheck("cond_d_nle_0.0_nan", real_nle(0.0, dnan), True);
+	runcheck("cond_d_nle_nan_nan", real_nle(dnan, dnan), True);
+	runcheck("cond_d_nle_0.0_0.0", real_nle(0.0, 0.0), False);
+	runcheck("cond_d_nle_1.0_0.0", real_nle(1.0, 0.0), True);
+	runcheck("cond_d_nle_0.0_1.0", real_nle(0.0, 1.0), False);
+
 end;
 
 function longreal_eq(f1, f2: LongReal): Boolean;
@@ -550,26 +727,114 @@ begin
 	longreal_lt := (f1 < f2);
 end;
 
-procedure longreal_tests;
+function longreal_neq(f1, f2: LongReal): Boolean;
 begin
+	longreal_neq := not (f1 = f2);
+end;
+
+function longreal_nne(f1, f2: LongReal): Boolean;
+begin
+	longreal_nne := not (f1 <> f2);
+end;
+
+function longreal_nge(f1, f2: LongReal): Boolean;
+begin
+	longreal_nge := not (f1 >= f2);
+end;
+
+function longreal_ngt(f1, f2: LongReal): Boolean;
+begin
+	longreal_ngt := not (f1 > f2);
+end;
+
+function longreal_nle(f1, f2: LongReal): Boolean;
+begin
+	longreal_nle := not (f1 <= f2);
+end;
+
+function longreal_nlt(f1, f2: LongReal): Boolean;
+begin
+	longreal_nlt := not (f1 < f2);
+end;
+
+procedure longreal_tests;
+var
+	nnan :LongReal;
+begin
+	nnan := sqrt(LongReal(-1));
+
+	runcheck("cond_n_eq_nan_0.0", longreal_eq(nnan, 0.0), False);
+	runcheck("cond_n_eq_0.0_nan", longreal_eq(0.0, nnan), False);
+	runcheck("cond_n_eq_nan_nan", longreal_eq(nnan, nnan), False);
 	runcheck("cond_n_eq_0.0_0.0", longreal_eq(0.0, 0.0), True);
 	runcheck("cond_n_eq_1.0_0.0", longreal_eq(1.0, 0.0), False);
 	runcheck("cond_n_eq_0.0_1.0", longreal_eq(0.0, 1.0), False);
+	runcheck("cond_n_neq_nan_0.0", longreal_neq(nnan, 0.0), True);
+	runcheck("cond_n_neq_0.0_nan", longreal_neq(0.0, nnan), True);
+	runcheck("cond_n_neq_nan_nan", longreal_neq(nnan, nnan), True);
+	runcheck("cond_n_neq_0.0_0.0", longreal_neq(0.0, 0.0), False);
+	runcheck("cond_n_neq_1.0_0.0", longreal_neq(1.0, 0.0), True);
+	runcheck("cond_n_neq_0.0_1.0", longreal_neq(0.0, 1.0), True);
+	runcheck("cond_n_ne_nan_0.0", longreal_ne(nnan, 0.0), True);
+	runcheck("cond_n_ne_0.0_nan", longreal_ne(0.0, nnan), True);
+	runcheck("cond_n_ne_nan_nan", longreal_ne(nnan, nnan), True);
 	runcheck("cond_n_ne_0.0_0.0", longreal_ne(0.0, 0.0), False);
 	runcheck("cond_n_ne_1.0_0.0", longreal_ne(1.0, 0.0), True);
 	runcheck("cond_n_ne_0.0_1.0", longreal_ne(0.0, 1.0), True);
+	runcheck("cond_n_nne_nan_0.0", longreal_nne(nnan, 0.0), False);
+	runcheck("cond_n_nne_0.0_nan", longreal_nne(0.0, nnan), False);
+	runcheck("cond_n_nne_nan_nan", longreal_nne(nnan, nnan), False);
+	runcheck("cond_n_nne_0.0_0.0", longreal_nne(0.0, 0.0), True);
+	runcheck("cond_n_nne_1.0_0.0", longreal_nne(1.0, 0.0), False);
+	runcheck("cond_n_nne_0.0_1.0", longreal_nne(0.0, 1.0), False);
+	runcheck("cond_n_gt_nan_0.0", longreal_gt(nnan, 0.0), False);
+	runcheck("cond_n_gt_0.0_nan", longreal_gt(0.0, nnan), False);
+	runcheck("cond_n_gt_nan_nan", longreal_gt(nnan, nnan), False);
 	runcheck("cond_n_gt_0.0_0.0", longreal_gt(0.0, 0.0), False);
 	runcheck("cond_n_gt_1.0_0.0", longreal_gt(1.0, 0.0), True);
 	runcheck("cond_n_gt_0.0_1.0", longreal_gt(0.0, 1.0), False);
-	runcheck("cond_n_ge_0.0_0.0", longreal_ge(0.0, 0.0), true);
+	runcheck("cond_n_ngt_nan_0.0", longreal_ngt(nnan, 0.0), True);
+	runcheck("cond_n_ngt_0.0_nan", longreal_ngt(0.0, nnan), True);
+	runcheck("cond_n_ngt_nan_nan", longreal_ngt(nnan, nnan), True);
+	runcheck("cond_n_ngt_0.0_0.0", longreal_ngt(0.0, 0.0), True);
+	runcheck("cond_n_ngt_1.0_0.0", longreal_ngt(1.0, 0.0), False);
+	runcheck("cond_n_ngt_0.0_1.0", longreal_ngt(0.0, 1.0), True);
+	runcheck("cond_n_ge_nan_0.0", longreal_ge(nnan, 0.0), False);
+	runcheck("cond_n_ge_0.0_nan", longreal_ge(0.0, nnan), False);
+	runcheck("cond_n_ge_nan_nan", longreal_ge(nnan, nnan), False);
+	runcheck("cond_n_ge_0.0_0.0", longreal_ge(0.0, 0.0), True);
 	runcheck("cond_n_ge_1.0_0.0", longreal_ge(1.0, 0.0), True);
 	runcheck("cond_n_ge_0.0_1.0", longreal_ge(0.0, 1.0), False);
+	runcheck("cond_n_nge_nan_0.0", longreal_nge(nnan, 0.0), True);
+	runcheck("cond_n_nge_0.0_nan", longreal_nge(0.0, nnan), True);
+	runcheck("cond_n_nge_nan_nan", longreal_nge(nnan, nnan), True);
+	runcheck("cond_n_nge_0.0_0.0", longreal_nge(0.0, 0.0), False);
+	runcheck("cond_n_nge_1.0_0.0", longreal_nge(1.0, 0.0), False);
+	runcheck("cond_n_nge_0.0_1.0", longreal_nge(0.0, 1.0), True);
+	runcheck("cond_n_lt_nan_0.0", longreal_lt(nnan, 0.0), False);
+	runcheck("cond_n_lt_0.0_nan", longreal_lt(0.0, nnan), False);
+	runcheck("cond_n_lt_nan_nan", longreal_lt(nnan, nnan), False);
 	runcheck("cond_n_lt_0.0_0.0", longreal_lt(0.0, 0.0), False);
 	runcheck("cond_n_lt_1.0_0.0", longreal_lt(1.0, 0.0), False);
 	runcheck("cond_n_lt_0.0_1.0", longreal_lt(0.0, 1.0), True);
+	runcheck("cond_n_nlt_nan_0.0", longreal_nlt(nnan, 0.0), True);
+	runcheck("cond_n_nlt_0.0_nan", longreal_nlt(0.0, nnan), True);
+	runcheck("cond_n_nlt_nan_nan", longreal_nlt(nnan, nnan), True);
+	runcheck("cond_n_nlt_0.0_0.0", longreal_nlt(0.0, 0.0), True);
+	runcheck("cond_n_nlt_1.0_0.0", longreal_nlt(1.0, 0.0), True);
+	runcheck("cond_n_nlt_0.0_1.0", longreal_nlt(0.0, 1.0), False);
+	runcheck("cond_n_le_nan_0.0", longreal_le(nnan, 0.0), False);
+	runcheck("cond_n_le_0.0_nan", longreal_le(0.0, nnan), False);
+	runcheck("cond_n_le_nan_nan", longreal_le(nnan, nnan), False);
 	runcheck("cond_n_le_0.0_0.0", longreal_le(0.0, 0.0), True);
 	runcheck("cond_n_le_1.0_0.0", longreal_le(1.0, 0.0), False);
 	runcheck("cond_n_le_0.0_1.0", longreal_le(0.0, 1.0), True);
+	runcheck("cond_n_nle_nan_0.0", longreal_nle(nnan, 0.0), True);
+	runcheck("cond_n_nle_0.0_nan", longreal_nle(0.0, nnan), True);
+	runcheck("cond_n_nle_nan_nan", longreal_nle(nnan, nnan), True);
+	runcheck("cond_n_nle_0.0_0.0", longreal_nle(0.0, 0.0), False);
+	runcheck("cond_n_nle_1.0_0.0", longreal_nle(1.0, 0.0), True);
+	runcheck("cond_n_nle_0.0_1.0", longreal_nle(0.0, 1.0), False);
 end;
 
 procedure run_tests;

@@ -680,6 +680,34 @@ static int throw_builtin_exception(jit_function_t func, int exception_type)
 		} while (0)
 
 /*
+ * Handle a boolean binary operator.
+ */
+#define	handle_boolean_binary(name,func,arg1,arg2)	\
+		do { \
+			if(!dpas_sem_is_rvalue(arg1) || \
+			   !dpas_type_is_numeric(dpas_sem_get_type(arg2)) || \
+			   !dpas_sem_is_rvalue(arg1) || \
+			   !dpas_type_is_numeric(dpas_sem_get_type(arg2))) \
+			{ \
+				if(!dpas_sem_is_error(arg1) && !dpas_sem_is_error(arg2)) \
+				{ \
+					dpas_error("invalid operands to binary `" name "'"); \
+				} \
+				dpas_sem_set_error(yyval.semvalue); \
+			} \
+			else \
+			{ \
+				jit_value_t value; \
+				value = func \
+					(dpas_current_function(), \
+					 dpas_sem_get_value(dpas_lvalue_to_rvalue(arg1)), \
+					 dpas_sem_get_value(dpas_lvalue_to_rvalue(arg2))); \
+				dpas_sem_set_rvalue \
+					(yyval.semvalue, dpas_type_boolean, value); \
+			} \
+		} while (0)
+
+/*
  * Handle a comparison binary operator.
  */
 #define	handle_compare_binary(name,func,arg1,arg2)	\
@@ -695,11 +723,11 @@ static int throw_builtin_exception(jit_function_t func, int exception_type)
 					 dpas_sem_get_value(dpas_lvalue_to_rvalue(arg1)), \
 					 dpas_sem_get_value(dpas_lvalue_to_rvalue(arg2))); \
 				dpas_sem_set_rvalue \
-					(yyval.semvalue, jit_value_get_type(value), value); \
+					(yyval.semvalue, dpas_type_boolean, value); \
 			} \
 			else \
 			{ \
-				handle_binary(name, func, arg1, arg2); \
+				handle_boolean_binary(name, func, arg1, arg2); \
 			} \
 		} while (0)
 
