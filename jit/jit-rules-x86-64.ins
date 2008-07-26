@@ -2047,6 +2047,9 @@ JIT_OP_BR_LGE_UN: branch
 	}
 
 JIT_OP_BR_FEQ, JIT_OP_BR_FEQ_INV: branch, commutative
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_Z, $1, (void *)$2, 0, 0, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_Z, $1, X86_64_RBP, $2, 0, 0, insn);
 	}
@@ -2055,6 +2058,9 @@ JIT_OP_BR_FEQ, JIT_OP_BR_FEQ_INV: branch, commutative
 	}
 
 JIT_OP_BR_FNE, JIT_OP_BR_FNE_INV: branch, commutative
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_NZ, $1, (void *)$2, 0, 1, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_NZ, $1, X86_64_RBP, $2, 0, 1, insn);
 	}
@@ -2063,6 +2069,9 @@ JIT_OP_BR_FNE, JIT_OP_BR_FNE_INV: branch, commutative
 	}
 
 JIT_OP_BR_FLT: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_C, $1, (void *)$2, 0, 0, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_C, $1, X86_64_RBP, $2, 0, 0, insn);
 	}
@@ -2071,6 +2080,9 @@ JIT_OP_BR_FLT: branch
 	}
 
 JIT_OP_BR_FLT_INV: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_C, $1, (void *)$2, 0, 1, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_C, $1, X86_64_RBP, $2, 0, 1, insn);
 	}
@@ -2079,6 +2091,9 @@ JIT_OP_BR_FLT_INV: branch
 	}
 
 JIT_OP_BR_FLE: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_BE, $1, (void *)$2, 0, 0, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_BE, $1, X86_64_RBP, $2, 0, 0, insn);
 	}
@@ -2087,6 +2102,9 @@ JIT_OP_BR_FLE: branch
 	}
 
 JIT_OP_BR_FLE_INV: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_BE, $1, (void *)$2, 0, 1, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_BE, $1, X86_64_RBP, $2, 0, 1, insn);
 	}
@@ -2095,6 +2113,9 @@ JIT_OP_BR_FLE_INV: branch
 	}
 
 JIT_OP_BR_FGT: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_NBE, $1, (void *)$2, 0, 0, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_NBE, $1, X86_64_RBP, $2, 0, 0, insn);
 	}
@@ -2103,6 +2124,9 @@ JIT_OP_BR_FGT: branch
 	}
 
 JIT_OP_BR_FGT_INV: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_NBE, $1, (void *)$2, 0, 1, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_NBE, $1, X86_64_RBP, $2, 0, 1, insn);
 	}
@@ -2111,6 +2135,9 @@ JIT_OP_BR_FGT_INV: branch
 	}
 
 JIT_OP_BR_FGE: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_NC, $1, (void *)$2, 0, 0, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_NC, $1, X86_64_RBP, $2, 0, 0, insn);
 	}
@@ -2119,6 +2146,9 @@ JIT_OP_BR_FGE: branch
 	}
 
 JIT_OP_BR_FGE_INV: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_NC, $1, (void *)$2, 0, 1, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_NC, $1, X86_64_RBP, $2, 0, 1, insn);
 	}
@@ -2127,6 +2157,9 @@ JIT_OP_BR_FGE_INV: branch
 	}
 
 JIT_OP_BR_DEQ, JIT_OP_BR_DEQ_INV: branch, commutative
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_Z, $1, (void *)$2, 1, 0, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_Z, $1, X86_64_RBP, $2, 1, 0, insn);
 	}
@@ -2135,6 +2168,9 @@ JIT_OP_BR_DEQ, JIT_OP_BR_DEQ_INV: branch, commutative
 	}
 
 JIT_OP_BR_DNE, JIT_OP_BR_DNE_INV: branch, commutative
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_NZ, $1, (void *)$2, 1, 1, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_NZ, $1, X86_64_RBP, $2, 1, 1, insn);
 	}
@@ -2143,6 +2179,9 @@ JIT_OP_BR_DNE, JIT_OP_BR_DNE_INV: branch, commutative
 	}
 
 JIT_OP_BR_DLT: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_C, $1, (void *)$2, 1, 0, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_C, $1, X86_64_RBP, $2, 1, 0, insn);
 	}
@@ -2151,6 +2190,9 @@ JIT_OP_BR_DLT: branch
 	}
 
 JIT_OP_BR_DLT_INV: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_C, $1, (void *)$2, 1, 1, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_C, $1, X86_64_RBP, $2, 1, 1, insn);
 	}
@@ -2159,6 +2201,9 @@ JIT_OP_BR_DLT_INV: branch
 	}
 
 JIT_OP_BR_DLE: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_BE, $1, (void *)$2, 1, 0, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_BE, $1, X86_64_RBP, $2, 1, 0, insn);
 	}
@@ -2167,6 +2212,9 @@ JIT_OP_BR_DLE: branch
 	}
 
 JIT_OP_BR_DLE_INV: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_BE, $1, (void *)$2, 1, 1, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_BE, $1, X86_64_RBP, $2, 1, 1, insn);
 	}
@@ -2175,6 +2223,9 @@ JIT_OP_BR_DLE_INV: branch
 	}
 
 JIT_OP_BR_DGT: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_NBE, $1, (void *)$2, 1, 0, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_NBE, $1, X86_64_RBP, $2, 1, 0, insn);
 	}
@@ -2183,6 +2234,9 @@ JIT_OP_BR_DGT: branch
 	}
 
 JIT_OP_BR_DGT_INV: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_NBE, $1, (void *)$2, 1, 1, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_NBE, $1, X86_64_RBP, $2, 1, 1, insn);
 	}
@@ -2191,6 +2245,9 @@ JIT_OP_BR_DGT_INV: branch
 	}
 
 JIT_OP_BR_DGE: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_NC, $1, (void *)$2, 1, 0, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_NC, $1, X86_64_RBP, $2, 1, 0, insn);
 	}
@@ -2199,6 +2256,9 @@ JIT_OP_BR_DGE: branch
 	}
 
 JIT_OP_BR_DGE_INV: branch
+	[xreg, imm] -> {
+		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_NC, $1, (void *)$2, 1, 1, insn);
+	}
 	[xreg, local] -> {
 		inst = xmm_cmp_brcc_reg_membase(func, inst, X86_CC_NC, $1, X86_64_RBP, $2, 1, 1, insn);
 	}
@@ -2507,101 +2567,161 @@ JIT_OP_LGE_UN:
 	}
 
 JIT_OP_FEQ, JIT_OP_FEQ_INV: commutative
+	[=+reg, xreg, imm, scratch reg, space("23")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_Z, $2, (void *)$3, $4, 0, 0);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_Z, $2, $3, $4, 0, 0);
 	}
 
 JIT_OP_FNE, JIT_OP_FNE_INV: commutative
+	[=+reg, xreg, imm, scratch reg, space("23")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_NZ, $2, (void *)$3, $4, 0, 1);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_NZ, $2, $3, $4, 0, 1);
 	}
 
 JIT_OP_FLT:
+	[=+reg, xreg, imm, scratch reg, space("23")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_C, $2, (void *)$3, $4, 0, 0);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_C, $2, $3, $4, 0, 0);
 	}
 
 JIT_OP_FLT_INV:
+	[=+reg, xreg, imm, scratch reg, space("23")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_C, $2, (void *)$3, $4, 0, 1);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_C, $2, $3, $4, 0, 1);
 	}
 
 JIT_OP_FLE:
+	[=+reg, xreg, imm, scratch reg, space("23")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_BE, $2, (void *)$3, $4, 0, 0);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_BE, $2, $3, $4, 0, 0);
 	}
 
 JIT_OP_FLE_INV:
+	[=+reg, xreg, imm, scratch reg, space("23")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_BE, $2, (void *)$3, $4, 0, 1);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_BE, $2, $3, $4, 0, 1);
 	}
 
 JIT_OP_FGT:
+	[=+reg, xreg, imm, scratch reg, space("23")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_NBE, $2, (void *)$3, $4, 0, 0);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_NBE, $2, $3, $4, 0, 0);
 	}
 
 JIT_OP_FGT_INV:
+	[=+reg, xreg, imm, scratch reg, space("23")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_NBE, $2, (void *)$3, $4, 0, 1);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_NBE, $2, $3, $4, 0, 1);
 	}
 
 JIT_OP_FGE:
+	[=+reg, xreg, imm, scratch reg, space("23")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_NC, $2, (void *)$3, $4, 0, 0);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_NC, $2, $3, $4, 0, 0);
 	}
 
 JIT_OP_FGE_INV:
+	[=+reg, xreg, imm, scratch reg, space("23")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_NC, $2, (void *)$3, $4, 0, 1);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_NC, $2, $3, $4, 0, 1);
 	}
 
 JIT_OP_DEQ, JIT_OP_DEQ_INV: commutative
+	[=+reg, xreg, imm, scratch reg, space("24")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_Z, $2, (void *)$3, $4, 1, 0);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_Z, $2, $3, $4, 1, 0);
 	}
 
 JIT_OP_DNE, JIT_OP_DNE_INV: commutative
+	[=+reg, xreg, imm, scratch reg, space("24")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_NZ, $2, (void *)$3, $4, 1, 1);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_NZ, $2, $3, $4, 1, 1);
 	}
 
 JIT_OP_DLT:
+	[=+reg, xreg, imm, scratch reg, space("24")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_C, $2, (void *)$3, $4, 1, 0);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_C, $2, $3, $4, 1, 0);
 	}
 
 JIT_OP_DLT_INV:
+	[=+reg, xreg, imm, scratch reg, space("24")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_C, $2, (void *)$3, $4, 1, 1);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_C, $2, $3, $4, 1, 1);
 	}
 
 JIT_OP_DLE:
+	[=+reg, xreg, imm, scratch reg, space("24")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_BE, $2, (void *)$3, $4, 1, 0);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_BE, $2, $3, $4, 1, 0);
 	}
 
 JIT_OP_DLE_INV:
+	[=+reg, xreg, imm, scratch reg, space("24")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_BE, $2, (void *)$3, $4, 1, 1);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_BE, $2, $3, $4, 1, 1);
 	}
 
 JIT_OP_DGT:
+	[=+reg, xreg, imm, scratch reg, space("24")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_NBE, $2, (void *)$3, $4, 1, 0);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_NBE, $2, $3, $4, 1, 0);
 	}
 
 JIT_OP_DGT_INV:
+	[=+reg, xreg, imm, scratch reg, space("24")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_NBE, $2, (void *)$3, $4, 1, 1);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_NBE, $2, $3, $4, 1, 1);
 	}
 
 JIT_OP_DGE:
+	[=+reg, xreg, imm, scratch reg, space("24")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_NC, $2, (void *)$3, $4, 1, 0);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_NC, $2, $3, $4, 1, 0);
 	}
 
 JIT_OP_DGE_INV:
+	[=+reg, xreg, imm, scratch reg, space("24")] -> {
+		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_NC, $2, (void *)$3, $4, 1, 1);
+	}
 	[=+reg, xreg, xreg, scratch reg, space("20")] -> {
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_NC, $2, $3, $4, 1, 1);
 	}

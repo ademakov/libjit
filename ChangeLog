@@ -1,6 +1,16 @@
+2008-07-26  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-rules-x86-64.c (xmm_cmp_reg_imm, xmm_cmp_setcc_reg_imm,
+	xmm_cmp_brcc_reg_imm): Add functions to handle compares with an
+	immediate value.
+
+	* jit/jit-rules-x86-64.ins: Add rules for an immediate value for
+	JIT_OP_FEQ, ..., JIT_OP_DEQ, ... and the float32 and float64
+	conditional branch opcodes.
+
 2008-07-19  Klaus Treichel  <ktreichel@web.de>
 
-	* dpas/spas-parser.y (handle_boolean_binary): Add macro for binary
+	* dpas/dpas-parser.y (handle_boolean_binary): Add macro for binary
 	operators returning a boolean value.
 	(handle_compare_binary): Use handle_boolean_binary instead of
 	handle_binary for non pointer compares. Set the result type to

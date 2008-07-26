@@ -288,8 +288,8 @@ _jit_setup_indirect_pointer(jit_function_t func, jit_value_t value)
  */
 static int
 _jit_xmm1_reg_imm_size_float32(jit_gencode_t gen, unsigned char **inst_ptr,
-							   X86_64_XMM1_OP opc, int reg,
-							   jit_float32 *float32_value)
+			       X86_64_XMM1_OP opc, int reg,
+			       jit_float32 *float32_value)
 {
 	void *ptr;
 	jit_nint offset;
@@ -319,7 +319,7 @@ _jit_xmm1_reg_imm_size_float32(jit_gencode_t gen, unsigned char **inst_ptr,
 	else
 	{
 		/* We have to use an extra general register */
-		/* TODO */
+		TODO();
 		return 0;
 	}
 	*inst_ptr = inst;
@@ -331,8 +331,8 @@ _jit_xmm1_reg_imm_size_float32(jit_gencode_t gen, unsigned char **inst_ptr,
  */
 static int
 _jit_xmm1_reg_imm_size_float64(jit_gencode_t gen, unsigned char **inst_ptr,
-							   X86_64_XMM1_OP opc, int reg,
-							   jit_float64 *float64_value)
+			       X86_64_XMM1_OP opc, int reg,
+			       jit_float64 *float64_value)
 {
 	void *ptr;
 	jit_nint offset;
@@ -362,7 +362,7 @@ _jit_xmm1_reg_imm_size_float64(jit_gencode_t gen, unsigned char **inst_ptr,
 	else
 	{
 		/* We have to use an extra general register */
-		/* TODO */
+		TODO();
 		return 0;
 	}
 	*inst_ptr = inst;
@@ -1335,6 +1335,70 @@ jump_to_epilog(jit_gencode_t gen, unsigned char *inst, jit_block_t block)
 }
 
 /*
+ * Compare a xmm register with an immediate value.
+ */
+static unsigned char *
+xmm_cmp_reg_imm(jit_gencode_t gen, unsigned char *inst, int xreg, void *imm,
+		int is_double)
+{
+	int inst_len = 7 + (is_double ? 1 : 0) + (xreg > 7 ? 1 : 0);
+	void *ptr;
+	jit_nint offset;
+
+	if(is_double)
+	{
+		ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float64));
+		if(!ptr)
+		{
+			return 0;
+		}
+		jit_memcpy(ptr, imm, sizeof(jit_float64));
+	}
+	else
+	{
+		ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float32));
+		if(!ptr)
+		{
+			return 0;
+		}
+		jit_memcpy(ptr, imm, sizeof(jit_float32));
+	}
+	offset = (jit_nint)ptr - ((jit_nint)inst + inst_len);
+	if((offset >= jit_min_int) && (offset <= jit_max_int))
+	{
+		/* We can use RIP relative addressing here */
+		if(is_double)
+		{
+			x86_64_ucomisd_reg_membase(inst, xreg, X86_64_RIP, offset);
+		}
+		else
+		{
+			x86_64_ucomiss_reg_membase(inst, xreg, X86_64_RIP, offset);
+		}
+	}
+	else if(((jit_nint)ptr >= jit_min_int) &&
+		((jit_nint)ptr <= jit_max_int))
+	{
+		/* We can use absolute addressing */
+		if(is_double)
+		{
+			x86_64_ucomisd_reg_mem(inst, xreg, (jit_nint)ptr);
+		}
+		else
+		{
+			x86_64_ucomiss_reg_mem(inst, xreg, (jit_nint)ptr);
+		}
+	}
+	else
+	{
+		/* We have to use an extra general register */
+		TODO();
+		return 0;
+	}
+	return inst;
+}
+
+/*
  * Compare two scalar float or double values and set dreg depending on the
  * flags set.
  * The result for nan values depends on nan_result.
@@ -1375,6 +1439,15 @@ xmm_setcc(unsigned char *inst, int dreg, int cond, int sreg, int nan_result)
 	}
 	x86_64_movzx8_reg_reg_size(inst, dreg, dreg, 4);
 	return inst;
+}
+
+static unsigned char *
+xmm_cmp_setcc_reg_imm(jit_gencode_t gen, unsigned char *inst, int dreg,
+		      int cond, int xreg, void *imm, int sreg, int is_double,
+		      int nan_result)
+{
+	inst = xmm_cmp_reg_imm(gen, inst, xreg, imm, is_double);
+	return xmm_setcc(inst, dreg, cond, sreg, nan_result);
 }
 
 static unsigned char *
@@ -1439,6 +1512,15 @@ xmm_brcc(jit_function_t func, unsigned char *inst, int cond, int nan_result,
 		}
 	}
 	return inst;
+}
+
+static unsigned char *
+xmm_cmp_brcc_reg_imm(jit_gencode_t gen, jit_function_t func,
+		     unsigned char *inst, int cond, int xreg, void *imm,
+		     int is_double, int nan_result, jit_insn_t insn)
+{
+	inst = xmm_cmp_reg_imm(gen, inst, xreg, imm, is_double);
+	return xmm_brcc(func, inst, cond, nan_result, insn);
 }
 
 static unsigned char *
