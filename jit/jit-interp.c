@@ -32,6 +32,9 @@ straight vanilla ANSI C.
 #include "jit-rules.h"
 #include "jit-memory.h"
 #include <config.h>
+#if HAVE_STDLIB_H
+	#include <stdlib.h>
+#endif
 #if HAVE_ALLOCA_H
 	#include <alloca.h>
 #endif

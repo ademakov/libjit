@@ -26,6 +26,9 @@
 #include "jit-apply-func.h"
 #include <stdio.h>
 #include <config.h>
+#if HAVE_STDLIB_H
+	#include <stdlib.h>
+#endif
 #if HAVE_ALLOCA_H
 	#include <alloca.h>
 #endif

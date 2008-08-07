@@ -1,3 +1,9 @@
+2008-08-07  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-apply.c jit/jit-insn.c, jit/jit-interp.c,
+	tools/gen-apply.c: Include stdlib.h if available to pick up the
+	declaration of alloca on NetBSD.
+
 2008-07-26  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-rules-x86-64.c (xmm_cmp_reg_imm, xmm_cmp_setcc_reg_imm,

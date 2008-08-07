@@ -25,6 +25,9 @@
 #include "jit-apply-rules.h"
 #include "jit-apply-func.h"
 #include "jit-cache.h"
+#if HAVE_STDLIB_H
+	#include <stdlib.h>
+#endif
 #if HAVE_ALLOCA_H
 	#include <alloca.h>
 #endif
