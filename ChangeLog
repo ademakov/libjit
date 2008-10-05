@@ -1,3 +1,12 @@
+2008-10-05  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-interp.c (_jit_run_function): fix implementation of the
+	JIT_OP_TRUNC_INT and JIT_OP_TRUNC_UINT opcodes in interpreter.
+
+	* jit/jit-rules-interp.c (_jit_gen_insn): add support of the
+	JIT_OP_INCOMING_REG opcode, interpreter needs it for exception
+	handling.
+
 2008-08-07  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-apply.c jit/jit-insn.c, jit/jit-interp.c,

@@ -1336,6 +1336,12 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		jit_cache_opcode(&(gen->posn), insn->opcode);
 		break;
 
+	case JIT_OP_INCOMING_REG:
+		/* Store incoming value (in interpreter this is used to
+		   pass an exception object to the catcher) */
+		store_value(gen, insn->value1);
+		break;
+
 	case JIT_OP_RETURN_REG:
 		/* Push a function return value back onto the stack */
 		switch(jit_type_normalize(insn->value1->type)->kind)

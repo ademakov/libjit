@@ -404,7 +404,7 @@ restart_tail:
 		VMCASE(JIT_OP_TRUNC_INT):
 		{
 			/* Truncate an integer to a signed 32-bit value */
-			/* In the interpreter, this is a NOP */
+			VM_R0_INT = VM_R1_INT;
 			VM_MODIFY_PC(1);
 		}
 		VMBREAK;
@@ -412,7 +412,7 @@ restart_tail:
 		VMCASE(JIT_OP_TRUNC_UINT):
 		{
 			/* Truncate an integer to an unsigned 32-bit value */
-			/* In the interpreter, this is a NOP */
+			VM_R0_INT = VM_R1_INT;
 			VM_MODIFY_PC(1);
 		}
 		VMBREAK;
