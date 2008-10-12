@@ -30,7 +30,7 @@
 int
 jit_unwind_init(jit_unwind_context_t *unwind, jit_context_t context)
 {
-#if defined(JIT_BACKENED_INTERP) || JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
+#if defined(JIT_BACKEND_INTERP) || JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
 	jit_thread_control_t control;
 
 	control = _jit_thread_get_control();
@@ -78,7 +78,7 @@ jit_unwind_next(jit_unwind_context_t *unwind)
 
 	unwind->cache = 0;
 
-#if defined(JIT_BACKENED_INTERP) || JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
+#if defined(JIT_BACKEND_INTERP) || JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
 	unwind->frame =  ((jit_backtrace_t) unwind->frame)->parent;
 	return (unwind->frame != 0);
 #else
@@ -119,7 +119,7 @@ jit_unwind_next_pc(jit_unwind_context_t *unwind)
 
 	unwind->cache = 0;
 
-#if defined(JIT_BACKENED_INTERP) || JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
+#if defined(JIT_BACKEND_INTERP) || JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
 	unwind->frame =  ((jit_backtrace_t) unwind->frame)->parent;
 #else
 	unwind->frame = jit_get_next_frame_address(unwind->frame);
@@ -135,7 +135,7 @@ jit_unwind_get_pc(jit_unwind_context_t *unwind)
 		return 0;
 	}
 
-#if defined(JIT_BACKENED_INTERP) || JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
+#if defined(JIT_BACKEND_INTERP) || JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
 	return ((jit_backtrace_t) unwind->frame)->pc;
 #else
 	return jit_get_return_address(unwind->frame);
