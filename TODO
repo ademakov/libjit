@@ -1,16 +1,8 @@
-Target Release: 0.1.2
-=====================
-
-* LGPL [done]
-* amd64 port [done]
-* fix interpreter for x86 and amd64 [in progress]
-* sync jitplus with jit (jump tables, compile driver, debug)
-  [partially done - the rest may be postponed as there is no much demand]
-
 Target release: 0.1.4
 =====================
 
 * jitruby
+* sync jitplus with jit (jump tables, compile driver, debug)
 * fix catch/throw within finally
 * get rid of manual rules
 * add direct conversion opcodes to/from float32 and float64
