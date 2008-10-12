@@ -343,6 +343,7 @@ restart_tail:
 		{
 			/* An exception has been thrown by lower-level code */
 			exception_object = jit_exception_get_last_and_clear();
+			exception_pc = pc - 1;
 			goto handle_exception;
 		}
 	}
@@ -3620,8 +3621,8 @@ restart_tail:
 		{
 			/* Throw an exception, which may be handled in this function */
 			exception_object = VM_R1_PTR;
-		handle_exception:
 			exception_pc = pc;
+		handle_exception:
 			tempptr = jit_function_from_pc(func->func->context, pc, &handler);
 			if(tempptr == func->func && handler != 0)
 			{
@@ -4058,6 +4059,7 @@ restart_tail:
 				if(setjmp(jbuf->buf))
 				{
 					exception_object = jit_exception_get_last_and_clear();
+					exception_pc = pc - 1;
 					goto handle_exception;
 				}
 			}
