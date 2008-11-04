@@ -899,6 +899,7 @@ _spill_reg(unsigned char **inst_ptr, jit_type_t type,
 	{
 		switch(type->kind)
 		{
+#if 0
 			case JIT_TYPE_SBYTE:
 			case JIT_TYPE_UBYTE:
 			{
@@ -914,7 +915,12 @@ _spill_reg(unsigned char **inst_ptr, jit_type_t type,
 											_jit_reg_info[reg].cpu_reg, 2);
 			}
 			break;
-
+#else
+			case JIT_TYPE_SBYTE:
+			case JIT_TYPE_UBYTE:
+			case JIT_TYPE_SHORT:
+			case JIT_TYPE_USHORT:
+#endif
 			case JIT_TYPE_INT:
 			case JIT_TYPE_UINT:
 			case JIT_TYPE_FLOAT32:

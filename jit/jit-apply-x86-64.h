@@ -175,8 +175,9 @@ _jit_classify_struct(jit_param_passing_t *passing,
 				"movaps 0x90(%%rax), %%xmm5\n\t" \
 				"movaps 0xA0(%%rax), %%xmm6\n\t" \
 				"movaps 0xB0(%%rax), %%xmm7\n\t" \
-				"movq %0, %%rax\n\t" \
-				"callq *%%rax\n\t" \
+				"movq %0, %%r11\n\t" \
+				"movl $8, %%eax\n\t" \
+				"callq *%%r11\n\t" \
 				"movq %3, %%rcx\n\t" \
 				"movq %%rax, (%%rcx)\n\t" \
 				"movq %%rdx, 0x08(%%rcx)\n\t" \
