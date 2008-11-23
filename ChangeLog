@@ -1,3 +1,8 @@
+2008-11-23  Arto Bendiken <arto.bendiken@gmail.com>
+
+	* jit/jit-apply-x86.h, tools/gen-apply.c, tools/gen-apply-macosx.h:
+	Mac OS X compatibility fixes.
+
 2008-11-04  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-apply-x86-64.h (jit_builtin_apply): Use r11 for calling

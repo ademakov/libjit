@@ -22,7 +22,13 @@
 
 #include <jit/jit-arch.h>
 #include <jit/jit-defs.h>
-#define	JIT_MEMCPY		"mem_copy"
+
+#if defined(__APPLE__) && defined(__MACH__)
+# define	JIT_MEMCPY	"_mem_copy"
+#else
+# define	JIT_MEMCPY	"mem_copy"
+#endif
+
 #include "jit-apply-func.h"
 #include <stdio.h>
 #include <config.h>

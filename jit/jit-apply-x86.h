@@ -37,6 +37,16 @@
 #if !defined(__CYGWIN__) && !defined(__CYGWIN32__) && \
 	!defined(_WIN32) && !defined(WIN32)
 
+/* Mac OS X prefixes static symbols with an underscore, and external symbol
+   references are late-bound through a PIC stub by the dynamic linker */
+#ifndef JIT_MEMCPY
+# if defined(__APPLE__) && defined(__MACH__)
+#  define JIT_MEMCPY "L_memcpy$stub"
+# else
+#  define JIT_MEMCPY "memcpy"
+# endif
+#endif
+
 #define	jit_builtin_apply(func,args,size,return_float,return_buf)	\
 		do { \
 			void *__func = (void *)(func); \
@@ -54,7 +64,7 @@
 				"pushl %2\n\t" \
 				"pushl %%ecx\n\t" \
 				"pushl %%eax\n\t" \
-				"call memcpy\n\t" \
+				"call " JIT_MEMCPY "\n\t" \
 				"addl $12, %%esp\n\t" \
 				"movl %1, %%ecx\n\t" \
 				"movl %0, %%eax\n\t" \
