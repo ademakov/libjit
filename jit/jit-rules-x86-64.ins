@@ -2920,6 +2920,7 @@ JIT_OP_CALL_TAIL:
 
 JIT_OP_CALL_INDIRECT:
 	[] -> {
+		x86_64_mov_reg_imm_size(inst, X86_64_RAX, 8, 4);
 		x86_64_call_reg(inst, X86_64_SCRATCH);
 	}
 
@@ -2932,6 +2933,7 @@ JIT_OP_CALL_INDIRECT_TAIL:
 
 JIT_OP_CALL_VTABLE_PTR:
 	[] -> {
+		x86_64_mov_reg_imm_size(inst, X86_64_RAX, 8, 4);
 		x86_64_call_reg(inst, X86_64_SCRATCH);
 	}
 

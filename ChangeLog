@@ -1,3 +1,11 @@
+2008-12-10  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-rules-x86-64.c (x86_64_call_code): Load %rax with 8 before
+	doing the call for calls to variadic functions.
+
+	* jit/jit-rules-x86-64.ins (JIT_OP_CALL_INDIRECT,
+	JIT_OP_CALL_VTABLE_PTR): likewise.
+
 2008-12-10  Aleksey Demakov  <ademakov@gmail.com>
 
 	* NEWS: update news for the 0.1.2 release

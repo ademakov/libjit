@@ -823,6 +823,7 @@ x86_64_call_code(unsigned char *inst, jit_nint func)
 {
 	jit_nint offset;
 
+	x86_64_mov_reg_imm_size(inst, X86_64_RAX, 8, 4);
 	offset = func - ((jit_nint)inst + 5);
 	if(offset >= jit_min_int && offset <= jit_max_int)
 	{
