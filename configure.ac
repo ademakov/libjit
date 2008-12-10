@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.61)
 
-AC_INIT([libjit], [0.1.1], [dotgnu-libjit@gnu.org])
+AC_INIT([libjit], [0.1.2], [dotgnu-libjit@gnu.org])
 AC_CONFIG_SRCDIR([include/jit/jit.h])
 AC_CONFIG_HEADERS([config.h])
 
