@@ -1,3 +1,7 @@
+2008-12-10  Aleksey Demakov  <ademakov@gmail.com>
+
+	* NEWS: update news for the 0.1.2 release
+
 2008-11-23  Arto Bendiken <arto.bendiken@gmail.com>
 
 	* jit/jit-apply-x86.h, tools/gen-apply.c, tools/gen-apply-macosx.h:
@@ -267,7 +271,7 @@
 	FLOAT32_TO_NFLOAT, FLOAT64_TO_NFLOAT.
 	Rewrite NFLOAT_TO_INT and NFLOAT_TO_LONG to use the new functions
 	in jit-rules-x86-64.c. Add handling of ABS, NEG and float compares.
-	
+
 2008-03-31  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-rules-x86.ins: Fix the sign opcode for integers and the
@@ -285,7 +289,7 @@
 	LMUL, LDIV, LDIV_UN, LREM and LREM_UN opcodes. Replace the compares
 	with zero done with or with test instructions.
 
-2008-03-29  Klaus treichel  <ktreichel@web.de>
+2008-03-29  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-rules-x86.ins: Fix signed division of negative values by a
 	constant positive power of two.

@@ -1,3 +1,13 @@
+0.1.2 (XX Decemeber 2008)
+
+	* Switch from GPL to LGPL 2.1 license.
+	* Implement x86-64 backend (Klaus Treichel).
+	* Fix interpreter backend (Klaus Treichel, Aleksey Demakov).
+	* Introduce jit-unwind interface (Aleksey Demakov, Klaus Treichel).
+	* Code cache pages can now grow if needed (Aleksey Demakov).
+	* Various fixes (Klaus Treichel, Aleksey Demakov, Juan Jesus Garcia
+	  de Soria, Dalibor Topic, Arto Bendiken)
+
 0.1.0 (3 March 2007)
 
 	General improvements:
