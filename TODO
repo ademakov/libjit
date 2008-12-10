@@ -7,6 +7,7 @@ Target release: 0.1.4
 * get rid of manual rules
 * add direct conversion opcodes to/from float32 and float64
 * add rounding towards zero
+* try to be smarter with %rax for variadic functions on x86-64
 
 Target Release: 0.2.0
 =====================
