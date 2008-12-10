@@ -5898,6 +5898,7 @@ jit_value_t jit_insn_call_native
 	jit_value_t *new_args;
 	jit_value_t return_value;
 	jit_insn_t insn;
+	jit_type_t return_type;
 
 	/* Bail out if there is something wrong with the parameters */
 	if(!_jit_function_ensure_builder(func) || !native_func || !signature)
@@ -6012,6 +6013,32 @@ jit_value_t jit_insn_call_native
 		{
 			return 0;
 		}
+	}
+
+	/* Make sure that returned byte / short values get zero / sign extended */
+	return_type = jit_type_normalize(return_value->type);
+	switch(return_type->kind)
+	{
+	case JIT_TYPE_SBYTE:
+		/* Force sbyte sign extension to int */
+		return_value = apply_unary_conversion(func, JIT_OP_TRUNC_SBYTE,
+						      return_value, return_type);
+		break;
+	case JIT_TYPE_UBYTE:
+		/* Force ubyte zero extension to uint */
+		return_value = apply_unary_conversion(func, JIT_OP_TRUNC_UBYTE,
+						      return_value, return_type);
+		break;
+	case JIT_TYPE_SHORT:
+		/* Force short sign extension to int */
+		return_value = apply_unary_conversion(func, JIT_OP_TRUNC_SHORT,
+						      return_value, return_type);
+		break;
+	case JIT_TYPE_USHORT:
+		/* Force ushort zero extension to uint */
+		return_value = apply_unary_conversion(func, JIT_OP_TRUNC_USHORT,
+						      return_value, return_type);
+		break;
 	}
 
 	/* Restore exception frame information after the call */

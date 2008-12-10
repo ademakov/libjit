@@ -1,3 +1,9 @@
+2008-12-11  Juan Jesus Garcia de Soria  <juanj.g_soria@grupobbva.com>
+
+	* jit/jit-insn.c (jit_insn_call_native): extend small int return
+	values to full ints as native calls sometimes return garbage in MSB
+	of the return rigister.
+
 2008-12-11  Aleksey Demakov  <ademakov@gmail.com>
 
 	* configure.ac: bump version to 0.1.3
