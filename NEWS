@@ -28,7 +28,7 @@
 	* Fix problems that take place after compilation is restarted on cache
 	  page overflow (Aleksey Demakov).
 
-	Register allocation/instruction selction improvements (Aleksey Demakov):
+	Register allocation/instruction selection improvements (Aleksey Demakov):
 
 	* Completely rewrite register allocator. The new allocator works with
 	  three-value intermediate instructions rather than with individual
