@@ -1,0 +1,50 @@
+Ruby-libjit 0.1.0
+Copyright (C) 2008 Paul Brannan
+
+Ruby-libjit is a wrapper for the libjit library.  It provides basic
+functionality for jit-compiling functions, including integrating those
+functions as callable methods from within Ruby.  Abstractions are also
+provided so that jit code may be written in a ruby-like manner.
+
+Please see the file COPYING for license information.
+
+A simple example:
+
+  :include: sample/simple.rb
+
+Looping structures and other abstractions are provided to make writing
+jit code easier:
+
+  :include: sample/fib.rb
+
+To build ruby-libjit, you will need to install libjit.  If it is not
+available pre-compiled for your platform, you may build the latest
+release like this:
+
+  $ wget ftp://ftp.gnu.org/gnu/dotgnu/pnet/libjit-0.1.0.tar.gz
+  $ tar xvfz libjit-0.1.0.tar.gz
+  $ cd libjit-0.1.0
+  $ ./configure
+  $ make
+  $ sudo make install
+
+Or the latest development version like this:
+
+  $ cvs -z3 -d:pserver:anonymous@cvs.sv.gnu.org:/sources/dotgnu-pnet co libjit
+  $ cd libjit
+  $ ./auto_gen.sh
+  $ ./configure
+  $ make
+  $ sudo make install
+
+To build ruby-libjit, run setup.rb:
+
+  $ ruby setup.rb config
+  $ ruby setup.rb setup
+  $ sudo ruby setup.rb install
+
+For a more complete JIT framework and compiler for Ruby code, please
+take a look at Ludicrous:
+
+  http://rubystuff.org/ludicrous/
+

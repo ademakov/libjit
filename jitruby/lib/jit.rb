@@ -1,0 +1,5 @@
+require 'jit.so'
+require 'jit/array'
+require 'jit/function'
+require 'jit/struct'
+require 'jit/value'

@@ -1,3 +1,7 @@
+2008-12-12  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jitruby/*: add Paul Brannan's ruby-libjit.
+
 2008-12-11  Juan Jesus Garcia de Soria  <juanj.g_soria@grupobbva.com>
 
 	* jit/jit-insn.c (jit_insn_call_native): extend small int return
