@@ -1,7 +1,9 @@
 Target release: 0.1.4
 =====================
 
-* jitruby
+* CFG-based liveness analysis and dead code elimination
+* global copy and constant propagation
+* jitruby (in case copyright issues are resolved)
 * sync jitplus with jit (jump tables, compile driver, debug)
 * fix catch/throw within finally
 * get rid of manual rules
@@ -12,9 +14,7 @@ Target release: 0.1.4
 Target Release: 0.2.0
 =====================
 
-* CFG-based liveness analysis and dead code elimination
 * linear scan register allocation
-* global copy and constant propagation
 * improve exception handling
 * align function prolog and basic blocks
 * support cross-compilation 
