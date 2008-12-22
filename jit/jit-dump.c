@@ -846,17 +846,14 @@ void jit_dump_function(FILE *stream, jit_function_t func, const char *name)
 		while((block = jit_block_next(func, block)) != 0)
 		{
 			/* Output the block's label, if it has one */
-			if(prev_block && block->label == jit_label_undefined)
-			{
-				/* A new block was started, but it doesn't have a label yet */
-				if(_jit_block_get_last(block) != 0)
-				{
-					block->label = (func->builder->next_label)++;
-				}
-			}
 			if(block->label != jit_label_undefined)
 			{
 				fprintf(stream, ".L%ld:\n", (long)(block->label));
+			}
+			else if (prev_block && _jit_block_get_last(block) != 0)
+			{
+				/* A new block was started, but it doesn't have a label yet */
+				fprintf(stream, ".L:\n");
 			}
 			prev_block = 1;
 

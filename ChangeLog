@@ -1,3 +1,8 @@
+2008-12-21  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-dump.c (jit_dump_function): dump undefined labels as such
+	rather than generating new labels for them.
+
 2008-12-12  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jitruby/*: add Paul Brannan's ruby-libjit.
