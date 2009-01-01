@@ -165,6 +165,9 @@ JIT_OP_FLOAT64_TO_NFLOAT:
 	}
 
 JIT_OP_NFLOAT_TO_FLOAT32: stack
+	[=local, freg] -> {
+		x86_64_fstp_membase_size(inst, X86_64_RBP, $1, 4);
+	}
 	[=xreg, freg] -> {
 #ifdef HAVE_RED_ZONE
 		/* Avoid modifying the stack pointer by simply using negative */
@@ -180,6 +183,9 @@ JIT_OP_NFLOAT_TO_FLOAT32: stack
 	}
 
 JIT_OP_NFLOAT_TO_FLOAT64: stack
+	[=local, freg] -> {
+		x86_64_fstp_membase_size(inst, X86_64_RBP, $1, 8);
+	}
 	[=xreg, freg] -> {
 #ifdef HAVE_RED_ZONE
 		/* Avoid modifying the stack pointer by simply using negative */
@@ -1776,7 +1782,14 @@ JIT_OP_BR_INE: branch, commutative
 
 JIT_OP_BR_ILT: branch
 	[reg, imm] -> {
-		x86_64_cmp_reg_imm_size(inst, $1, $2, 4);
+		if($2 == 0)
+		{
+			x86_64_test_reg_reg_size(inst, $1, $1, 4);
+		}
+		else
+		{
+			x86_64_cmp_reg_imm_size(inst, $1, $2, 4);
+		}
 		inst = output_branch(func, inst, 0x7C /* lt */, insn);
 	}
 	[reg, local] -> {
@@ -1804,7 +1817,14 @@ JIT_OP_BR_ILT_UN: branch
 
 JIT_OP_BR_ILE: branch
 	[reg, imm] -> {
-		x86_64_cmp_reg_imm_size(inst, $1, $2, 4);
+		if($2 == 0)
+		{
+			x86_64_test_reg_reg_size(inst, $1, $1, 4);
+		}
+		else
+		{
+			x86_64_cmp_reg_imm_size(inst, $1, $2, 4);
+		}
 		inst = output_branch(func, inst, 0x7E /* le */, insn);
 	}
 	[reg, local] -> {
@@ -1832,7 +1852,14 @@ JIT_OP_BR_ILE_UN: branch
 
 JIT_OP_BR_IGT: branch
 	[reg, imm] -> {
-		x86_64_cmp_reg_imm_size(inst, $1, $2, 4);
+		if($2 == 0)
+		{
+			x86_64_test_reg_reg_size(inst, $1, $1, 4);
+		}
+		else
+		{
+			x86_64_cmp_reg_imm_size(inst, $1, $2, 4);
+		}
 		inst = output_branch(func, inst, 0x7F /* gt */, insn);
 	}
 	[reg, local] -> {
@@ -1860,7 +1887,14 @@ JIT_OP_BR_IGT_UN: branch
 
 JIT_OP_BR_IGE: branch
 	[reg, imm] -> {
-		x86_64_cmp_reg_imm_size(inst, $1, $2, 4);
+		if($2 == 0)
+		{
+			x86_64_test_reg_reg_size(inst, $1, $1, 4);
+		}
+		else
+		{
+			x86_64_cmp_reg_imm_size(inst, $1, $2, 4);
+		}
 		inst = output_branch(func, inst, 0x7D /* ge */, insn);
 	}
 	[reg, local] -> {
@@ -2769,6 +2803,29 @@ JIT_OP_IMIN_UN: commutative
 		x86_64_cmov_reg_reg_size(inst, X86_CC_GT, $1, $2, 0, 4);
 	}
 
+JIT_OP_ISIGN:
+	[=reg, imm] -> {
+		if($2 < 0)
+		{
+			x86_64_mov_reg_imm_size(inst, $1, -1, 4);
+		}
+		else if($2 > 0)
+		{
+			x86_64_mov_reg_imm_size(inst, $1, 1, 4);
+		}
+		else
+		{
+			x86_64_clear_reg(inst, $1);
+		}
+	}
+	[=+reg, +reg] -> {
+		x86_64_clear_reg(inst, $1);
+		x86_64_test_reg_reg_size(inst, $2, $2, 4);
+		x86_64_set_reg(inst, X86_CC_NZ, $1, 0);
+		x86_64_sar_reg_imm_size(inst, $2, 31, 4);
+		x86_64_or_reg_reg_size(inst, $1, $2, 4);
+	}
+
 JIT_OP_LMAX: commutative
 	[reg, reg] -> {
 		x86_64_cmp_reg_reg_size(inst, $1, $2, 8);
@@ -2791,6 +2848,29 @@ JIT_OP_LMIN_UN: commutative
 	[reg, reg] -> {
 		x86_64_cmp_reg_reg_size(inst, $1, $2, 8);
 		x86_64_cmov_reg_reg_size(inst, X86_CC_GT, $1, $2, 0, 8);
+	}
+
+JIT_OP_LSIGN:
+	[=reg, imm] -> {
+		if($2 < 0)
+		{
+			x86_64_mov_reg_imm_size(inst, $1, -1, 4);
+		}
+		else if($2 > 0)
+		{
+			x86_64_mov_reg_imm_size(inst, $1, 1, 4);
+		}
+		else
+		{
+			x86_64_clear_reg(inst, $1);
+		}
+	}
+	[=+reg, +reg] -> {
+		x86_64_clear_reg(inst, $1);
+		x86_64_test_reg_reg_size(inst, $2, $2, 8);
+		x86_64_set_reg(inst, X86_CC_NZ, $1, 0);
+		x86_64_sar_reg_imm_size(inst, $2, 63, 8);
+		x86_64_or_reg_reg_size(inst, $1, $2, 4);
 	}
 
 JIT_OP_FMAX: commutative

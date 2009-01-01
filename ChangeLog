@@ -1,3 +1,14 @@
+2009-01-01  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-rules-x86-64.ins (JIT_OP_NFLOAT_TO_FLOAT32,
+	JIT_OP_NFLOAT_TO_FLOAT64): Add rules for the case that the
+	destination value is in the stack frame.
+	(JIT_OP_BR_ILT, JIT_OP_BR_ILE, JIT_OP_BR_IGT, JIT_OP_BR_IGE):
+	Handle the comparision with a constant 0 with a test opcode instead
+	of a cmp.
+	(JIT_OP_ISIGN, JIT_OP_LSIGN): Add handling of the integer sign
+	opcodes.
+
 2008-12-21  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-dump.c (jit_dump_function): dump undefined labels as such
@@ -11,7 +22,7 @@
 
 	* jit/jit-insn.c (jit_insn_call_native): extend small int return
 	values to full ints as native calls sometimes return garbage in MSB
-	of the return rigister.
+	of the return register.
 
 2008-12-11  Aleksey Demakov  <ademakov@gmail.com>
 
