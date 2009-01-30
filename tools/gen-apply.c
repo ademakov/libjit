@@ -959,7 +959,7 @@ void detect_float_return(void)
 	void run_detect_struct_##n(void) \
 	{ \
 		jit_nint *args; \
-		jit_nint stack[1]; \
+		volatile jit_nint stack[1]; \
 		jit_nint buffer[64 / sizeof(jit_nint)]; \
 		void *apply_return; \
 		jit_builtin_apply_args(jit_nint *, args); \

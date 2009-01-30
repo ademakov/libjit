@@ -1,3 +1,10 @@
+2009-01-30  Peter Fristedt  <fristedt@gmail.com>
+            Kirill Kononenko  <Kirill.Kononenko@gmail.com>
+
+	* tools/gen-apply.c (run_detect_struct_##n): Work around a bug in
+	gcc-4.3 with optimization level 2 and Debian Lenny. Make
+	'jit_nint stack[1]' volatile.
+
 2009-01-01  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-rules-x86-64.ins (JIT_OP_NFLOAT_TO_FLOAT32,
