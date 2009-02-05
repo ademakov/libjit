@@ -1,7 +1,7 @@
-/*
- * jit-rules-arm.sel - Instruction selector for ARM.
+/* * jit-rules-arm.ins - Instruction selector for ARM.
  *
  * Copyright (C) 2004  Southern Storm Software, Pty Ltd.
+ * Copyright (C) 2008  Michele Tartara  <mikyt@users.sourceforge.net>
  *
  * This file is part of the libjit library.
  *
@@ -23,37 +23,73 @@
 %inst_type arm_inst_buf
 
 /*
+ * Register classes
+ */
+%regclass reg arm_reg
+%regclass freg32 arm_freg32
+%regclass freg64 arm_freg64
+%lregclass lreg arm_lreg
+%regclass breg arm_breg
+
+/*
  * Conversion opcodes.
  */
 
-JIT_OP_TRUNC_SBYTE: unary
+JIT_OP_TRUNC_SBYTE: 
 	[reg] -> {
 		arm_shift_reg_imm8(inst, ARM_SHL, $1, $1, 24);
 		arm_shift_reg_imm8(inst, ARM_SAR, $1, $1, 24);
 	}
 
-JIT_OP_TRUNC_UBYTE: unary
+JIT_OP_TRUNC_UBYTE: 
 	[reg] -> {
 		arm_alu_reg_imm8(inst, ARM_AND, $1, $1, 0xFF);
 	}
 
-JIT_OP_TRUNC_SHORT: unary
+JIT_OP_TRUNC_SHORT: 
 	[reg] -> {
 		arm_shift_reg_imm8(inst, ARM_SHL, $1, $1, 16);
 		arm_shift_reg_imm8(inst, ARM_SAR, $1, $1, 16);
 	}
 
-JIT_OP_TRUNC_USHORT: unary
+JIT_OP_TRUNC_USHORT: 
 	[reg] -> {
 		arm_shift_reg_imm8(inst, ARM_SHL, $1, $1, 16);
 		arm_shift_reg_imm8(inst, ARM_SHR, $1, $1, 16);
+	}
+
+JIT_OP_INT_TO_NFLOAT:
+	[=freg64, local, scratch freg32] -> {
+		//Load int from a local variable stored in memory
+		arm_load_membase_float(inst, $3, ARM_FP, $2, 0);
+		arm_convert_float_signed_integer_double(inst, $1, $3);
+	}
+	[=freg64, reg, scratch freg32] -> {
+		//The int value is in a register
+		arm_mov_float_reg(inst, $3, $2);
+		arm_convert_float_signed_integer_double(inst, $1, $3)
+	}
+
+JIT_OP_NFLOAT_TO_FLOAT32:
+	[=freg32, freg64] -> {
+		arm_convert_float_single_double(inst, $1, $2);
+	}
+
+JIT_OP_NFLOAT_TO_FLOAT64, JIT_OP_FLOAT64_TO_NFLOAT: copy
+	[freg64] -> {
+		/* Nothing to do: float64 and nfloat are the same thing on ARM linux. Just copy the value */
+	}
+
+JIT_OP_FLOAT32_TO_NFLOAT:
+	[=freg64, freg32] -> {
+		arm_convert_float_double_single(inst, $1, $2);
 	}
 
 /*
  * Arithmetic opcodes.
  */
 
-JIT_OP_IADD: binary
+JIT_OP_IADD: 
 	[reg, immu8] -> {
 		arm_alu_reg_imm8(inst, ARM_ADD, $1, $1, $2);
 	}
@@ -61,7 +97,7 @@ JIT_OP_IADD: binary
 		arm_alu_reg_reg(inst, ARM_ADD, $1, $1, $2);
 	}
 
-JIT_OP_ISUB: binary
+JIT_OP_ISUB: 
 	[reg, immu8] -> {
 		arm_alu_reg_imm8(inst, ARM_SUB, $1, $1, $2);
 	}
@@ -69,7 +105,7 @@ JIT_OP_ISUB: binary
 		arm_alu_reg_reg(inst, ARM_SUB, $1, $1, $2);
 	}
 
-JIT_OP_IMUL: binary
+JIT_OP_IMUL: 
 	[reg, immu8] -> {
 		/* Handle special cases of immediate multiplies */
 		switch($2)
@@ -145,25 +181,25 @@ JIT_OP_IMUL: binary
 		}
 	}
 
-JIT_OP_INEG: unary
+JIT_OP_INEG: 
 	[reg] -> {
 		/* -x is the same as (0 - x) */
 		arm_alu_reg_imm8(inst, ARM_RSB, $1, $1, 0);
 	}
 
-JIT_OP_LADD: binary
+JIT_OP_LADD: 
 	[lreg, lreg] -> {
 		arm_alu_cc_reg_reg(inst, ARM_ADD, $1, $1, $2);
 		arm_alu_reg_reg(inst, ARM_ADC, %1, %1, %2);
 	}
 
-JIT_OP_LSUB: binary
+JIT_OP_LSUB: 
 	[lreg, lreg] -> {
 		arm_alu_cc_reg_reg(inst, ARM_SUB, $1, $1, $2);
 		arm_alu_reg_reg(inst, ARM_SBC, %1, %1, %2);
 	}
 
-JIT_OP_LNEG: unary
+JIT_OP_LNEG: 
 	[lreg] -> {
 		arm_alu_reg(inst, ARM_MVN, $1, $1);
 		arm_alu_reg(inst, ARM_MVN, %1, %1);
@@ -171,53 +207,53 @@ JIT_OP_LNEG: unary
 		arm_alu_reg_imm8(inst, ARM_ADC, %1, %1, 0);
 	}
 
-JIT_OP_FADD (JIT_ARM_HAS_FLOAT_REGS): binary
-	[freg, freg] -> {
-		arm_alu_freg_freg_32(inst, ARM_ADF, $1, $1, $2);
+JIT_OP_FADD (JIT_ARM_HAS_FLOAT_REGS): 
+	[freg32, freg32] -> {
+		arm_alu_freg_freg_32(inst, ARM_FADD, $1, $1, $2);
 	}
 
-JIT_OP_FSUB (JIT_ARM_HAS_FLOAT_REGS): binary
-	[freg, freg] -> {
-		arm_alu_freg_freg_32(inst, ARM_SUF, $1, $1, $2);
+JIT_OP_FSUB (JIT_ARM_HAS_FLOAT_REGS): 
+	[freg32, freg32] -> {
+		arm_alu_freg_freg_32(inst, ARM_FSUB, $1, $1, $2);
 	}
 
-JIT_OP_FMUL (JIT_ARM_HAS_FLOAT_REGS): binary
-	[freg, freg] -> {
-		arm_alu_freg_freg_32(inst, ARM_MUF, $1, $1, $2);
+JIT_OP_FMUL (JIT_ARM_HAS_FLOAT_REGS): 
+	[freg32, freg32] -> {
+		arm_alu_freg_freg_32(inst, ARM_FMUL, $1, $1, $2);
 	}
 
-JIT_OP_FDIV (JIT_ARM_HAS_FLOAT_REGS): binary
-	[freg, freg] -> {
-		arm_alu_freg_freg_32(inst, ARM_DVF, $1, $1, $2);
+JIT_OP_FDIV (JIT_ARM_HAS_FLOAT_REGS): 
+	[freg32, freg32] -> {
+		arm_alu_freg_freg_32(inst, ARM_FDIV, $1, $1, $2);
 	}
 
-JIT_OP_FNEG (JIT_ARM_HAS_FLOAT_REGS): unary
-	[freg] -> {
+JIT_OP_FNEG (JIT_ARM_HAS_FLOAT_REGS): 
+	[freg32] -> {
 		arm_alu_freg_32(inst, ARM_MNF, $1, $1);
 	}
 
-JIT_OP_DADD, JIT_OP_NFADD (JIT_ARM_HAS_FLOAT_REGS): binary
-	[freg, freg] -> {
-		arm_alu_freg_freg(inst, ARM_ADF, $1, $1, $2);
+JIT_OP_DADD, JIT_OP_NFADD (JIT_ARM_HAS_FLOAT_REGS): 
+	[freg64, freg64] -> {
+		arm_alu_freg_freg(inst, ARM_FADD, $1, $1, $2);
 	}
 
-JIT_OP_DSUB, JIT_OP_NFSUB (JIT_ARM_HAS_FLOAT_REGS): binary
-	[freg, freg] -> {
-		arm_alu_freg_freg(inst, ARM_SUF, $1, $1, $2);
+JIT_OP_DSUB, JIT_OP_NFSUB (JIT_ARM_HAS_FLOAT_REGS): 
+	[freg64, freg64] -> {
+		arm_alu_freg_freg(inst, ARM_FSUB, $1, $1, $2);
 	}
 
-JIT_OP_DMUL, JIT_OP_NFMUL (JIT_ARM_HAS_FLOAT_REGS): binary
-	[freg, freg] -> {
-		arm_alu_freg_freg(inst, ARM_MUF, $1, $1, $2);
+JIT_OP_DMUL, JIT_OP_NFMUL (JIT_ARM_HAS_FLOAT_REGS): 
+	[freg64, freg64] -> {
+		arm_alu_freg_freg(inst, ARM_FMUL, $1, $1, $2);
 	}
 
-JIT_OP_DDIV, JIT_OP_NFDIV (JIT_ARM_HAS_FLOAT_REGS): binary
-	[freg, freg] -> {
-		arm_alu_freg_freg(inst, ARM_DVF, $1, $1, $2);
+JIT_OP_DDIV, JIT_OP_NFDIV (JIT_ARM_HAS_FLOAT_REGS): 
+	[freg64, freg64] -> {
+		arm_alu_freg_freg(inst, ARM_FDIV, $1, $1, $2);
 	}
 
-JIT_OP_DNEG, JIT_OP_NFNEG (JIT_ARM_HAS_FLOAT_REGS): unary
-	[freg] -> {
+JIT_OP_DNEG, JIT_OP_NFNEG (JIT_ARM_HAS_FLOAT_REGS): 
+	[freg64] -> {
 		arm_alu_freg(inst, ARM_MNF, $1, $1);
 	}
 
@@ -225,7 +261,7 @@ JIT_OP_DNEG, JIT_OP_NFNEG (JIT_ARM_HAS_FLOAT_REGS): unary
  * Bitwise opcodes.
  */
 
-JIT_OP_IAND: binary
+JIT_OP_IAND: 
 	[reg, immu8] -> {
 		arm_alu_reg_imm8(inst, ARM_AND, $1, $1, $2);
 	}
@@ -233,7 +269,7 @@ JIT_OP_IAND: binary
 		arm_alu_reg_reg(inst, ARM_AND, $1, $1, $2);
 	}
 
-JIT_OP_IOR: binary
+JIT_OP_IOR: 
 	[reg, immu8] -> {
 		arm_alu_reg_imm8(inst, ARM_ORR, $1, $1, $2);
 	}
@@ -241,7 +277,7 @@ JIT_OP_IOR: binary
 		arm_alu_reg_reg(inst, ARM_ORR, $1, $1, $2);
 	}
 
-JIT_OP_IXOR: binary
+JIT_OP_IXOR: 
 	[reg, immu8] -> {
 		arm_alu_reg_imm8(inst, ARM_EOR, $1, $1, $2);
 	}
@@ -249,13 +285,13 @@ JIT_OP_IXOR: binary
 		arm_alu_reg_reg(inst, ARM_EOR, $1, $1, $2);
 	}
 
-JIT_OP_INOT: unary
+JIT_OP_INOT: 
 	[reg] -> {
 		/* MVN == "move not" */
 		arm_alu_reg(inst, ARM_MVN, $1, $1);
 	}
 
-JIT_OP_ISHL: binary
+JIT_OP_ISHL: 
 	[reg, imm] -> {
 		arm_shift_reg_imm8(inst, ARM_SHL, $1, $1, ($2 & 0x1F));
 	}
@@ -264,7 +300,7 @@ JIT_OP_ISHL: binary
 		arm_shift_reg_reg(inst, ARM_SHL, $1, $1, ARM_WORK);
 	}
 
-JIT_OP_ISHR: binary
+JIT_OP_ISHR: 
 	[reg, imm] -> {
 		arm_shift_reg_imm8(inst, ARM_SAR, $1, $1, ($2 & 0x1F));
 	}
@@ -273,7 +309,7 @@ JIT_OP_ISHR: binary
 		arm_shift_reg_reg(inst, ARM_SAR, $1, $1, ARM_WORK);
 	}
 
-JIT_OP_ISHR_UN: binary
+JIT_OP_ISHR_UN: 
 	[reg, imm] -> {
 		arm_shift_reg_imm8(inst, ARM_SHR, $1, $1, ($2 & 0x1F));
 	}
@@ -282,25 +318,25 @@ JIT_OP_ISHR_UN: binary
 		arm_shift_reg_reg(inst, ARM_SHR, $1, $1, ARM_WORK);
 	}
 
-JIT_OP_LAND: binary
+JIT_OP_LAND: 
 	[lreg, lreg] -> {
 		arm_alu_reg_reg(inst, ARM_AND, $1, $1, $2);
 		arm_alu_reg_reg(inst, ARM_AND, %1, %1, %2);
 	}
 
-JIT_OP_LOR: binary
+JIT_OP_LOR: 
 	[lreg, lreg] -> {
 		arm_alu_reg_reg(inst, ARM_ORR, $1, $1, $2);
 		arm_alu_reg_reg(inst, ARM_ORR, %1, %1, %2);
 	}
 
-JIT_OP_LXOR: binary
+JIT_OP_LXOR: 
 	[lreg, lreg] -> {
 		arm_alu_reg_reg(inst, ARM_EOR, $1, $1, $2);
 		arm_alu_reg_reg(inst, ARM_EOR, %1, %1, %2);
 	}
 
-JIT_OP_LNOT: unary
+JIT_OP_LNOT: 
 	[lreg] -> {
 		arm_alu_reg(inst, ARM_MVN, $1, $1);
 		arm_alu_reg(inst, ARM_MVN, %1, %1);
@@ -310,7 +346,7 @@ JIT_OP_LNOT: unary
  * Branch opcodes.
  */
 
-JIT_OP_BR: spill_before
+JIT_OP_BR: branch /*spill_before*/
 	[] -> {
 		/* ARM_CC_AL == "always branch" */
 		output_branch(func, &inst, ARM_CC_AL, insn);
@@ -322,19 +358,19 @@ JIT_OP_BR: spill_before
 		jit_gen_load_inst_ptr(gen, inst);
 	}
 
-JIT_OP_BR_IFALSE: unary_branch
+JIT_OP_BR_IFALSE: branch 
 	[reg] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, 0);
 		output_branch(func, &inst, ARM_CC_EQ, insn);
 	}
 
-JIT_OP_BR_ITRUE: unary_branch
+JIT_OP_BR_ITRUE: branch 
 	[reg] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, 0);
 		output_branch(func, &inst, ARM_CC_NE, insn);
 	}
 
-JIT_OP_BR_IEQ: binary_branch
+JIT_OP_BR_IEQ: branch 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		output_branch(func, &inst, ARM_CC_EQ, insn);
@@ -344,7 +380,7 @@ JIT_OP_BR_IEQ: binary_branch
 		output_branch(func, &inst, ARM_CC_EQ, insn);
 	}
 
-JIT_OP_BR_INE: binary_branch
+JIT_OP_BR_INE: branch 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		output_branch(func, &inst, ARM_CC_NE, insn);
@@ -354,7 +390,7 @@ JIT_OP_BR_INE: binary_branch
 		output_branch(func, &inst, ARM_CC_NE, insn);
 	}
 
-JIT_OP_BR_ILT: binary_branch
+JIT_OP_BR_ILT: branch 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		output_branch(func, &inst, ARM_CC_LT, insn);
@@ -364,7 +400,7 @@ JIT_OP_BR_ILT: binary_branch
 		output_branch(func, &inst, ARM_CC_LT, insn);
 	}
 
-JIT_OP_BR_ILT_UN: binary_branch
+JIT_OP_BR_ILT_UN: branch 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		output_branch(func, &inst, ARM_CC_LT_UN, insn);
@@ -374,7 +410,7 @@ JIT_OP_BR_ILT_UN: binary_branch
 		output_branch(func, &inst, ARM_CC_LT_UN, insn);
 	}
 
-JIT_OP_BR_ILE: binary_branch
+JIT_OP_BR_ILE: branch 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		output_branch(func, &inst, ARM_CC_LE, insn);
@@ -384,7 +420,7 @@ JIT_OP_BR_ILE: binary_branch
 		output_branch(func, &inst, ARM_CC_LE, insn);
 	}
 
-JIT_OP_BR_ILE_UN: binary_branch
+JIT_OP_BR_ILE_UN: branch 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		output_branch(func, &inst, ARM_CC_LE_UN, insn);
@@ -394,7 +430,7 @@ JIT_OP_BR_ILE_UN: binary_branch
 		output_branch(func, &inst, ARM_CC_LE_UN, insn);
 	}
 
-JIT_OP_BR_IGT: binary_branch
+JIT_OP_BR_IGT: branch 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		output_branch(func, &inst, ARM_CC_GT, insn);
@@ -404,7 +440,7 @@ JIT_OP_BR_IGT: binary_branch
 		output_branch(func, &inst, ARM_CC_GT, insn);
 	}
 
-JIT_OP_BR_IGT_UN: binary_branch
+JIT_OP_BR_IGT_UN: branch 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		output_branch(func, &inst, ARM_CC_GT_UN, insn);
@@ -414,7 +450,7 @@ JIT_OP_BR_IGT_UN: binary_branch
 		output_branch(func, &inst, ARM_CC_GT_UN, insn);
 	}
 
-JIT_OP_BR_IGE: binary_branch
+JIT_OP_BR_IGE: branch 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		output_branch(func, &inst, ARM_CC_GE, insn);
@@ -424,7 +460,7 @@ JIT_OP_BR_IGE: binary_branch
 		output_branch(func, &inst, ARM_CC_GE, insn);
 	}
 
-JIT_OP_BR_IGE_UN: binary_branch
+JIT_OP_BR_IGE_UN: branch 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		output_branch(func, &inst, ARM_CC_GE_UN, insn);
@@ -438,7 +474,7 @@ JIT_OP_BR_IGE_UN: binary_branch
  * Comparison opcodes.
  */
 
-JIT_OP_ICMP: binary
+JIT_OP_ICMP: 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GT);
@@ -452,7 +488,7 @@ JIT_OP_ICMP: binary
 		arm_alu_reg_cond(inst, ARM_MVN, $1, $1, ARM_CC_LT);
 	}
 
-JIT_OP_ICMP_UN: binary
+JIT_OP_ICMP_UN: 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GT_UN);
@@ -466,7 +502,7 @@ JIT_OP_ICMP_UN: binary
 		arm_alu_reg_cond(inst, ARM_MVN, $1, $1, ARM_CC_LT_UN);
 	}
 
-JIT_OP_IEQ: binary
+JIT_OP_IEQ: 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_EQ);
@@ -478,7 +514,7 @@ JIT_OP_IEQ: binary
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_NE);
 	}
 
-JIT_OP_INE: binary
+JIT_OP_INE: 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_NE);
@@ -490,7 +526,7 @@ JIT_OP_INE: binary
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_EQ);
 	}
 
-JIT_OP_ILT: binary
+JIT_OP_ILT: 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_LT);
@@ -502,7 +538,7 @@ JIT_OP_ILT: binary
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_GE);
 	}
 
-JIT_OP_ILT_UN: binary
+JIT_OP_ILT_UN: 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_LT_UN);
@@ -514,7 +550,7 @@ JIT_OP_ILT_UN: binary
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_GE_UN);
 	}
 
-JIT_OP_ILE: binary
+JIT_OP_ILE: 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_LE);
@@ -526,7 +562,7 @@ JIT_OP_ILE: binary
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_GT);
 	}
 
-JIT_OP_ILE_UN: binary
+JIT_OP_ILE_UN: 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_LE_UN);
@@ -538,7 +574,7 @@ JIT_OP_ILE_UN: binary
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_GT_UN);
 	}
 
-JIT_OP_IGT: binary
+JIT_OP_IGT: 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GT);
@@ -550,7 +586,7 @@ JIT_OP_IGT: binary
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LE);
 	}
 
-JIT_OP_IGT_UN: binary
+JIT_OP_IGT_UN: 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GT_UN);
@@ -562,7 +598,7 @@ JIT_OP_IGT_UN: binary
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LE_UN);
 	}
 
-JIT_OP_IGE: binary
+JIT_OP_IGE: 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GE);
@@ -574,7 +610,7 @@ JIT_OP_IGE: binary
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 0, ARM_CC_LT);
 	}
 
-JIT_OP_IGE_UN: binary
+JIT_OP_IGE_UN: 
 	[reg, immu8] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, $2);
 		arm_alu_reg_imm8_cond(inst, ARM_MOV, $1, 0, 1, ARM_CC_GE_UN);
@@ -590,7 +626,7 @@ JIT_OP_IGE_UN: binary
  * Pointer check opcodes.
  */
 
-JIT_OP_CHECK_NULL: unary_note
+JIT_OP_CHECK_NULL: note
 	[reg] -> {
 		arm_test_reg_imm8(inst, ARM_CMP, $1, 0);
 		throw_builtin(&inst, func, ARM_CC_EQ, JIT_RESULT_NULL_REFERENCE);
@@ -603,14 +639,14 @@ JIT_OP_CHECK_NULL: unary_note
 JIT_OP_CALL:
 	[] -> {
 		jit_function_t func = (jit_function_t)(insn->dest);
-		arm_call(inst, func->closure_entry);
+		arm_call(inst, jit_function_to_closure(func));
 	}
 
 JIT_OP_CALL_TAIL:
 	[] -> {
 		jit_function_t func = (jit_function_t)(insn->dest);
 		arm_pop_frame_tail(inst, 0);
-		arm_jump(inst, func->closure_entry);
+		arm_jump(inst, jit_function_to_closure(func));
 	}
 
 JIT_OP_CALL_INDIRECT:
@@ -635,7 +671,7 @@ JIT_OP_RETURN:
 		jump_to_epilog(gen, &inst, block);
 	}
 
-JIT_OP_RETURN_INT: unary_branch
+JIT_OP_RETURN_INT: /*unary_branch*/
 	[reg] -> {
 		int cpu_reg = $1;
 		if(cpu_reg != ARM_R0)
@@ -645,7 +681,7 @@ JIT_OP_RETURN_INT: unary_branch
 		jump_to_epilog(gen, &inst, block);
 	}
 
-JIT_OP_RETURN_LONG: unary_branch
+JIT_OP_RETURN_LONG: /*unary_branch*/
 	[imm] -> {
 		mov_reg_imm(gen, &inst, ARM_R0, ((jit_int *)($1))[0]);
 		mov_reg_imm(gen, &inst, ARM_R1, ((jit_int *)($1))[1]);
@@ -665,12 +701,9 @@ JIT_OP_RETURN_LONG: unary_branch
 		jump_to_epilog(gen, &inst, block);
 	}
 
-JIT_OP_RETURN_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary_branch
-	[freg] -> {
-		if($1 != 0)
-		{
-			arm_alu_freg_32(inst, ARM_MVF, ARM_F0, $1);
-		}
+JIT_OP_RETURN_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): branch 
+	[freg32, clobber("r0")] -> {
+		arm_mov_reg_float(inst, ARM_R0, $1);
 		jump_to_epilog(gen, &inst, block);
 	}
 
@@ -694,12 +727,9 @@ JIT_OP_RETURN_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 	}
 
 JIT_OP_RETURN_FLOAT64, JIT_OP_RETURN_NFLOAT
-		(JIT_ARM_HAS_FLOAT_REGS): unary_branch
-	[freg] -> {
-		if($1 != 0)
-		{
-			arm_alu_freg(inst, ARM_MVF, ARM_F0, $1);
-		}
+		(JIT_ARM_HAS_FLOAT_REGS): branch 
+	[freg64, clobber("r0", "r1")] -> {
+		arm_mov_reg_reg_double(inst,ARM_R0,ARM_R1, $1);
 		jump_to_epilog(gen, &inst, block);
 	}
 
@@ -726,78 +756,73 @@ JIT_OP_RETURN_FLOAT64, JIT_OP_RETURN_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
 		jit_gen_save_inst_ptr(gen, inst);
 	}
 
-JIT_OP_RETURN_SMALL_STRUCT: unary_branch
-	[reg] -> {
+JIT_OP_RETURN_SMALL_STRUCT: note
+	[reg, imm, clobber("r0", "r1")] -> {
+		//$1: address of the struct to be returned
+		//$2: size of the struct to be returned
+		
+		//Prevent the accidental overwriting of the address
 		int temp_reg = $1;
 		if(temp_reg < 3)
 		{
 			arm_mov_reg_reg(inst, ARM_WORK, temp_reg);
 			temp_reg = ARM_WORK;
 		}
-		switch(insn->value2->address)
+		
+		//Copy the struct to the return register in a way that's appropriate to its size
+		switch($2)
 		{
-			case 1:
-			{
-				arm_load_membase_byte(inst, ARM_R0, temp_reg, 0);
-			}
+		case 1:
+			arm_load_membase_byte(inst, ARM_R0, temp_reg, 0);
 			break;
 
-			case 2:
-			{
-				arm_load_membase_ushort(inst, ARM_R0, temp_reg, 0);
-			}
+		case 2:
+			arm_load_membase_ushort(inst, ARM_R0, temp_reg, 0);
 			break;
 
-			case 3:
-			{
-				arm_load_membase_ushort(inst, ARM_R0, temp_reg, 0);
-				arm_load_membase_byte(inst, ARM_R1, temp_reg, 2);
-				arm_shift_reg_imm8(inst, ARM_SHL, ARM_R1, ARM_R1, 16);
-				arm_alu_reg_reg(inst, ARM_ORR, ARM_R0, ARM_R0, ARM_R1);
-			}
+		case 3:
+			arm_load_membase_ushort(inst, ARM_R0, temp_reg, 0);
+			arm_load_membase_byte(inst, ARM_R1, temp_reg, 2);
+			arm_shift_reg_imm8(inst, ARM_SHL, ARM_R1, ARM_R1, 16);
+			arm_alu_reg_reg(inst, ARM_ORR, ARM_R0, ARM_R0, ARM_R1);
 			break;
 
-			case 4:
-			{
-				arm_load_membase(inst, ARM_R0, temp_reg, 0);
-			}
+		case 4:
+			arm_load_membase(inst, ARM_R0, temp_reg, 0);
 			break;
 
-			case 5:
-			{
-				arm_load_membase(inst, ARM_R0, temp_reg, 0);
-				arm_load_membase_byte(inst, ARM_R1, temp_reg, 4);
-			}
+		/*TODO: is this the right way to return a struct > 4 bytes?
+		* Or should it be returned by address? Look at the Procedure Call Standard!
+		*/
+		
+		case 5:
+			arm_load_membase(inst, ARM_R0, temp_reg, 0);
+			arm_load_membase_byte(inst, ARM_R1, temp_reg, 4);
 			break;
 
-			case 6:
-			{
-				arm_load_membase(inst, ARM_R0, temp_reg, 0);
-				arm_load_membase_ushort(inst, ARM_R1, temp_reg, 4);
-			}
+		case 6:
+			arm_load_membase(inst, ARM_R0, temp_reg, 0);
+			arm_load_membase_ushort(inst, ARM_R1, temp_reg, 4);
 			break;
 
-			case 7:
-			{
-				arm_load_membase(inst, ARM_R0, temp_reg, 0);
-				arm_load_membase_ushort(inst, ARM_R1, temp_reg, 4);
-				arm_load_membase_byte(inst, ARM_R2, temp_reg, 6);
-				arm_shift_reg_imm8(inst, ARM_SHL, ARM_R2, ARM_R2, 16);
-				arm_alu_reg_reg(inst, ARM_ORR, ARM_R1, ARM_R1, ARM_R2);
-			}
+		case 7:
+			arm_load_membase(inst, ARM_R0, temp_reg, 0);
+			arm_load_membase_ushort(inst, ARM_R1, temp_reg, 4);
+			arm_load_membase_byte(inst, ARM_R2, temp_reg, 6);
+			arm_shift_reg_imm8(inst, ARM_SHL, ARM_R2, ARM_R2, 16);
+			arm_alu_reg_reg(inst, ARM_ORR, ARM_R1, ARM_R1, ARM_R2);
 			break;
 
-			case 8:
-			{
-				arm_load_membase(inst, ARM_R0, temp_reg, 0);
-				arm_load_membase(inst, ARM_R1, temp_reg, 4);
-			}
+		case 8:
+			arm_load_membase(inst, ARM_R0, temp_reg, 0);
+			arm_load_membase(inst, ARM_R1, temp_reg, 4);
 			break;
 		}
+
 		jump_to_epilog(gen, &inst, block);
 	}
 
-JIT_OP_SETUP_FOR_NESTED: spill_before
+JIT_OP_SETUP_FOR_NESTED: /*spill_before*/
 	[] -> {
 		jit_nint nest_reg = jit_value_get_nint_constant(insn->value1);
 		if(nest_reg == -1)
@@ -810,7 +835,7 @@ JIT_OP_SETUP_FOR_NESTED: spill_before
 		}
 	}
 
-JIT_OP_SETUP_FOR_SIBLING: spill_before
+JIT_OP_SETUP_FOR_SIBLING: /*spill_before*/
 	[] -> {
 		jit_nint level = jit_value_get_nint_constant(insn->value1);
 		jit_nint nest_reg = jit_value_get_nint_constant(insn->value2);
@@ -843,29 +868,160 @@ JIT_OP_IMPORT:
 	}
 
 /*
+ * Exception handling
+ */
+JIT_OP_THROW: branch
+	[reg] -> {
+
+		arm_push_reg(inst, $1);
+		if(func->builder->setjmp_value != 0)
+		{
+			/* We have a "setjmp" block in the current function,
+			   so we must record the location of the throw first */
+			jit_nint pc_offset;
+		
+			_jit_gen_fix_value(func->builder->setjmp_value);
+			
+			pc_offset = func->builder->setjmp_value->frame_offset +
+							jit_jmp_catch_pc_offset;
+							
+			if(func->builder->position_independent)
+			{
+				arm_call_imm(inst, 0);
+				arm_pop_membase(inst, ARM_FP, pc_offset);
+			}
+			else
+			{
+				int pc = (int) (unsigned char *) arm_inst_get_posn(inst);
+				arm_mov_membase_imm(inst, ARM_FP, pc_offset, pc, 4, ARM_WORK);
+			}
+		}
+		arm_call(inst, (void *)jit_exception_throw);
+	}
+
+JIT_OP_LOAD_PC:
+[=reg] -> {
+	if(func->builder->position_independent)
+	{
+		arm_call_imm(inst, 0);
+		arm_pop_reg(inst, $1);
+	}
+	else
+	{
+		int pc = inst.current;
+		mov_reg_imm(gen, &inst, $1, pc);
+	}
+}
+
+JIT_OP_ENTER_FINALLY:
+[] -> { /* 
+	 * The return address is in the link register
+	 * We must save it on the stack in case it will be overwritten by the content
+	 * of the "finally" block.
+	 * In order to respect the ABI of the ARM architecture, that prescribes an 8-byte
+	 * alignment for the stack at a public interface, we save the value twice, 
+	 * in order to move the current SP by 8 bytes 
+	 * (we could have just saved the value once and then moved the SP by 4 bytes)
+	 */
+	arm_push_reg(inst, ARM_LINK);
+	arm_push_reg(inst, ARM_LINK);
+}
+
+JIT_OP_LEAVE_FINALLY: branch
+[] -> {
+	/* The "finally" return address is on the stack (twice, just for padding)*/
+		arm_pop_reg(inst, ARM_LINK);
+		arm_pop_reg(inst, ARM_LINK);
+		arm_return(inst);
+}
+
+JIT_OP_CALL_FINALLY: branch
+[] -> {
+	jit_block_t block;
+	int offset;
+	block = jit_block_from_label(func, (jit_label_t)(insn->dest));
+	if(!block)
+	{
+		return;
+	}
+	if(arm_inst_get_posn(inst) >= arm_inst_get_limit(inst))
+	{
+		/* The buffer has overflowed, so don't worry about fixups */
+		return;
+	}
+	if(block->address)
+	{
+		/* We already know the address of the block */
+		arm_call(inst, block->address);
+	}
+	else
+	{
+		/* Output a placeholder and record on the block's fixup list */
+		if(block->fixup_list)
+		{
+			offset = (int)(((unsigned char *)arm_inst_get_posn(inst)) -
+			((unsigned char *)(block->fixup_list)));
+		}
+		else
+		{
+			offset = 0;
+		}
+		arm_call_imm(inst, offset);
+		block->fixup_list = (void *)(arm_inst_get_posn(inst) - 1);
+	}
+}
+
+JIT_OP_ADDRESS_OF_LABEL:
+[=reg] -> {
+	block = jit_block_from_label(func, (jit_label_t)(insn->value1));
+	if(func->builder->position_independent)
+	{
+		/* TODO */
+			TODO();
+	}
+	else
+	{
+		if(block->address)
+		{
+			mov_reg_imm(gen, &inst, $1, block->address);
+		}
+		else
+		{
+			/* Output a placeholder and record on the block's fixup list */
+				mov_reg_imm(gen, &inst, $1, (int)(block->fixup_absolute_list));
+				block->fixup_absolute_list = (void *)(inst.current - 1);
+		}
+	}
+}
+
+/*
  * Data manipulation.
  */
 
-JIT_OP_COPY_LOAD_SBYTE: unary
+JIT_OP_COPY_LOAD_SBYTE: 
 	[reg] -> {}
 
-JIT_OP_COPY_LOAD_UBYTE: unary
+JIT_OP_COPY_LOAD_UBYTE: 
 	[reg] -> {}
 
-JIT_OP_COPY_LOAD_SHORT: unary
+JIT_OP_COPY_LOAD_SHORT: 
 	[reg] -> {}
 
-JIT_OP_COPY_LOAD_USHORT: unary
+JIT_OP_COPY_LOAD_USHORT: 
 	[reg] -> {}
 
-JIT_OP_COPY_INT: unary
+JIT_OP_COPY_INT: copy 
+	[=local, imm, scratch reg] -> {
+		arm_mov_membase_imm(inst, ARM_FP, $1, $2, 4, $3);
+	}
 	[reg] -> {}
+	
 
-JIT_OP_COPY_LONG: unary
+JIT_OP_COPY_LONG: copy 
 	[lreg] -> {}
 
-JIT_OP_COPY_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary
-	[freg] -> {}
+JIT_OP_COPY_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): copy
+	[freg32] -> {}
 
 JIT_OP_COPY_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 	[] -> {
@@ -889,8 +1045,8 @@ JIT_OP_COPY_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 		jit_gen_save_inst_ptr(gen, inst);
 	}
 
-JIT_OP_COPY_FLOAT64, JIT_OP_COPY_NFLOAT (JIT_ARM_HAS_FLOAT_REGS): unary
-	[freg] -> {}
+JIT_OP_COPY_FLOAT64, JIT_OP_COPY_NFLOAT (JIT_ARM_HAS_FLOAT_REGS): copy
+	[freg64] -> {}
 
 JIT_OP_COPY_FLOAT64, JIT_OP_COPY_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
 	[] -> {
@@ -925,10 +1081,10 @@ JIT_OP_COPY_FLOAT64, JIT_OP_COPY_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
 		jit_gen_save_inst_ptr(gen, inst);
 	}
 
-JIT_OP_COPY_STRUCT: manual
-	[] -> {
-		/* TODO */
-		TODO();
+JIT_OP_COPY_STRUCT:
+	[=frame, frame, scratch reg] -> {
+		inst = memory_copy(gen, inst, ARM_FP, $1, ARM_FP, $2,
+				jit_type_get_size(jit_value_get_type(insn->dest)), $3);
 	}
 
 JIT_OP_COPY_STORE_BYTE: manual
@@ -961,54 +1117,55 @@ JIT_OP_COPY_STORE_SHORT: manual
 		arm_store_membase_short(inst, _jit_reg_info[reg].cpu_reg,
 							    ARM_FP, insn->dest->frame_offset);
 		jit_gen_save_inst_ptr(gen, inst);
-		_jit_regs_free_reg(gen, reg, 1);
+		//_jit_regs_free_reg(gen, reg, 1); //TODO: check if it's needed
 	}
 
-JIT_OP_ADDRESS_OF: manual
-	[] -> {
-		arm_inst_buf inst;
-		int reg, offset;
-		_jit_regs_force_out(gen, insn->value1, 0);
-		_jit_gen_fix_value(insn->value1);
-		jit_gen_load_inst_ptr(gen, inst);
-		reg = _jit_regs_dest_value(gen, insn->dest);
-		reg = _jit_reg_info[reg].cpu_reg;
-		offset = insn->value1->frame_offset;
-		if(offset > 0)
+JIT_OP_ADDRESS_OF:
+	[=reg, frame] -> {
+		if($2 > 0)
 		{
-			arm_alu_reg_imm(inst, ARM_ADD, reg, ARM_FP, offset);
+			arm_alu_reg_imm(inst, ARM_ADD, $1, ARM_FP, $2);
 		}
-		else if(offset < 0)
+		else if($2 < 0)
 		{
-			arm_alu_reg_imm(inst, ARM_SUB, reg, ARM_FP, -offset);
+			arm_alu_reg_imm(inst, ARM_SUB, $1, ARM_FP, -$2);
 		}
 		else
 		{
-			arm_mov_reg_reg(inst, reg, ARM_FP);
+			arm_mov_reg_reg(inst, $1, ARM_FP);
 		}
-		jit_gen_save_inst_ptr(gen, inst);
+
 	}
 
 /*
  * Stack pushes and pops.
  */
 
-JIT_OP_RETURN_REG: manual
-	[] -> { /* Nothing to do here */ }
-
-JIT_OP_PUSH_INT: unary_note
+JIT_OP_INCOMING_REG, JIT_OP_RETURN_REG: note
+        [reg] -> {
+		/*
+		 * This rule does nothing itself. Also at this point
+		 * the value is supposed to be already in the register
+		 * so the "reg" pattern does not load it either. But
+		 * it allows the allocator to check the liveness flags
+		 * and free the register if the value is dead.
+		 */
+	}
+	
+JIT_OP_PUSH_INT: note
 	[reg] -> {
 		arm_push_reg(inst, $1);
 	}
 
-JIT_OP_PUSH_LONG: unary_note
+JIT_OP_PUSH_LONG: note
 	[lreg] -> {
 		arm_push_reg(inst, %1);
 		arm_push_reg(inst, $1);
+		gen->stack_changed=1;
 	}
 
-JIT_OP_PUSH_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary_note
-	[freg] -> {
+JIT_OP_PUSH_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): note
+	[freg32] -> {
 		arm_push_reg_float32(inst, $1);
 	}
 
@@ -1032,8 +1189,8 @@ JIT_OP_PUSH_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 		jit_gen_save_inst_ptr(gen, inst);
 	}
 
-JIT_OP_PUSH_FLOAT64, JIT_OP_PUSH_NFLOAT (JIT_ARM_HAS_FLOAT_REGS): unary_note
-	[freg] -> {
+JIT_OP_PUSH_FLOAT64, JIT_OP_PUSH_NFLOAT (JIT_ARM_HAS_FLOAT_REGS): note
+	[freg64] -> {
 		arm_push_reg_float64(inst, $1);
 	}
 
@@ -1064,7 +1221,7 @@ JIT_OP_PUSH_FLOAT64, JIT_OP_PUSH_NFLOAT (!JIT_ARM_HAS_FLOAT_REGS): manual
 		jit_gen_save_inst_ptr(gen, inst);
 	}
 
-JIT_OP_PUSH_STRUCT: unary_note
+JIT_OP_PUSH_STRUCT: /*unary_note*/
 	[reg] -> {
 		/* TODO */
 		TODO();
@@ -1144,19 +1301,22 @@ JIT_OP_FLUSH_SMALL_STRUCT:
 		}
 	}
 
-JIT_OP_SET_PARAM_INT: unary_note
-	[reg] -> {
-		arm_store_membase(inst, $1, ARM_SP, insn->value2->address);
+JIT_OP_SET_PARAM_INT: note
+	[imm, imm] -> {
+		arm_mov_membase_imm(inst, ARM_SP, $2, $1, 4, ARM_WORK);
+	}
+	[reg, imm] -> {
+		arm_mov_membase_reg(inst, ARM_SP, $2, $1, 4);
 	}
 
-JIT_OP_SET_PARAM_LONG: unary_note
+JIT_OP_SET_PARAM_LONG: /*unary_note*/
 	[lreg] -> {
 		arm_store_membase(inst, $1, ARM_SP, insn->value2->address);
 		arm_store_membase(inst, %1, ARM_SP, insn->value2->address + 4);
 	}
 
-JIT_OP_SET_PARAM_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): unary_note
-	[freg] -> {
+JIT_OP_SET_PARAM_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): /*unary_note*/
+	[freg32] -> {
 		arm_store_membase_float32(inst, $1, ARM_SP, insn->value2->address);
 	}
 
@@ -1184,8 +1344,8 @@ JIT_OP_SET_PARAM_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 	}
 
 JIT_OP_SET_PARAM_FLOAT64, JIT_OP_SET_PARAM_NFLOAT
-		(JIT_ARM_HAS_FLOAT_REGS): unary_note
-	[freg] -> {
+		(JIT_ARM_HAS_FLOAT_REGS): /*unary_note*/
+	[freg64] -> {
 		arm_store_membase_float64(inst, $1, ARM_SP, insn->value2->address);
 	}
 
@@ -1221,183 +1381,475 @@ JIT_OP_SET_PARAM_FLOAT64, JIT_OP_SET_PARAM_NFLOAT
 		jit_gen_save_inst_ptr(gen, inst);
 	}
 
-JIT_OP_SET_PARAM_STRUCT: unary_note
-	[reg] -> {
-		/* TODO */
-		TODO();
-	}
-
+JIT_OP_SET_PARAM_STRUCT: note
+[reg, imm, scratch reg] -> {
+	/* Handle arbitrary-sized structures */
+	jit_nint offset = jit_value_get_nint_constant(insn->dest);
+	inst = memory_copy(gen, inst, ARM_SP, offset, $1, 0, $2, $3);
+}
+		
 /*
  * Pointer-relative loads and stores.
  */
-
-JIT_OP_LOAD_RELATIVE_SBYTE: unary
+JIT_OP_LOAD_RELATIVE_SBYTE: 
 	[reg] -> {
 		arm_load_membase_sbyte(inst, $1, $1, insn->value2->address);
 	}
 
-JIT_OP_LOAD_RELATIVE_UBYTE: unary
+JIT_OP_LOAD_RELATIVE_UBYTE: 
 	[reg] -> {
 		arm_load_membase_byte(inst, $1, $1, insn->value2->address);
 	}
 
-JIT_OP_LOAD_RELATIVE_SHORT: unary
+JIT_OP_LOAD_RELATIVE_SHORT: 
 	[reg] -> {
 		arm_load_membase_short(inst, $1, $1, insn->value2->address);
 	}
 
-JIT_OP_LOAD_RELATIVE_USHORT: unary
+JIT_OP_LOAD_RELATIVE_USHORT: 
 	[reg] -> {
 		arm_load_membase_ushort(inst, $1, $1, insn->value2->address);
 	}
 
-JIT_OP_LOAD_RELATIVE_INT: unary
+JIT_OP_LOAD_RELATIVE_INT: 
 	[reg] -> {
 		arm_load_membase(inst, $1, $1, insn->value2->address);
 	}
 
-JIT_OP_LOAD_RELATIVE_LONG: manual
-	[] -> {
-		arm_inst_buf inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->value1, 0,
-			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-			 				 JIT_INSN_VALUE1_LIVE)));
-		int reg2, reg3;
-		int frame_offset;
-		_jit_gen_fix_value(insn->dest);
-		_jit_regs_get_reg_pair(gen, reg, -1, -1, &reg2, &reg3);
-		reg  = _jit_reg_info[reg].cpu_reg;
-		reg2 = _jit_reg_info[reg2].cpu_reg;
-		reg3 = _jit_reg_info[reg3].cpu_reg;
-		frame_offset = insn->dest->frame_offset;
-		jit_gen_load_inst_ptr(gen, inst);
-		arm_load_membase(inst, reg2, reg, insn->value2->address);
-		arm_load_membase(inst, reg3, reg, insn->value2->address + 4);
-		arm_store_membase(inst, reg2, ARM_FP, frame_offset);
-		arm_store_membase(inst, reg3, ARM_FP, frame_offset + 4);
-		insn->dest->in_frame = 1;
-		jit_gen_save_inst_ptr(gen, inst);
+JIT_OP_LOAD_RELATIVE_LONG:
+	[=lreg, reg, imm] -> {
+		if($1 == $2)
+		{
+			arm_mov_reg_membase(inst, %1, $2, $3 + 4, 4);
+			arm_mov_reg_membase(inst, $1, $2, $3, 4);
+		}
+		else
+		{
+			arm_mov_reg_membase(inst, $1, $2, $3, 4);
+			arm_mov_reg_membase(inst, %1, $2, $3 + 4, 4);
+		}
 	}
 
-JIT_OP_LOAD_RELATIVE_FLOAT32: manual
+JIT_OP_LOAD_RELATIVE_FLOAT32:
+[=freg32, reg, imm] -> {
+	arm_fld_membase(inst, $1, $2, $3, 0);
+}
+
+JIT_OP_LOAD_RELATIVE_FLOAT64:
+[=freg64, reg, imm] -> {
+	arm_fld_membase(inst, $1, $2, $3, 1);
+}
+
+JIT_OP_LOAD_RELATIVE_NFLOAT: manual
 	[] -> {
 		/* TODO */
 		TODO();
+		abort();
 	}
 
-JIT_OP_LOAD_RELATIVE_FLOAT64, JIT_OP_LOAD_RELATIVE_NFLOAT: manual
+JIT_OP_LOAD_RELATIVE_STRUCT: more_space
+[=frame, reg, imm, scratch reg] -> {
+	inst = memory_copy(gen, inst, ARM_FP, $1, $2, $3, jit_type_get_size(jit_value_get_type(insn->dest)), $4);
+}
+
+JIT_OP_STORE_RELATIVE_BYTE: ternary
+[imm, imm, imm, scratch reg] -> {
+	arm_mov_mem_imm(inst, $1 + $3, $2, 1, $4);
+}
+[imm, breg, imm] -> {
+	arm_mov_mem_reg(inst, $1 + $3, $2, 1);
+}
+[reg, imm, imm] -> {
+	arm_mov_membase_imm(inst, $1, $3, $2, 1, ARM_WORK);
+}
+[reg, breg, imm] -> {
+	arm_mov_membase_reg(inst, $1, $3, $2, 1);
+}
+
+JIT_OP_STORE_RELATIVE_SHORT: ternary
+[imm, imm, imm, scratch reg] -> {
+	arm_mov_mem_imm(inst, $1 + $3, $2, 2, $4);
+}
+[imm, reg, imm] -> {
+	arm_mov_mem_reg(inst, $1 + $3, $2, 2);
+}
+[reg, imm, imm] -> {
+	arm_mov_membase_imm(inst, $1, $3, $2, 2, ARM_WORK);
+}
+[reg, reg, imm] -> {
+	arm_mov_membase_reg(inst, $1, $3, $2, 2);
+}
+
+JIT_OP_STORE_RELATIVE_INT: ternary
+	[imm, imm, imm, scratch reg] -> {
+		arm_mov_mem_imm(inst, $1 + $3, $2, 4, $4);
+	}
+	[imm, reg, imm] -> {
+		arm_mov_mem_reg(inst, $1 + $3, $2, 4);
+	}
+	[reg, imm, imm] -> {
+		arm_mov_membase_imm(inst, $1, $3, $2, 4, ARM_WORK);
+	}
+	[reg, reg, imm] -> {
+		arm_mov_membase_reg(inst, $1, $3, $2, 4);
+	}
+
+JIT_OP_STORE_RELATIVE_LONG: ternary
+	[reg, imm, imm] -> {
+		arm_mov_membase_imm(inst, $1, $3, *(int *)($2), 4, ARM_WORK);
+		arm_mov_membase_imm(inst, $1, $3 + 4, *(int *)($2 + 4), 4, ARM_WORK);
+	}
+	[reg, local, imm, scratch reg] -> {
+		arm_mov_reg_membase(inst, $4, ARM_FP, $2, 4);
+		arm_mov_membase_reg(inst, $1, $3, $4, 4);
+		arm_mov_reg_membase(inst, $4, ARM_FP, $2 + 4, 4);
+		arm_mov_membase_reg(inst, $1, $3 + 4, $4, 4);
+	}
+	[reg, lreg, imm] -> {
+		arm_mov_membase_reg(inst, $1, $3, $2, 4);
+		arm_mov_membase_reg(inst, $1, $3 + 4, %2, 4);
+	}
+	
+JIT_OP_STORE_RELATIVE_FLOAT32: ternary
+	[reg, imm, imm] -> {
+		arm_mov_membase_imm(inst, $1, $3, ((int *)($2))[0], 4, ARM_WORK);
+	}
+	[reg, freg32, imm] -> {
+		arm_store_membase_float32(inst, $2, $1, $3);
+	}
+
+JIT_OP_STORE_RELATIVE_FLOAT64: ternary
+	[reg, imm, imm, scratch reg] -> {
+		arm_mov_membase_imm(inst, $1, $3, ((int *)($2))[0], 4, $4);
+		arm_mov_membase_imm(inst, $1, $3 + 4, ((int *)($2))[1], 4, $4);
+	}
+	[reg, freg64, imm] -> {
+		arm_store_membase_float64(inst, $2, $1, $3);
+	}
+
+JIT_OP_STORE_RELATIVE_NFLOAT: manual
 	[] -> {
 		/* TODO */
 		TODO();
-	}
-
-JIT_OP_LOAD_RELATIVE_STRUCT: manual
-	[] -> {
-		/* TODO */
-		TODO();
-	}
-
-JIT_OP_STORE_RELATIVE_BYTE: manual
-	[] -> {
-		arm_inst_buf inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->dest, 0,
-			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-			 				 JIT_INSN_DEST_LIVE)));
-		int reg2 = _jit_regs_load_value
-			(gen, insn->value1, 0,
-			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-			 				 JIT_INSN_VALUE1_LIVE)));
-		jit_gen_load_inst_ptr(gen, inst);
-		reg  = _jit_reg_info[reg].cpu_reg;
-		reg2 = _jit_reg_info[reg2].cpu_reg;
-		arm_store_membase_byte(inst, reg2, reg, insn->value2->address);
-		jit_gen_save_inst_ptr(gen, inst);
-	}
-
-JIT_OP_STORE_RELATIVE_SHORT: manual
-	[] -> {
-		arm_inst_buf inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->dest, 0,
-			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-			 				 JIT_INSN_DEST_LIVE)));
-		int reg2 = _jit_regs_load_value
-			(gen, insn->value1, 1,
-			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-			 				 JIT_INSN_VALUE1_LIVE)));
-		jit_gen_load_inst_ptr(gen, inst);
-		reg  = _jit_reg_info[reg].cpu_reg;
-		reg2 = _jit_reg_info[reg2].cpu_reg;
-		arm_store_membase_short(inst, reg2, reg, insn->value2->address);
-		jit_gen_save_inst_ptr(gen, inst);
-		_jit_regs_free_reg(gen, reg2, 1);
-	}
-
-JIT_OP_STORE_RELATIVE_INT: manual
-	[] -> {
-		arm_inst_buf inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->dest, 0,
-			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-			 				 JIT_INSN_DEST_LIVE)));
-		int reg2 = _jit_regs_load_value
-			(gen, insn->value1, 0,
-			 (insn->flags & (JIT_INSN_VALUE1_NEXT_USE |
-			 				 JIT_INSN_VALUE1_LIVE)));
-		jit_gen_load_inst_ptr(gen, inst);
-		reg  = _jit_reg_info[reg].cpu_reg;
-		reg2 = _jit_reg_info[reg2].cpu_reg;
-		arm_store_membase(inst, reg2, reg, insn->value2->address);
-		jit_gen_save_inst_ptr(gen, inst);
-	}
-
-JIT_OP_STORE_RELATIVE_LONG: manual
-	[] -> {
-		arm_inst_buf inst;
-		int reg = _jit_regs_load_value
-			(gen, insn->dest, 0,
-			 (insn->flags & (JIT_INSN_DEST_NEXT_USE |
-			 				 JIT_INSN_DEST_LIVE)));
-		int reg2, reg3;
-		int frame_offset;
-		_jit_regs_get_reg_pair(gen, reg, -1, -1, &reg2, &reg3);
-		_jit_gen_fix_value(insn->value1);
-		jit_gen_load_inst_ptr(gen, inst);
-		reg  = _jit_reg_info[reg].cpu_reg;
-		reg2 = _jit_reg_info[reg2].cpu_reg;
-		reg3 = _jit_reg_info[reg3].cpu_reg;
-		frame_offset = insn->value1->frame_offset;
-		arm_load_membase(inst, reg2, ARM_FP, frame_offset);
-		arm_load_membase(inst, reg3, ARM_FP, frame_offset + 4);
-		arm_store_membase(inst, reg2, reg, insn->value2->address);
-		arm_store_membase(inst, reg3, reg, insn->value2->address + 4);
-		jit_gen_save_inst_ptr(gen, inst);
-	}
-
-JIT_OP_STORE_RELATIVE_FLOAT32: manual
-	[] -> {
-		/* TODO */
-		TODO();
-	}
-
-JIT_OP_STORE_RELATIVE_FLOAT64, JIT_OP_STORE_RELATIVE_NFLOAT: manual
-	[] -> {
-		/* TODO */
-		TODO();
+		abort();
 	}
 
 JIT_OP_STORE_RELATIVE_STRUCT: manual
-	[] -> {
-		/* TODO */
-		TODO();
+[] -> {
+	arm_inst_buf inst;
+	int reg = _jit_regs_load_value(gen, insn->dest, 0,
+	  (insn->flags & (JIT_INSN_DEST_NEXT_USE |
+	  JIT_INSN_DEST_LIVE)));
+	_jit_regs_spill_all(gen);
+	_jit_gen_fix_value(insn->value1);
+	jit_gen_load_inst_ptr(gen, inst);
+	if(!jit_cache_check_for_n(&(gen->posn), 128))
+	{
+		jit_cache_mark_full(&(gen->posn));
+		return;
 	}
+	reg = _jit_reg_info[reg].cpu_reg;
+	inst = memory_copy(gen, inst, reg, (int)(insn->value2->address),
+			ARM_FP, insn->value1->frame_offset,
+			jit_type_get_size(jit_value_get_type(insn->value1)), -1);
+	jit_gen_save_inst_ptr(gen, inst);
+}
 
-JIT_OP_ADD_RELATIVE: unary
+JIT_OP_ADD_RELATIVE: 
 	[reg] -> {
 		if(insn->value2->address != 0)
 		{
 			arm_alu_reg_imm(inst, ARM_ADD, $1, $1, insn->value2->address);
 		}
 	}
+
+/*
+* Array element loads and stores.
+*/
+JIT_OP_LOAD_ELEMENT_UBYTE:
+[=reg, reg, reg] -> {
+	arm_widen_memindex(inst, $1, $2, 0, $3, 0, 0, 0);
+}
+
+JIT_OP_LOAD_ELEMENT_USHORT:
+[=reg, reg, reg] -> {
+	arm_widen_memindex(inst, $1, $2, 0, $3, 1, 0, 1);
+}
+
+JIT_OP_LOAD_ELEMENT_INT:
+[=reg, reg, reg] -> {
+	/* The last parameter is unimportant: it's not used, 
+	since the displacement (4th param) is 0 */
+	arm_mov_reg_memindex(inst, $1, $2, 0, $3, 2, 4, 0);
+}
+
+JIT_OP_LOAD_ELEMENT_LONG:
+[=lreg, reg, reg, scratch reg, scratch reg] -> {
+	//$1=destination long register (1-st word, LSB)
+	//%1=destination long register (2-nd word, MSB)
+	//$2=base register
+	//$3=index register
+	//$4=scratch register for arm_mov_reg_memindex
+	//$5=scratch register for overwriting prevention
+	
+	assert($2 != $3);
+	
+	int basereg=$2;
+	int indexreg=$3;
+	
+	//Write the 1-st word
+	if($1 == basereg)
+	{
+		//Prevent base reg from being overwritten
+		arm_mov_reg_reg(inst, $5, basereg);
+		basereg=$5;
+	}
+	else if ($1 == indexreg)
+	{	
+		//Prevent index reg from being overwritten
+		arm_mov_reg_reg(inst, $5, indexreg);
+		indexreg=$5;
+	}
+	arm_mov_reg_memindex(inst, $1, basereg, 0, indexreg, 3, 4, $4);
+	
+	//Write the 2-nd word
+	arm_mov_reg_memindex(inst, %1, basereg, 4, indexreg, 3, 4, $4);
+}
+
+JIT_OP_LOAD_ELEMENT_FLOAT64:
+[=freg64, reg, reg, scratch reg] -> {
+	arm_fld_memindex(inst, $1, $2, 0, $3, 3, 1, $4);
+}
+
+JIT_OP_STORE_ELEMENT_BYTE: ternary
+[reg, reg, breg, scratch reg] -> {
+	arm_mov_memindex_reg(inst, $1, 0, $2, 0, $3, 1, $4);
+}
+
+JIT_OP_STORE_ELEMENT_SHORT: ternary
+[reg, reg, reg, scratch reg] -> {
+	arm_mov_memindex_reg(inst, $1, 0, $2, 1, $3, 2, $4);
+}
+
+JIT_OP_STORE_ELEMENT_INT: ternary
+[reg, reg, reg, scratch reg] -> {
+	arm_mov_memindex_reg(inst, $1, 0, $2, 2, $3, 4, $4);
+}
+
+JIT_OP_STORE_ELEMENT_FLOAT64: ternary
+[reg, reg, freg64, scratch reg] -> {
+	arm_fst_memindex(inst, $3, $1, 0, $2, 3, 1, $4);
+}
+
+/*
+* Allocate memory from the stack.
+*/
+JIT_OP_ALLOCA:
+[reg] -> {
+	//The ARM stack must always be 4-byte aligned and must be 8-byte aligned at a public interface.
+	//Since we don't know when this function will be called, let's align to 8 bytes.
+	arm_alu_reg_imm(inst, ARM_ADD, $1, $1, 7);
+	arm_alu_reg_imm(inst, ARM_AND, $1, $1, ~7);
+	arm_alu_reg_reg(inst, ARM_SUB, ARM_SP, ARM_SP, $1);
+	arm_mov_reg_reg(inst, $1, ARM_SP);
+	gen->stack_changed = 1;
+}
+
+/*
+ * Block operations
+ */
+JIT_OP_MEMCPY: ternary
+	[any, any, imm, if("$3 <= 0")] -> { }
+	[reg, reg, imm, scratch reg, clobber("r0", "r1", "r2")] ->
+	{
+		/* 
+		 * Call jit_memcpy(dest,src,size).
+		 * $1=dest, $2=src, $3=size
+		 */
+		int dest=$1;
+		int src=$2;
+		
+		if (dest != ARM_R0) {
+			if(src==ARM_R0)
+			{
+				//Prevent overwriting useful data
+				arm_mov_reg_reg(inst, $4, src);
+				src=$4;
+			}
+			arm_mov_reg_reg((inst), ARM_R0, dest);
+		}
+		if (src != ARM_R1) {
+			//Move the "src" from wherever it is to where it should be
+			arm_mov_reg_reg(inst, ARM_R1, src);
+		}
+		mov_reg_imm(gen, &(inst), ARM_R2, $3);
+	    
+		//Call the function
+		arm_call(inst, jit_memcpy);
+	}
+	[reg, reg, reg, scratch breg, clobber("r0", "r1", "r2")] -> {
+		/* 
+		* Call jit_memcpy(dest,src,size).
+		* $1=dest, $2=src, $3=size
+		*/
+		if ($1 != ARM_R0) {
+			if($2==ARM_R0)
+			{
+				//Prevent overwriting useful data
+				arm_mov_reg_reg(inst, $4, $2);
+			}
+			arm_mov_reg_reg((inst), ARM_R0, $1);
+		}
+		if ($2 != ARM_R1) {
+			if ($2==ARM_R0)
+			{
+				//Recover previously saved data
+				arm_mov_reg_reg(inst, ARM_R1, $4);
+			}
+			else
+			{
+				arm_mov_reg_reg((inst), ARM_R1, $2);
+			}
+		}
+		if ($3 != ARM_R2) {
+			arm_mov_reg_reg((inst), ARM_R2, $3);
+		}
+	    
+		//Call the function
+		arm_call(inst, jit_memcpy);
+
+	}
+
+JIT_OP_MEMSET: ternary
+[any, any, imm, if("$3 <= 0")] -> { }
+[reg, imm, imm, if("$3 <= 32"), space("32 + $3 * 4")] -> {
+	// $1 = pointer to the initial memory location
+	// $2 = value to be written in memory
+	// $3 = length in bytes
+	int disp;
+	disp = 0;
+	while($3 >= (disp + 4))
+	{
+		//NB: if 0<A<255, then A*0x01010101 = a 32-bit value where each of its four bytes is A.
+		arm_mov_membase_imm(inst, $1, disp, $2 * 0x01010101, 4, ARM_WORK);
+		disp += 4;
+	}
+	if($3 >= (disp + 2))
+	{
+		arm_mov_membase_imm(inst, $1, disp, $2 * 0x0101, 2, ARM_WORK);
+		disp += 2;
+	}
+	if(insn->value2->address > disp)
+	{
+		arm_mov_membase_imm(inst, $1, disp, $2, 1, ARM_WORK);
+	}
+}
+[reg, breg, imm, if("$3 < 4")] -> {
+	TODO();
+	abort();
+}
+[reg, +reg, imm, scratch reg, if("$3 <= 32 && ($3 % 2) == 0"), space("32 + $3 * 4")] -> {
+	// $1 = pointer to the initial memory location
+	// $2 = value to be written in memory
+	// $3 = length in bytes
+	// $4 = scratch register
+	int disp;
+	arm_mov_reg_reg(inst, $4, $2);
+	arm_shift_reg_imm8(inst, ARM_SHL, $2, $2, 8);
+	arm_alu_reg_reg(inst, ARM_ORR, $2, $2, $4);
+	arm_mov_reg_reg(inst, $4, $2);
+	arm_shift_reg_imm8(inst, ARM_SHL, $2, $2, 16);
+	arm_alu_reg_reg(inst, ARM_ORR, $2, $2, $4);
+	disp = 0;
+	while($3 >= (disp + 4))
+	{
+		arm_mov_membase_reg(inst, $1, disp, $2, 4);
+		disp += 4;
+	}
+	if($3 > disp)
+	{
+		arm_mov_membase_reg(inst, $1, disp, $2, 2);
+	}
+}
+[reg, +breg, imm, scratch reg,
+if("$3 <= 32 && ($3 % 2) != 0"), space("32 + $3 * 4")] -> {
+	TODO();
+	abort();
+}
+[reg, reg, reg, clobber("r0", "r1", "r2"), scratch reg] -> {
+	// $1 = pointer to the initial memory location
+	// $2 = value to be written in memory
+	// $3 = length in bytes
+	// $4 = scratch register
+	
+	int scratchContains=0; //< Number of the parameter in the scratch register. 0 means no param in scratch reg.
+	int allOk=0;
+
+	/* Move the outgoing parameters in the right registers (if they are not already where they should be */
+	if ($1 != ARM_R0) {
+		if($2 == ARM_R0)
+		{
+			arm_mov_reg_reg((inst), $4, ARM_R0);
+			scratchContains=2;
+		}
+		else if($3==ARM_R0)
+		{
+			arm_mov_reg_reg((inst), $4, ARM_R0);
+			scratchContains=3;
+		}
+		arm_mov_reg_reg((inst), ARM_R0, $1);
+	}
+	
+	if ($2 != ARM_R1)
+	{
+		if ($3 == ARM_R1)
+		{
+			//We must save param 3, that's in ARM_R1
+			if(scratchContains==2)
+			{
+				/*scratch reg contains the parameter that will go in ARM_R1 and can't be overwritten. Copy param 3 directly to its register. */
+				arm_mov_reg_reg(inst, ARM_R2, ARM_R1);
+				allOk=1;
+			}
+			else
+			{
+				assert(scratchContains==0);
+				//Scratch reg is free. Use it to store param 3
+				arm_mov_reg_reg(inst, $4, ARM_R1);
+				scratchContains=3;
+			}
+		}
+		
+		//Set param 2
+		if(scratchContains==2)
+		{
+			arm_mov_reg_reg((inst), ARM_R1, $4);
+		}
+		else
+		{
+			arm_mov_reg_reg((inst), ARM_R1, $2);
+		}
+	}
+	
+	if(!allOk)
+	{
+		if($3 != ARM_R1)
+		{
+			//Param 3 still isn't in place
+			if(scratchContains==3)
+			{
+				//Get param 3 from the scratch reg
+				arm_mov_reg_reg(inst, ARM_R2, $4);
+			}
+			else 
+			{
+				//Get param 3 from wherever it is
+				arm_mov_reg_reg(inst, ARM_R2, $3);
+			}
+			
+			allOk=1;
+		}
+	}
+	
+	arm_call(inst, jit_memset);
+}
