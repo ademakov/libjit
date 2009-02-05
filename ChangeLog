@@ -1,7 +1,8 @@
 2009-02-06  Michele Tartara  <mikyt@users.sourceforge.net>
 
-	* jit/jit-rules.h; define JIT_BACKEND_ARM on ARM
-	* tools/gen-apply.c: define PLATFORM_IS_ARM on ARM
+	* jit/jit-rules.h; define JIT_BACKEND_ARM on ARM.
+	* tools/gen-apply.c: define PLATFORM_IS_ARM on ARM.
+	* include/jit/jit-arch-arm.h: add ARM arch header.
 
 2009-01-30  Peter Fristedt  <fristedt@gmail.com>
             Kirill Kononenko  <Kirill.Kononenko@gmail.com>
