@@ -67,6 +67,10 @@ the "jit-apply-rules.h" file.
 #if defined(__x86_64__) || defined(__x86_64)
 	#define	PLATFORM_IS_X86_64	1
 #endif
+#if defined(__arm__) || defined(__arm)
+	#define PLATFORM_IS_ARM		1
+#endif
+
 
 #if PLATFORM_IS_X86
 /*

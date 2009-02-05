@@ -45,8 +45,11 @@ extern	"C" {
 #elif defined(__amd64) || defined(__amd64__) || defined(_x86_64) || defined(_x86_64__)
 	#define JIT_BACKEND_X86_64		1
 	#define	JIT_HAVE_BACKEND		1
+#elif defined(__arm) || defined(__arm__)
+	#define	JIT_BACKEND_ARM			1
+	#define	JIT_HAVE_BACKEND		1
 #endif
-/*#define	JIT_BACKEND_ARM		1*/
+
 #if !defined(JIT_HAVE_BACKEND)
 	#define	JIT_BACKEND_INTERP		1
 #endif
