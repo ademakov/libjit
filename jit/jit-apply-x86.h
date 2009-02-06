@@ -43,7 +43,7 @@
 # if defined(__APPLE__) && defined(__MACH__)
 #  define JIT_MEMCPY "L_memcpy$stub"
 # else
-#  define JIT_MEMCPY "memcpy"
+#  define JIT_MEMCPY "memcpy@PLT"
 # endif
 #endif
 

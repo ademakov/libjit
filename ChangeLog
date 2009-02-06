@@ -1,3 +1,8 @@
+2009-02-06  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-apply-x86.h: Add @PLT to the definition of JIT_MEMCPY to
+	prevent set TEXTREL flags in the shared library.
+
 2009-02-06  Michele Tartara  <mikyt@users.sourceforge.net>
 
 	* jit/jit-rules.h; define JIT_BACKEND_ARM on ARM.
