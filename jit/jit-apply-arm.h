@@ -63,10 +63,7 @@
 #define	jit_builtin_apply(func,args,size,return_float,return_buf)	\
 do {									\
 	register void *sp asm("sp");					\
-	while(((unsigned int)sp) % JIT_SP_ALIGN_PUBLIC != 0)		\
-	{								\
-		sp=(void *)(((unsigned int) sp)+1);			\
-	}								\
+	sp = (void *) (((unsigned) sp) & ~(JIT_SP_ALIGN_PUBLIC - 1));	\
 	(return_buf) = __builtin_apply					\
 	((void (*)())(func), (args), (size));				\
 } while (0)

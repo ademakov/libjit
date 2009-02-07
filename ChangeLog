@@ -1,7 +1,8 @@
-2009-02-07  avd  <avd@buzz.wiraqocha.local>
+2009-02-07  Aleksey Demakov  <ademakov@gmail.com>
 
 	* gen-sel-parser.y, gen-sel-scanner.l: remove obsolete files.
 	* tools/Makefile.am: remove gen-sel target.
+	* jit/jit-apply-arm.h (jit_builtin_apply): fix bug and optimize.
 
 2009-02-06  Klaus Treichel  <ktreichel@web.de>
 
@@ -15,6 +16,10 @@
 	* include/jit/jit-arch-arm.h: add ARM arch header.
 	* jit/Makefile.am, jit/jit-rules-arm.ins, jit/jit-rules-arm.sel:
 	replace obsolete .sel file for ARM with .ins file.
+	* jit/jit-apply-arm.h: define jit_indirector_size, jit_should_pad,
+	override jit_builtin_apply.
+	* jit/jit-apply-arm.c (_jit_create_indirector, _jit_pad_buffer): add
+	functions.
 
 2009-01-30  Peter Fristedt  <fristedt@gmail.com>
             Kirill Kononenko  <Kirill.Kononenko@gmail.com>
