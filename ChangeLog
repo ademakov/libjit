@@ -1,3 +1,8 @@
+2009-02-07  avd  <avd@buzz.wiraqocha.local>
+
+	* gen-sel-parser.y, gen-sel-scanner.l: remove obsolete files.
+	* tools/Makefile.am: remove gen-sel target.
+
 2009-02-06  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-apply-x86.h: Add @PLT to the definition of JIT_MEMCPY to
