@@ -42,43 +42,53 @@
 #endif
 
 #if !defined(jit_builtin_apply)
-
 #define	jit_builtin_apply(func,args,size,return_float,return_buf)	\
 		do { \
 			(return_buf) = __builtin_apply \
 					((void (*)())(func), (args), (size)); \
 		} while (0)
+#endif
 
+#if !defined(jit_builtin_apply_args)
 #define	jit_builtin_apply_args(type,args)	\
 		do { \
 			(args) = (type)__builtin_apply_args(); \
 		} while (0)
+#endif
 
+#if !defined(jit_builtin_return_int)
 #define	jit_builtin_return_int(return_buf)	\
 		do { \
 			__builtin_return((return_buf)); \
 		} while (0)
+#endif
 
+#if !defined(jit_builtin_return_long)
 #define	jit_builtin_return_long(return_buf)	\
 		do { \
 			__builtin_return((return_buf)); \
 		} while (0)
+#endif
 
+#if !defined(jit_builtin_return_float)
 #define	jit_builtin_return_float(return_buf)	\
 		do { \
 			__builtin_return((return_buf)); \
 		} while (0)
+#endif
 
+#if !defined(jit_builtin_return_double)
 #define	jit_builtin_return_double(return_buf)	\
 		do { \
 			__builtin_return((return_buf)); \
 		} while (0)
+#endif
 
+#if !defined(jit_builtin_return_nfloat)
 #define	jit_builtin_return_nfloat(return_buf)	\
 		do { \
 			__builtin_return((return_buf)); \
 		} while (0)
-
 #endif
 
 /*

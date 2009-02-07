@@ -20,6 +20,8 @@
 	override jit_builtin_apply.
 	* jit/jit-apply-arm.c (_jit_create_indirector, _jit_pad_buffer): add
 	functions.
+	* jit/jit-apply-func.h: for each jit_builtin_* macro add individual
+	check if it's already defined.
 
 2009-01-30  Peter Fristedt  <fristedt@gmail.com>
             Kirill Kononenko  <Kirill.Kononenko@gmail.com>
