@@ -97,4 +97,47 @@ void *_jit_create_redirector(unsigned char *buf, void *func,
 	return (void *)buf;
 }
 
+/**
+ * Creates the indirector, that is the trampoline that permits the Just In Time 
+ * compilation of a method the first time that it is executed and its direct execution
+ * the following times
+ */
+void *_jit_create_indirector(unsigned char *buf, void **entry)
+{
+	arm_inst_buf inst;
+	void *start = (void *)buf;
+
+	/* Initialize the instruction buffer */
+	arm_inst_buf_init(inst, buf, buf + jit_indirector_size);
+
+	//Load the content of memory at address "entry", that is, the entry point of the function
+	arm_mov_reg_imm(inst,ARM_WORK,entry);
+	arm_mov_reg_membase(inst,ARM_WORK,ARM_WORK,0,4);
+	
+	/* Jump to the entry point. */
+	arm_mov_reg_reg(inst, ARM_PC, ARM_WORK);
+
+	/* Flush the cache lines that we just wrote */
+	jit_flush_exec(buf, ((unsigned char *)(inst.current)) - buf);
+	
+	return start;
+}
+
+void _jit_pad_buffer(unsigned char *buf, int len)
+{
+	arm_inst_buf inst;
+	
+	/* Initialize the instruction buffer */
+	arm_inst_buf_init(inst, buf, buf + len*4);
+	while(len > 0)
+	{
+		/* Traditional arm NOP */
+		arm_nop(inst);
+		--len;
+	}
+	
+	/* Flush the cache lines that we just wrote */
+	jit_flush_exec(buf, ((unsigned char *)(inst.current)) - buf);
+}
+
 #endif /* arm */

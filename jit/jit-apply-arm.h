@@ -36,4 +36,39 @@
  */
 #define	jit_redirector_size		128
 
+/*
+ * The number of bytes that are needed for a indirector stub.
+ * This includes any extra bytes that are needed for alignment.
+ */
+#define	jit_indirector_size		24
+
+/*
+ * We should pad unused code space with NOP's.
+ */
+#define	jit_should_pad			1
+
+/*
+ * Defines the alignment for the stack pointer at a public interface.
+ * As of the "Procedure Call Standard for the ARM Architecture" (AAPCS release 2.07)
+ *    SP mod 8 = 0
+ * must always be true at every public interface (function calls, etc)
+ */
+#define JIT_SP_ALIGN_PUBLIC 8
+
+/*
+ * Redefine jit_builtin_apply in order to correctly align the stack pointer
+ * to JIT_SP_ALING_PUBLIC bytes before calling __builtin_apply to execute the
+ * jit-compiled function
+ */
+#define	jit_builtin_apply(func,args,size,return_float,return_buf)	\
+do {									\
+	register void *sp asm("sp");					\
+	while(((unsigned int)sp) % JIT_SP_ALIGN_PUBLIC != 0)		\
+	{								\
+		sp=(void *)(((unsigned int) sp)+1);			\
+	}								\
+	(return_buf) = __builtin_apply					\
+	((void (*)())(func), (args), (size));				\
+} while (0)
+
 #endif	/* _JIT_APPLY_ARM_H */
