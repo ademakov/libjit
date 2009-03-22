@@ -2,6 +2,7 @@
 
 	* jit/jit-gen-arm.h: add more ARM codegen macros including VFP
 	support.
+	* jit/jit-rules-arm.ins: restore FPA rules.
 
 2009-02-07  Aleksey Demakov  <ademakov@gmail.com>
 

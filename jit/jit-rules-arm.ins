@@ -28,6 +28,7 @@
 %regclass reg arm_reg
 %regclass freg32 arm_freg32
 %regclass freg64 arm_freg64
+%regclass freg arm_freg
 %lregclass lreg arm_lreg
 %regclass breg arm_breg
 
@@ -207,53 +208,103 @@ JIT_OP_LNEG:
 		arm_alu_reg_imm8(inst, ARM_ADC, %1, %1, 0);
 	}
 
-JIT_OP_FADD (JIT_ARM_HAS_FLOAT_REGS): 
+JIT_OP_FADD (JIT_ARM_HAS_VFP): 
 	[freg32, freg32] -> {
 		arm_alu_freg_freg_32(inst, ARM_FADD, $1, $1, $2);
 	}
+	
+JIT_OP_FADD (JIT_ARM_HAS_FPA): /*binary*/
+	[freg, freg] -> {
+		arm_alu_freg_freg_32(inst, ARM_ADF, $1, $1, $2);
+	}
 
-JIT_OP_FSUB (JIT_ARM_HAS_FLOAT_REGS): 
+JIT_OP_FSUB (JIT_ARM_HAS_VFP): 
 	[freg32, freg32] -> {
 		arm_alu_freg_freg_32(inst, ARM_FSUB, $1, $1, $2);
 	}
 
-JIT_OP_FMUL (JIT_ARM_HAS_FLOAT_REGS): 
+JIT_OP_FSUB (JIT_ARM_HAS_FPA): /*binary*/
+	[freg, freg] -> {
+		arm_alu_freg_freg_32(inst, ARM_SUF, $1, $1, $2);
+	}
+
+JIT_OP_FMUL (JIT_ARM_HAS_VFP): 
 	[freg32, freg32] -> {
 		arm_alu_freg_freg_32(inst, ARM_FMUL, $1, $1, $2);
 	}
 
-JIT_OP_FDIV (JIT_ARM_HAS_FLOAT_REGS): 
+JIT_OP_FMUL (JIT_ARM_HAS_FPA): /*binary*/
+	[freg, freg] -> {
+		arm_alu_freg_freg_32(inst, ARM_MUF, $1, $1, $2);
+	}
+
+JIT_OP_FDIV (JIT_ARM_HAS_VFP): 
 	[freg32, freg32] -> {
 		arm_alu_freg_freg_32(inst, ARM_FDIV, $1, $1, $2);
 	}
 
-JIT_OP_FNEG (JIT_ARM_HAS_FLOAT_REGS): 
+JIT_OP_FDIV (JIT_ARM_HAS_FPA): /*binary*/
+	[freg, freg] -> {
+		arm_alu_freg_freg_32(inst, ARM_DVF, $1, $1, $2);
+	}
+
+JIT_OP_FNEG (JIT_ARM_HAS_VFP): 
 	[freg32] -> {
 		arm_alu_freg_32(inst, ARM_MNF, $1, $1);
 	}
 
-JIT_OP_DADD, JIT_OP_NFADD (JIT_ARM_HAS_FLOAT_REGS): 
+JIT_OP_FNEG (JIT_ARM_HAS_FPA): /*unary*/
+	[freg] -> {
+		arm_alu_freg_32(inst, ARM_MNF, $1, $1);
+	}
+
+JIT_OP_DADD, JIT_OP_NFADD (JIT_ARM_HAS_VFP): 
 	[freg64, freg64] -> {
 		arm_alu_freg_freg(inst, ARM_FADD, $1, $1, $2);
 	}
 
-JIT_OP_DSUB, JIT_OP_NFSUB (JIT_ARM_HAS_FLOAT_REGS): 
+JIT_OP_DADD, JIT_OP_NFADD (JIT_ARM_HAS_FPA): /*binary*/
+	[freg, freg] -> {
+		arm_alu_freg_freg(inst, ARM_ADF, $1, $1, $2);
+	}
+
+JIT_OP_DSUB, JIT_OP_NFSUB (JIT_ARM_HAS_VFP): 
 	[freg64, freg64] -> {
 		arm_alu_freg_freg(inst, ARM_FSUB, $1, $1, $2);
 	}
 
-JIT_OP_DMUL, JIT_OP_NFMUL (JIT_ARM_HAS_FLOAT_REGS): 
+JIT_OP_DSUB, JIT_OP_NFSUB (JIT_ARM_HAS_FPA): /*binary*/
+	[freg, freg] -> {
+		arm_alu_freg_freg(inst, ARM_SUF, $1, $1, $2);
+	}
+
+JIT_OP_DMUL, JIT_OP_NFMUL (JIT_ARM_HAS_VFP): 
 	[freg64, freg64] -> {
 		arm_alu_freg_freg(inst, ARM_FMUL, $1, $1, $2);
 	}
+	
+JIT_OP_DMUL, JIT_OP_NFMUL (JIT_ARM_HAS_FPA): /*binary*/
+	[freg, freg] -> {
+		arm_alu_freg_freg(inst, ARM_MUF, $1, $1, $2);
+	}
 
-JIT_OP_DDIV, JIT_OP_NFDIV (JIT_ARM_HAS_FLOAT_REGS): 
+JIT_OP_DDIV, JIT_OP_NFDIV (JIT_ARM_HAS_VFP): 
 	[freg64, freg64] -> {
 		arm_alu_freg_freg(inst, ARM_FDIV, $1, $1, $2);
 	}
 
-JIT_OP_DNEG, JIT_OP_NFNEG (JIT_ARM_HAS_FLOAT_REGS): 
+JIT_OP_DDIV, JIT_OP_NFDIV (JIT_ARM_HAS_FPA): /*binary*/
+	[freg, freg] -> {
+		arm_alu_freg_freg(inst, ARM_DVF, $1, $1, $2);
+	}
+
+JIT_OP_DNEG, JIT_OP_NFNEG (JIT_ARM_HAS_VFP): 
 	[freg64] -> {
+		arm_alu_freg(inst, ARM_MNF, $1, $1);
+	}
+
+JIT_OP_DNEG, JIT_OP_NFNEG (JIT_ARM_HAS_FPA): /*unary*/
+	[freg] -> {
 		arm_alu_freg(inst, ARM_MNF, $1, $1);
 	}
 
@@ -701,11 +752,21 @@ JIT_OP_RETURN_LONG: /*unary_branch*/
 		jump_to_epilog(gen, &inst, block);
 	}
 
-JIT_OP_RETURN_FLOAT32 (JIT_ARM_HAS_FLOAT_REGS): branch 
+JIT_OP_RETURN_FLOAT32 (JIT_ARM_HAS_VFP): branch 
 	[freg32, clobber("r0")] -> {
 		arm_mov_reg_float(inst, ARM_R0, $1);
 		jump_to_epilog(gen, &inst, block);
 	}
+	
+JIT_OP_RETURN_FLOAT32 (JIT_ARM_HAS_FPA): branch
+	[freg] -> {
+		if($1 != 0)
+		{
+			arm_alu_freg_32(inst, ARM_MVF, ARM_F0, $1);
+		}
+		jump_to_epilog(gen, &inst, block);
+	}
+
 
 JIT_OP_RETURN_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 	[] -> {
@@ -727,9 +788,18 @@ JIT_OP_RETURN_FLOAT32 (!JIT_ARM_HAS_FLOAT_REGS): manual
 	}
 
 JIT_OP_RETURN_FLOAT64, JIT_OP_RETURN_NFLOAT
-		(JIT_ARM_HAS_FLOAT_REGS): branch 
+		(JIT_ARM_HAS_VFP): branch 
 	[freg64, clobber("r0", "r1")] -> {
 		arm_mov_reg_reg_double(inst,ARM_R0,ARM_R1, $1);
+		jump_to_epilog(gen, &inst, block);
+	}
+
+JIT_OP_RETURN_FLOAT64, JIT_OP_RETURN_NFLOAT (JIT_ARM_HAS_FPA): branch
+	[freg] -> {
+		if($1 != 0)
+		{
+			arm_alu_freg(inst, ARM_MVF, ARM_F0, $1);
+		}
 		jump_to_epilog(gen, &inst, block);
 	}
 
@@ -1430,12 +1500,12 @@ JIT_OP_LOAD_RELATIVE_LONG:
 		}
 	}
 
-JIT_OP_LOAD_RELATIVE_FLOAT32:
+JIT_OP_LOAD_RELATIVE_FLOAT32 (JIT_ARM_HAS_VFP):
 [=freg32, reg, imm] -> {
 	arm_fld_membase(inst, $1, $2, $3, 0);
 }
 
-JIT_OP_LOAD_RELATIVE_FLOAT64:
+JIT_OP_LOAD_RELATIVE_FLOAT64 (JIT_ARM_HAS_VFP):
 [=freg64, reg, imm] -> {
 	arm_fld_membase(inst, $1, $2, $3, 1);
 }
@@ -1510,7 +1580,7 @@ JIT_OP_STORE_RELATIVE_LONG: ternary
 		arm_mov_membase_reg(inst, $1, $3 + 4, %2, 4);
 	}
 	
-JIT_OP_STORE_RELATIVE_FLOAT32: ternary
+JIT_OP_STORE_RELATIVE_FLOAT32 (JIT_ARM_HAS_VFP): ternary
 	[reg, imm, imm] -> {
 		arm_mov_membase_imm(inst, $1, $3, ((int *)($2))[0], 4, ARM_WORK);
 	}
@@ -1518,7 +1588,7 @@ JIT_OP_STORE_RELATIVE_FLOAT32: ternary
 		arm_store_membase_float32(inst, $2, $1, $3);
 	}
 
-JIT_OP_STORE_RELATIVE_FLOAT64: ternary
+JIT_OP_STORE_RELATIVE_FLOAT64 (JIT_ARM_HAS_VFP): ternary
 	[reg, imm, imm, scratch reg] -> {
 		arm_mov_membase_imm(inst, $1, $3, ((int *)($2))[0], 4, $4);
 		arm_mov_membase_imm(inst, $1, $3 + 4, ((int *)($2))[1], 4, $4);
@@ -1635,6 +1705,24 @@ JIT_OP_STORE_ELEMENT_INT: ternary
 [reg, reg, reg, scratch reg] -> {
 	arm_mov_memindex_reg(inst, $1, 0, $2, 2, $3, 4, $4);
 }
+
+JIT_OP_STORE_ELEMENT_LONG: ternary
+	[reg, reg, imm] -> {
+		TODO();
+		abort();
+		//x86_mov_memindex_imm(inst, $1, 0, $2, 3, *(int *)($3), 4);
+		//x86_mov_memindex_imm(inst, $1, 4, $2, 3, *(int *)($3 + 4), 4);
+	}
+	[reg, reg, local, scratch reg, scratch reg] -> {
+		arm_mov_reg_membase(inst, $4, ARM_FP, $3, 4);
+		arm_mov_memindex_reg(inst, $1, 0, $2, 3, $4, 4, $5);
+		arm_mov_reg_membase(inst, $4, ARM_FP, $3 + 4, 4);
+		arm_mov_memindex_reg(inst, $1, 4, $2, 3, $4, 4, $5);
+	}
+	[reg, reg, lreg, scratch reg] -> {
+		arm_mov_memindex_reg(inst, $1, 0, $2, 3, $3, 4, $4);
+		arm_mov_memindex_reg(inst, $1, 4, $2, 3, %3, 4, $4);
+	}
 
 JIT_OP_STORE_ELEMENT_FLOAT64: ternary
 [reg, reg, freg64, scratch reg] -> {
