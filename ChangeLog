@@ -1,3 +1,8 @@
+2009-03-23  Michele Tartara  <mikyt@users.sourceforge.net>
+
+	* jit/jit-gen-arm.h: add more ARM codegen macros including VFP
+	support.
+
 2009-02-07  Aleksey Demakov  <ademakov@gmail.com>
 
 	* gen-sel-parser.y, gen-sel-scanner.l: remove obsolete files.
@@ -11,7 +16,7 @@
 
 2009-02-06  Michele Tartara  <mikyt@users.sourceforge.net>
 
-	* jit/jit-rules.h; define JIT_BACKEND_ARM on ARM.
+	* jit/jit-rules.h: define JIT_BACKEND_ARM on ARM.
 	* tools/gen-apply.c: define PLATFORM_IS_ARM on ARM.
 	* include/jit/jit-arch-arm.h: add ARM arch header.
 	* jit/Makefile.am, jit/jit-rules-arm.ins, jit/jit-rules-arm.sel:

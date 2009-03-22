@@ -1,7 +1,8 @@
 /*
- * arm_codegen.h - Code generation macros for the ARM processor.
+ * jit-gen-arm.h - Code generation macros for the ARM processor.
  *
  * Copyright (C) 2003, 2004  Southern Storm Software, Pty Ltd.
+ * Copyright (C) 2008, 2009  Michele Tartara  <mikyt@users.sourceforge.net>
  *
  * This file is part of the libjit library.
  *
@@ -20,8 +21,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef	_ARM_CODEGEN_H
-#define	_ARM_CODEGEN_H
+#ifndef	_JIT_GEN_ARM_H
+#define	_JIT_GEN_ARM_H
+
+#include <assert.h>
+#include <jit-rules-arm.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,8 +60,9 @@ typedef enum
 
 } ARM_REG;
 
+#ifdef defined(JIT_ARM_HAS_FPA)
 /*
- * Floating-point register numbers.
+ * Floating-point register numbers for the FPA architecture.
  */
 typedef enum
 {
@@ -71,6 +76,40 @@ typedef enum
 	ARM_F7	= 7
 
 } ARM_FREG;
+#endif
+
+#ifdef JIT_ARM_HAS_VFP
+/*
+ * Floating-point register numbers for the Vector Floating Point architecture.
+ */
+typedef enum
+{
+	ARM_S0	= 0,
+	ARM_S1	= 1,
+	ARM_S2	= 2,
+	ARM_S3	= 3,
+	ARM_S4	= 4,
+	ARM_S5	= 5,
+	ARM_S6	= 6,
+	ARM_S7	= 7,
+	ARM_S8	= 8,
+	ARM_S9	= 9,
+	ARM_S10	= 10,
+	ARM_S11	= 11,
+	ARM_S12	= 12,
+	ARM_S13	= 13,
+	ARM_S14	= 14,
+	ARM_S15	= 15,
+	ARM_D8 = 8,
+	ARM_D9 = 9,
+	ARM_D10 = 10,
+	ARM_D11 = 11,
+	ARM_D12 = 12,
+	ARM_D13 = 13,
+	ARM_D14 = 14,
+	ARM_D15 = 15
+} ARM_FREG;
+#endif
 
 /*
  * Condition codes.
@@ -136,6 +175,9 @@ typedef enum
 
 } ARM_SHIFT;
 
+#ifdef defined(JIT_ARM_HAS_FPA)
+/* Floating point definitions for the FPA architecture */
+
 /*
  * Floating-point unary operators.
  */
@@ -178,6 +220,34 @@ typedef enum
 	ARM_POL		= 12			/* Polar angle */
 
 } ARM_FBINARY;
+
+#endif /* JIT_ARM_HAS_FPA */
+
+#ifdef JIT_ARM_HAS_VFP
+/* Floating point definitions for the Vector Floating Point architecture */
+
+/*
+ * Floating-point unary operators.
+ */
+typedef enum
+{
+	ARM_MVF		= 0,			/* Move - FCPY */
+	ARM_MNF		= 1,			/* Move negative - FNEG */
+	ARM_ABS		= 2			/* Absolute value - FABS */
+} ARM_FUNARY;
+
+/*
+ * Floating-point binary operators.
+ */
+typedef enum
+{
+	ARM_FADD	= 0,			/* Add */
+	ARM_FMUL	= 1,			/* Multiply */
+	ARM_FSUB	= 2,			/* Subtract */
+	ARM_FDIV	= 4			/* Divide */
+} ARM_FBINARY;
+
+#endif /* JIT_ARM_HAS_VFP */
 
 /*
  * Number of registers that are used for parameters (r0-r3).
@@ -382,12 +452,31 @@ extern void _arm_alu_reg_imm
 				} \
 			} while (0)
 
+#define arm_test_reg_membase(inst,opc,reg,basereg,disp,scratchreg)	\
+			do {	\
+				assert(reg!=scratchreg);	\
+				assert(basereg!=scratchreg);	\
+				arm_load_membase((inst), (tmpreg),(basereg),(disp));	\
+				arm_test_reg_reg((inst), (opc), (reg), (tmpreg));	\
+} while (0)
+
 /*
  * Move a value between registers.
  */
 #define	arm_mov_reg_reg(inst,dreg,sreg)	\
 			do { \
 				arm_alu_reg((inst), ARM_MOV, (dreg), (sreg)); \
+			} while (0)
+			
+/**
+ * Move a value between floating point registers.
+ * @var inst is the pointer to the location of memory at which the instruction will be put
+ * @var dreg is the destination register
+ * @var freg is the source register
+ */
+#define	arm_mov_freg_freg(inst,dreg,sreg)	\
+			do { \
+				arm_alu_freg((inst), ARM_MVF, (dreg), (sreg)); \
 			} while (0)
 
 /*
@@ -407,6 +496,14 @@ extern void _arm_alu_reg_imm
 extern void _arm_mov_reg_imm
 	(arm_inst_buf *inst, int reg, int value, int execute_prefix);
 extern int arm_is_complex_imm(int value);
+
+/**
+ * Moves the immediate value imm into register reg.
+ *
+ * In case imm is > 255, it builds the value one byte at a time, by calling _arm_mov_reg_imm
+ * This is done by using a big number of instruction.
+ * In that case, using mov_reg_imm (defined in jit-rules-arm.c is probably a better idea, when possible
+ */
 #define	arm_mov_reg_imm(inst,reg,imm)	\
 			do { \
 				int __imm = (int)(imm); \
@@ -430,6 +527,136 @@ extern int arm_is_complex_imm(int value);
 					_arm_mov_reg_imm(&(inst), (reg), __imm, arm_execute); \
 				} \
 			} while (0)
+
+#define ARM_NOBASEREG (-1)
+
+/**
+ * LDR (Load Register), LDRB (Load Register Byte)
+ * Load the content of the memory area of size "size" at position basereg+disp+(indexreg<<shift) into the 32-bit "reg", with zero-extension.
+ * "scratchreg" is a scratch register that has to be asked to the register allocator; it is 
+ * used only when disp!=0; if disp==0, it can have whatever value, since it won't be used
+ */
+#define arm_mov_reg_memindex(inst,reg,basereg,disp,indexreg,shift,size,scratchreg)	\
+do {	\
+	if (basereg==ARM_NOBASEREG)	\
+	{	\
+		fprintf(stderr, "TODO(NOBASEREG) at %s, %d\n", __FILE__, (int)__LINE__);	\
+	}	\
+	else	\
+	{	\
+		/* Add the displacement (only if needed)*/\
+		int tempreg=(basereg);	\
+		if (disp!=0)	\
+		{	\
+			tempreg=(scratchreg);	\
+			assert(tempreg!=basereg);	\
+			assert(tempreg!=indexreg);	\
+			arm_alu_reg_imm((inst), ARM_ADD, (tempreg), (basereg), (disp)); \
+		}	\
+		/* Load the content, depending on its size */	\
+		switch ((size)) {	\
+			case 1: arm_load_memindex_either(inst,reg,(tempreg),indexreg,shift,0x00400000); break;	\
+			case 2: arm_load_memindex_either(inst,reg,tempreg,indexreg,shift,0);	\
+				arm_shift_reg_imm8((inst), ARM_SHL, (reg), (reg), 16);	\
+				arm_shift_reg_imm8((inst), ARM_SHR, (reg), (reg), 16);	\
+				break; \
+			case 4: arm_load_memindex_either(inst,reg,tempreg,indexreg,shift,0); break;	\
+			default: assert (0);	\
+		}	\
+	}	\
+} while (0)
+
+/**
+ * Store the content of "reg" into a memory area of size "size" at position basereg+disp+(indexreg<<shift)
+ * NB: the scratch register has to be asked to the register allocator.
+ *     It can't be ARM_WORK, since it's already used
+ */
+#define arm_mov_memindex_reg(inst,basereg,disp,indexreg,shift,reg,size,scratchreg)	\
+do {	\
+	if (basereg==ARM_NOBASEREG)	\
+	{	\
+		fprintf(stderr, "TODO(NOBASEREG) at %s, %d\n", __FILE__, (int)__LINE__);	\
+	}	\
+	else	\
+	{	\
+		arm_shift_reg_imm8((inst), ARM_SHL, (ARM_WORK), (indexreg), (shift));	\
+		arm_alu_reg_reg((inst), ARM_ADD, (scratchreg), (basereg), ARM_WORK);	\
+		arm_mov_membase_reg((inst),(scratchreg),(disp),(reg),(size))	\
+	}	\
+} while (0);
+
+/*
+ * Stores the content of register "reg" in memory, at position "mem" with size "size"
+ * NB: destroys the content of ARM_WORK
+ */
+#define arm_mov_mem_reg(inst,mem,reg,size)	\
+do {	\
+	arm_mov_reg_imm((inst), ARM_WORK, (mem));	\
+	switch ((size)) {	\
+		case 1: arm_store_membase_byte((inst), (reg), ARM_WORK, 0); break;	\
+		case 2: arm_store_membase_short((inst), (reg), ARM_WORK, 0); break;	\
+		case 4: arm_store_membase((inst), (reg), ARM_WORK, 0); break;	\
+		default: jit_assert(0);	\
+	}	\
+} while (0)
+
+/*
+ * Stores the content of "imm" in memory, at position "mem" with size "size". Uses a scratch register (scratchreg),
+ * that has to be asked to the register allocator via the [scratch reg] parameter in the definition of the OPCODE.
+ * NB: destroys the content of ARM_WORK
+ */
+#define arm_mov_mem_imm(inst,mem,imm,size,scratchreg)	\
+do {	\
+	arm_mov_reg_imm((inst), (scratchreg), (imm));	\
+	arm_mov_reg_imm((inst), ARM_WORK, (mem));	\
+	switch ((size)) {	\
+		case 1: arm_store_membase_byte((inst), (scratchreg), ARM_WORK, 0); break;	\
+		case 2: arm_store_membase_short((inst), (scratchreg), ARM_WORK, 0); break;	\
+		case 4: arm_store_membase((inst), (scratchreg), ARM_WORK, 0); break;	\
+		default: assert(0);	\
+	}	\
+} while (0)
+
+/**
+ * Set "size" bytes at position basereg+disp at the value of imm
+ * NB: destroys the content of scratchreg. A good choice for scratchreg is ARM_WORK,
+ * unless the value of disp is too big to be handled by arm_store_membase_either. In that case,
+ * it's better to require the allocation of a scratch reg by adding the parameter [scratch reg] at the end
+ * of the parameters of the rule inside jit-rules-arm.ins that's calling this function.
+ */
+#define arm_mov_membase_imm(inst,basereg,disp,imm,size,scratchreg)	\
+do {	\
+	arm_mov_reg_imm((inst), (scratchreg), imm);	\
+	arm_mov_membase_reg((inst), (basereg), (disp), (scratchreg), (size));	\
+} while(0);
+
+/**
+ * Set "size" bytes at position basereg+disp at the value of reg
+ * NB: might destroy the content of ARM_WORK because of arm_store_membase
+ */
+#define arm_mov_membase_reg(inst,basereg,disp,reg,size)	\
+do {	\
+	switch ((size)) {	\
+		case 1: arm_store_membase_byte((inst), (reg), (basereg), (disp)); break;	\
+		case 2: arm_store_membase_short((inst), (reg), (basereg), (disp)); break;	\
+		case 4: arm_store_membase((inst), (reg), (basereg), (disp)); break;	\
+		default: jit_assert(0);	\
+	}	\
+} while(0);
+
+/**
+* Set the value of "reg" to the "size"-bytes-long value held in memory at position basereg+disp
+* NB: can destroys the content of ARM_WORK because of arm_store_membase_short
+*/
+#define arm_mov_reg_membase(inst,reg,basereg,disp,size)	\
+do {	\
+	switch ((size)) {	\
+		case 1: arm_load_membase_byte((inst), (reg), (basereg), (disp)); break;	\
+		case 2: arm_load_membase_short((inst), (reg), (basereg), (disp)); break;	\
+		case 4: arm_load_membase((inst), (reg), (basereg), (disp)); break;	\
+		default: jit_assert(0);	\
+}	\
+} while(0);
 
 /*
  * Clear a register to zero.
@@ -491,6 +718,7 @@ extern int arm_is_complex_imm(int value);
 				} \
 			} while (0)
 
+#ifdef JIT_ARM_HAS_FPA
 /*
  * Perform a binary operation on floating-point arguments.
  */
@@ -529,6 +757,149 @@ extern int arm_is_complex_imm(int value);
 							 ((unsigned int)(sreg))); \
 			} while (0)
 
+
+#endif /* JIT_ARM_HAS_FPA */
+
+#ifdef JIT_ARM_HAS_VFP
+/**
+ * Perform a binary operation on double-precision floating-point arguments.
+ * OPC is the number indicating the operation to execute (taken from enum ARM_FBINARY)
+ * sreg1 and sreg2 are the registers containing the first and second operand
+ * dreg is the destination register
+ */
+#define	arm_alu_freg_freg(inst,opc,dreg,sreg1,sreg2)	\
+			do { \
+				unsigned int mask;	\
+				switch(opc)	\
+				{	\
+					case ARM_FADD:	\
+						mask=0x0E300B00;	\
+						break;	\
+					case ARM_FMUL:	\
+						mask=0x0E200B00;	\
+						break;	\
+					case ARM_FSUB:	\
+						mask=0x0E300B40;	\
+						break;	\
+					case ARM_FDIV:	\
+						mask=0x0E800B00;	\
+						break;	\
+					default:	\
+						printf("Unimplemented binary operation %d in %s\n", opc,  __FILE__);	\
+						abort();	\
+				}	\
+				arm_inst_add((inst), arm_prefix(mask) | \
+							(((unsigned int)(dreg)) << 12) | \
+							(((unsigned int)(sreg1)) << 16) | \
+							((unsigned int)(sreg2))); \
+			} while (0)
+/**
+ * Perform a binary operation on single-precision floating-point arguments.
+ * OPC is the number indicating the operation to execute (taken from enum ARM_FBINARY)
+ * sreg1 and sreg2 are the registers containing the first and second operand
+ * dreg is the destination register
+ */
+#define	arm_alu_freg_freg_32(inst,opc,dreg,sreg1,sreg2)	\
+do { \
+	unsigned int mask;	\
+	switch(opc)	\
+	{	\
+		case ARM_FADD:	\
+			mask=0x0E300A00;	\
+			break;	\
+		case ARM_FMUL:	\
+			mask=0x0E200A00;	\
+			break;	\
+		case ARM_FSUB:	\
+			mask=0x0E300A40;	\
+			break;	\
+		case ARM_FDIV:	\
+			mask=0x0E800A00;	\
+			break;	\
+		default:	\
+			printf("Unimplemented binary operation %d in %s\n", opc,  __FILE__);	\
+			abort();	\
+	}	\
+	unsigned int dreg_top_4_bits = (dreg & 0x1E) >> 1;	\
+	unsigned int dreg_bottom_bit = (dreg & 0x01);	\
+	unsigned int sreg1_top_4_bits = (sreg1 & 0x1E) >> 1;	\
+	unsigned int sreg1_bottom_bit = (sreg1 & 0x01);	\
+	unsigned int sreg2_top_4_bits = (sreg2 & 0x1E) >> 1;	\
+	unsigned int sreg2_bottom_bit = (sreg2 & 0x01);	\
+	arm_inst_add((inst), arm_prefix(mask) | \
+				(((unsigned int)(dreg_top_4_bits)) << 12) |	\
+				(((unsigned int)(dreg_bottom_bit)) << 22) |	\
+				(((unsigned int)(sreg1_top_4_bits)) << 16) |	\
+				(((unsigned int)(sreg1_bottom_bit)) << 7) |	\
+				(((unsigned int)(sreg2_bottom_bit)) << 5) |	\
+				((unsigned int)(sreg2_top_4_bits))); \
+} while (0)
+
+/**
+* Perform a unary operation on a double-precision floating-point argument.
+* OPC is the number indicating the operation to execute (taken from enum ARM_FUNARY)
+* sreg is the register containing the operand
+* dreg is the destination register
+*/
+#define	arm_alu_freg(inst,opc,dreg,sreg)	\
+			do { \
+				unsigned int mask;	\
+				switch(opc)	\
+				{	\
+					case ARM_MVF:	\
+						mask=0xEB00B40;	\
+						break;	\
+					case ARM_MNF:	\
+						mask=0xEB10B40;	\
+						break;	\
+					case ARM_ABS:	\
+						mask=0xEB00BC0;	\
+						break;	\
+					default:	\
+						printf("Unimplemented unary operation %d in %s\n", opc,  __FILE__);	\
+						abort();	\
+				}	\
+				arm_inst_add((inst), arm_prefix(mask) | \
+							(((unsigned int)(dreg)) << 12) |	\
+							 ((unsigned int)(sreg))); \
+			} while (0)
+			
+/**
+ * Perform a unary operation on a single-precision floating-point argument.
+ * OPC is the number indicating the operation to execute (taken from enum ARM_FUNARY)
+ * sreg is the register containing the operand
+ * dreg is the destination register
+ */			
+#define	arm_alu_freg_32(inst,opc,dreg,sreg)	\
+			do { \
+				unsigned int mask;	\
+				switch(opc)	\
+				{	\
+					case ARM_MVF:	\
+						mask=0xEB00A40;	\
+						break;	\
+					case ARM_MNF:	\
+						mask=0xEB10A40;	\
+						break;	\
+					case ARM_ABS:	\
+						mask=0xEB00AC0;	\
+						break;	\
+					default:	\
+						printf("Unimplemented OPCODE in %s\n", __FILE__);	\
+						abort();	\
+				}	\
+				unsigned int dreg_top_4_bits = (dreg & 0x1E) >> 1;	\
+				unsigned int dreg_bottom_bit = (dreg & 0x01);	\
+				unsigned int sreg_top_4_bits = (sreg & 0x1E) >> 1;	\
+				unsigned int sreg_bottom_bit = (sreg & 0x01);	\
+				arm_inst_add((inst), arm_prefix(mask) | \
+							(((unsigned int)(dreg_top_4_bits)) << 12) |	\
+							(((unsigned int)(dreg_bottom_bit)) << 22) |	\
+							(((unsigned int)(sreg_bottom_bit)) << 5)  |	\
+							 ((unsigned int)(sreg_top_4_bits))); \
+			} while (0)
+
+#endif /* JIT_ARM_HAS_VFP */
 /*
  * Branch or jump immediate by a byte offset.  The offset is
  * assumed to be +/- 32 Mbytes.
@@ -598,6 +969,7 @@ extern int arm_is_complex_imm(int value);
 
 /*
  * Call a subroutine at a specific target location.
+ * (Equivalent to x86_call_code)
  */
 #define	arm_call(inst,target)	\
 			do { \
@@ -644,6 +1016,15 @@ extern int arm_is_complex_imm(int value);
 							(((unsigned int)(reg)) << 12)); \
 			} while (0)
 
+/*
+ * Pop the top of the system stack and put it at a given offset from the position specified by basereg (that is, usually, the frame pointer). NB: This macro thrashes the content of ARM_WORK
+ */
+#define arm_pop_membase(inst,basereg,offset)	\
+			do {	\
+				arm_pop_reg((inst), ARM_WORK);	\
+				arm_store_membase((inst),ARM_WORK,basereg,offset);	\
+			} while (0)
+			
 /*
  * Set up a local variable frame, and save the registers in "regset".
  */
@@ -710,6 +1091,7 @@ extern int arm_is_complex_imm(int value);
 				} \
 				else \
 				{ \
+					assert(basereg!=ARM_WORK);	\
 					arm_mov_reg_imm((inst), ARM_WORK, __mb_offset); \
 					arm_inst_add((inst), arm_prefix(0x07900000 | (mask)) | \
 								(((unsigned int)(basereg)) << 16) | \
@@ -721,6 +1103,37 @@ extern int arm_is_complex_imm(int value);
 			do { \
 				arm_load_membase_either((inst), (reg), (basereg), (imm), 0); \
 			} while (0)
+
+/**
+ * Moves the content of 1 byte (is_half==0) or 2 bytes (is_half==1) from memory address basereg+disp+(indexreg<<shift) into dreg, with sign extension (is_signed==1) or zero extension (is_signed==0)
+ */
+#define arm_widen_memindex(inst,dreg,basereg,disp,indexreg,shift,is_signed,is_half)	\
+do {	\
+	int scratchreg=ARM_WORK;	\
+	if(is_half)	\
+	{	\
+		arm_mov_reg_memindex((inst),(dreg),(basereg),(disp),(indexreg),(shift),2, scratchreg);	\
+	}	\
+	else	\
+	{	\
+		arm_mov_reg_memindex((inst),(dreg),(basereg),(disp),(indexreg),(shift),1, scratchreg);	\
+	}	\
+	if(is_signed)	\
+	{	\
+		int shiftSize;	\
+		if (is_half)	\
+		{	\
+			shiftSize=16;	\
+		}	\
+		else	\
+		{	\
+			shiftSize=24;	\
+		}	\
+		arm_shift_reg_imm8((inst), ARM_SHL, (dreg), (dreg), shiftSize); \
+		arm_shift_reg_imm8((inst), ARM_SAR, (dreg), (dreg), shiftSize);	\
+	}	\
+} while (0)
+
 #define	arm_load_membase_byte(inst,reg,basereg,imm)	\
 			do { \
 				arm_load_membase_either((inst), (reg), (basereg), (imm), \
@@ -749,6 +1162,8 @@ extern int arm_is_complex_imm(int value);
 				arm_alu_reg_reg((inst), ARM_ORR, (reg), (reg), ARM_WORK); \
 			} while (0)
 
+
+#ifdef JIT_ARM_HAS_FPA
 /*
  * Load a floating-point value from an address into a register.
  */
@@ -791,10 +1206,209 @@ extern int arm_is_complex_imm(int value);
 									   (imm), 0x00008000); \
 			} while (0)
 
-/*
- * Store a value from a register into an address.
+#endif /* JIT_ARM_HAS_FPA */
+
+#ifdef JIT_ARM_HAS_VFP
+/**
+ * FLDS (Floating-point Load, Single-precision)
+ * Loads a word from memory address basereg+imm to 
+ * the single precision floating point register reg.
+ * "mask" is usually set to 0
+ */
+#define	arm_load_membase_float(inst,reg,basereg,imm,mask)	\
+do { \
+	unsigned int reg_top_4_bits = (reg & 0x1E) >> 1;	\
+	unsigned int reg_bottom_bit = (reg & 0x01);	\
+	int __mb_offset = (int)(imm); \
+	if(__mb_offset >= 0 && __mb_offset < (1 << 10) && \
+		(__mb_offset & 3) == 0) \
+	{ \
+		arm_inst_add((inst), arm_prefix(0x0D900A00 | (mask)) | \
+			(((unsigned int)(basereg)) << 16) | \
+			(((unsigned int)(reg_top_4_bits)) << 12) | \
+			(((unsigned int)(reg_bottom_bit)) << 22) | \
+			((unsigned int)((__mb_offset / 4) & 0xFF))); \
+	} \
+	else if(__mb_offset > -(1 << 10) && __mb_offset < 0 && \
+		(__mb_offset & 3) == 0) \
+	{ \
+		arm_inst_add((inst), arm_prefix(0x0D100A00 | (mask)) | \
+			(((unsigned int)(basereg)) << 16) | \
+			(((unsigned int)(reg_top_4_bits)) << 12) | \
+			(((unsigned int)(reg_bottom_bit)) << 22) | \
+			((unsigned int)(((-__mb_offset) / 4) & 0xFF)));\
+	} \
+	else \
+	{ \
+		assert(reg != ARM_WORK);	\
+		assert(basereg!=ARM_WORK);	\
+		if(__mb_offset > 0)	\
+		{	\
+			arm_mov_reg_imm((inst), ARM_WORK, __mb_offset);	\
+			arm_alu_reg_reg((inst), ARM_ADD, ARM_WORK, (basereg), ARM_WORK);	\
+		}	\
+		else	\
+		{	\
+			arm_mov_reg_imm((inst), ARM_WORK, -__mb_offset);	\
+			arm_alu_reg_reg((inst), ARM_SUB, ARM_WORK, (basereg), ARM_WORK);	\
+		}	\
+		arm_inst_add((inst), arm_prefix(0x0D900A00 | (mask)) | \
+			(((unsigned int)ARM_WORK) << 16) | \
+			(((unsigned int)(reg_top_4_bits)) << 12) | \
+			(((unsigned int)(reg_bottom_bit)) << 22)); \
+	} \
+} while (0)
+
+/**
+ * FLDD
+ */
+#define	arm_load_membase_float64(inst,reg,basereg,imm)	\
+			do { \
+				int __mb_offset = (int)(imm); \
+				if(__mb_offset >= 0 && __mb_offset < (1 << 10) && \
+				   (__mb_offset & 3) == 0) \
+				{ \
+					arm_inst_add((inst), arm_prefix(0x0D900B00) | \
+							(((unsigned int)(basereg)) << 16) | \
+							(((unsigned int)(reg)) << 12) | \
+							 ((unsigned int)((__mb_offset / 4) & 0xFF))); \
+				} \
+				else if(__mb_offset > -(1 << 10) && __mb_offset < 0 && \
+				        (__mb_offset & 3) == 0) \
+				{ \
+					arm_inst_add((inst), arm_prefix(0x0D100B00) | \
+							(((unsigned int)(basereg)) << 16) | \
+							(((unsigned int)(reg)) << 12) | \
+							 ((unsigned int)(((-__mb_offset) / 4) & 0xFF)));\
+				} \
+				else \
+				{ \
+					assert(reg != ARM_WORK);	\
+					assert(basereg!=ARM_WORK);	\
+					if(__mb_offset > 0)	\
+					{	\
+						arm_mov_reg_imm((inst), ARM_WORK, __mb_offset);	\
+						arm_alu_reg_reg((inst), ARM_ADD, ARM_WORK, (basereg), ARM_WORK);	\
+					}	\
+					else	\
+					{	\
+						arm_mov_reg_imm((inst), ARM_WORK, -__mb_offset);	\
+						arm_alu_reg_reg((inst), ARM_SUB, ARM_WORK, (basereg), ARM_WORK);	\
+					}	\
+					arm_inst_add((inst), arm_prefix(0x0D900B00) | \
+							(((unsigned int)ARM_WORK) << 16) | \
+							(((unsigned int)(reg)) << 12)); \
+				} \
+			} while (0)
+
+#define	arm_load_membase_float32(inst,reg,basereg,imm)	\
+			do { \
+				arm_load_membase_float((inst), (reg), (basereg), (imm), 0); \
+			} while (0)
+
+/**
+* Load the content of the memory area at position basereg+disp into the float register "dfreg",
+* using the appropriate instruction depending whether the value to be loaded is_double (1 => 64 bits) or not (0 => 32 bits)
+* (it's similar to x86_fld_membase)
+*/
+#define arm_fld_membase(inst,dfreg,basereg,disp,is_double)	\
+do {	\
+	if (is_double)	\
+	{	\
+		arm_load_membase_float64((inst), (dfreg), (basereg), (disp));	\
+	}	\
+	else	\
+	{	\
+		arm_load_membase_float32((inst), (dfreg), (basereg), (disp));	\
+	}\
+} while(0)
+
+/**
+ * Load the content of the memory area at position basereg+disp+(indexreg<<shift) into the float register "dfreg",
+ * using the appropriate instruction depending whether the value to be loaded is_double (1 => 64 bits) or not (0 => 32 bits)
+ * (it's similar to x86_fld_memindex)
+ */
+#define arm_fld_memindex(inst,dfreg,basereg,disp,indexreg,shift,is_double,scratchreg) \
+	do {	\
+		if (is_double)	\
+		{	\
+			arm_load_memindex_float64((inst), (dfreg), (basereg), (disp), (indexreg), (shift), (scratchreg));	\
+		}	\
+		else	\
+		{	\
+			arm_load_memindex_float32((inst), (dfreg), (basereg), (disp), (indexreg), (shift), (scratchreg));	\
+		}\
+	} while(0)
+/**
+ * Load the content of the 64-bits memory area at position basereg+disp+(indexreg<<shift) into the double register "dfreg"
+ * NB: the scratch register has to be asked to the register allocator.
+ *     It can't be ARM_WORK, since it's already used
+ */
+#define arm_load_memindex_float64(inst,dfreg,basereg,disp,indexreg,shift,scratchreg)	\
+	do {	\
+		arm_shift_reg_imm8((inst), ARM_SHL, ARM_WORK, (indexreg), (shift));	\
+		arm_alu_reg_reg((inst), ARM_ADD, (scratchreg), (basereg), ARM_WORK);	\
+		arm_load_membase_float64((inst), (dfreg), (scratchreg), (disp));	\
+	} while (0)
+	
+/**
+ * Load the content of the 32-bits memory area at position basereg+disp+(indexreg<<shift) into the single float register "dfreg"
+ * NB: the scratch register has to be asked to the register allocator.
+ *     It can't be ARM_WORK, since it's already used
+ */
+#define arm_load_memindex_float32(inst,dfreg,basereg,disp,indexreg,shift,scratchreg)	\
+do {	\
+	arm_shift_reg_imm8((inst), ARM_SHL, ARM_WORK, (indexreg), (shift));	\
+	arm_alu_reg_reg((inst), ARM_ADD, (scratchreg), (basereg), ARM_WORK);	\
+	arm_load_membase_float32((inst), (dfreg), (scratchreg), (disp));	\
+	} while (0)
+
+/**
+ * Store the content of the float register "sfreg" into the memory area at position basereg+disp+(indexreg<<shift)
+ * using the appropriate instruction depending whether the value to be loaded is_double (1 => 64 bits) or not (0 => 32 bits)
+ * (it's similar to x86_fst_memindex)
+ */
+#define arm_fst_memindex(inst,sfreg,basereg,disp,indexreg,shift,is_double,scratchreg) \
+do {	\
+	if (is_double)	\
+	{	\
+		arm_store_memindex_float64((inst), (sfreg), (basereg), (disp), (indexreg), (shift), (scratchreg));	\
+	}	\
+	else	\
+	{	\
+		arm_store_memindex_float32((inst), (sfreg), (basereg), (disp), (indexreg), (shift), (scratchreg));	\
+	}\
+} while(0)
+
+/**
+ * Store the content of the double float register "dfreg" into the 64-bits memory area at position basereg+disp+(indexreg<<shift)
+ * NB: the scratch register has to be asked to the register allocator.
+ *     It can't be ARM_WORK, since it's already used
+ */
+#define arm_store_memindex_float64(inst,dfreg,basereg,disp,indexreg,shift,scratchreg)	\
+do {	\
+	arm_shift_reg_imm8((inst), ARM_SHL, ARM_WORK, (indexreg), (shift));	\
+	arm_alu_reg_reg((inst), ARM_ADD, (scratchreg), (basereg), ARM_WORK);	\
+	arm_store_membase_float64((inst), (dfreg), (scratchreg), (disp));	\
+} while (0)
+
+/**
+ * Store the content of the single float register "dfreg" into the 32-bits memory area at position basereg+disp+(indexreg<<shift)
+ * NB: the scratch register has to be asked to the register allocator.
+ *     It can't be ARM_WORK, since it's already used
+ */
+#define arm_store_memindex_float32(inst,dfreg,basereg,disp,indexreg,shift,scratchreg)	\
+do {	\
+	arm_shift_reg_imm8((inst), ARM_SHL, ARM_WORK, (indexreg), (shift));	\
+	arm_alu_reg_reg((inst), ARM_ADD, (scratchreg), (basereg), ARM_WORK);	\
+	arm_store_membase_float32((inst), (dfreg), (scratchreg), (disp));	\
+} while (0)
+
+#endif /* JIT_ARM_HAS_VFP */
+
+/**
+ * Store a value from a register (reg) into an address (basereg+imm).
  *
- * Note: storing a 16-bit value destroys the value in the register.
  */
 #define arm_store_membase_either(inst,reg,basereg,imm,mask)	\
 			do { \
@@ -815,6 +1429,8 @@ extern int arm_is_complex_imm(int value);
 				} \
 				else \
 				{ \
+					assert(reg != ARM_WORK);	\
+					assert(basereg!=ARM_WORK);	\
 					arm_mov_reg_imm((inst), ARM_WORK, __sm_offset); \
 					arm_inst_add((inst), arm_prefix(0x07800000 | (mask)) | \
 								(((unsigned int)(basereg)) << 16) | \
@@ -822,6 +1438,10 @@ extern int arm_is_complex_imm(int value);
 								 ((unsigned int)ARM_WORK)); \
 				} \
 			} while (0)
+
+/*
+ * The ARM STR instruction. The content of "reg" will be put in memory at the address given by the content of basereg + imm
+ */
 #define	arm_store_membase(inst,reg,basereg,imm)	\
 			do { \
 				arm_store_membase_either((inst), (reg), (basereg), (imm), 0); \
@@ -848,6 +1468,7 @@ extern int arm_is_complex_imm(int value);
 				arm_store_membase_short((inst), (reg), (basereg), (imm)); \
 			} while (0)
 
+#ifdef JIT_ARM_HAS_FPA
 /*
  * Store a floating-point value to a memory address.
  */
@@ -899,6 +1520,209 @@ extern int arm_is_complex_imm(int value);
 				arm_store_membase_float((inst), (reg), ARM_SP, \
 									    -4, 0x00208000); \
 			} while (0)
+
+#endif /* JIT_ARM_HAS_FPA */
+
+#ifdef JIT_ARM_HAS_VFP
+/**
+ * FSTS
+ * Store a floating-point value to a memory address.
+ */
+#define arm_store_membase_float32(inst,reg,basereg,imm)	\
+do { \
+	unsigned int reg_top_4_bits = (reg & 0x1E) >> 1;	\
+	unsigned int reg_bottom_bit = (reg & 0x01);	\
+	int __mb_offset = (int)(imm);	\
+	if(__mb_offset >= 0 && __mb_offset < (1 << 10) && (__mb_offset & 3) == 0)	\
+	{	\
+		arm_inst_add((inst), arm_prefix(0x0D800A00) |	\
+			(((unsigned int)(basereg)) << 16) | 	\
+			(((unsigned int)(reg_top_4_bits)) << 12) |	\
+			(((unsigned int)(reg_bottom_bit)) << 22) |	\
+			((unsigned int)((__mb_offset / 4) & 0xFF)));	\
+	}	\
+	else if(__mb_offset > -(1 << 10) && __mb_offset < 0 && (__mb_offset & 3) == 0)	\
+	{	\
+		arm_inst_add((inst), arm_prefix(0x0D000A00) |	\
+			(((unsigned int)(basereg)) << 16) |	\
+			(((unsigned int)(reg_top_4_bits)) << 12) |	\
+			(((unsigned int)(reg_bottom_bit)) << 22) |	\
+			((unsigned int)(((-__mb_offset) / 4) & 0xFF)));	\
+	}	\
+	else	\
+	{ \
+		assert(reg != ARM_WORK);	\
+		assert(basereg!=ARM_WORK);	\
+		if(__mb_offset > 0)	\
+		{	\
+			arm_mov_reg_imm((inst), ARM_WORK, __mb_offset); \
+			arm_alu_reg_reg((inst), ARM_ADD, ARM_WORK, (basereg), ARM_WORK); \
+		}	\
+		else	\
+		{	\
+			arm_mov_reg_imm((inst), ARM_WORK, -__mb_offset); \
+			arm_alu_reg_reg((inst), ARM_SUB, ARM_WORK, (basereg), ARM_WORK); \
+		}	\
+		arm_inst_add((inst), arm_prefix(0x0D800A00) |	\
+			(((unsigned int)ARM_WORK) << 16) | 	\
+			(((unsigned int)(reg_top_4_bits)) << 12) |	\
+			(((unsigned int)(reg_bottom_bit)) << 22));	\
+	} \
+} while (0)
+
+/**
+* FSTD
+*/
+#define	arm_store_membase_float64(inst,reg,basereg,imm)	\
+do { \
+	int __mb_offset = (int)(imm); \
+	if(__mb_offset >= 0 && __mb_offset < (1 << 10) && \
+		(__mb_offset & 3) == 0) \
+	{ \
+		arm_inst_add((inst), arm_prefix(0x0D800B00 |	\
+			(((unsigned int)(basereg)) << 16) | \
+			(((unsigned int)(reg)) << 12) | 	\
+			((unsigned int)((__mb_offset / 4) & 0xFF)))); \
+	} \
+	else if(__mb_offset > -(1 << 10) && __mb_offset < 0 && \
+		(__mb_offset & 3) == 0) \
+	{ \
+		arm_inst_add((inst), arm_prefix(0x0D000B00 |	\
+			(((unsigned int)(basereg)) << 16) | \
+			(((unsigned int)(reg)) << 12) | 	\
+			((unsigned int)(((-__mb_offset) / 4) & 0xFF))));\
+	} \
+	else \
+	{ \
+		assert(reg != ARM_WORK);	\
+		assert(basereg!=ARM_WORK);	\
+		if(__mb_offset > 0)	\
+		{	\
+			arm_mov_reg_imm((inst), ARM_WORK, __mb_offset);	\
+			arm_alu_reg_reg((inst), ARM_ADD, ARM_WORK, (basereg), ARM_WORK);	\
+		}	\
+		else	\
+		{	\
+			arm_mov_reg_imm((inst), ARM_WORK, -__mb_offset);	\
+			arm_alu_reg_reg((inst), ARM_SUB, ARM_WORK, (basereg), ARM_WORK);\
+		}	\
+		arm_inst_add((inst), arm_prefix(0x0D800B00 |	\
+			(((unsigned int)ARM_WORK) << 16) | \
+			(((unsigned int)(reg)) << 12)));\
+	} \
+} while (0)
+
+/*
+ * Floating point push/pop operations
+ */
+#define	arm_push_reg_float64(inst,reg)	\
+			do { \
+				arm_store_membase_float64((inst), (reg), ARM_SP, -8); \
+				arm_alu_reg_imm(inst, ARM_SUB, ARM_SP, ARM_SP, 8);	\
+			} while (0)
+			
+#define	arm_push_reg_float32(inst,reg)	\
+			do { \
+				arm_store_membase_float32((inst), (reg), ARM_SP, -4); \
+				arm_alu_reg_imm(inst, ARM_SUB, ARM_SP, ARM_SP, 4);	\
+			} while (0)
+
+/**
+ * FMDRR (Floating-point Move to Double-precision Register from two Registers)
+ * Move a value from two ARM registers (lowsreg, highsreg) to a double-precision floating point register (dreg)
+ */
+#define arm_mov_double_reg_reg(inst,dreg,lowsreg,highsreg)	\
+do { \
+	arm_inst_add((inst), arm_prefix(0x0C400B10) | \
+	(((unsigned int)(lowsreg)) << 12) | \
+	(((unsigned int)(highsreg)) << 16) | \
+	((unsigned int)(dreg))); \
+} while(0)
+
+/**
+* FMRRD (Floating-point Move to two registers from Double-precision Register)
+* Move a value from a double-precision floating point register (sreg) to two ARM registers (lowsreg, highsreg) 
+*/
+#define arm_mov_reg_reg_double(inst,lowsreg,highsreg,sreg)	\
+do { \
+	arm_inst_add((inst), arm_prefix(0x0C500B10) | \
+	(((unsigned int)(lowsreg)) << 12) | \
+	(((unsigned int)(highsreg)) << 16) | \
+	((unsigned int)(sreg))); \
+} while(0)
+
+/**
+ * FMSR (Floating-point Move to Single-precision from Register)
+ * Move a value from one ARM registers (sreg) to a single-precision floating point register (dreg)
+ */
+#define arm_mov_float_reg(inst,dreg,sreg)	\
+do { \
+	char dreg_top_4_bits = (dreg & 0x1E) >> 1;	\
+	char dreg_bottom_bit = (dreg & 0x01);	\
+	arm_inst_add((inst), arm_prefix(0x0E000A10) | 	\
+	(((unsigned int)(sreg)) << 12) | 	\
+	(((unsigned int)(dreg_top_4_bits)) << 16) |	\
+	(((unsigned int)(dreg_bottom_bit)) << 7)); \
+} while(0)
+
+/**
+* FMRS (Floating-point Move to Register from Single-precision)
+* Move a value from a single-precision floating point register (sreg) to an ARM registers (dreg) 
+*/
+#define arm_mov_reg_float(inst,dreg,sreg)	\
+do { \
+	char sreg_top_4_bits = (dreg & 0x1E) >> 1;	\
+	char sreg_bottom_bit = (dreg & 0x01);	\
+	arm_inst_add((inst), arm_prefix(0x0E100A10) | 	\
+	(((unsigned int)(dreg)) << 12) | 	\
+	(((unsigned int)(sreg_top_4_bits)) << 16) |	\
+	(((unsigned int)(sreg_bottom_bit)) << 7)); \
+} while(0)
+
+/**
+* FCVTDS (Floating-point Convert to Double-precision from Single-precision)
+* dreg is the double precision destination register
+* sreg is the single precision source register
+*/
+#define arm_convert_float_double_single(inst,dreg,sreg)	\
+{	\
+	unsigned char sreg_top_4_bits = (sreg & 0x1E) >> 1;	\
+	unsigned char sreg_bottom_bit = (sreg & 0x01);	\
+	arm_inst_add((inst), arm_prefix(0x0EB70AC0) |	\
+		(((unsigned int)(sreg_top_4_bits))) |	\
+		(((unsigned int)(sreg_bottom_bit)) << 5) |	\
+		(((unsigned int)(dreg)) << 12));	\
+}
+
+/**
+ * FCVTSD (Floating-point Convert to Single-precision from Double-precision)
+ * dreg is the single precision destination register
+ * sreg is the double precision source register
+ */
+#define arm_convert_float_single_double(inst,dreg,sreg)	\
+{	\
+	unsigned char dreg_top_4_bits = (dreg & 0x1E) >> 1;	\
+	unsigned char dreg_bottom_bit = (dreg & 0x01);	\
+	arm_inst_add((inst), arm_prefix(0x0EB70BC0) |	\
+		(((unsigned int)(dreg_top_4_bits)) << 12) |	\
+		(((unsigned int)(dreg_bottom_bit)) << 22) |	\
+		((unsigned int)(sreg)));	\
+}
+
+/**
+ * FSITOD (Floating-point Convert Signed Integer to Double-precision)
+ * sreg is the single precision register containing the integer value to be converted
+ * dreg is the double precision destination register
+ */
+#define arm_convert_float_signed_integer_double(inst,dreg,sreg)	\
+	unsigned char sreg_top_4_bits = (sreg & 0x1E) >> 1;	\
+	unsigned char sreg_bottom_bit = (sreg & 0x01);	\
+	arm_inst_add((inst), arm_prefix(0x0EB80BC0) |	\
+		(((unsigned int)(dreg)) << 12) |	\
+		(((unsigned int)(sreg_bottom_bit)) << 5) |	\
+		((unsigned int)(sreg_top_4_bits)));
+
+#endif /* JIT_ARM_HAS_VFP */
 
 /*
  * Load a value from an indexed address into a register.
