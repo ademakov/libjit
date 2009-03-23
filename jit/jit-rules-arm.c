@@ -2,6 +2,7 @@
  * jit-rules-arm.c - Rules that define the characteristics of the ARM.
  *
  * Copyright (C) 2004  Southern Storm Software, Pty Ltd.
+ * Copyright (C) 2008  Michele Tartara <mikyt@users.sourceforge.net>
  *
  * This file is part of the libjit library.
  *
@@ -32,40 +33,216 @@
 #include <stdio.h>
 
 /*
+ * Pseudo register numbers for the ARM registers.  These are not the
+ * same as the CPU instruction register numbers.  The order of these
+ * values must match the order in "JIT_REG_INFO".
+ */
+#define ARM_REG_R0		0
+#define ARM_REG_R1		1
+#define ARM_REG_R2		2
+#define ARM_REG_R3		3
+#define ARM_REG_R4		4
+#define ARM_REG_R5		5
+#define ARM_REG_R6		6
+#define ARM_REG_R7		7
+#define ARM_REG_R8		8
+#define ARM_REG_R9		9
+#define ARM_REG_R10		10
+#define ARM_REG_FP		11
+#define ARM_REG_R12		12
+#define ARM_REG_SP		13
+#define ARM_REG_LR		14
+#define ARM_REG_PC		15
+
+#ifdef JIT_ARM_HAS_FPA
+#define ARM_F0			16
+#define ARM_F1			17
+#define ARM_F2			18
+#define ARM_F3			19
+#define ARM_F4			20
+#define ARM_F5			21
+#define ARM_F6			22
+#define ARM_F7			23
+#endif
+
+#ifdef JIT_ARM_HAS_VFP
+#define ARM_REG_S0		16
+#define ARM_REG_S1		17
+#define ARM_REG_S2		18
+#define ARM_REG_S3		19
+#define ARM_REG_S4		20
+#define ARM_REG_S5		21
+#define ARM_REG_S6		22
+#define ARM_REG_S7		23
+#define ARM_REG_S8		24
+#define ARM_REG_S9		25
+#define ARM_REG_S10		26
+#define ARM_REG_S11		27
+#define ARM_REG_S12		28
+#define ARM_REG_S13		29
+#define ARM_REG_S14		30
+#define ARM_REG_S15		31
+#define ARM_REG_D8		32
+#define ARM_REG_D9		33
+#define ARM_REG_D10		34
+#define ARM_REG_D11		35
+#define ARM_REG_D12		36
+#define ARM_REG_D13		37
+#define ARM_REG_D14		38
+#define ARM_REG_D15		39
+#endif
+
+/*
+ * Determine if a pseudo register number is word-based or float-based.
+ */
+#define	IS_WORD_REG(reg)	((reg) <= ARM_REG_PC)
+#define	IS_FLOAT_REG(reg)	((reg) > ARM_REG_PC)
+
+/*
  * Round a size up to a multiple of the stack word size.
  */
 #define	ROUND_STACK(size)	\
 		(((size) + (sizeof(void *) - 1)) & ~(sizeof(void *) - 1))
 
+/* 
+ * Define the classes of registers
+ */
+static _jit_regclass_t *arm_reg;
+static _jit_regclass_t *arm_freg;
+static _jit_regclass_t *arm_freg32;
+static _jit_regclass_t *arm_freg64;
+static _jit_regclass_t *arm_lreg;
+static _jit_regclass_t *arm_breg;
+
 /*
+ * -------------------- Helper functions --------------------------
+ */
+
+/**
  * Load the instruction pointer from the generation context.
  */
 #define	jit_gen_load_inst_ptr(gen,inst)	\
 		do { \
 			arm_inst_buf_init((inst), (gen)->posn.ptr, (gen)->posn.limit); \
-		} while (0)
+} while (0)
 
-/*
+/**
  * Save the instruction pointer back to the generation context.
  */
 #define	jit_gen_save_inst_ptr(gen,inst)	\
 		do { \
 			(gen)->posn.ptr = (unsigned char *)arm_inst_get_posn(inst); \
-		} while (0)
-
-void _jit_init_backend(void)
-{
-	/* Nothing to do here */
-}
-
-void _jit_gen_get_elf_info(jit_elf_info_t *info)
-{
-	info->machine = 40;		/* EM_ARM */
-	info->abi = 0;			/* ELFOSABI_SYSV */
-	info->abi_version = 0;
-}
+} while (0)
 
 /*
+* Get a temporary register that isn't one of the specified registers.
+* When this function is used EVERY REGISTER COULD BE DESTROYED!!!
+* TODO: this function is only used by JIT_OP_STORE_RELATIVE_STRUCT, through memory_copy: remove
+* the need of using it by sustituting it with register allocation with [scratch reg]
+*/
+static int get_temp_reg(int reg1, int reg2, int reg3)
+{
+	/* 
+	 * R0-R3 are not used because they could be needed for parameter passing.
+	 * R4 is not used because it's used by jit_apply to store the base of the frame where
+	 * it saves all the data it needs in order to restart execution after calling a compiled function.
+	 * R9 is not used because it's the platform register and could have special
+	 * uses on some ARM platform
+	 * R11, R13-R15 are not used because they have special meaning on the ARM platform.
+	 * The other registers are candidates for 
+	 */
+	if(reg1 != ARM_R5 && reg2 != ARM_R5 && reg3 != ARM_R5)
+	{
+		return ARM_R5;
+	}
+	if(reg1 != ARM_R6 && reg2 != ARM_R6 && reg3 != ARM_R6)
+	{
+		return ARM_R6;
+	}
+	if(reg1 != ARM_R7 && reg2 != ARM_R7 && reg3 != ARM_R7)
+	{
+		return ARM_R7;
+	}
+	if(reg1 != ARM_R8 && reg2 != ARM_R8 && reg3 != ARM_R8)
+	{
+		return ARM_R8;
+	}
+	if(reg1 != ARM_R10 && reg2 != ARM_R10 && reg3 != ARM_R10)
+	{
+		return ARM_R10;
+	}
+	return ARM_R12;
+}
+
+static void mov_reg_imm (jit_gencode_t gen, arm_inst_buf *inst, int reg, int value);
+
+/*
+* Copy a block of memory that has a specific size.  Other than
+* the parameter pointers, all registers must be unused at this point.
+*/
+static arm_inst_buf memory_copy (jit_gencode_t gen, arm_inst_buf inst, int dreg, jit_nint doffset, int sreg, jit_nint soffset, jit_nuint size, int temp_reg)
+{
+	//int temp_reg = get_temp_reg(dreg, sreg, -1);
+	if (temp_reg==-1) temp_reg = get_temp_reg(dreg, sreg, -1);
+	if(size <= 4 * sizeof(void *))
+	{
+		/* Use direct copies to copy the memory */
+		int offset = 0;
+		while(size >= sizeof(void *))
+		{
+			arm_mov_reg_membase(inst, temp_reg, sreg, soffset + offset, sizeof(void *));
+			arm_mov_membase_reg(inst, dreg, doffset + offset, temp_reg, sizeof(void *));
+			size -= sizeof(void *);
+			offset += sizeof(void *);
+		}
+		if(size >= 2)
+		{
+			arm_mov_reg_membase(inst, temp_reg, sreg, soffset + offset, 2);
+			arm_mov_membase_reg(inst, dreg, doffset + offset, temp_reg, 2);
+			size -= 2;
+			offset += 2;
+		}
+		if(size >= 1)
+		{
+			arm_mov_reg_membase(inst, temp_reg, sreg, soffset + offset, 1);
+			arm_mov_membase_reg(inst, dreg, doffset + offset, temp_reg, 1);
+		}
+	}
+	else
+	{
+		/* Call out to "jit_memcpy" to effect the copy */
+		//Load the parameters in the right registers
+		//R2 <- size
+		mov_reg_imm(gen, &inst, ARM_R2, size);
+		//R1 <- source pointer
+		if(soffset == 0)
+		{
+			arm_mov_reg_reg(inst, ARM_R1, sreg);
+		}
+		else
+		{
+			arm_alu_reg_imm(inst, ARM_ADD, temp_reg, sreg, soffset);
+			arm_mov_reg_reg(inst, ARM_R1, temp_reg);
+		}
+		//R0 <- destination pointer
+		/* On ARM, the stack doesn't need special treatment, since parameters are passed using registers, not using the stack as it's done on x86 */
+		
+		if(doffset == 0)
+		{
+			arm_mov_reg_reg(inst, ARM_R0, dreg);
+		}
+		else
+		{
+			arm_alu_reg_imm(inst, ARM_ADD, temp_reg, dreg, doffset);
+			arm_mov_reg_reg(inst, ARM_R0, temp_reg);
+		}
+		
+		arm_call(inst, jit_memcpy);
+	}
+	return inst;
+}
+
+/**
  * Flush the contents of the constant pool.
  */
 static void flush_constants(jit_gencode_t gen, int after_epilog)
@@ -126,7 +303,7 @@ static void flush_constants(jit_gencode_t gen, int after_epilog)
 			}
 			if(value)
 			{
-				fixup -= value;
+				fixup -= value / sizeof(void *);
 			}
 			else
 			{
@@ -148,14 +325,14 @@ static void flush_constants(jit_gencode_t gen, int after_epilog)
 	jit_gen_save_inst_ptr(gen, inst);
 }
 
-/*
+/**
  * Perform a constant pool flush if we are too far from the starting point.
  */
 static int flush_if_too_far(jit_gencode_t gen)
 {
 	if(gen->first_constant_use &&
-	   (((arm_inst_word *)(gen->posn.ptr)) -
-	   		((arm_inst_word *)(gen->first_constant_use))) >= 100)
+		  (((arm_inst_word *)(gen->posn.ptr)) -
+		  ((arm_inst_word *)(gen->first_constant_use))) >= 100)
 	{
 		flush_constants(gen, 0);
 		return 1;
@@ -170,7 +347,7 @@ static int flush_if_too_far(jit_gencode_t gen)
  * Add a fixup for a particular constant pool entry.
  */
 static void add_constant_fixup
-	(jit_gencode_t gen, int index, arm_inst_word *fixup)
+		(jit_gencode_t gen, int index, arm_inst_word *fixup)
 {
 	arm_inst_word *prev;
 	int value;
@@ -182,7 +359,7 @@ static void add_constant_fixup
 	prev = gen->fixup_constants[index];
 	if(prev)
 	{
-		value = fixup - prev;
+		value = (fixup - prev) * sizeof(void *);
 	}
 	else
 	{
@@ -190,10 +367,12 @@ static void add_constant_fixup
 	}
 	if((*fixup & 0x0F000000) == 0x05000000)
 	{
+		//Word fixup
 		*fixup = ((*fixup & ~0x0FFF) | value);
 	}
 	else
 	{
+		//Float fixup
 		*fixup = ((*fixup & ~0x00FF) | (value / 4));
 	}
 	gen->fixup_constants[index] = fixup;
@@ -235,10 +414,10 @@ static void add_constant(jit_gencode_t gen, int value, arm_inst_word *fixup)
 }
 
 /*
- * Add a double-word immedite value to the constant pool.
+ * Add a double-word immediate value to the constant pool.
  */
 static void add_constant_dword
-	(jit_gencode_t gen, int value1, int value2, arm_inst_word *fixup, int align)
+		(jit_gencode_t gen, int value1, int value2, arm_inst_word *fixup, int align)
 {
 	int index;
 
@@ -252,7 +431,7 @@ static void add_constant_dword
 	for(index = 0; index < (gen->num_constants - 1); ++index)
 	{
 		if(gen->constants[index] == value1 &&
-		   gen->constants[index + 1] == value2)
+				 gen->constants[index + 1] == value2)
 		{
 			if(!align || (index % 2) == 0)
 			{
@@ -279,8 +458,8 @@ static void add_constant_dword
 	/* Add the double word constant value to the pool */
 	gen->constants[gen->num_constants] = value1;
 	gen->fixup_constants[gen->num_constants] = 0;
-	gen->constants[gen->num_constants] = value2;
-	gen->fixup_constants[gen->num_constants] = 0;
+	gen->constants[gen->num_constants+1] = value2;
+	gen->fixup_constants[gen->num_constants+1] = 0;
 	gen->num_constants += 2;
 	add_constant_fixup(gen, gen->num_constants - 2, fixup);
 }
@@ -290,7 +469,7 @@ static void add_constant_dword
  * complicated, then add an entry to the constant pool.
  */
 static void mov_reg_imm
-	(jit_gencode_t gen, arm_inst_buf *inst, int reg, int value)
+		(jit_gencode_t gen, arm_inst_buf *inst, int reg, int value)
 {
 	arm_inst_word *fixup;
 
@@ -316,7 +495,7 @@ static void mov_reg_imm
  * complicated, then add an entry to the constant pool.
  */
 static void mov_freg_imm_32
-	(jit_gencode_t gen, arm_inst_buf *inst, int reg, int value)
+		(jit_gencode_t gen, arm_inst_buf *inst, int reg, int value)
 {
 	arm_inst_word *fixup;
 
@@ -335,7 +514,7 @@ static void mov_freg_imm_32
  * complicated, then add an entry to the constant pool.
  */
 static void mov_freg_imm_64
-	(jit_gencode_t gen, arm_inst_buf *inst, int reg, int value1, int value2)
+		(jit_gencode_t gen, arm_inst_buf *inst, int reg, int value1, int value2)
 {
 	arm_inst_word *fixup;
 
@@ -347,6 +526,201 @@ static void mov_freg_imm_64
 	jit_gen_save_inst_ptr(gen, *inst);
 	add_constant_dword(gen, value1, value2, fixup, 1);
 	jit_gen_load_inst_ptr(gen, *inst);
+}
+
+/*
+ * Output a branch instruction.
+ */
+static void output_branch
+		(jit_function_t func, arm_inst_buf *inst, int cond, jit_insn_t insn)
+{
+	jit_block_t block;
+	int offset;
+	//block = jit_block_from_label(func, (jit_label_t)(insn->dest));
+	if((insn->flags & JIT_INSN_VALUE1_IS_LABEL) != 0)
+	{
+		/* "address_of_label" instruction */
+		block = jit_block_from_label(func, (jit_label_t)(insn->value1));
+	}
+	else
+	{
+		block = jit_block_from_label(func, (jit_label_t)(insn->dest));
+	}
+	if(!block)
+	{
+		return;
+	}
+	if(arm_inst_get_posn(*inst) >= arm_inst_get_limit(*inst))
+	{
+		/* The buffer has overflowed, so don't worry about fixups */
+		return;
+	}
+	if(block->address)
+	{
+		/* We already know the address of the block */
+		arm_branch(*inst, cond, block->address);
+	}
+	else
+	{
+		/* Output a placeholder and record on the block's fixup list */
+		if(block->fixup_list)
+		{
+			offset = (int)(((unsigned char *)arm_inst_get_posn(*inst)) -
+					((unsigned char *)(block->fixup_list)));
+		}
+		else
+		{
+			offset = 0;
+		}
+		arm_branch_imm(*inst, cond, offset);
+		block->fixup_list = (void *)(arm_inst_get_posn(*inst) - 1);
+	}
+}
+
+/*
+ * Throw a builtin exception.
+ */
+static void throw_builtin
+		(arm_inst_buf *inst, jit_function_t func, int cond, int type)
+{
+	arm_inst_word *patch;
+
+	/* Branch past the following code if "cond" is not true */
+	patch = arm_inst_get_posn(*inst);
+	arm_branch_imm(*inst, cond ^ 0x01, 0);
+
+	/* We need to update "catch_pc" if we have a "try" block */
+	if(func->builder->setjmp_value != 0)
+	{
+		_jit_gen_fix_value(func->builder->setjmp_value);
+		arm_mov_reg_reg(*inst, ARM_WORK, ARM_PC);
+		arm_store_membase(*inst, ARM_WORK, ARM_FP,
+				   func->builder->setjmp_value->frame_offset +
+						   jit_jmp_catch_pc_offset);
+	}
+
+	/* Push the exception type onto the stack */
+	arm_mov_reg_imm(*inst, ARM_WORK, type);
+	arm_push_reg(*inst, ARM_WORK);
+
+	/* Call the "jit_exception_builtin" function, which will never return */
+	arm_call(*inst, jit_exception_builtin);
+
+	/* Back-patch the previous branch instruction */
+	arm_patch(*inst, patch, arm_inst_get_posn(*inst));
+}
+
+/*
+ * Jump to the current function's epilog.
+ */
+static void jump_to_epilog
+		(jit_gencode_t gen, arm_inst_buf *inst, jit_block_t block)
+{
+	int offset;
+
+	/* If the epilog is the next thing that we will output,
+	then fall through to the epilog directly */
+	block = block->next;
+	while(block != 0 && block->first_insn > block->last_insn)
+	{
+		block = block->next;
+	}
+	if(!block)
+	{
+		return;
+	}
+
+	/* Bail out if the instruction buffer has overflowed */
+	if(arm_inst_get_posn(*inst) >= arm_inst_get_limit(*inst))
+	{
+		return;
+	}
+
+	/* Output a placeholder for the jump and add it to the fixup list */
+	if(gen->epilog_fixup)
+	{
+		offset = (int)(((unsigned char *)arm_inst_get_posn(*inst)) -
+				((unsigned char *)(gen->epilog_fixup)));
+	}
+	else
+	{
+		offset = 0;
+	}
+	arm_branch_imm(*inst, ARM_CC_AL, offset);
+	gen->epilog_fixup = (void *)(arm_inst_get_posn(*inst) - 1);
+}
+
+#define	TODO()		\
+	do { \
+		fprintf(stderr, "TODO at %s, %d\n", __FILE__, (int)__LINE__); \
+} while (0)
+
+/*
+ * -------------------- End of helper functions ------------------------
+ */
+
+
+/**
+ * Initialize the backend.
+ */
+void _jit_init_backend(void)
+{
+	/*
+	 * Init the various classes of registers
+	 */
+
+	/* WORD registers */
+	arm_reg = _jit_regclass_create(
+		"reg", JIT_REG_WORD, 9,
+		ARM_REG_R0, ARM_REG_R1,
+		ARM_REG_R2, ARM_REG_R3,
+		ARM_REG_R4, ARM_REG_R5,
+		ARM_REG_R6, ARM_REG_R7,
+		ARM_REG_R8);
+
+#ifdef JIT_ARM_HAS_FPA
+	/* float registers */
+	arm_freg = _jit_regclass_create(
+		"freg64", JIT_REG_ARM_FLOAT, 4,
+		ARM_REG_F0, ARM_REG_F1,
+		ARM_REG_F2, ARM_REG_F3,
+		/*ARM_REG_F4, ARM_REG_F5,
+		  ARM_REG_F6, ARM_REG_F7*/);
+#endif
+
+#ifdef JIT_ARM_HAS_VFP
+	/* 32-bits float registers */
+	arm_freg32 = _jit_regclass_create(
+		"freg32", JIT_REG_ARM_FLOAT32, 16,
+		ARM_REG_S0, ARM_REG_S1,
+		ARM_REG_S2, ARM_REG_S3,
+		ARM_REG_S4, ARM_REG_S5,
+		ARM_REG_S6, ARM_REG_S7,
+		ARM_REG_S8, ARM_REG_S9,
+		ARM_REG_S10, ARM_REG_S11,
+		ARM_REG_S12, ARM_REG_S13,
+		ARM_REG_S14, ARM_REG_S15);
+
+	/* 64-bits float registers */
+	arm_freg64 = _jit_regclass_create(
+		"freg64", JIT_REG_ARM_FLOAT64, 8,
+		ARM_REG_D8, ARM_REG_D9,
+		ARM_REG_D10, ARM_REG_D11,
+		ARM_REG_D12, ARM_REG_D13,
+		ARM_REG_D14, ARM_REG_D15);
+#endif
+
+	/* Long registers */
+	arm_lreg = _jit_regclass_create(
+		"lreg", JIT_REG_LONG, 2,
+		ARM_REG_R0, ARM_REG_R2);
+}
+
+void _jit_gen_get_elf_info(jit_elf_info_t *info)
+{
+	info->machine = 40;		/* EM_ARM */
+	info->abi = 0;			/* ELFOSABI_SYSV */
+	info->abi_version = 0;
 }
 
 int _jit_setup_indirect_pointer(jit_function_t func, jit_value_t value)
@@ -367,7 +741,7 @@ int _jit_create_call_return_insns
 	ptr_return = jit_type_return_via_pointer(return_type);
 	if(!return_value || ptr_return)
 	{
-		return 0;
+		return 1;
 	}
 
 	/* Structure values must be flushed into the frame, and
@@ -380,11 +754,18 @@ int _jit_create_call_return_insns
 		}
 	}
 #ifdef JIT_ARM_HAS_FLOAT_REGS
-	else if(return_type->kind == JIT_TYPE_FLOAT32 ||
-			return_type->kind == JIT_TYPE_FLOAT64 ||
+	//TODO: check that this works when the handling of the float registers changes
+	else if(return_type->kind == JIT_TYPE_FLOAT32)
+	{
+		if(!jit_insn_return_reg(func, return_value, ARM_REG_S0))
+		{
+			return 0;
+		}
+	}
+	else if(return_type->kind == JIT_TYPE_FLOAT64 ||
 			return_type->kind == JIT_TYPE_NFLOAT)
 	{
-		if(!jit_insn_return_reg(func, return_value, 16 /* f0 */))
+		if(!jit_insn_return_reg(func, return_value, ARM_REG_D8))
 		{
 			return 0;
 		}
@@ -392,7 +773,7 @@ int _jit_create_call_return_insns
 #endif
 	else if(return_type->kind != JIT_TYPE_VOID)
 	{
-		if(!jit_insn_return_reg(func, return_value, 0 /* r0 */))
+		if(!jit_insn_return_reg(func, return_value, ARM_REG_R0))
 		{
 			return 0;
 		}
@@ -407,7 +788,7 @@ int _jit_opcode_is_supported(int opcode)
 	switch(opcode)
 	{
 		#define JIT_INCLUDE_SUPPORTED
-		#include "jit-rules-arm.slc"
+		#include "jit-rules-arm.inc"
 		#undef JIT_INCLUDE_SUPPORTED
 	}
 	return 0;
@@ -420,7 +801,8 @@ void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 	int reg, regset;
 	unsigned int saved;
 	unsigned int frame_size;
-
+	unsigned int stack_growth;
+	
 	/* Initialize the instruction buffer */
 	arm_inst_buf_init(inst, prolog, prolog + JIT_PROLOG_SIZE / sizeof(int));
 
@@ -443,8 +825,26 @@ void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 	/* Allocate space for the local variable frame.  Subtract off
 	   the space for the registers that we just saved.  The pc, lr,
 	   and fp registers are always saved, so account for them too */
+	stack_growth=(saved + 4 * sizeof(void *));
+	frame_size = func->builder->frame_size - stack_growth;
 	frame_size = func->builder->frame_size - (saved + 3 * sizeof(void *));
 	frame_size += (unsigned int)(func->builder->param_area_size);
+	while(frame_size % JIT_SP_ALIGN_PUBLIC != 0)
+	{
+		//Pad to reach the required stacl pointer alignment
+		frame_size++;
+	}
+	
+	/* If the registers that get saved on the stack make it grow of a odd number
+	 * of words, the preceding while isn't able anymore to compute the correct
+	 * allignment. The following adds a correction when needed.
+	 */
+	if (stack_growth % JIT_SP_ALIGN_PUBLIC != 0)
+	{
+		//Pad to reach the required stack pointer alignment
+		frame_size += (stack_growth % JIT_SP_ALIGN_PUBLIC);
+	}
+	
 	if(frame_size > 0)
 	{
 		arm_alu_reg_imm(inst, ARM_SUB, ARM_SP, ARM_SP, frame_size);
@@ -504,6 +904,11 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	flush_constants(gen, 1);
 }
 
+#if 0
+/*
+ * The ARM backend does not need this function because it uses
+ * _jit_create_indirector() instead.
+ */
 void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func)
 {
 	void *ptr, *entry;
@@ -517,7 +922,7 @@ void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func)
 	jit_gen_save_inst_ptr(gen, inst);
 	return entry;
 }
-
+#endif 
 /*
  * Setup or teardown the ARM code output process.
  */
@@ -527,6 +932,12 @@ void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func)
 #define	jit_cache_end_output()	\
 	jit_gen_save_inst_ptr(gen, inst)
 
+/** 
+ * Spill the content of register "reg" (and "other_reg", if it's different from -1) 
+ * into the global register or the memory area associated with "value"
+ * NB: it doesn't set value->in_global_register or value->in_frame. The caller has to
+ * take care of that.
+ */
 void _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 						int other_reg, jit_value_t value)
 {
@@ -542,14 +953,21 @@ void _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 	/* Output an appropriate instruction to spill the value */
 	if(value->has_global_register)
 	{
-		arm_mov_reg_reg(inst, _jit_reg_info[value->global_reg].cpu_reg,
-						_jit_reg_info[reg].cpu_reg);
+		if (IS_FLOAT_REG(reg))
+		{
+			printf("TODO:Copy from float reg to global reg is not handled properly in %s\n", __FILE__);
+			abort();
+		}
+		else
+		{
+			arm_mov_reg_reg(inst, _jit_reg_info[value->global_reg].cpu_reg, _jit_reg_info[reg].cpu_reg);
+		}
 	}
 	else
 	{
 		_jit_gen_fix_value(value);
 		offset = (int)(value->frame_offset);
-		if(reg < 16)
+		if(IS_WORD_REG(reg))
 		{
 			arm_store_membase(inst, reg, ARM_FP, offset);
 			if(other_reg != -1)
@@ -561,11 +979,11 @@ void _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 		}
 		else if(jit_type_normalize(value->type)->kind == JIT_TYPE_FLOAT32)
 		{
-			arm_store_membase_float32(inst, reg - 16, ARM_FP, offset);
+			arm_store_membase_float32(inst, _jit_reg_info[value->reg].cpu_reg, ARM_FP, offset);
 		}
 		else
 		{
-			arm_store_membase_float64(inst, reg - 16, ARM_FP, offset);
+			arm_store_membase_float64(inst, _jit_reg_info[value->reg].cpu_reg, ARM_FP, offset);
 		}
 	}
 
@@ -624,7 +1042,7 @@ void _jit_gen_load_value
 			{
 				jit_float32 float32_value;
 				float32_value = jit_value_get_float32_constant(value);
-				if(reg < 16)
+				if(IS_WORD_REG(reg))
 				{
 					mov_reg_imm(gen, &inst, _jit_reg_info[reg].cpu_reg,
 							    *((int *)&float32_value));
@@ -643,7 +1061,7 @@ void _jit_gen_load_value
 			{
 				jit_float64 float64_value;
 				float64_value = jit_value_get_float64_constant(value);
-				if(reg < 16)
+				if(IS_WORD_REG(reg))
 				{
 					mov_reg_imm
 						(gen, &inst, _jit_reg_info[reg].cpu_reg,
@@ -665,6 +1083,26 @@ void _jit_gen_load_value
 	}
 	else if(value->has_global_register)
 	{
+		/*
+		 * This value has been assinged a global register. This means
+		 * that it can use that register, but not necessarily that it's
+		 * already in it!!
+		 */
+		
+		/* Ensure that the value is already in the global_register */
+		if (!value->in_global_register)
+		{	
+			/* Find the other register in a long pair */
+			int reg=value->reg;
+			int other_reg;
+			get_reg_and_other_reg(gen, &reg, &other_reg);
+			//Spill to the global register
+			_jit_gen_spill_reg(gen, reg, other_reg, value);
+			value->in_global_register=1;
+			
+			/* A new instruction has probably been generated by _jit_gen_spill_reg: reload the inst pointer */
+			jit_gen_load_inst_ptr(gen, inst);
+		}
 		/* Load the value out of a global register */
 		arm_mov_reg_reg(inst, _jit_reg_info[reg].cpu_reg,
 						_jit_reg_info[value->global_reg].cpu_reg);
@@ -675,34 +1113,47 @@ void _jit_gen_load_value
 		_jit_gen_fix_value(value);
 		offset = (int)(value->frame_offset);
 
-		/* Load the value into the specified register */
+		/* Ensure that the value is already in the stack frame */
+		if(value->in_register)
+		{
+			/* Find the other register in a long pair */
+			int reg=value->reg;
+			int other_reg;
+			get_reg_and_other_reg(gen, &reg, &other_reg);
+			_jit_gen_spill_reg(gen, reg, other_reg, value);
+			value->in_frame=1;
+			
+			/* A new instruction has probably been generated by _jit_gen_spill_reg: reload the inst pointer */
+			jit_gen_load_inst_ptr(gen, inst);
+		}
+		
 		switch(jit_type_normalize(value->type)->kind)
 		{
 			case JIT_TYPE_SBYTE:
 			{
 				arm_load_membase_sbyte(inst, _jit_reg_info[reg].cpu_reg,
-								       ARM_FP, offset);
+								ARM_FP, offset);
 			}
 			break;
 
 			case JIT_TYPE_UBYTE:
 			{
 				arm_load_membase_byte(inst, _jit_reg_info[reg].cpu_reg,
-								      ARM_FP, offset);
+								ARM_FP, offset);
 			}
 			break;
 
 			case JIT_TYPE_SHORT:
 			{
 				arm_load_membase_short(inst, _jit_reg_info[reg].cpu_reg,
-								       ARM_FP, offset);
+								ARM_FP, offset);
 			}
 			break;
 
 			case JIT_TYPE_USHORT:
 			{
 				arm_load_membase_ushort(inst, _jit_reg_info[reg].cpu_reg,
-								        ARM_FP, offset);
+									ARM_FP, offset);
 			}
 			break;
 
@@ -710,7 +1161,7 @@ void _jit_gen_load_value
 			case JIT_TYPE_UINT:
 			{
 				arm_load_membase(inst, _jit_reg_info[reg].cpu_reg,
-								 ARM_FP, offset);
+								ARM_FP, offset);
 			}
 			break;
 
@@ -718,18 +1169,18 @@ void _jit_gen_load_value
 			case JIT_TYPE_ULONG:
 			{
 				arm_load_membase(inst, _jit_reg_info[reg].cpu_reg,
-								 ARM_FP, offset);
+								ARM_FP, offset);
 				arm_load_membase(inst, _jit_reg_info[reg].cpu_reg + 1,
-								 ARM_FP, offset + 4);
+								ARM_FP, offset + 4);
 			}
 			break;
 
 			case JIT_TYPE_FLOAT32:
 			{
-				if(reg < 16)
+				if(IS_WORD_REG(reg))
 				{
 					arm_load_membase(inst, _jit_reg_info[reg].cpu_reg,
-									 ARM_FP, offset);
+									ARM_FP, offset);
 				}
 				else
 				{
@@ -742,12 +1193,12 @@ void _jit_gen_load_value
 			case JIT_TYPE_FLOAT64:
 			case JIT_TYPE_NFLOAT:
 			{
-				if(reg < 16)
+				if(IS_WORD_REG(reg))
 				{
 					arm_load_membase(inst, _jit_reg_info[reg].cpu_reg,
-									 ARM_FP, offset);
+									ARM_FP, offset);
 					arm_load_membase(inst, _jit_reg_info[reg].cpu_reg + 1,
-									 ARM_FP, offset + 4);
+									ARM_FP, offset + 4);
 				}
 				else
 				{
@@ -757,6 +1208,86 @@ void _jit_gen_load_value
 			}
 			break;
 		}
+	}
+
+	/* End the code output process */
+	jit_cache_end_output();
+}
+
+/**
+ * Loads a struct indicated by "value" into the given register reg
+ */
+void _jit_gen_load_value_struct (jit_gencode_t gen, int reg, jit_value_t value)
+{
+	int offset;
+
+	/* Make sure that we have sufficient space */
+	jit_cache_setup_output(32);
+	if(flush_if_too_far(gen))
+	{
+		jit_gen_load_inst_ptr(gen, inst);
+	}
+
+	if(value->is_constant)
+	{
+		TODO();
+		abort();
+	}
+	else if(value->has_global_register)
+	{
+		/*
+		 * This value has been assinged a global register. This means
+		 * that it can use that register, but not necessarily that it's
+		 * already in it!!
+		 */
+		
+		/* Ensure that the value is already in the global_register */
+		if (!value->in_global_register)
+		{	
+			/* Find the other register in a long pair */
+			int reg=value->reg;
+			int other_reg;
+			get_reg_and_other_reg(gen, &reg, &other_reg);
+			//Spill to the global register
+			_jit_gen_spill_reg(gen, reg, other_reg, value);
+			value->in_global_register=1;
+			
+			/* A new instruction has probably been generated by _jit_gen_spill_reg: reload the inst pointer */
+			jit_gen_load_inst_ptr(gen, inst);
+		}
+		/* Load the value out of a global register */
+		arm_mov_reg_reg(inst, _jit_reg_info[reg].cpu_reg,
+						_jit_reg_info[value->global_reg].cpu_reg);
+	}
+	else
+	{
+		/* Fix the position of the value in the stack frame */
+		_jit_gen_fix_value(value);
+		offset = (int)(value->frame_offset);
+
+		/* Ensure that the value is already in the stack frame */
+		if(value->in_register)
+		{
+			/* Find the other register in a long pair */
+			int reg=value->reg;
+			int other_reg;
+			get_reg_and_other_reg(gen, &reg, &other_reg);
+			_jit_gen_spill_reg(gen, reg, other_reg, value);
+			value->in_frame=1;
+			
+			/* A new instruction has probably been generated by _jit_gen_spill_reg: reload the inst pointer */
+			jit_gen_load_inst_ptr(gen, inst);
+		}
+		
+		assert(jit_type_normalize(value->type)->kind==JIT_TYPE_STRUCT);
+		
+		arm_load_membase(inst, _jit_reg_info[reg].cpu_reg, ARM_FP, offset);
+		if (jit_type_get_size(jit_value_get_type(value)) > 4)
+		{
+			TODO();
+			abort();
+		}
+		
 	}
 
 	/* End the code output process */
@@ -776,18 +1307,6 @@ void _jit_gen_load_global(jit_gencode_t gen, int reg, jit_value_t value)
 	jit_cache_end_output();
 }
 
-void _jit_gen_exch_top(jit_gencode_t gen, int reg)
-{
-}
-
-void _jit_gen_move_top(jit_gencode_t gen, int reg)
-{
-}
-
-void _jit_gen_spill_top(jit_gencode_t gen, int reg, jit_value_t value, int pop)
-{
-}
-
 void _jit_gen_fix_value(jit_value_t value)
 {
 	if(!(value->has_frame_offset) && !(value->is_constant))
@@ -799,124 +1318,6 @@ void _jit_gen_fix_value(jit_value_t value)
 	}
 }
 
-/*
- * Output a branch instruction.
- */
-static void output_branch
-	(jit_function_t func, arm_inst_buf *inst, int cond, jit_insn_t insn)
-{
-	jit_block_t block;
-	int offset;
-	block = jit_block_from_label(func, (jit_label_t)(insn->dest));
-	if(!block)
-	{
-		return;
-	}
-	if(arm_inst_get_posn(*inst) >= arm_inst_get_limit(*inst))
-	{
-		/* The buffer has overflowed, so don't worry about fixups */
-		return;
-	}
-	if(block->address)
-	{
-		/* We already know the address of the block */
-		arm_branch(*inst, cond, block->address);
-	}
-	else
-	{
-		/* Output a placeholder and record on the block's fixup list */
-		if(block->fixup_list)
-		{
-			offset = (int)(((unsigned char *)arm_inst_get_posn(*inst)) -
-						   ((unsigned char *)(block->fixup_list)));
-		}
-		else
-		{
-			offset = 0;
-		}
-		arm_branch_imm(*inst, cond, offset);
-		block->fixup_list = (void *)(arm_inst_get_posn(*inst) - 1);
-	}
-}
-
-/*
- * Throw a builtin exception.
- */
-static void throw_builtin
-		(arm_inst_buf *inst, jit_function_t func, int cond, int type)
-{
-	arm_inst_word *patch;
-
-	/* Branch past the following code if "cond" is not true */
-	patch = arm_inst_get_posn(*inst);
-	arm_branch_imm(*inst, cond ^ 0x01, 0);
-
-	/* We need to update "catch_pc" if we have a "try" block */
-	if(func->builder->setjmp_value != 0)
-	{
-		_jit_gen_fix_value(func->builder->setjmp_value);
-		arm_mov_reg_reg(*inst, ARM_WORK, ARM_PC);
-		arm_store_membase(*inst, ARM_WORK, ARM_FP,
-						  func->builder->setjmp_value->frame_offset +
-						  jit_jmp_catch_pc_offset);
-	}
-
-	/* Push the exception type onto the stack */
-	arm_mov_reg_imm(*inst, ARM_WORK, type);
-	arm_push_reg(*inst, ARM_WORK);
-
-	/* Call the "jit_exception_builtin" function, which will never return */
-	arm_call(*inst, jit_exception_builtin);
-
-	/* Back-patch the previous branch instruction */
-	arm_patch(*inst, patch, arm_inst_get_posn(*inst));
-}
-
-/*
- * Jump to the current function's epilog.
- */
-static void jump_to_epilog
-	(jit_gencode_t gen, arm_inst_buf *inst, jit_block_t block)
-{
-	int offset;
-
-	/* If the epilog is the next thing that we will output,
-	   then fall through to the epilog directly */
-	block = block->next;
-	while(block != 0 && block->first_insn > block->last_insn)
-	{
-		block = block->next;
-	}
-	if(!block)
-	{
-		return;
-	}
-
-	/* Bail out if the instruction buffer has overflowed */
-	if(arm_inst_get_posn(*inst) >= arm_inst_get_limit(*inst))
-	{
-		return;
-	}
-
-	/* Output a placeholder for the jump and add it to the fixup list */
-	if(gen->epilog_fixup)
-	{
-		offset = (int)(((unsigned char *)arm_inst_get_posn(*inst)) -
-					   ((unsigned char *)(gen->epilog_fixup)));
-	}
-	else
-	{
-		offset = 0;
-	}
-	arm_branch_imm(*inst, ARM_CC_AL, offset);
-	gen->epilog_fixup = (void *)(arm_inst_get_posn(*inst) - 1);
-}
-
-#define	TODO()		\
-	do { \
-		fprintf(stderr, "TODO at %s, %d\n", __FILE__, (int)__LINE__); \
-	} while (0)
-
 void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 				   jit_block_t block, jit_insn_t insn)
 {
@@ -924,7 +1325,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	switch(insn->opcode)
 	{
 		#define JIT_INCLUDE_RULES
-		#include "jit-rules-arm.slc"
+		#include "jit-rules-arm.inc"
 		#undef JIT_INCLUDE_RULES
 
 		default:
@@ -983,6 +1384,31 @@ int _jit_gen_is_global_candidate(jit_type_t type)
 		case JIT_TYPE_SIGNATURE:	return 1;
 	}
 	return 0;
+}
+
+/** "value" is a float value (single or double) that has just been returned 
+ * by a function and is in r0 (and, if needed, r1).
+ * If it is a float value, this function puts it back where it should be, in the float register reg
+ * (of appropriate size)
+ */
+void _jit_gen_return_to_float(jit_gencode_t gen, jit_value_t value, int reg)
+{
+	if (IS_FLOAT_REG(reg))
+	{
+		arm_inst_buf inst;
+		jit_gen_load_inst_ptr(gen, inst);
+		
+		if (value->type->kind == JIT_TYPE_FLOAT64
+		    || value->type->kind == JIT_TYPE_NFLOAT)
+		{
+			arm_mov_double_reg_reg(inst, _jit_reg_info[reg].cpu_reg, 0, 1);
+		}
+		else if (value->type->kind==JIT_TYPE_FLOAT32)
+		{
+			arm_mov_float_reg(inst, _jit_reg_info[reg].cpu_reg, 0);
+		}
+		jit_gen_save_inst_ptr(gen, inst);
+	}
 }
 
 #endif /* JIT_BACKEND_ARM */
