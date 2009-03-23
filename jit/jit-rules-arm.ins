@@ -1,4 +1,5 @@
-/* * jit-rules-arm.ins - Instruction selector for ARM.
+/*
+ * jit-rules-arm.ins - Instruction selector for ARM.
  *
  * Copyright (C) 2004  Southern Storm Software, Pty Ltd.
  * Copyright (C) 2008  Michele Tartara  <mikyt@users.sourceforge.net>
@@ -26,11 +27,10 @@
  * Register classes
  */
 %regclass reg arm_reg
+%regclass freg arm_freg
 %regclass freg32 arm_freg32
 %regclass freg64 arm_freg64
-%regclass freg arm_freg
 %lregclass lreg arm_lreg
-%regclass breg arm_breg
 
 /*
  * Conversion opcodes.
@@ -1526,13 +1526,13 @@ JIT_OP_STORE_RELATIVE_BYTE: ternary
 [imm, imm, imm, scratch reg] -> {
 	arm_mov_mem_imm(inst, $1 + $3, $2, 1, $4);
 }
-[imm, breg, imm] -> {
+[imm, reg, imm] -> {
 	arm_mov_mem_reg(inst, $1 + $3, $2, 1);
 }
 [reg, imm, imm] -> {
 	arm_mov_membase_imm(inst, $1, $3, $2, 1, ARM_WORK);
 }
-[reg, breg, imm] -> {
+[reg, reg, imm] -> {
 	arm_mov_membase_reg(inst, $1, $3, $2, 1);
 }
 
@@ -1692,7 +1692,7 @@ JIT_OP_LOAD_ELEMENT_FLOAT64:
 }
 
 JIT_OP_STORE_ELEMENT_BYTE: ternary
-[reg, reg, breg, scratch reg] -> {
+[reg, reg, reg, scratch reg] -> {
 	arm_mov_memindex_reg(inst, $1, 0, $2, 0, $3, 1, $4);
 }
 
@@ -1775,7 +1775,7 @@ JIT_OP_MEMCPY: ternary
 		//Call the function
 		arm_call(inst, jit_memcpy);
 	}
-	[reg, reg, reg, scratch breg, clobber("r0", "r1", "r2")] -> {
+	[reg, reg, reg, scratch reg, clobber("r0", "r1", "r2")] -> {
 		/* 
 		* Call jit_memcpy(dest,src,size).
 		* $1=dest, $2=src, $3=size
@@ -1832,7 +1832,7 @@ JIT_OP_MEMSET: ternary
 		arm_mov_membase_imm(inst, $1, disp, $2, 1, ARM_WORK);
 	}
 }
-[reg, breg, imm, if("$3 < 4")] -> {
+[reg, reg, imm, if("$3 < 4")] -> {
 	TODO();
 	abort();
 }
@@ -1859,7 +1859,7 @@ JIT_OP_MEMSET: ternary
 		arm_mov_membase_reg(inst, $1, disp, $2, 2);
 	}
 }
-[reg, +breg, imm, scratch reg,
+[reg, +reg, imm, scratch reg,
 if("$3 <= 32 && ($3 % 2) != 0"), space("32 + $3 * 4")] -> {
 	TODO();
 	abort();

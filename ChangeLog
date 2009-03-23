@@ -1,3 +1,7 @@
+2009-03-23  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-arm.ins: minor cleanup.
+
 2009-03-23  Michele Tartara  <mikyt@users.sourceforge.net>
 
 	* jit/jit-gen-arm.h: add more ARM codegen macros including VFP
