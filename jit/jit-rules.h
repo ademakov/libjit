@@ -34,24 +34,27 @@ extern	"C" {
  * Determine which backend to use.
  */
 #if defined(USE_LIBJIT_INTERPRETER)
-	#define	JIT_BACKEND_INTERP		1
-	#define	JIT_HAVE_BACKEND		1
-#elif defined(__i386) || defined(__i386__) || defined(_M_IX86)
-	#define JIT_BACKEND_X86			1
-	#define	JIT_HAVE_BACKEND		1
+# define JIT_BACKEND_INTERP		1
+# define JIT_HAVE_BACKEND		1
 #elif defined(__alpha) || defined(__alpha__)
-	#define JIT_BACKEND_ALPHA		1
-	#define	JIT_HAVE_BACKEND		1
-#elif defined(__amd64) || defined(__amd64__) || defined(_x86_64) || defined(_x86_64__)
-	#define JIT_BACKEND_X86_64		1
-	#define	JIT_HAVE_BACKEND		1
+# define JIT_BACKEND_ALPHA		1
+# define JIT_HAVE_BACKEND		1
 #elif defined(__arm) || defined(__arm__)
-	#define	JIT_BACKEND_ARM			1
-	#define	JIT_HAVE_BACKEND		1
+# define JIT_BACKEND_ARM		1
+# define JIT_HAVE_BACKEND		1
+#elif defined(__i386) || defined(__i386__) || defined(_M_IX86)
+# define JIT_BACKEND_X86		1
+# define JIT_HAVE_BACKEND		1
+#elif defined(__amd64) || defined(__amd64__) || defined(_x86_64) || defined(_x86_64__)
+# define JIT_BACKEND_X86_64		1
+# define JIT_HAVE_BACKEND		1
 #endif
 
+/*
+ * Fallback  to interpreter if there is no appropriate native backend.
+ */
 #if !defined(JIT_HAVE_BACKEND)
-	#define	JIT_BACKEND_INTERP		1
+# define JIT_BACKEND_INTERP		1
 #endif
 
 /*
@@ -59,10 +62,10 @@ extern	"C" {
  */
 typedef struct
 {
-	const char *name;			/* Name of the register, for debugging */
-	short		cpu_reg;		/* CPU register number */
-	short		other_reg;		/* Other register for a "long" pair, or -1 */
-	int			flags;			/* Flags that define the register type */
+	const char		*name;		/* Name of the register, for debugging */
+	short			cpu_reg;	/* CPU register number */
+	short			other_reg;	/* Other register for a "long" pair, or -1 */
+	int			flags;		/* Flags that define the register type */
 
 } jit_reginfo_t;
 
@@ -80,24 +83,25 @@ typedef struct
 #define	JIT_REG_CALL_USED	(1 << 8)	/* Destroyed by a call */
 #define	JIT_REG_IN_STACK	(1 << 9)	/* Middle of stack-like allocation */
 #define	JIT_REG_GLOBAL		(1 << 10)	/* Candidate for global allocation */
-#define	JIT_REG_ALL	(JIT_REG_WORD | JIT_REG_LONG | JIT_REG_FLOAT32 | \
-					 JIT_REG_FLOAT64 | JIT_REG_NFLOAT)
+#define	JIT_REG_ALL		(JIT_REG_WORD | JIT_REG_LONG \
+				 | JIT_REG_FLOAT32 | JIT_REG_FLOAT64 \
+ 				 | JIT_REG_NFLOAT)
 
 /*
  * Include definitions that are specific to the backend.
  */
 #if defined(JIT_BACKEND_INTERP)
-	#include "jit-rules-interp.h"
-#elif defined(JIT_BACKEND_X86)
-	#include "jit-rules-x86.h"
-#elif defined(JIT_BACKEND_ARM)
-	#include "jit-rules-arm.h"
+# include "jit-rules-interp.h"
 #elif defined(JIT_BACKEND_ALPHA)
-	#include "jit-rules-alpha.h"
+# include "jit-rules-alpha.h"
+#elif defined(JIT_BACKEND_ARM)
+# include "jit-rules-arm.h"
+#elif defined(JIT_BACKEND_X86)
+# include "jit-rules-x86.h"
 #elif defined(JIT_BACKEND_X86_64)
-	#include "jit-rules-x86-64.h"
+# include "jit-rules-x86-64.h"
 #else
-	#error "unknown jit backend type"
+# error "unknown jit backend type"
 #endif
 
 /*
@@ -110,14 +114,19 @@ extern jit_reginfo_t const _jit_reg_info[JIT_NUM_REGS];
  * definitions if it has more registers than can fit in a "jit_uint".
  */
 #if !defined(jit_regused_init)
+
 typedef jit_uint jit_regused_t;
-#define	jit_regused_init				(0)
-#define	jit_regused_init_used				(~0)
-#define	jit_reg_is_used(mask,reg)		\
-			(((mask) & (((jit_uint)1) << (reg))) != 0)
-#define	jit_reg_set_used(mask,reg)		((mask) |= (((jit_uint)1) << (reg)))
+
+#define	jit_regused_init		(0)
+#define	jit_regused_init_used		(~0)
+
+#define	jit_reg_is_used(mask,reg)	(((mask) & (((jit_uint)1) << (reg))) != 0)
+
+#define	jit_reg_set_used(mask,reg)	((mask) |= (((jit_uint)1) << (reg)))
+
 #define	jit_reg_clear_used(mask,reg)	((mask) &= ~(((jit_uint)1) << (reg)))
-#endif
+
+#endif /* !defined(jit_regused_init) */
 
 /*
  * Information about a register's contents.
@@ -174,10 +183,9 @@ struct jit_gencode
 typedef struct jit_elf_info jit_elf_info_t;
 struct jit_elf_info
 {
-	int		machine;
-	int		abi;
-	int		abi_version;
-
+	int			machine;
+	int			abi;
+	int			abi_version;
 };
 
 /*
