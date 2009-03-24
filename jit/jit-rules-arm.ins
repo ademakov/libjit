@@ -182,6 +182,139 @@ JIT_OP_IMUL:
 		}
 	}
 
+JIT_OP_IDIV:
+	[any, immzero] -> {
+		throw_builtin(&inst, func, ARM_CC_AL, JIT_RESULT_DIVISION_BY_ZERO);
+	}
+	[reg, immu8, if("$2 == 1")] -> {
+		/* Division by 1. Return the value itself */
+	}
+	[reg, immu8, if("($2 % 2) == 0")] -> {
+		/* Handle special cases of small immediate divides */
+		switch($2)
+		{
+			//Integer divide by shifting
+			case 2:
+			{
+				arm_shift_reg_imm8(inst, ARM_SAR, $1, $1, 1);
+			}
+			break;
+
+			case 4:
+			{
+				arm_shift_reg_imm8(inst, ARM_SAR, $1, $1, 2);
+			}
+			break;
+
+			case 8:
+			{
+				arm_shift_reg_imm8(inst, ARM_SAR, $1, $1, 3);
+			}
+			break;
+
+			case 16:
+			{
+				arm_shift_reg_imm8(inst, ARM_SAR, $1, $1, 4);
+			}
+			break;
+
+			case 32:
+			{
+				arm_shift_reg_imm8(inst, ARM_SAR, $1, $1, 5);
+			}
+			break;
+
+			case 64:
+			{
+				arm_shift_reg_imm8(inst, ARM_SAR, $1, $1, 6);
+			}
+			break;
+
+			case 128:
+			{
+				arm_shift_reg_imm8(inst, ARM_SAR, $1, $1, 7);
+			}
+			break;
+		}
+	}
+	[reg, imm, if("$2 == -1")] -> {
+		/* Dividing by -1 simply negates */
+		/*TODO: if the value to be divided by -1 is jit_min_int, 
+		  an exception (JIT_RESULT_ARITHMETIC) should probably be thrown */
+		arm_alu_reg(inst, ARM_MVN, $1, $1);
+	}
+	[reg, imm, clobber("r0", "r1")] -> {
+		/* Every other immediate division:
+		   ARM does not have an integer division operation. It's emulated via software. */
+		
+		//Put the dividend in the right position
+		if ($1 != ARM_R0)
+			arm_mov_reg_reg(inst, ARM_R0, $1);
+		
+		//Put the divisor in the right position
+		mov_reg_imm(gen, &inst, ARM_R1, $2);
+		
+		//Perform the division by calling a function from the runtime ABI
+		extern int __aeabi_idiv(int numerator, int denominator);
+		arm_call(inst, __aeabi_idiv);
+		
+		if($1 != ARM_R0)
+		{
+			//Move the result back where it is expected to be
+			arm_mov_reg_reg(inst, $1, ARM_R0);
+		}
+		
+	}
+	[reg, reg, scratch reg, clobber("r0", "r1")] -> {
+		/* Every division taking data from two registers:
+		   ARM does not have an integer division operation. It's emulated via software. */
+		
+		int dividend = $1;
+		int divisor = $2;
+		int scratch = $3;
+		
+		//Put the dividend in the right position
+		if (dividend != ARM_R0)
+		{
+			if (divisor==ARM_R0)
+			{
+				//Prevent the divisor from being overwritten
+				if(dividend != ARM_R1)
+				{
+					//The place where the divisor should be is free. Move it there
+					arm_mov_reg_reg(inst, ARM_R1, divisor);
+					divisor=1;
+				}
+				else
+				{
+					/* The dividend is where the divisor should be.
+					   We must use a scratch register to swap them */
+					arm_mov_reg_reg(inst, scratch, divisor);
+					divisor=scratch;
+				}
+				
+			}
+			
+			arm_mov_reg_reg(inst, ARM_R0, dividend);
+		}
+		
+		if (divisor != ARM_R1)
+		{
+			//Put the divisor in the right position
+			arm_mov_reg_reg(inst, ARM_R1, divisor);
+		}
+		
+		//Perform the division by calling a function from the runtime ABI
+		extern int __aeabi_idiv(int numerator, int denominator);
+		arm_call(inst, __aeabi_idiv);
+		
+		//Move the result back where it is expected to be
+		if($1 != ARM_R0)
+		{
+			arm_mov_reg_reg(inst, $1, ARM_R0);
+		}
+	}
+
 JIT_OP_INEG: 
 	[reg] -> {
 		/* -x is the same as (0 - x) */
@@ -1870,73 +2003,53 @@ if("$3 <= 32 && ($3 % 2) != 0"), space("32 + $3 * 4")] -> {
 	// $3 = length in bytes
 	// $4 = scratch register
 	
-	int scratchContains=0; //< Number of the parameter in the scratch register. 0 means no param in scratch reg.
-	int allOk=0;
+	int pointer=$1;
+	int value=$2;
+	int length=$3;
+	int scratch=$4;
+	
 
 	/* Move the outgoing parameters in the right registers (if they are not already where they should be */
-	if ($1 != ARM_R0) {
-		if($2 == ARM_R0)
+	if (pointer != ARM_R0) {
+		if(value == ARM_R0)
 		{
-			arm_mov_reg_reg((inst), $4, ARM_R0);
-			scratchContains=2;
+			//Prevent the value from being overwritten
+			arm_mov_reg_reg((inst), scratch, ARM_R0);
+			value=scratch;
 		}
-		else if($3==ARM_R0)
+		else if(length==ARM_R0)
 		{
-			arm_mov_reg_reg((inst), $4, ARM_R0);
-			scratchContains=3;
+			//Prevent the length from being overwritten
+			arm_mov_reg_reg((inst), scratch, ARM_R0);
+			length=scratch;
 		}
-		arm_mov_reg_reg((inst), ARM_R0, $1);
+		
+		arm_mov_reg_reg((inst), ARM_R0, pointer);
+		
+		//The register that contained the pointer is now free
+		scratch=pointer;
 	}
 	
-	if ($2 != ARM_R1)
+	if (value != ARM_R1)
 	{
-		if ($3 == ARM_R1)
+		if (length == ARM_R1)
 		{
-			//We must save param 3, that's in ARM_R1
-			if(scratchContains==2)
-			{
-				/*scratch reg contains the parameter that will go in ARM_R1 and can't be overwritten. Copy param 3 directly to its register. */
-				arm_mov_reg_reg(inst, ARM_R2, ARM_R1);
-				allOk=1;
-			}
-			else
-			{
-				assert(scratchContains==0);
-				//Scratch reg is free. Use it to store param 3
-				arm_mov_reg_reg(inst, $4, ARM_R1);
-				scratchContains=3;
-			}
+			//The length is stored in R1. Prevent it from being overwritten
+			arm_mov_reg_reg(inst, scratch, length);
+			length=scratch;
 		}
 		
 		//Set param 2
-		if(scratchContains==2)
-		{
-			arm_mov_reg_reg((inst), ARM_R1, $4);
-		}
-		else
-		{
-			arm_mov_reg_reg((inst), ARM_R1, $2);
-		}
+		arm_mov_reg_reg((inst), ARM_R1, value);
+		
+		//The register that contained the value is now free
+		scratch=value;
 	}
 	
-	if(!allOk)
+	if(length != ARM_R1)
 	{
-		if($3 != ARM_R1)
-		{
-			//Param 3 still isn't in place
-			if(scratchContains==3)
-			{
-				//Get param 3 from the scratch reg
-				arm_mov_reg_reg(inst, ARM_R2, $4);
-			}
-			else 
-			{
-				//Get param 3 from wherever it is
-				arm_mov_reg_reg(inst, ARM_R2, $3);
-			}
-			
-			allOk=1;
-		}
+		//Param 3 still isn't in place: move it!
+		arm_mov_reg_reg(inst, ARM_R2, length);
 	}
 	
 	arm_call(inst, jit_memset);
