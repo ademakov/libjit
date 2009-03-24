@@ -3808,8 +3808,8 @@ _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs)
 		}
 		commit_output_value(gen, regs, 0);
 	}
-	else
 #endif
+	else
 	{
 		commit_input_value(gen, regs, 2, 0);
 		commit_input_value(gen, regs, 1, 0);

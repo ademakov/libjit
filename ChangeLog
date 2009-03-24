@@ -8,6 +8,7 @@
 	support.
 	* jit/jit-rules-arm.ins: restore ARM FPA rules.
 	* jit/jit-rules-arm.h, jit/jit-rules-arm.c: more ARM code.
+	* jit/jit-reg-alloc.c (_jit_regs_commit): fix typo.
 
 2009-02-07  Aleksey Demakov  <ademakov@gmail.com>
 
