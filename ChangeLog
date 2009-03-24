@@ -3,6 +3,8 @@
 	* jit/jit-rules.h (jit_reg_other_reg): add macro.
 	* jit/jit-reg-alloc.c: replace OTHER_REG with jit_reg_other_reg.
 	* jit/jit-rules-x86.c (_jit_gen_load_value): use jit_reg_other_reg.
+	* jit/jit-rules-arm.c (_jit_gen_load_value) 
+	(_jit_gen_load_value_struct): use jit_reg_other_reg.
 
 2009-03-23  Aleksey Demakov  <ademakov@gmail.com>
 
