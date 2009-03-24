@@ -59,11 +59,6 @@ mostly don't have to worry about it:
 #define IS_STACK_REG(reg)	(0)
 #endif
 
-/*
- * Get the other register of a long pair.
- */
-#define OTHER_REG(reg)		(_jit_reg_info[reg].other_reg)
-
 /* The cost value that precludes using the register in question. */
 #define COST_TOO_MUCH		1000000
 
@@ -152,7 +147,7 @@ get_long_pair_start(int other_reg)
 	int reg;
 	for(reg = 0; reg < JIT_NUM_REGS; reg++)
 	{
-		if(other_reg == OTHER_REG(reg))
+		if(other_reg == jit_reg_other_reg(reg))
 		{
 			return reg;
 		}
@@ -696,7 +691,7 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 			reg = desc->value->reg;
 			if(gen->contents[reg].is_long_start)
 			{
-				other_reg = OTHER_REG(reg);
+				other_reg = jit_reg_other_reg(reg);
 			}
 			else
 			{
@@ -1041,7 +1036,7 @@ thrashes_value(jit_gencode_t gen,
 		}
 		if(gen->contents[reg2].is_long_start)
 		{
-			other_reg2 = OTHER_REG(reg2);
+			other_reg2 = jit_reg_other_reg(reg2);
 			if(other_reg2 == reg /*|| other_reg2 == other_reg*/)
 			{
 				return 1;
@@ -1172,7 +1167,7 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 
 		if(need_pair)
 		{
-			other_reg = OTHER_REG(reg);
+			other_reg = jit_reg_other_reg(reg);
 			if(jit_reg_is_used(gen->inhibit, other_reg))
 			{
 				continue;
@@ -1426,7 +1421,7 @@ choose_input_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 
 		if(need_pair)
 		{
-			other_reg = OTHER_REG(reg);
+			other_reg = jit_reg_other_reg(reg);
 			if(jit_reg_is_used(regs->assigned, other_reg))
 			{
 				continue;
@@ -2142,7 +2137,7 @@ spill_register(jit_gencode_t gen, int reg)
 	/* Find the other register in a long pair */
 	if(gen->contents[reg].is_long_start)
 	{
-		other_reg = OTHER_REG(reg);
+		other_reg = jit_reg_other_reg(reg);
 	}
 	else if(gen->contents[reg].is_long_end)
 	{
@@ -2248,7 +2243,7 @@ spill_clobbered_register(jit_gencode_t gen, _jit_regs_t *regs, int reg)
 		/* Find the other register in a long pair */
 		if(gen->contents[reg].is_long_start)
 		{
-			other_reg = OTHER_REG(reg);
+			other_reg = jit_reg_other_reg(reg);
 		}
 		else if(gen->contents[reg].is_long_end)
 		{
@@ -2294,7 +2289,7 @@ update_age(jit_gencode_t gen, _jit_regdesc_t *desc)
 	reg = desc->value->reg;
 	if(gen->contents[reg].is_long_start)
 	{
-		other_reg = OTHER_REG(reg);
+		other_reg = jit_reg_other_reg(reg);
 	}
 	else
 	{
@@ -2328,7 +2323,7 @@ save_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	reg = desc->value->reg;
 	if(gen->contents[reg].is_long_start)
 	{
-		other_reg = OTHER_REG(reg);
+		other_reg = jit_reg_other_reg(reg);
 	}
 	else
 	{
@@ -2368,7 +2363,7 @@ free_output_value(jit_gencode_t gen, _jit_regs_t *regs)
 	reg = desc->value->reg;
 	if(gen->contents[reg].is_long_start)
 	{
-		other_reg = OTHER_REG(reg);
+		other_reg = jit_reg_other_reg(reg);
 	}
 	else
 	{
@@ -2588,7 +2583,7 @@ commit_input_value(jit_gencode_t gen, _jit_regs_t *regs, int index, int killed)
 		reg = desc->value->reg;
 		if(gen->contents[reg].is_long_start)
 		{
-			other_reg = OTHER_REG(reg);
+			other_reg = jit_reg_other_reg(reg);
 		}
 		else
 		{
@@ -2937,7 +2932,7 @@ _jit_regs_set_incoming(jit_gencode_t gen, int reg, jit_value_t value)
 	/* Find the other register in a long pair */
 	if(_jit_regs_needs_long_pair(value->type))
 	{
-		other_reg = OTHER_REG(reg);
+		other_reg = jit_reg_other_reg(reg);
 	}
 	else
 	{
@@ -3002,7 +2997,7 @@ _jit_regs_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value)
 #else
 	if(_jit_regs_needs_long_pair(value->type))
 	{
-		other_reg = OTHER_REG(reg);
+		other_reg = jit_reg_other_reg(reg);
 	}
 	else
 	{
@@ -3059,7 +3054,7 @@ void _jit_regs_force_out(jit_gencode_t gen, jit_value_t value, int is_dest)
 		/* Find the other register in a long pair */
 		if(_jit_regs_needs_long_pair(value->type))
 		{
-			other_reg = OTHER_REG(reg);
+			other_reg = jit_reg_other_reg(reg);
 		}
 		else
 		{
@@ -3119,7 +3114,7 @@ _jit_regs_load_value(jit_gencode_t gen, jit_value_t value, int destroy, int used
 		{
 			if(need_pair)
 			{
-				other_reg = OTHER_REG(reg);
+				other_reg = jit_reg_other_reg(reg);
 			}
 			else
 			{
@@ -3157,7 +3152,7 @@ _jit_regs_load_value(jit_gencode_t gen, jit_value_t value, int destroy, int used
 
 		if(need_pair)
 		{
-			other_reg = OTHER_REG(reg);
+			other_reg = jit_reg_other_reg(reg);
 			if(jit_reg_is_used(gen->inhibit, other_reg))
 			{
 				continue;

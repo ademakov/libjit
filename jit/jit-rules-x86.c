@@ -677,7 +677,7 @@ _jit_gen_exch_top(jit_gencode_t gen, int reg)
 }
 
 void
- _jit_gen_move_top(jit_gencode_t gen, int reg)
+_jit_gen_move_top(jit_gencode_t gen, int reg)
 {
 	if(IS_FLOAT_REG(reg))
 	{
@@ -925,7 +925,7 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 			src_reg = value->reg;
 			if(other_reg >= 0)
 			{
-				other_src_reg = _jit_reg_info[src_reg].other_reg;
+				other_src_reg = jit_reg_other_reg(src_reg);
 			}
 			else
 			{

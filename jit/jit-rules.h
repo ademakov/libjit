@@ -110,6 +110,11 @@ typedef struct
 extern jit_reginfo_t const _jit_reg_info[JIT_NUM_REGS];
 
 /*
+ * Given the first register of a long pair get the other register.
+ */
+#define jit_reg_other_reg(reg)		(_jit_reg_info[reg].other_reg)
+
+/*
  * Manipulate register usage masks.  The backend may override these
  * definitions if it has more registers than can fit in a "jit_uint".
  */
