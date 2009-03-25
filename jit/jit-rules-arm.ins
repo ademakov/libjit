@@ -189,8 +189,16 @@ JIT_OP_IDIV:
 	[reg, immu8, if("$2 == 1")] -> {
 		/* Division by 1. Return the value itself */
 	}
-	[reg, immu8, if("($2 % 2) == 0")] -> {
-		/* Handle special cases of small immediate divides */
+	[reg, immu8, if("($2 > 0) && (((jit_nuint)$2) & (((jit_nuint)$2) - 1)) == 0")] -> {
+		/* Handle special cases of small immediate divides: divisions by positive powers of two */
+		/* NB: (n & (n-1)) == 0 if and only if n is a power of 2 */
+		
+		/* Move the dividend in the work register, setting the codes (in order to know if it's positive or negative) */
+		arm_alu_cc_reg(inst, ARM_MOV, ARM_WORK, $1);
+
+		/* If the dividend is negative, make it positive (0-x = -x)*/
+		arm_alu_reg_imm8_cond(inst, ARM_RSB, $1, ARM_WORK, 0, ARM_CC_MI);
+
 		switch($2)
 		{
 			//Integer divide by shifting
@@ -236,6 +244,10 @@ JIT_OP_IDIV:
 			}
 			break;
 		}
+		
+		/* If the dividend was negative, make it negative again (0-x = -x)*/
+		arm_alu_reg_imm8_cond(inst, ARM_RSB, $1, $1, 0, ARM_CC_MI);
+		
 	}
 	[reg, imm, if("$2 == -1")] -> {
 		/* Dividing by -1 simply negates */

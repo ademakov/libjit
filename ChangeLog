@@ -1,3 +1,8 @@
+2009-03-25  Michele Tartara  <mikyt@users.sourceforge.net>
+
+	* jit/jit-gen-arm.h (arm_alu_cc_reg): fix a typo.
+	* jit/jit-rules-arm.ins (JIT_OP_IDIV): support negative dividends.
+
 2009-03-24  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules.h (jit_reg_other_reg): add macro.

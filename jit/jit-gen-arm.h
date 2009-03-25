@@ -421,7 +421,7 @@ extern void _arm_alu_reg_imm
 			} while (0)
 #define arm_alu_cc_reg(inst,opc,dreg,sreg)	\
 			do { \
-				arm_inst_add((inst), = arm_execute_cc | \
+				arm_inst_add((inst), arm_execute_cc | \
 							(((unsigned int)(opc)) << 21) | \
 							(((unsigned int)(dreg)) << 12) | \
 							 ((unsigned int)(sreg))); \
