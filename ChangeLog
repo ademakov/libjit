@@ -1,3 +1,8 @@
+2009-03-28  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-reg-alloc.c, jit/jit-reg-alloc.c (_jit_regs_get_cpu):
+	remove unused function.
+
 2009-03-25  Michele Tartara  <mikyt@users.sourceforge.net>
 
 	* jit/jit-gen-arm.h (arm_alu_cc_reg): fix a typo.

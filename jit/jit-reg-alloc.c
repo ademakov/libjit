@@ -2701,45 +2701,6 @@ int _jit_regs_needs_long_pair(jit_type_t type)
 }
 
 /*@
- * @deftypefun int _jit_regs_get_cpu (jit_gencode_t gen, int reg, int *other_reg)
- * Get the CPU register that corresponds to a pseudo register.
- * "other_reg" will be set to the other register in a pair,
- * or -1 if the register is not part of a pair.
- * @end deftypefun
-@*/
-int _jit_regs_get_cpu(jit_gencode_t gen, int reg, int *other_reg)
-{
-	int cpu_reg, other;
-
-#ifdef JIT_REG_STACK
-	if(IS_STACK_REG(reg))
-	{
-		reg = gen->reg_stack_top - reg;
-		cpu_reg = _jit_reg_info[reg].cpu_reg;
-		other = -1;
-	}
-	else
-#endif
-	{
-		cpu_reg = _jit_reg_info[reg].cpu_reg;
-		if(gen->contents[reg].is_long_start)
-		{
-			other = _jit_reg_info[reg].other_reg;
-			other = _jit_reg_info[other].cpu_reg;
-		}
-		else
-		{
-			other = -1;
-		}
-	}
-	if(other_reg)
-	{
-		*other_reg = other;
-	}
-	return cpu_reg;
-}
-
-/*@
  * @deftypefun void _jit_regs_alloc_global (jit_gencode_t gen, jit_function_t func)
  * Perform global register allocation on the values in @code{func}.
  * This is called during function compilation just after variable

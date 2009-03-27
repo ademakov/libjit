@@ -142,7 +142,6 @@ typedef struct
 
 int _jit_regs_lookup(char *name);
 int _jit_regs_needs_long_pair(jit_type_t type);
-int _jit_regs_get_cpu(jit_gencode_t gen, int reg, int *other_reg);
 
 void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func);
 void _jit_regs_init_for_block(jit_gencode_t gen);
