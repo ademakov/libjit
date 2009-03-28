@@ -60,7 +60,7 @@ typedef enum
 
 } ARM_REG;
 
-#ifdef defined(JIT_ARM_HAS_FPA)
+#ifdef JIT_ARM_HAS_FPA
 /*
  * Floating-point register numbers for the FPA architecture.
  */
@@ -159,7 +159,7 @@ typedef enum
 	ARM_ORR = 12,				/* Bitwise OR */
 	ARM_MOV = 13,				/* Move */
 	ARM_BIC = 14,				/* Test with Op1 & ~Op2 */
-	ARM_MVN = 15				/* Bitwise NOT */
+	ARM_MVN = 15				/* Bitwise NOT: Negate the content of a word*/
 
 } ARM_OP;
 
@@ -175,7 +175,7 @@ typedef enum
 
 } ARM_SHIFT;
 
-#ifdef defined(JIT_ARM_HAS_FPA)
+#ifdef JIT_ARM_HAS_FPA
 /* Floating point definitions for the FPA architecture */
 
 /*
