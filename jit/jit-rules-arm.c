@@ -1407,4 +1407,26 @@ void _jit_gen_return_to_float(jit_gencode_t gen, jit_value_t value, int reg)
 	}
 }
 
+
+int
+_jit_reg_get_pair(jit_type_t type, int reg)
+{
+	type = jit_type_normalize(type);
+	if(type)
+	{
+		if(type->kind == JIT_TYPE_LONG || type->kind == JIT_TYPE_ULONG)
+		{
+			return jit_reg_other_reg(reg);
+		}
+		else if(type->kind == JIT_TYPE_FLOAT64 || type->kind == JIT_TYPE_NFLOAT)
+		{
+			if(reg == JIT_REG_R0)
+			{
+				return jit_reg_other_reg(reg);
+			}
+		}
+	}
+	return -1;
+}
+
 #endif /* JIT_BACKEND_ARM */

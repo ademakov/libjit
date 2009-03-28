@@ -1522,4 +1522,18 @@ int _jit_gen_is_global_candidate(jit_type_t type)
 	return 0;
 }
 
+int
+_jit_reg_get_pair(jit_type_t type, int reg)
+{
+	type = jit_type_normalize(type);
+	if(type)
+	{
+		if(type->kind == JIT_TYPE_LONG || type->kind == JIT_TYPE_ULONG)
+		{
+			return jit_reg_other_reg(reg);
+		}
+	}
+	return -1;
+}
+
 #endif /* JIT_BACKEND_X86 */

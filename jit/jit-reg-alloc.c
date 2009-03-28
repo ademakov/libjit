@@ -139,7 +139,7 @@ static void dump_regs(jit_gencode_t gen, const char *name)
 #endif
 
 /*
- * Find the start register of a long pair given the end register.
+ * Find the start register of a register pair given the end register.
  */
 static int
 get_long_pair_start(int other_reg)
@@ -153,43 +153,6 @@ get_long_pair_start(int other_reg)
 		}
 	}
 	return -1;
-}
-
-/*
- * Determine the type of register that we need.
- */
-static int
-get_register_type(jit_value_t value, int need_pair)
-{
-	switch(jit_type_normalize(value->type)->kind)
-	{
-	case JIT_TYPE_SBYTE:
-	case JIT_TYPE_UBYTE:
-	case JIT_TYPE_SHORT:
-	case JIT_TYPE_USHORT:
-	case JIT_TYPE_INT:
-	case JIT_TYPE_UINT:
-	case JIT_TYPE_NINT:
-	case JIT_TYPE_NUINT:
-	case JIT_TYPE_SIGNATURE:
-	case JIT_TYPE_PTR:
-		return JIT_REG_WORD;
-
-	case JIT_TYPE_LONG:
-	case JIT_TYPE_ULONG:
-		return need_pair ? JIT_REG_LONG : JIT_REG_WORD;
-
-	case JIT_TYPE_FLOAT32:
-		return JIT_REG_FLOAT32;
-
-	case JIT_TYPE_FLOAT64:
-		return JIT_REG_FLOAT64;
-
-	case JIT_TYPE_NFLOAT:
-		return JIT_REG_NFLOAT;
-	}
-
-	return 0;
 }
 
 /*
@@ -1139,7 +1102,6 @@ static int
 choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 {
 	_jit_regclass_t *regclass;
-	int need_pair;
 	int reg_index, reg, other_reg;
 	int use_cost;
 	int suitable_reg, suitable_other_reg;
@@ -1151,7 +1113,6 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 #endif
 
 	regclass = regs->descs[0].regclass;
-	need_pair = _jit_regs_needs_long_pair(regs->descs[0].value->type);
 
 	suitable_reg = -1;
 	suitable_other_reg = -1;
@@ -1165,17 +1126,10 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 			continue;
 		}
 
-		if(need_pair)
+		other_reg = jit_reg_get_pair(regs->descs[0].value->type, reg);
+		if(other_reg >= 0 && jit_reg_is_used(gen->inhibit, other_reg))
 		{
-			other_reg = jit_reg_other_reg(reg);
-			if(jit_reg_is_used(gen->inhibit, other_reg))
-			{
-				continue;
-			}
-		}
-		else
-		{
-			other_reg = -1;
+			continue;
 		}
 
 		if(jit_reg_is_used(gen->permanent, reg))
@@ -1377,7 +1331,6 @@ choose_input_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	_jit_regclass_t *regclass;
 	_jit_regdesc_t *desc;
 	_jit_regdesc_t *desc2;
-	int need_pair;
 	int reg_index, reg, other_reg;
 	int use_cost;
 	int suitable_reg, suitable_other_reg;
@@ -1396,7 +1349,6 @@ choose_input_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	}
 
 	regclass = regs->descs[index].regclass;
-	need_pair = _jit_regs_needs_long_pair(desc->value->type);
 
 	if(index == regs->dest_input_index)
 	{
@@ -1419,17 +1371,10 @@ choose_input_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 			continue;
 		}
 
-		if(need_pair)
+		other_reg = jit_reg_get_pair(desc->value->type, reg);
+		if(other_reg >= 0 && jit_reg_is_used(regs->assigned, other_reg))
 		{
-			other_reg = jit_reg_other_reg(reg);
-			if(jit_reg_is_used(regs->assigned, other_reg))
-			{
-				continue;
-			}
-		}
-		else
-		{
-			other_reg = -1;
+			continue;
 		}
 
 		if((desc->value->in_global_register && desc->value->global_reg == reg)
@@ -2678,29 +2623,6 @@ _jit_regs_lookup(char *name)
 }
 
 /*@
- * @deftypefun int _jit_regs_needs_long_pair (jit_type_t type)
- * Determine if a type requires a long register pair.
- * @end deftypefun
-@*/
-int _jit_regs_needs_long_pair(jit_type_t type)
-{
-#if defined(JIT_NATIVE_INT32) && !defined(JIT_BACKEND_INTERP)
-	type = jit_type_normalize(type);
-	if(type)
-	{
-		if(type->kind == JIT_TYPE_LONG || type->kind == JIT_TYPE_ULONG)
-		{
-			return 1;
-		}
-	}
-	return 0;
-#else
-	/* We don't register pairs on 64-bit platforms or the interpreter */
-	return 0;
-#endif
-}
-
-/*@
  * @deftypefun void _jit_regs_alloc_global (jit_gencode_t gen, jit_function_t func)
  * Perform global register allocation on the values in @code{func}.
  * This is called during function compilation just after variable
@@ -2890,15 +2812,8 @@ _jit_regs_set_incoming(jit_gencode_t gen, int reg, jit_value_t value)
 {
 	int other_reg;
 
-	/* Find the other register in a long pair */
-	if(_jit_regs_needs_long_pair(value->type))
-	{
-		other_reg = jit_reg_other_reg(reg);
-	}
-	else
-	{
-		other_reg = -1;
-	}
+	/* Find the other register in a register pair */
+	other_reg = jit_reg_get_pair(value->type, reg);
 
 	/* avd: It's too late to spill here, if there was any
 	   value it is already cloberred by the incoming value.
@@ -2956,15 +2871,9 @@ _jit_regs_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value)
 		}
 	}
 #else
-	if(_jit_regs_needs_long_pair(value->type))
-	{
-		other_reg = jit_reg_other_reg(reg);
-	}
-	else
-	{
-		other_reg = -1;
-	}
+	other_reg = jit_reg_get_pair(value->type, reg);
 #endif
+
 	if(value->in_register && value->reg == reg)
 	{
 		/* The value is already in the register, but we may need to spill
@@ -2998,11 +2907,15 @@ _jit_regs_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value)
 	}
 }
 
+/* TODO: remove this function */
 /*@
  * @deftypefun void _jit_regs_force_out (jit_gencode_t gen, jit_value_t value, int is_dest)
  * If @code{value} is currently in a register, then force its value out
  * into the stack frame.  The @code{is_dest} flag indicates that the value
  * will be a destination, so we don't care about the original value.
+ *
+ * This function is deprecated and going to be removed soon.
+ *
  * @end deftypefun
 @*/
 void _jit_regs_force_out(jit_gencode_t gen, jit_value_t value, int is_dest)
@@ -3011,16 +2924,7 @@ void _jit_regs_force_out(jit_gencode_t gen, jit_value_t value, int is_dest)
 	if(value->in_register)
 	{
 		reg = value->reg;
-
-		/* Find the other register in a long pair */
-		if(_jit_regs_needs_long_pair(value->type))
-		{
-			other_reg = jit_reg_other_reg(reg);
-		}
-		else
-		{
-			other_reg = -1;
-		}
+		other_reg = jit_reg_get_pair(value->type, reg);
 
 		if(is_dest)
 		{
@@ -3033,6 +2937,7 @@ void _jit_regs_force_out(jit_gencode_t gen, jit_value_t value, int is_dest)
 	}
 }
 
+/* TODO: remove this function */
 /*@
  * @deftypefun int _jit_regs_load_value (jit_gencode_t gen, jit_value_t value, int destroy, int used_again)
  * Load a value into any register that is suitable and return that register.
@@ -3045,12 +2950,15 @@ void _jit_regs_force_out(jit_gencode_t gen, jit_value_t value, int is_dest)
  *
  * If @code{used_again} is non-zero, then it indicates that the value is
  * used again further down the block.
+ *
+ * This function is deprecated and going to be removed soon.
+ *
  * @end deftypefun
 @*/
 int
 _jit_regs_load_value(jit_gencode_t gen, jit_value_t value, int destroy, int used_again)
 {
-	int type, need_pair;
+	int type;
 	int reg, other_reg;
 	int spill_cost;
 	int suitable_reg, suitable_other_reg;
@@ -3065,30 +2973,46 @@ _jit_regs_load_value(jit_gencode_t gen, jit_value_t value, int destroy, int used
 		return value->global_reg;
 	}
 
-	need_pair = _jit_regs_needs_long_pair(value->type);
-
 	/* If the value is already in a register, then try to use that register */
 	if(value->in_register && (!destroy || !used_again))
 	{
 		reg = value->reg;
 		if(!used_again)
 		{
-			if(need_pair)
-			{
-				other_reg = jit_reg_other_reg(reg);
-			}
-			else
-			{
-				other_reg = -1;
-			}
+			other_reg = jit_reg_get_pair(value->type, reg);
 			free_value(gen, value, reg, other_reg, 1);
 		}
 		return reg;
 	}
 
-	type = get_register_type(value, need_pair);
-	if(!type)
+	switch(jit_type_normalize(value->type)->kind)
 	{
+	case JIT_TYPE_SBYTE:
+	case JIT_TYPE_UBYTE:
+	case JIT_TYPE_SHORT:
+	case JIT_TYPE_USHORT:
+	case JIT_TYPE_INT:
+	case JIT_TYPE_UINT:
+	case JIT_TYPE_NINT:
+	case JIT_TYPE_NUINT:
+	case JIT_TYPE_SIGNATURE:
+	case JIT_TYPE_PTR:
+		type = JIT_REG_WORD;
+		break;
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+		type = JIT_REG_LONG;
+		break;
+	case JIT_TYPE_FLOAT32:
+		type = JIT_REG_FLOAT32;
+		break;
+	case JIT_TYPE_FLOAT64:
+		type = JIT_REG_FLOAT64;
+		break;
+	case JIT_TYPE_NFLOAT:
+		type = JIT_REG_NFLOAT;
+		break;
+	default:
 		return 0;
 	}
 
@@ -3111,9 +3035,9 @@ _jit_regs_load_value(jit_gencode_t gen, jit_value_t value, int destroy, int used
 			continue;
 		}
 
-		if(need_pair)
+		other_reg = jit_reg_get_pair(value->type, reg);
+		if(other_reg >= 0)
 		{
-			other_reg = jit_reg_other_reg(reg);
 			if(jit_reg_is_used(gen->inhibit, other_reg))
 			{
 				continue;
@@ -3122,10 +3046,6 @@ _jit_regs_load_value(jit_gencode_t gen, jit_value_t value, int destroy, int used
 			{
 				continue;
 			}
-		}
-		else
-		{
-			other_reg = -1;
 		}
 
 		spill_cost = compute_spill_cost(gen, 0, reg, other_reg);

@@ -141,8 +141,6 @@ typedef struct
 } _jit_regs_t;
 
 int _jit_regs_lookup(char *name);
-int _jit_regs_needs_long_pair(jit_type_t type);
-
 void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func);
 void _jit_regs_init_for_block(jit_gencode_t gen);
 void _jit_regs_spill_all(jit_gencode_t gen);

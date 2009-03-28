@@ -110,9 +110,29 @@ typedef struct
 extern jit_reginfo_t const _jit_reg_info[JIT_NUM_REGS];
 
 /*
- * Given the first register of a long pair get the other register.
+ * Macros for getting register information
  */
+
+/* Get register name. */
+#define jit_reg_name(reg)		(_jit_reg_info[reg].name)
+
+/* Get register flags. */
+#define jit_reg_flags(reg)		(_jit_reg_info[reg].flags)
+
+/* Get CPU register number for machine instruction encoding. */
+#define jit_reg_code(reg)		(_jit_reg_info[reg].cpu_reg)
+
+/* Given the first register of a register pair get the other one. */
 #define jit_reg_other_reg(reg)		(_jit_reg_info[reg].other_reg)
+
+/* Given a register find if a value of the specified type requires
+ * a register pair. Return the other register of the pair if it is
+ * required and return -1 otherwise. */
+#if defined(JIT_NATIVE_INT32) && !defined(JIT_BACKEND_INTERP)
+# define jit_reg_get_pair(type,reg)	_jit_reg_get_pair(type, reg)
+#else
+# define jit_reg_get_pair(type,reg)	(-1)
+#endif
 
 /*
  * Manipulate register usage masks.  The backend may override these
@@ -196,6 +216,7 @@ struct jit_elf_info
 /*
  * External function defintions.
  */
+
 void _jit_init_backend(void);
 void _jit_gen_get_elf_info(jit_elf_info_t *info);
 int _jit_create_entry_insns(jit_function_t func);
@@ -229,6 +250,10 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block);
 void _jit_gen_end_block(jit_gencode_t gen, jit_block_t block);
 int _jit_gen_is_global_candidate(jit_type_t type);
+
+#if defined(JIT_NATIVE_INT32) && !defined(JIT_BACKEND_INTERP)
+int _jit_reg_get_pair(jit_type_t type, int reg);
+#endif
 
 /*
  * Determine the byte number within a "jit_int" where the low

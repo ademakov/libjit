@@ -1643,4 +1643,19 @@ int _jit_gen_is_global_candidate(jit_type_t type)
 	return 0;
 }
 
+/*@
+ * @deftypefun int _jit_reg_get_pair (jit_type_t @var{type}, int @var{reg})
+ * Determine if a type requires a register pair. If so then for the specified
+ * register @var{reg} return the other register of the corresponding pair.
+ * Return -1 if no pair is required.
+ *
+ * This function is used only for native 32-bit backends.
+ * @end deftypefun
+@*/
+int _jit_reg_get_pair(jit_type_t type, int reg)
+{
+	/* We don't register pairs on 64-bit platforms or the interpreter */
+	return -1;
+}
+
 #endif /* JIT_BACKEND_INTERP */

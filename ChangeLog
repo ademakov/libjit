@@ -1,7 +1,14 @@
 2009-03-28  Aleksey Demakov  <ademakov@gmail.com>
 
-	* jit/jit-reg-alloc.c, jit/jit-reg-alloc.c (_jit_regs_get_cpu):
-	remove unused function.
+	* jit/jit-rules.h (jit_reg_name, jit_reg_flags, jit_reg_code); add
+	convenience macros for register info access.
+	* jit/jit-rules.h, jit/jit-rules-interp.c, jit/jit-rules-x86.c,
+	* jit/jit-rules-arm.c (_jit_reg_get_pair, jit_reg_get_pair): add
+	function and macro for finding register pair.
+	* jit/jit-reg-alloc.c: replace use of _jit_regs_needs_long_pair with
+	jit_reg_get_pair().
+	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c (_jit_regs_get_cpu)
+	(_jit_regs_needs_long_pair): remove unused functions.
 
 2009-03-25  Michele Tartara  <mikyt@users.sourceforge.net>
 
