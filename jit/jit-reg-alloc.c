@@ -54,7 +54,7 @@ mostly don't have to worry about it:
  * Check if the register is on the register stack.
  */
 #ifdef JIT_REG_STACK
-#define IS_STACK_REG(reg)	((_jit_reg_info[reg].flags & JIT_REG_IN_STACK) != 0)
+#define IS_STACK_REG(reg)	((jit_reg_flags(reg) & JIT_REG_IN_STACK) != 0)
 #else
 #define IS_STACK_REG(reg)	(0)
 #endif
@@ -104,7 +104,7 @@ static void dump_regs(jit_gencode_t gen, const char *name)
 		{
 			continue;
 		}
-		printf("\t%s: ", _jit_reg_info[reg].name);
+		printf("\t%s: ", jit_reg_name(reg));
 		if(gen->contents[reg].num_values > 0)
 		{
 			for(index = 0; index < gen->contents[reg].num_values; ++index)
@@ -2613,7 +2613,7 @@ _jit_regs_lookup(char *name)
 	{
 		for(reg = 0; reg < JIT_NUM_REGS; reg++)
 		{
-			if(strcmp(_jit_reg_info[reg].name, name) == 0)
+			if(strcmp(jit_reg_name(reg), name) == 0)
 			{
 				return reg;
 			}
@@ -2653,8 +2653,7 @@ void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func)
 	{
 		for(reg = 0; reg < JIT_NUM_REGS; ++reg)
 		{
-			if((_jit_reg_info[reg].flags &
-					(JIT_REG_FIXED | JIT_REG_CALL_USED)) == 0)
+			if((jit_reg_flags(reg) & (JIT_REG_FIXED|JIT_REG_CALL_USED)) == 0)
 			{
 				jit_reg_set_used(gen->permanent, reg);
 			}
@@ -2674,8 +2673,7 @@ void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func)
 		}
 		for(posn = 0; posn < num; ++posn)
 		{
-			value = (jit_value_t)(block->data + posn *
-								  sizeof(struct _jit_value));
+			value = (jit_value_t)(block->data + posn * sizeof(struct _jit_value));
 			if(value->global_candidate && value->usage_count >= JIT_MIN_USED &&
 			   !(value->is_addressable) && !(value->is_volatile))
 			{
@@ -2708,7 +2706,7 @@ void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func)
 	reg = JIT_NUM_REGS - 1;
 	for(index = 0; index < num_candidates; ++index)
 	{
-		while(reg >= 0 && (_jit_reg_info[reg].flags & JIT_REG_GLOBAL) == 0)
+		while(reg >= 0 && (jit_reg_flags(reg) & JIT_REG_GLOBAL) == 0)
 		{
 			--reg;
 		}
@@ -2734,8 +2732,8 @@ void _jit_regs_init_for_block(jit_gencode_t gen)
 	for(reg = 0; reg < JIT_NUM_REGS; ++reg)
 	{
 		/* Clear everything except permanent and fixed registers */
-		if(!jit_reg_is_used(gen->permanent, reg) &&
-		   (_jit_reg_info[reg].flags & JIT_REG_FIXED) == 0)
+		if(!jit_reg_is_used(gen->permanent, reg)
+		   && (jit_reg_flags(reg) & JIT_REG_FIXED) == 0)
 		{
 			gen->contents[reg].num_values = 0;
 			gen->contents[reg].is_long_start = 0;
@@ -2770,8 +2768,8 @@ _jit_regs_spill_all(jit_gencode_t gen)
 	for(reg = 0; reg < JIT_NUM_REGS; reg++)
 	{
 		/* Skip this register if it is permanent or fixed */
-		if(jit_reg_is_used(gen->permanent, reg) ||
-		   (_jit_reg_info[reg].flags & JIT_REG_FIXED) != 0)
+		if(jit_reg_is_used(gen->permanent, reg)
+		   || (jit_reg_flags(reg) & JIT_REG_FIXED) != 0)
 		{
 			continue;
 		}
@@ -3022,7 +3020,7 @@ _jit_regs_load_value(jit_gencode_t gen, jit_value_t value, int destroy, int used
 	suitable_age = -1;
 	for(reg = 0; reg < JIT_NUM_REGS; reg++)
 	{
-		if((_jit_reg_info[reg].flags & type) == 0)
+		if((jit_reg_flags(reg) & type) == 0)
 		{
 			continue;
 		}
@@ -3275,7 +3273,7 @@ _jit_regs_clobber_all(jit_gencode_t gen, _jit_regs_t *regs)
 
 	for(index = 0; index < JIT_NUM_REGS; index++)
 	{
-		if((_jit_reg_info[index].flags & JIT_REG_FIXED) != 0)
+		if((jit_reg_flags(index) & JIT_REG_FIXED) != 0)
 		{
 			continue;
 		}
@@ -3406,7 +3404,7 @@ _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs)
 	/* Spill clobbered registers. */
 	for(reg = 0; reg < JIT_NUM_REGS; reg++)
 	{
-		if((_jit_reg_info[reg].flags & JIT_REG_FIXED))
+		if((jit_reg_flags(reg) & JIT_REG_FIXED))
 		{
 			continue;
 		}

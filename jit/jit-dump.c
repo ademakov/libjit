@@ -411,7 +411,7 @@ void jit_dump_insn(FILE *stream, jit_function_t func, jit_insn_t insn)
 		putc('(', stream);
 		jit_dump_value(stream, func, jit_insn_get_value1(insn), 0);
 		fputs(", ", stream);
-		fputs(_jit_reg_info[(int)reg].name, stream);
+		fputs(jit_reg_name(reg), stream);
 		putc(')', stream);
 		return;
 	}
