@@ -416,7 +416,10 @@ static void perform_layout(jit_type_t type)
 	{
 		type->size = maxSize;
 	}
-	type->alignment = maxAlign;
+	if(maxAlign > type->alignment)
+	{
+		type->alignment = maxAlign;
+	}
 }
 
 /*@

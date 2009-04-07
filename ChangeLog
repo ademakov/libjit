@@ -1,3 +1,8 @@
+2009-04-05  Michele Tartara  <mikyt@users.sourceforge.net>
+
+	* jit/jit-type.c (perform_layout): let struct alignment be greater
+	than alignment of every indvidual field.
+
 2009-03-28  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules.h (jit_reg_name, jit_reg_flags, jit_reg_code); add
