@@ -1,3 +1,7 @@
+2009-04-16  Michele Tartara  <mikyt@users.sourceforge.net>
+
+	* jit/jit-rules-arm.c: ARM backend fixes.
+
 2009-04-16  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c (set_regdesc_flags): fix bug reported by

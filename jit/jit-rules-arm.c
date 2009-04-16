@@ -101,8 +101,15 @@
 /*
  * Round a size up to a multiple of the stack word size.
  */
-#define	ROUND_STACK(size)	\
-		(((size) + (sizeof(void *) - 1)) & ~(sizeof(void *) - 1))
+#define	ROUND_STACK(size) \
+	(((size) + (sizeof(void *) - 1)) & ~(sizeof(void *) - 1))
+
+/*
+ * Given the first register of a long pair get the other register,
+ * only if the two are currently forming a pair
+ */
+#define jit_reg_current_other_reg(gen,reg) \
+	(gen->contents[reg].is_long_start ? jit_reg_other_reg(reg) : -1)
 
 /* 
  * Define the classes of registers
@@ -112,34 +119,33 @@ static _jit_regclass_t *arm_freg;
 static _jit_regclass_t *arm_freg32;
 static _jit_regclass_t *arm_freg64;
 static _jit_regclass_t *arm_lreg;
-static _jit_regclass_t *arm_breg;
 
 /*
  * -------------------- Helper functions --------------------------
  */
 
-/**
+/*
  * Load the instruction pointer from the generation context.
  */
 #define	jit_gen_load_inst_ptr(gen,inst)	\
-		do { \
-			arm_inst_buf_init((inst), (gen)->posn.ptr, (gen)->posn.limit); \
-} while (0)
+	do { \
+		arm_inst_buf_init((inst), (gen)->posn.ptr, (gen)->posn.limit); \
+	} while (0)
 
-/**
+/*
  * Save the instruction pointer back to the generation context.
  */
 #define	jit_gen_save_inst_ptr(gen,inst)	\
-		do { \
-			(gen)->posn.ptr = (unsigned char *)arm_inst_get_posn(inst); \
-} while (0)
+	do { \
+		(gen)->posn.ptr = (unsigned char *)arm_inst_get_posn(inst); \
+	} while (0)
 
 /*
-* Get a temporary register that isn't one of the specified registers.
-* When this function is used EVERY REGISTER COULD BE DESTROYED!!!
-* TODO: this function is only used by JIT_OP_STORE_RELATIVE_STRUCT, through memory_copy: remove
-* the need of using it by sustituting it with register allocation with [scratch reg]
-*/
+ * Get a temporary register that isn't one of the specified registers.
+ * When this function is used EVERY REGISTER COULD BE DESTROYED!!!
+ * TODO: this function is only used by JIT_OP_STORE_RELATIVE_STRUCT, through memory_copy: remove
+ * the need of using it by sustituting it with register allocation with [scratch reg]
+ */
 static int get_temp_reg(int reg1, int reg2, int reg3)
 {
 	/* 
@@ -177,13 +183,16 @@ static int get_temp_reg(int reg1, int reg2, int reg3)
 static void mov_reg_imm (jit_gencode_t gen, arm_inst_buf *inst, int reg, int value);
 
 /*
-* Copy a block of memory that has a specific size.  Other than
-* the parameter pointers, all registers must be unused at this point.
-*/
+ * Copy a block of memory that has a specific size.  Other than
+ * the parameter pointers, all registers must be unused at this point.
+ */
 static arm_inst_buf memory_copy (jit_gencode_t gen, arm_inst_buf inst, int dreg, jit_nint doffset, int sreg, jit_nint soffset, jit_nuint size, int temp_reg)
 {
 	//int temp_reg = get_temp_reg(dreg, sreg, -1);
-	if (temp_reg==-1) temp_reg = get_temp_reg(dreg, sreg, -1);
+	if(temp_reg == -1)
+	{
+		temp_reg = get_temp_reg(dreg, sreg, -1);
+	}
 	if(size <= 4 * sizeof(void *))
 	{
 		/* Use direct copies to copy the memory */
@@ -225,8 +234,8 @@ static arm_inst_buf memory_copy (jit_gencode_t gen, arm_inst_buf inst, int dreg,
 			arm_mov_reg_reg(inst, ARM_R1, temp_reg);
 		}
 		//R0 <- destination pointer
-		/* On ARM, the stack doesn't need special treatment, since parameters are passed using registers, not using the stack as it's done on x86 */
-		
+		/* On ARM, the stack doesn't need special treatment, since parameters
+		   are passed using registers, not using the stack as it's done on x86 */
 		if(doffset == 0)
 		{
 			arm_mov_reg_reg(inst, ARM_R0, dreg);
@@ -242,7 +251,7 @@ static arm_inst_buf memory_copy (jit_gencode_t gen, arm_inst_buf inst, int dreg,
 	return inst;
 }
 
-/**
+/*
  * Flush the contents of the constant pool.
  */
 static void flush_constants(jit_gencode_t gen, int after_epilog)
@@ -325,7 +334,7 @@ static void flush_constants(jit_gencode_t gen, int after_epilog)
 	jit_gen_save_inst_ptr(gen, inst);
 }
 
-/**
+/*
  * Perform a constant pool flush if we are too far from the starting point.
  */
 static int flush_if_too_far(jit_gencode_t gen)
@@ -660,7 +669,7 @@ static void jump_to_epilog
  */
 
 
-/**
+/*
  * Initialize the backend.
  */
 void _jit_init_backend(void)
@@ -753,24 +762,6 @@ int _jit_create_call_return_insns
 			return 0;
 		}
 	}
-#ifdef JIT_ARM_HAS_FLOAT_REGS
-	//TODO: check that this works when the handling of the float registers changes
-	else if(return_type->kind == JIT_TYPE_FLOAT32)
-	{
-		if(!jit_insn_return_reg(func, return_value, ARM_REG_S0))
-		{
-			return 0;
-		}
-	}
-	else if(return_type->kind == JIT_TYPE_FLOAT64 ||
-			return_type->kind == JIT_TYPE_NFLOAT)
-	{
-		if(!jit_insn_return_reg(func, return_value, ARM_REG_D8))
-		{
-			return 0;
-		}
-	}
-#endif
 	else if(return_type->kind != JIT_TYPE_VOID)
 	{
 		if(!jit_insn_return_reg(func, return_value, ARM_REG_R0))
@@ -1094,8 +1085,9 @@ void _jit_gen_load_value
 		{	
 			/* Find the other register in a long pair */
 			int reg = value->reg;
-			int other_reg = jit_reg_other_reg(reg);
-			/* Spill to the global register */
+			int other_reg = jit_reg_current_other_reg(gen,reg);
+			
+			//Spill to the global register
 			_jit_gen_spill_reg(gen, reg, other_reg, value);
 			value->in_global_register=1;
 
@@ -1103,8 +1095,38 @@ void _jit_gen_load_value
 			jit_gen_load_inst_ptr(gen, inst);
 		}
 		/* Load the value out of a global register */
-		arm_mov_reg_reg(inst, _jit_reg_info[reg].cpu_reg,
-						_jit_reg_info[value->global_reg].cpu_reg);
+		if(IS_FLOAT_REG(reg))
+		{
+			/* Load into a floating point register */
+#ifdef JIT_ARM_HAS_VFP
+			/* Vector floating point instructions */
+			if(jit_type_normalize(value->type)->kind == JIT_TYPE_FLOAT32)
+			{
+				arm_mov_float_reg(inst,
+						  _jit_reg_info[reg].cpu_reg,
+						  _jit_reg_info[value->global_reg].cpu_reg);
+			}
+			else
+			{
+				//JIT_TYPE_FLOAT64 or JIT_TYPE_NFLOAT
+				arm_mov_double_reg_reg(inst,
+						       _jit_reg_info[reg].cpu_reg,
+						       _jit_reg_info[value->global_reg].cpu_reg,
+						       _jit_reg_info[value->global_reg].cpu_reg + 1);
+			}
+#endif
+#ifdef JIT_ARM_HAS_FPA
+			TODO();
+			abort();
+#endif
+		}
+		else
+		{
+			/* Load into a general-purpose register */
+			arm_mov_reg_reg(inst,
+					_jit_reg_info[reg].cpu_reg,
+					_jit_reg_info[value->global_reg].cpu_reg);
+		}
 	}
 	else
 	{
@@ -1117,14 +1139,15 @@ void _jit_gen_load_value
 		{
 			/* Find the other register in a long pair */
 			int reg = value->reg;
-			int other_reg = jit_reg_other_reg(reg);
+			int other_reg = jit_reg_current_other_reg(gen,reg);
+			
 			_jit_gen_spill_reg(gen, reg, other_reg, value);
 			value->in_frame=1;
 
 			/* A new instruction has probably been generated by _jit_gen_spill_reg: reload the inst pointer */
 			jit_gen_load_inst_ptr(gen, inst);
 		}
-		
+
 		switch(jit_type_normalize(value->type)->kind)
 		{
 			case JIT_TYPE_SBYTE:
@@ -1244,8 +1267,9 @@ void _jit_gen_load_value_struct (jit_gencode_t gen, int reg, jit_value_t value)
 		{	
 			/* Find the other register in a long pair */
 			int reg = value->reg;
-			int other_reg = jit_reg_other_reg(reg);
-			/* Spill to the global register */
+			int other_reg = jit_reg_current_other_reg(gen,reg);
+			
+			//Spill to the global register
 			_jit_gen_spill_reg(gen, reg, other_reg, value);
 			value->in_global_register=1;
 
@@ -1267,7 +1291,8 @@ void _jit_gen_load_value_struct (jit_gencode_t gen, int reg, jit_value_t value)
 		{
 			/* Find the other register in a long pair */
 			int reg = value->reg;
-			int other_reg = jit_reg_other_reg(reg);
+			int other_reg = jit_reg_current_other_reg(gen,reg);
+			
 			_jit_gen_spill_reg(gen, reg, other_reg, value);
 			value->in_frame=1;
 
@@ -1382,32 +1407,6 @@ int _jit_gen_is_global_candidate(jit_type_t type)
 	return 0;
 }
 
-/** "value" is a float value (single or double) that has just been returned 
- * by a function and is in r0 (and, if needed, r1).
- * If it is a float value, this function puts it back where it should be, in the float register reg
- * (of appropriate size)
- */
-void _jit_gen_return_to_float(jit_gencode_t gen, jit_value_t value, int reg)
-{
-	if (IS_FLOAT_REG(reg))
-	{
-		arm_inst_buf inst;
-		jit_gen_load_inst_ptr(gen, inst);
-		
-		if (value->type->kind == JIT_TYPE_FLOAT64
-		    || value->type->kind == JIT_TYPE_NFLOAT)
-		{
-			arm_mov_double_reg_reg(inst, _jit_reg_info[reg].cpu_reg, 0, 1);
-		}
-		else if (value->type->kind==JIT_TYPE_FLOAT32)
-		{
-			arm_mov_float_reg(inst, _jit_reg_info[reg].cpu_reg, 0);
-		}
-		jit_gen_save_inst_ptr(gen, inst);
-	}
-}
-
-
 int
 _jit_reg_get_pair(jit_type_t type, int reg)
 {
@@ -1420,7 +1419,7 @@ _jit_reg_get_pair(jit_type_t type, int reg)
 		}
 		else if(type->kind == JIT_TYPE_FLOAT64 || type->kind == JIT_TYPE_NFLOAT)
 		{
-			if(reg == JIT_REG_R0)
+			if(reg == ARM_REG_R0)
 			{
 				return jit_reg_other_reg(reg);
 			}
