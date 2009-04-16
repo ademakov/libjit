@@ -620,6 +620,20 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 
 	/* See if the value clobbers the register it is assigned to. */
 	clobber = clobbers_register(gen, regs, index, desc->reg, desc->other_reg);
+#ifdef JIT_REG_DEBUG
+	if((clobber & CLOBBER_INPUT_VALUE) != 0)
+	{
+		printf("clobber input\n");
+	}
+	if((clobber & CLOBBER_REG) != 0)
+	{
+		printf("clobber reg\n");
+	}
+	if((clobber & CLOBBER_OTHER_REG) != 0)
+	{
+		printf("clobber other reg\n");
+	}
+#endif
 
 	/* See if this is an input value and whether it is alive. */
 	if(regs->ternary)
@@ -733,37 +747,57 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 			}
 		}
 
-		/* See if the input value is destroyed by the instruction. */
-		if(desc->copy)
-		{
-			clobber_input = 0;
-		}
-		else if(jit_reg_is_used(regs->clobber, desc->reg)
-			|| (desc->other_reg >= 0
-			    && jit_reg_is_used(regs->clobber, desc->other_reg)))
-		{
-			clobber_input = 1;
-		}
-		else
-		{
-			clobber_input = ((clobber & CLOBBER_INPUT_VALUE) != 0);
-		}
-
 		/* See if the input value needs to be stored before the
 		   instruction and if it stays in the register after it. */
 		if(desc->value->is_constant)
 		{
 			desc->kill = 1;
 		}
-		else if(clobber_input)
-		{
-			desc->store = (is_live_input || is_used_input);
-			desc->kill = 1;
-		}
 		else if(!is_used_input)
 		{
 			desc->store = is_live_input;
 			desc->kill = 1;
+		}
+		else
+		{
+			/* See if the input value is destroyed by the instruction. */
+			clobber_input = 0;
+			if(!desc->copy)
+			{
+				if(jit_reg_is_used(regs->clobber, desc->reg)
+				   || (desc->other_reg >= 0
+				       && jit_reg_is_used(regs->clobber, desc->other_reg)))
+				{
+					clobber_input = 1;
+				}
+				else if ((clobber & CLOBBER_INPUT_VALUE) != 0)
+				{
+					clobber_input = 1;
+				}
+			}
+			else if(reg >= 0)
+			{
+				if(jit_reg_is_used(regs->clobber, reg)
+				   || (other_reg >= 0
+				       && jit_reg_is_used(regs->clobber, other_reg)))
+				{
+					clobber_input = 1;
+				}
+				else if(!regs->ternary
+					&& regs->descs[0].value
+					&& (reg == regs->descs[0].reg
+					    || reg == regs->descs[0].other_reg
+					    || other_reg == regs->descs[0].reg))
+				{
+					clobber_input = 1;
+				}
+			}
+
+			if(clobber_input)
+			{
+				desc->store = 1;
+				desc->kill = 1;
+			}
 		}
 
 		/* Store the value if it is going to be thrashed by another one. */
