@@ -1,3 +1,7 @@
+2009-04-21  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-dump.c (jit_dump_insn): fix "call_finally" dump.
+
 2009-04-16  Michele Tartara  <mikyt@users.sourceforge.net>
 
 	* jit/jit-rules-arm.c: ARM backend fixes.

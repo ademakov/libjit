@@ -383,6 +383,11 @@ void jit_dump_insn(FILE *stream, jit_function_t func, jit_insn_t insn)
 			fprintf(stream, "goto .L%ld", (long)(jit_insn_get_label(insn)));
 			return;
 		}
+		if(opcode == JIT_OP_CALL_FINALLY || opcode == JIT_OP_CALL_FILTER)
+		{
+			fprintf(stream, "%s .L%ld", name, (long)(jit_insn_get_label(insn)));
+			return;
+		}
 		fprintf(stream, "if ");
 	}
 	else if((flags & JIT_OPCODE_IS_CALL) != 0)
@@ -427,7 +432,7 @@ void jit_dump_insn(FILE *stream, jit_function_t func, jit_insn_t insn)
 		jit_nint num_labels, label;
 		labels = (jit_label_t *)jit_value_get_nint_constant(jit_insn_get_value1(insn));
 		num_labels = jit_value_get_nint_constant(jit_insn_get_value2(insn));
-		fprintf(stream, "jump_table ");
+		fprintf(stream, "%s ", name);
 		dump_value(stream, func, jit_insn_get_dest(insn), flags & JIT_OPCODE_DEST_MASK);
 		printf(" : {");
 		for(label = 0; label < num_labels; label++)
