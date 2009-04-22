@@ -5365,6 +5365,64 @@ static int create_call_setup_insns
 		 is_nested, nesting_level, struct_return, flags);
 }
 
+static jit_value_t
+handle_return(jit_function_t func,
+	      jit_type_t signature,
+	      int flags, int is_nested,
+	      jit_value_t *args, unsigned int num_args,
+	      jit_value_t return_value)
+{
+	/* If the function does not return, then end the current block.
+	   The next block does not have "entered_via_top" set so that
+	   it will be eliminated during later code generation */
+	if((flags & (JIT_CALL_NORETURN | JIT_CALL_TAIL)) != 0)
+	{
+		func->builder->current_block->ends_in_dead = 1;
+	}
+
+	/* If the function may throw an exceptions then end the current
+	   basic block to account for exceptional control flow */
+	if((flags & JIT_CALL_NOTHROW) == 0)
+	{
+		if(!jit_insn_new_block(func))
+		{
+			return 0;
+		}
+	}
+
+	/* Create space for the return value, if we don't already have one */
+	if(!return_value)
+	{
+		return_value = jit_value_create(func, jit_type_get_return(signature));
+		if(!return_value)
+		{
+			return 0;
+		}
+	}
+
+	/* Create the instructions necessary to move the return value into place */
+	if((flags & JIT_CALL_TAIL) == 0)
+	{
+		if(!_jit_create_call_return_insns(func,
+						  signature,
+						  args, num_args,
+						  return_value,
+						  is_nested))
+		{
+			return 0;
+		}
+	}
+
+	/* Restore exception frame information after the call */
+	if(!restore_eh_frame_after_call(func, flags))
+	{
+		return 0;
+	}
+
+	/* Return the value containing the result to the caller */
+	return return_value;
+}
+
 /*@
  * @deftypefun jit_value_t jit_insn_call (jit_function_t @var{func}, const char *@var{name}, jit_function_t @var{jit_func}, jit_type_t @var{signature}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{flags})
  * Call the function @var{jit_func}, which may or may not be translated yet.
@@ -5513,7 +5571,7 @@ jit_value_t jit_insn_call
 		return 0;
 	}
 
-	/* Start a new block and output the "call" instruction */
+	/* Output the "call" instruction */
 	if((flags & JIT_CALL_TAIL) != 0 && func == jit_func)
 	{
 		/* We are performing a tail call to ourselves, which we can
@@ -5543,10 +5601,6 @@ jit_value_t jit_insn_call
 		func->builder->non_leaf = 1;
 
 		/* Performing a regular call, or a tail call to someone else */
-		if(!jit_insn_new_block(func))
-		{
-			return 0;
-		}
 		insn = _jit_block_add_insn(func->builder->current_block);
 		if(!insn)
 		{
@@ -5566,46 +5620,9 @@ jit_value_t jit_insn_call
 		insn->value1 = (jit_value_t)name;
 	}
 
-	/* If the function does not return, then end the current block.
-	   The next block does not have "entered_via_top" set so that
-	   it will be eliminated during later code generation */
-	if((flags & (JIT_CALL_NORETURN | JIT_CALL_TAIL)) != 0)
-	{
-		func->builder->current_block->ends_in_dead = 1;
-		if(!jit_insn_new_block(func))
-		{
-			return 0;
-		}
-	}
-
-	/* Create space for the return value, if we don't already have one */
-	if(!return_value)
-	{
-		return_value = jit_value_create(func, jit_type_get_return(signature));
-		if(!return_value)
-		{
-			return 0;
-		}
-	}
-
-	/* Create the instructions necessary to move the return value into place */
-	if((flags & JIT_CALL_TAIL) == 0)
-	{
-		if(!_jit_create_call_return_insns
-				(func, signature, new_args, num_args, return_value, is_nested))
-		{
-			return 0;
-		}
-	}
-
-	/* Restore exception frame information after the call */
-	if(!restore_eh_frame_after_call(func, flags))
-	{
-		return 0;
-	}
-
-	/* Return the value containing the result to the caller */
-	return return_value;
+	/* Handle return to the caller */
+	return handle_return(func, signature, flags, is_nested,
+			     new_args, num_args, return_value);
 }
 
 /*@
@@ -5683,11 +5700,7 @@ jit_value_t jit_insn_call_indirect
 	/* Functions that call out are not leaves */
 	func->builder->non_leaf = 1;
 
-	/* Start a new block and output the "call_indirect" instruction */
-	if(!jit_insn_new_block(func))
-	{
-		return 0;
-	}
+	/* Output the "call_indirect" instruction */
 	insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
@@ -5707,46 +5720,9 @@ jit_value_t jit_insn_call_indirect
 	insn->value1 = value;
 	insn->value2 = (jit_value_t)jit_type_copy(signature);
 
-	/* If the function does not return, then end the current block.
-	   The next block does not have "entered_via_top" set so that
-	   it will be eliminated during later code generation */
-	if((flags & (JIT_CALL_NORETURN | JIT_CALL_TAIL)) != 0)
-	{
-		func->builder->current_block->ends_in_dead = 1;
-		if(!jit_insn_new_block(func))
-		{
-			return 0;
-		}
-	}
-
-	/* Create space for the return value, if we don't already have one */
-	if(!return_value)
-	{
-		return_value = jit_value_create(func, jit_type_get_return(signature));
-		if(!return_value)
-		{
-			return 0;
-		}
-	}
-
-	/* Create the instructions necessary to move the return value into place */
-	if((flags & JIT_CALL_TAIL) == 0)
-	{
-		if(!_jit_create_call_return_insns
-				(func, signature, new_args, num_args, return_value, 0))
-		{
-			return 0;
-		}
-	}
-
-	/* Restore exception frame information after the call */
-	if(!restore_eh_frame_after_call(func, flags))
-	{
-		return 0;
-	}
-
-	/* Return the value containing the result to the caller */
-	return return_value;
+	/* Handle return to the caller */
+	return handle_return(func, signature, flags, 0,
+			     new_args, num_args, return_value);
 }
 
 /*@
@@ -5821,11 +5797,7 @@ jit_value_t jit_insn_call_indirect_vtable
 	/* Functions that call out are not leaves */
 	func->builder->non_leaf = 1;
 
-	/* Start a new block and output the "call_vtable_ptr" instruction */
-	if(!jit_insn_new_block(func))
-	{
-		return 0;
-	}
+	/* Output the "call_vtable_ptr" instruction */
 	insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
@@ -5843,46 +5815,9 @@ jit_value_t jit_insn_call_indirect_vtable
 	}
 	insn->value1 = value;
 
-	/* If the function does not return, then end the current block.
-	   The next block does not have "entered_via_top" set so that
-	   it will be eliminated during later code generation */
-	if((flags & (JIT_CALL_NORETURN | JIT_CALL_TAIL)) != 0)
-	{
-		func->builder->current_block->ends_in_dead = 1;
-		if(!jit_insn_new_block(func))
-		{
-			return 0;
-		}
-	}
-
-	/* Create space for the return value, if we don't already have one */
-	if(!return_value)
-	{
-		return_value = jit_value_create(func, jit_type_get_return(signature));
-		if(!return_value)
-		{
-			return 0;
-		}
-	}
-
-	/* Create the instructions necessary to move the return value into place */
-	if((flags & JIT_CALL_TAIL) == 0)
-	{
-		if(!_jit_create_call_return_insns
-				(func, signature, new_args, num_args, return_value, 0))
-		{
-			return 0;
-		}
-	}
-
-	/* Restore exception frame information after the call */
-	if(!restore_eh_frame_after_call(func, flags))
-	{
-		return 0;
-	}
-
-	/* Return the value containing the result to the caller */
-	return return_value;
+	/* Handle return to the caller */
+	return handle_return(func, signature, flags, 0,
+			     new_args, num_args, return_value);
 }
 
 /*@
@@ -5956,11 +5891,7 @@ jit_value_t jit_insn_call_native
 	/* Functions that call out are not leaves */
 	func->builder->non_leaf = 1;
 
-	/* Start a new block and output the "call_external" instruction */
-	if(!jit_insn_new_block(func))
-	{
-		return 0;
-	}
+	/* Output the "call_external" instruction */
 	insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
@@ -5983,37 +5914,9 @@ jit_value_t jit_insn_call_native
 	insn->value2 = (jit_value_t)jit_type_copy(signature);
 #endif
 
-	/* If the function does not return, then end the current block.
-	   The next block does not have "entered_via_top" set so that
-	   it will be eliminated during later code generation */
-	if((flags & (JIT_CALL_NORETURN | JIT_CALL_TAIL)) != 0)
-	{
-		func->builder->current_block->ends_in_dead = 1;
-		if(!jit_insn_new_block(func))
-		{
-			return 0;
-		}
-	}
-
-	/* Create space for the return value, if we don't already have one */
-	if(!return_value)
-	{
-		return_value = jit_value_create(func, jit_type_get_return(signature));
-		if(!return_value)
-		{
-			return 0;
-		}
-	}
-
-	/* Create the instructions necessary to move the return value into place */
-	if((flags & JIT_CALL_TAIL) == 0)
-	{
-		if(!_jit_create_call_return_insns
-				(func, signature, new_args, num_args, return_value, 0))
-		{
-			return 0;
-		}
-	}
+	/* Handle return to the caller */
+	return_value = handle_return(func, signature, flags, 0,
+				     new_args, num_args, return_value);
 
 	/* Make sure that returned byte / short values get zero / sign extended */
 	return_type = jit_type_normalize(return_value->type);
@@ -6039,12 +5942,6 @@ jit_value_t jit_insn_call_native
 		return_value = apply_unary_conversion(func, JIT_OP_TRUNC_USHORT,
 						      return_value, return_type);
 		break;
-	}
-
-	/* Restore exception frame information after the call */
-	if(!restore_eh_frame_after_call(func, flags))
-	{
-		return 0;
 	}
 
 	/* Return the value containing the result to the caller */

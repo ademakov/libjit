@@ -491,8 +491,8 @@ jit_function_t jit_function_get_nested_parent(jit_function_t func)
 /*
  * Compile a single basic block within a function.
  */
-static void compile_block(jit_gencode_t gen, jit_function_t func,
-						  jit_block_t block)
+static void
+compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 {
 	jit_insn_iter_t iter;
 	jit_insn_t insn;
@@ -514,100 +514,97 @@ static void compile_block(jit_gencode_t gen, jit_function_t func,
 
 		switch(insn->opcode)
 		{
-			case JIT_OP_NOP:		break;		/* Ignore NOP's */
+		case JIT_OP_NOP:
+			/* Ignore NOP's */
+			break;
 
-			case JIT_OP_CHECK_NULL:
+		case JIT_OP_CHECK_NULL:
+			/* Determine if we can optimize the null check away */
+			if(!_jit_insn_check_is_redundant(&iter))
 			{
-				/* Determine if we can optimize the null check away */
-				if(!_jit_insn_check_is_redundant(&iter))
-				{
-					_jit_gen_insn(gen, func, block, insn);
-				}
+				_jit_gen_insn(gen, func, block, insn);
+			}
+			break;
+
+		case JIT_OP_CALL:
+		case JIT_OP_CALL_TAIL:
+		case JIT_OP_CALL_INDIRECT:
+		case JIT_OP_CALL_INDIRECT_TAIL:
+		case JIT_OP_CALL_VTABLE_PTR:
+		case JIT_OP_CALL_VTABLE_PTR_TAIL:
+		case JIT_OP_CALL_EXTERNAL:
+		case JIT_OP_CALL_EXTERNAL_TAIL:
+			/* Spill all caller-saved registers before a call */
+			_jit_regs_spill_all(gen);
+			_jit_gen_insn(gen, func, block, insn);
+			break;
+
+#ifndef JIT_BACKEND_INTERP
+		case JIT_OP_INCOMING_REG:
+			/* Assign a register to an incoming value */
+			_jit_regs_set_incoming(gen,
+					       (int)jit_value_get_nint_constant(insn->value2),
+					       insn->value1);
+			_jit_gen_insn(gen, func, block, insn);
+			break;
+#endif
+
+		case JIT_OP_INCOMING_FRAME_POSN:
+			/* Set the frame position for an incoming value */
+			insn->value1->frame_offset = jit_value_get_nint_constant(insn->value2);
+			insn->value1->in_register = 0;
+			insn->value1->has_frame_offset = 1;
+			if(insn->value1->has_global_register)
+			{
+				insn->value1->in_global_register = 1;
+				_jit_gen_load_global(gen, insn->value1->global_reg, insn->value1);
+			}
+			else
+			{
+				insn->value1->in_frame = 1;
 			}
 			break;
 
 #ifndef JIT_BACKEND_INTERP
-			case JIT_OP_INCOMING_REG:
-			{
-				/* Assign a register to an incoming value */
-				_jit_regs_set_incoming
-					(gen, (int)jit_value_get_nint_constant(insn->value2),
-					 insn->value1);
-				_jit_gen_insn(gen, func, block, insn);
-			}
+		case JIT_OP_OUTGOING_REG:
+			/* Copy a value into an outgoing register */
+			_jit_regs_set_outgoing(gen,
+					       (int)jit_value_get_nint_constant(insn->value2),
+					       insn->value1);
 			break;
 #endif
 
-			case JIT_OP_INCOMING_FRAME_POSN:
-			{
-				/* Set the frame position for an incoming value */
-				insn->value1->frame_offset =
-					jit_value_get_nint_constant(insn->value2);
-				insn->value1->in_register = 0;
-				insn->value1->has_frame_offset = 1;
-				if(insn->value1->has_global_register)
-				{
-					insn->value1->in_global_register = 1;
-					_jit_gen_load_global(gen, insn->value1->global_reg, insn->value1);
-				}
-				else
-				{
-					insn->value1->in_frame = 1;
-				}
-			}
+		case JIT_OP_OUTGOING_FRAME_POSN:
+			/* Set the frame position for an outgoing value */
+			insn->value1->frame_offset = jit_value_get_nint_constant(insn->value2);
+			insn->value1->in_register = 0;
+			insn->value1->in_global_register = 0;
+			insn->value1->in_frame = 0;
+			insn->value1->has_frame_offset = 1;
+			insn->value1->has_global_register = 0;
 			break;
 
 #ifndef JIT_BACKEND_INTERP
-			case JIT_OP_OUTGOING_REG:
-			{
-				/* Copy a value into an outgoing register */
-				_jit_regs_set_outgoing
-					(gen, (int)jit_value_get_nint_constant(insn->value2),
-					 insn->value1);
-			}
+		case JIT_OP_RETURN_REG:
+			/* Assign a register to a return value */
+			_jit_regs_set_incoming(gen,
+					       (int)jit_value_get_nint_constant(insn->value2),
+					       insn->value1);
+			_jit_gen_insn(gen, func, block, insn);
 			break;
 #endif
 
-			case JIT_OP_OUTGOING_FRAME_POSN:
-			{
-				/* Set the frame position for an outgoing value */
-				insn->value1->frame_offset =
-					jit_value_get_nint_constant(insn->value2);
-				insn->value1->in_register = 0;
-				insn->value1->in_global_register = 0;
-				insn->value1->in_frame = 0;
-				insn->value1->has_frame_offset = 1;
-				insn->value1->has_global_register = 0;
-			}
+		case JIT_OP_MARK_OFFSET:
+			/* Mark the current code position as corresponding
+			   to a particular bytecode offset */
+			_jit_cache_mark_bytecode(&gen->posn,
+						 (unsigned long)(long)
+						 jit_value_get_nint_constant(insn->value1));
 			break;
 
-#ifndef JIT_BACKEND_INTERP
-			case JIT_OP_RETURN_REG:
-			{
-				/* Assign a register to a return value */
-				_jit_regs_set_incoming
-					(gen, (int)jit_value_get_nint_constant(insn->value2),
-					 insn->value1);
-				_jit_gen_insn(gen, func, block, insn);
-			}
-			break;
-#endif
-
-			case JIT_OP_MARK_OFFSET:
-			{
-				/* Mark the current code position as corresponding
-				   to a particular bytecode offset */
-				_jit_cache_mark_bytecode
-					(&(gen->posn), (unsigned long)(long)
-							jit_value_get_nint_constant(insn->value1));
-			}
-			break;
-
-			default:
-			{
-				/* Generate code for the instruction with the back end */
-				_jit_gen_insn(gen, func, block, insn);
-			}
+		default:
+			/* Generate code for the instruction with the back end */
+			_jit_gen_insn(gen, func, block, insn);
 			break;
 		}
 

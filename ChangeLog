@@ -1,3 +1,12 @@
+2009-04-22  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-insn.c (jit_insn_call, jit_insn_call_indirect) 
+	(jit_insn_call_indirect_vtable, jit_insn_call_native): don't end
+	basic block before a function call, rather end it after the call if
+	the call may throw some exception.
+	* jit/jit-function.c (compile_block): spill all registers before
+	calls.
+
 2009-04-21  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-dump.c (jit_dump_insn): fix "call_finally" dump.
