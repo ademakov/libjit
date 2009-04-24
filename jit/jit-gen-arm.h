@@ -1671,8 +1671,8 @@ do { \
 */
 #define arm_mov_reg_float(inst,dreg,sreg)	\
 do { \
-	char sreg_top_4_bits = (dreg & 0x1E) >> 1;	\
-	char sreg_bottom_bit = (dreg & 0x01);	\
+	char sreg_top_4_bits = (sreg & 0x1E) >> 1;	\
+	char sreg_bottom_bit = (sreg & 0x01);	\
 	arm_inst_add((inst), arm_prefix(0x0E100A10) | 	\
 	(((unsigned int)(dreg)) << 12) | 	\
 	(((unsigned int)(sreg_top_4_bits)) << 16) |	\

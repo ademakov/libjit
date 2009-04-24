@@ -1,3 +1,8 @@
+2009-04-24  Michele Tartara  <mikyt@users.sourceforge.net>
+
+	* jit/jit-gen-arm.h (arm_mov_reg_float): fix typo.
+	* jit/jit-rules-arm.c (_jit_gen_load_value): fix load logic.
+
 2009-04-22  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-insn.c (jit_insn_call, jit_insn_call_indirect) 
