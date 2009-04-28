@@ -184,7 +184,7 @@ jit_label_t jit_block_get_label(jit_block_t block)
 	}
 	else
 	{
-		return 0;
+		return jit_label_undefined;
 	}
 }
 

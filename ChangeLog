@@ -1,3 +1,8 @@
+2009-04-29  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-block.c (jit_block_get_label): return jit_label_undefined
+	instead of zero on error.
+
 2009-04-24  Michele Tartara  <mikyt@users.sourceforge.net>
 
 	* jit/jit-gen-arm.h (arm_mov_reg_float): fix typo.
