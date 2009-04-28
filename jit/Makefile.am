@@ -18,8 +18,6 @@ libjit_la_SOURCES = \
 	jit-block.c \
 	jit-cache.h \
 	jit-cache.c \
-	jit-cfg.h \
-	jit-cfg.c \
 	jit-context.c \
 	jit-cpuid-x86.h \
 	jit-cpuid-x86.c \

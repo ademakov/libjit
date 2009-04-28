@@ -4,6 +4,7 @@
 	instead of zero on error.
 	* jit/jit-insn.c (jit_insn_call_finally): create a new block after
 	JIT_OP_CALL_FINALLY.
+	* jit/Makefile.am (libjit_la_SOURCES): remove jit-cfg.[ch].
 
 2009-04-24  Michele Tartara  <mikyt@users.sourceforge.net>
 
