@@ -564,18 +564,9 @@ reset_liveness_flags(jit_block_t block, int reset_all)
 
 void _jit_function_compute_liveness(jit_function_t func)
 {
-	jit_block_t block = func->builder->first_block;
+	jit_block_t block = func->builder->entry_block;
 	while(block != 0)
 	{
-		/* If the block is never entered, then replace it with empty */
-		if(!(block->entered_via_top) && !(block->entered_via_branch))
-		{
-			block->last_insn = block->first_insn - 1;
-		}
-
-		/* Perform peephole optimization on branches to branches */
-		_jit_block_peephole_branch(block);
-
 #ifdef USE_FORWARD_PROPAGATION
 		/* Perform forward copy propagation for the block */
 		forward_propagation(block);

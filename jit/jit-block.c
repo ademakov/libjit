@@ -29,36 +29,15 @@
 
 @*/
 
-int _jit_block_init(jit_function_t func)
+/* helper data structure for CFG DFS traversal */
+typedef struct _jit_block_stack_entry
 {
-	func->builder->entry = _jit_block_create(func, 0);
-	if(!(func->builder->entry))
-	{
-		return 0;
-	}
-	func->builder->entry->entered_via_top = 1;
-	func->builder->current_block = func->builder->entry;
-	return 1;
-}
+	jit_block_t block;
+	int index;
+} _jit_block_stack_entry_t;
 
-void _jit_block_free(jit_function_t func)
-{
-	jit_block_t current = func->builder->first_block;
-	jit_block_t next;
-	while(current != 0)
-	{
-		next = current->next;
-		jit_meta_destroy(&(current->meta));
-		jit_free(current);
-		current = next;
-	}
-	func->builder->first_block = 0;
-	func->builder->last_block = 0;
-	func->builder->entry = 0;
-	func->builder->current_block = 0;
-}
-
-jit_block_t _jit_block_create(jit_function_t func, jit_label_t *label)
+static jit_block_t
+create_block(jit_function_t func)
 {
 	jit_block_t block;
 
@@ -69,10 +48,740 @@ jit_block_t _jit_block_create(jit_function_t func, jit_label_t *label)
 		return 0;
 	}
 
-	/* Initialize the block and set its label */
+	/* Initialize the block */
 	block->func = func;
+	block->label = jit_label_undefined;
 	block->first_insn = func->builder->num_insns;
 	block->last_insn = block->first_insn - 1;
+
+	return block;
+}
+
+static void
+free_block(jit_block_t block)
+{
+	jit_meta_destroy(&block->meta);
+	jit_free(block->succs);
+	jit_free(block->preds);
+	jit_free(block);
+}
+
+static int
+create_edge(jit_function_t func, jit_block_t src, jit_block_t dst, int flags, int create)
+{
+	_jit_edge_t edge;
+
+	/* Create edge if required */
+	if(create)
+	{
+		/* Allocate memory for it */
+		edge = jit_memory_pool_alloc(&func->builder->edge_pool, struct _jit_edge);
+		if(!edge)
+		{
+			return 0;
+		}
+
+		/* Initialize edge fields */
+		edge->src = src;
+		edge->dst = dst;
+		edge->flags = flags;
+
+		/* Store edge pointers in source and destination nodes */
+		src->succs[src->num_succs] = edge;
+		dst->preds[dst->num_preds] = edge;
+	}
+
+	/* Count it */
+	++(src->num_succs);
+	++(dst->num_preds);
+
+	return 1;
+}
+
+static int
+build_edges(jit_function_t func, int create)
+{
+	jit_block_t src, dst;
+	jit_insn_t insn;
+	int opcode, flags;
+	jit_label_t *labels;
+	int index, num_labels;
+
+	/* TODO: Handle catch, finally, filter blocks. */
+
+	for(src = func->builder->entry_block; src != func->builder->exit_block; src = src->next)
+	{
+		/* Check the last instruction of the block */
+		insn = _jit_block_get_last(src);
+		opcode = insn ? insn->opcode : JIT_OP_NOP;
+		if(opcode >= JIT_OP_RETURN && opcode <= JIT_OP_RETURN_SMALL_STRUCT)
+		{
+			flags = _JIT_EDGE_RETURN;
+			dst = func->builder->exit_block;
+		}
+		else if(opcode == JIT_OP_BR)
+		{
+			flags = _JIT_EDGE_BRANCH;
+			dst = jit_block_from_label(func, (jit_label_t) insn->dest);
+			if(!dst)
+			{
+				/* Bail out on undefined label */
+				return 0;
+			}
+		}
+		else if(opcode > JIT_OP_BR && opcode <= JIT_OP_BR_NFGE_INV)
+		{
+			flags = _JIT_EDGE_BRANCH;
+			dst = jit_block_from_label(func, (jit_label_t) insn->dest);
+			if(!dst)
+			{
+				/* Bail out on undefined label */
+				return 0;
+			}
+		}
+		else if(opcode == JIT_OP_THROW || opcode == JIT_OP_RETHROW)
+		{
+			flags = _JIT_EDGE_EXCEPT;
+			dst = jit_block_from_label(func, func->builder->catcher_label);
+			if(!dst)
+			{
+				dst = func->builder->exit_block;
+			}
+		}
+		else if(opcode == JIT_OP_CALL_FINALLY || opcode == JIT_OP_CALL_FILTER)
+		{
+			flags = _JIT_EDGE_EXCEPT;
+			dst = jit_block_from_label(func, (jit_label_t) insn->dest);
+			if(!dst)
+			{
+				/* Bail out on undefined label */
+				return 0;
+			}
+		}
+		else if(opcode >= JIT_OP_CALL && opcode <= JIT_OP_CALL_EXTERNAL_TAIL)
+		{
+			flags = _JIT_EDGE_EXCEPT;
+			dst = jit_block_from_label(func, func->builder->catcher_label);
+			if(!dst)
+			{
+				dst = func->builder->exit_block;
+			}
+		}
+		else if(opcode == JIT_OP_JUMP_TABLE)
+		{
+			labels = (jit_label_t *) insn->value1->address;
+			num_labels = (int) insn->value2->address;
+			for(index = 0; index < num_labels; index++)
+			{
+				dst = jit_block_from_label(func, labels[index]);
+				if(!dst)
+				{
+					/* Bail out on undefined label */
+					return 0;
+				}
+				if(!create_edge(func, src, dst, _JIT_EDGE_BRANCH, create))
+				{
+					return 0;
+				}
+			}
+			dst = 0;
+		}
+		else
+		{
+			dst = 0;
+		}
+
+		/* create a branch or exception edge if appropriate */
+		if(dst)
+		{
+			if(!create_edge(func, src, dst, flags, create))
+			{
+				return 0;
+			}
+		}
+		/* create a fall-through edge if appropriate */
+		if(!src->ends_in_dead)
+		{
+			if(!create_edge(func, src, src->next, _JIT_EDGE_FALLTHRU, create))
+			{
+				return 0;
+			}
+		}
+	}
+
+	return 1;
+}
+
+static int
+alloc_edges(jit_function_t func)
+{
+	jit_block_t block;
+
+	for(block = func->builder->entry_block; block; block = block->next)
+	{
+		/* Allocate edges to successor nodes */
+		if(block->num_succs == 0)
+		{
+			block->succs = 0;
+		}
+		else
+		{
+			block->succs = jit_calloc(block->num_succs, sizeof(_jit_edge_t));
+			if(!block->succs)
+			{
+				return 0;
+			}
+			/* Reset edge count for the next build pass */
+			block->num_succs = 0;
+		}
+
+		/* Allocate edges to predecessor nodes */
+		if(block->num_preds == 0)
+		{
+			block->preds = 0;
+		}
+		else
+		{
+			block->preds = jit_calloc(block->num_preds, sizeof(_jit_edge_t));
+			if(!block->preds)
+			{
+				return 0;
+			}
+			/* Reset edge count for the next build pass */
+			block->num_preds = 0;
+		}
+	}
+
+	return 1;
+}
+
+static void
+detach_edge_src(_jit_edge_t edge)
+{
+	jit_block_t block;
+	int index;
+
+	block = edge->src;
+	for(index = 0; index < block->num_succs; index++)
+	{
+		if(block->succs[index] == edge)
+		{
+			for(block->num_succs--; index < block->num_succs; index++)
+			{
+				block->succs[index] = block->succs[index + 1];
+			}
+			block->succs = jit_realloc(block->succs, block->num_succs * sizeof(_jit_edge_t));
+			return;
+		}
+	}
+}
+
+static void
+detach_edge_dst(_jit_edge_t edge)
+{
+	jit_block_t block;
+	int index;
+
+	block = edge->dst;
+	for(index = 0; index < block->num_preds; index++)
+	{
+		if(block->preds[index] == edge)
+		{
+			for(block->num_preds--; index < block->num_preds; index++)
+			{
+				block->preds[index] = block->preds[index + 1];
+			}
+			block->preds = jit_realloc(block->preds,
+						   block->num_preds * sizeof(_jit_edge_t));
+			return;
+		}
+	}
+}
+
+static int
+attach_edge_dst(_jit_edge_t edge, jit_block_t block)
+{
+	_jit_edge_t *preds;
+
+	preds = jit_realloc(block->preds, (block->num_preds + 1) * sizeof(_jit_edge_t));
+	if(!preds)
+	{
+		return 0;
+	}
+
+	preds[block->num_preds++] = edge;
+	block->preds = preds;
+	edge->dst = block;
+
+	return 1;
+}
+
+/* The block is empty if it contains nothing apart from an unconditional branch */
+static int
+is_empty_block(jit_block_t block)
+{
+	jit_insn_t *insns;
+	int index, opcode;
+
+	insns = block->func->builder->insns;
+	for(index = block->first_insn; index <= block->last_insn; index++)
+	{
+		opcode = insns[index]->opcode;
+		if(opcode != JIT_OP_NOP
+		   && opcode != JIT_OP_MARK_OFFSET
+		   && opcode != JIT_OP_BR)
+		{
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+/* Merge empty block with its successor */
+static int
+merge_empty(jit_function_t func, jit_block_t block, int *changed)
+{
+	_jit_edge_t succ_edge, pred_edge, fallthru_edge;
+	jit_block_t succ_block;
+	int index;
+
+	/* Find block successor */
+	succ_edge = block->succs[0];
+	succ_block = succ_edge->dst;
+
+	/* Retarget label to the successor block. */
+	if(block->label != jit_label_undefined)
+	{
+		func->builder->label_blocks[block->label] = succ_block;
+		if(succ_block->label == jit_label_undefined)
+		{
+			succ_block->label = block->label;
+		}
+		else
+		{
+			/* FIXME: If both blocks have labels then this results
+			   into a duplicate label which is not recorded in the
+			   target block. This shouldn't cause big problems now
+			   but perhaps some sort of block-to-label-list mappings
+			   might be useful someday. */
+		}
+	}
+
+	/* Retarget all incoming edges except a fallthrough edge */
+	fallthru_edge = 0;
+	for(index = 0; index < block->num_preds; index++)
+	{
+		pred_edge = block->preds[index];
+		if(pred_edge->flags == _JIT_EDGE_FALLTHRU)
+		{
+			fallthru_edge = pred_edge;
+		}
+		else
+		{
+			*changed = 1;
+			if(!attach_edge_dst(pred_edge, succ_block))
+			{
+				return 0;
+			}
+		}
+	}
+
+	/* If there is an incoming fallthrough edge then retarget it
+	   if the outgoing edge is also fallthough. Otherwise adjust
+	   the preds array to contain this edge only.  */
+	if(fallthru_edge != NULL)
+	{
+		if(succ_edge->flags == _JIT_EDGE_FALLTHRU)
+		{
+			*changed = 1;
+			if(!attach_edge_dst(pred_edge, succ_block))
+			{
+				return 0;
+			}
+			fallthru_edge = 0;
+		}
+		else if (block->num_preds > 1)
+		{
+			block->num_preds = 1;
+			block->preds = jit_realloc(block->preds, sizeof(_jit_edge_t));
+			block->preds[0] = fallthru_edge;
+		}
+	}
+
+	/* Free block if no incoming edge is left */
+	if(!fallthru_edge)
+	{
+		detach_edge_dst(succ_edge);
+		jit_memory_pool_dealloc(&func->builder->edge_pool, succ_edge);
+		_jit_block_detach(block, block);
+		free_block(block);
+	}
+
+	return 1;
+}
+
+/* Delete edge along with references to it */
+static void
+delete_edge(jit_function_t func, _jit_edge_t edge)
+{
+	detach_edge_src(edge);
+	detach_edge_dst(edge);
+	jit_memory_pool_dealloc(&func->builder->edge_pool, edge);
+}
+
+/* Delete block along with references to it */
+static void
+delete_block(jit_block_t block)
+{
+	_jit_edge_t edge;
+	int index;
+
+	/* Detach block from the list */
+	_jit_block_detach(block, block);
+
+	/* Remove control flow graph edges */
+	for(index = 0; index < block->num_succs; index++)
+	{
+		edge = block->succs[index];
+		detach_edge_dst(edge);
+		jit_memory_pool_dealloc(&block->func->builder->edge_pool, edge);
+	}
+	for(index = 0; index < block->num_preds; index++)
+	{
+		edge = block->preds[index];
+		detach_edge_src(edge);
+		jit_memory_pool_dealloc(&block->func->builder->edge_pool, edge);
+	}
+
+	/* Free memory */
+	free_block(block);
+}
+
+#if 0
+
+/* Visit all successive blocks recursively */
+static void
+visit_reachable(jit_block_t block)
+{
+	int index;
+
+	if(!block->visited)
+	{
+		block->visited = 1;
+		for(index = 0; index < block->num_succs; index++)
+		{
+			visit_reachable(block->succs[index]->dst);
+		}
+	}
+}
+
+#endif
+
+/* Eliminate unreachable blocks */
+static void
+eliminate_unreachable(jit_function_t func)
+{
+	jit_block_t block, next_block;
+
+	block = func->builder->entry_block;
+	while(block != func->builder->exit_block)
+	{
+		next_block = block->next;
+		if(block->visited)
+		{
+			block->visited = 0;
+		}
+		else
+		{
+			delete_block(block);
+		}
+		block = next_block;
+	}
+}
+
+/* Clear visited blocks */
+static void
+clear_visited(jit_function_t func)
+{
+	jit_block_t block;
+
+	for(block = func->builder->entry_block; block; block = block->next)
+	{
+		block->visited = 0;
+	}
+}
+
+/* TODO: maintain the block count as the blocks are created/deleted */
+static int
+count_blocks(jit_function_t func)
+{
+	int count;
+	jit_block_t block;
+
+	count = 0;
+	for(block = func->builder->entry_block; block; block = block->next)
+	{
+		++count;
+	}
+	return count;
+}
+
+/* Release block order memory */
+static void
+free_order(jit_function_t func)
+{
+	jit_free(func->builder->block_order);
+	func->builder->block_order = NULL;
+	func->builder->num_block_order = 0;
+}
+
+int
+_jit_block_init(jit_function_t func)
+{
+	func->builder->entry_block = create_block(func);
+	if(!func->builder->entry_block)
+	{
+		return 0;
+	}
+
+	func->builder->exit_block = create_block(func);
+	if(!func->builder->exit_block)
+	{
+		return 0;
+	}
+
+	func->builder->entry_block->next = func->builder->exit_block;
+	func->builder->exit_block->prev = func->builder->entry_block;
+	return 1;
+}
+
+void
+_jit_block_free(jit_function_t func)
+{
+	jit_block_t block, next;
+
+	free_order(func);
+
+	block = func->builder->entry_block;
+	while(block)
+	{
+		next = block->next;
+		free_block(block);
+		block = next;
+	}
+
+	func->builder->entry_block = 0;
+	func->builder->exit_block = 0;
+}
+
+int 
+_jit_block_build_cfg(jit_function_t func)
+{
+	/* Count the edges */
+	if(!build_edges(func, 0))
+	{
+		return 0;
+	}
+	/* Allocate memory for edges */
+	if(!alloc_edges(func))
+	{
+		return 0;
+	}
+	/* Actually build the edges */
+	if(!build_edges(func, 1))
+	{
+		return 0;
+	}
+	return 1;
+}
+
+int
+_jit_block_clean_cfg(jit_function_t func)
+{
+	int index, changed;
+	jit_block_t block;
+	jit_insn_t insn;
+
+	/*
+	 * The code below is based on the Clean algorithm described in
+	 * "Engineering a Compiler" by Keith D. Cooper and Linda Torczon,
+	 * section 10.3.1 "Eliminating Useless and Unreachable Code"
+	 * (originally presented in a paper by Rob Shillner and John Lu
+	 * http://www.cs.princeton.edu/~ras/clean.ps).
+	 *
+	 * Because libjit IR differs from ILOC the algorithm here has
+	 * some differences too.
+	 */
+
+	if(!_jit_block_compute_postorder(func))
+	{
+		return 0;
+	}
+	eliminate_unreachable(func);
+
+ loop:
+	changed = 0;
+
+	/* Go through blocks in post order skipping the entry and exit blocks */
+	for(index = 1; index < (func->builder->num_block_order - 1); index++)
+	{
+		block = func->builder->block_order[index];
+		if(block->num_succs == 0)
+		{
+			continue;
+		}
+		if(block->succs[0]->flags == _JIT_EDGE_BRANCH)
+		{
+			if(block->succs[0]->dst == block->next)
+			{
+				/* Replace useless branch with NOP */
+				changed = 1;
+				insn = _jit_block_get_last(block);
+				insn->opcode = JIT_OP_NOP;
+				if(block->num_succs == 1)
+				{
+					/* For unconditional branch replace the branch
+					   edge with a fallthrough edge */
+					block->ends_in_dead = 0;
+					block->succs[0]->flags = _JIT_EDGE_FALLTHRU;
+				}
+				else
+				{
+					/* For conditional branch delete the branch
+					   edge while leaving the fallthough edge */
+					delete_edge(func, block->succs[0]);
+				}
+			}
+			else if(block->num_succs == 2 && block->next->num_succs == 1
+				&& block->next->succs[0]->flags == _JIT_EDGE_BRANCH
+				&& block->succs[0]->dst == block->next->succs[0]->dst
+				&& is_empty_block(block->next))
+			{
+				/* Replace conditional branch with unconditional,
+				   remove the fallthough edge while leaving the branch
+				   edge */
+				changed = 1;
+				insn = _jit_block_get_last(block);
+				insn->opcode = JIT_OP_BR;
+				block->ends_in_dead = 1;
+				delete_edge(func, block->succs[1]);
+			}
+		}
+		if(block->num_succs == 1
+		   && (block->succs[0]->flags == _JIT_EDGE_BRANCH
+		       || block->succs[0]->flags == _JIT_EDGE_FALLTHRU))
+		{
+			if(is_empty_block(block))
+			{
+				/* Remove empty block */
+				if(!merge_empty(func, block, &changed))
+				{
+					return 0;
+				}
+			}
+		}
+
+		/* TODO: "combine blocks" and "hoist branch" parts of the Clean algorithm */
+	}
+
+	if(changed)
+	{
+		if(!_jit_block_compute_postorder(func))
+		{
+			return 0;
+		}
+		clear_visited(func);
+		goto loop;
+	}
+
+	return 1;
+}
+
+int
+_jit_block_compute_postorder(jit_function_t func)
+{
+	int num_blocks, index, num, top;
+	jit_block_t *blocks, block, succ;
+	_jit_block_stack_entry_t *stack;
+
+	if(func->builder->block_order)
+	{
+		free_order(func);
+	}
+
+	num_blocks = count_blocks(func);
+
+	blocks = jit_malloc(num_blocks * sizeof(jit_block_t));
+	if(!blocks)
+	{
+		return 0;
+	}
+
+	stack = jit_malloc(num_blocks * sizeof(_jit_block_stack_entry_t));
+	if(!stack)
+	{
+		jit_free(blocks);
+		return 0;
+	}
+
+	func->builder->entry_block->visited = 1;
+	stack[0].block = func->builder->entry_block;
+	stack[0].index = 0;
+	top = 1;
+	num = 0;
+	do
+	{
+		block = stack[top - 1].block;
+		index = stack[top - 1].index;
+
+		if(index == block->num_succs)
+		{
+			blocks[num++] = block;
+			--top;
+		}
+		else
+		{
+			succ = block->succs[index]->dst;
+			if(succ->visited)
+			{
+				stack[top - 1].index = index + 1;
+			}
+			else
+			{
+				succ->visited = 1;
+				stack[top].block = succ;
+				stack[top].index = 0;
+				++top;
+			}
+		}
+	}
+	while(top);
+
+	jit_free(stack);
+	if(num < num_blocks)
+	{
+		blocks = jit_realloc(blocks, num * sizeof(jit_block_t));
+	}
+
+	func->builder->block_order = blocks;
+	func->builder->num_block_order = num;
+	return 1;
+}
+
+jit_block_t
+_jit_block_create(jit_function_t func, jit_label_t *label)
+{
+	jit_block_t block;
+
+	/* Create the block */
+	block = create_block(func);
+	if(!block)
+	{
+		return 0;
+	}
+
+	/* Set the block label */
 	if(label)
 	{
 		if(*label == jit_label_undefined)
@@ -86,27 +795,43 @@ jit_block_t _jit_block_create(jit_function_t func, jit_label_t *label)
 			return 0;
 		}
 	}
-	else
-	{
-		block->label = jit_label_undefined;
-	}
 
 	/* Add the block to the end of the function's list */
-	block->next = 0;
-	block->prev = func->builder->last_block;
-	if(func->builder->last_block)
-	{
-		func->builder->last_block->next = block;
-	}
-	else
-	{
-		func->builder->first_block = block;
-	}
-	func->builder->last_block = block;
+	block->next = func->builder->exit_block;
+	block->prev = func->builder->exit_block->prev;
+	block->next->prev = block;
+	block->prev->next = block;
+
 	return block;
 }
 
-int _jit_block_record_label(jit_block_t block)
+void
+_jit_block_detach(jit_block_t first, jit_block_t last)
+{
+	last->next->prev = first->prev;
+	first->prev->next = last->next;
+}
+
+void
+_jit_block_attach_after(jit_block_t block, jit_block_t first, jit_block_t last)
+{
+	first->prev = block;
+	last->next = block->next;
+	block->next->prev = last;
+	block->next = first;
+}
+
+void
+_jit_block_attach_before(jit_block_t block, jit_block_t first, jit_block_t last)
+{
+	first->prev = block->prev;
+	last->next = block;
+	block->prev->next = first;
+	block->prev = last;
+}
+
+int
+_jit_block_record_label(jit_block_t block)
 {
 	jit_builder_t builder = block->func->builder;
 	jit_label_t num;
@@ -142,7 +867,8 @@ int _jit_block_record_label(jit_block_t block)
  * Get the function that a particular @var{block} belongs to.
  * @end deftypefun
 @*/
-jit_function_t jit_block_get_function(jit_block_t block)
+jit_function_t
+jit_block_get_function(jit_block_t block)
 {
 	if(block)
 	{
@@ -159,7 +885,8 @@ jit_function_t jit_block_get_function(jit_block_t block)
  * Get the context that a particular @var{block} belongs to.
  * @end deftypefun
 @*/
-jit_context_t jit_block_get_context(jit_block_t block)
+jit_context_t
+jit_block_get_context(jit_block_t block)
 {
 	if(block)
 	{
@@ -176,7 +903,8 @@ jit_context_t jit_block_get_context(jit_block_t block)
  * Get the label associated with a block.
  * @end deftypefun
 @*/
-jit_label_t jit_block_get_label(jit_block_t block)
+jit_label_t
+jit_block_get_label(jit_block_t block)
 {
 	if(block)
 	{
@@ -195,7 +923,8 @@ jit_label_t jit_block_get_label(jit_block_t block)
  * This function will return NULL if there are no further blocks to iterate.
  * @end deftypefun
 @*/
-jit_block_t jit_block_next(jit_function_t func, jit_block_t previous)
+jit_block_t
+jit_block_next(jit_function_t func, jit_block_t previous)
 {
 	if(previous)
 	{
@@ -203,7 +932,7 @@ jit_block_t jit_block_next(jit_function_t func, jit_block_t previous)
 	}
 	else if(func && func->builder)
 	{
-		return func->builder->first_block;
+		return func->builder->entry_block;
 	}
 	else
 	{
@@ -218,7 +947,8 @@ jit_block_t jit_block_next(jit_function_t func, jit_block_t previous)
  * This function will return NULL if there are no further blocks to iterate.
  * @end deftypefun
 @*/
-jit_block_t jit_block_previous(jit_function_t func, jit_block_t previous)
+jit_block_t
+jit_block_previous(jit_function_t func, jit_block_t previous)
 {
 	if(previous)
 	{
@@ -226,7 +956,7 @@ jit_block_t jit_block_previous(jit_function_t func, jit_block_t previous)
 	}
 	else if(func && func->builder)
 	{
-		return func->builder->last_block;
+		return func->builder->exit_block;
 	}
 	else
 	{
@@ -240,7 +970,8 @@ jit_block_t jit_block_previous(jit_function_t func, jit_block_t previous)
  * Returns NULL if there is no block associated with the label.
  * @end deftypefun
 @*/
-jit_block_t jit_block_from_label(jit_function_t func, jit_label_t label)
+jit_block_t
+jit_block_from_label(jit_function_t func, jit_label_t label)
 {
 	if(func && func->builder && label < func->builder->max_label_blocks)
 	{
@@ -252,7 +983,8 @@ jit_block_t jit_block_from_label(jit_function_t func, jit_label_t label)
 	}
 }
 
-jit_insn_t _jit_block_add_insn(jit_block_t block)
+jit_insn_t
+_jit_block_add_insn(jit_block_t block)
 {
 	jit_builder_t builder = block->func->builder;
 	jit_insn_t insn;
@@ -274,8 +1006,7 @@ jit_insn_t _jit_block_add_insn(jit_block_t block)
 		{
 			num = 64;
 		}
-		insns = (jit_insn_t *)jit_realloc
-			(builder->insns, num * sizeof(jit_insn_t));
+		insns = (jit_insn_t *)jit_realloc(builder->insns, num * sizeof(jit_insn_t));
 		if(!insns)
 		{
 			return 0;
@@ -294,7 +1025,8 @@ jit_insn_t _jit_block_add_insn(jit_block_t block)
 	return insn;
 }
 
-jit_insn_t _jit_block_get_last(jit_block_t block)
+jit_insn_t
+_jit_block_get_last(jit_block_t block)
 {
 	if(block->first_insn <= block->last_insn)
 	{
@@ -317,8 +1049,8 @@ jit_insn_t _jit_block_get_last(jit_block_t block)
  * Metadata type values of 10000 or greater are reserved for internal use.
  * @end deftypefun
 @*/
-int jit_block_set_meta(jit_block_t block, int type, void *data,
-					   jit_meta_free_func free_data)
+int
+jit_block_set_meta(jit_block_t block, int type, void *data, jit_meta_free_func free_data)
 {
 	return jit_meta_set(&(block->meta), type, data, free_data, block->func);
 }
@@ -329,7 +1061,8 @@ int jit_block_set_meta(jit_block_t block, int type, void *data,
  * if @var{type} does not have any metadata associated with it.
  * @end deftypefun
 @*/
-void *jit_block_get_meta(jit_block_t block, int type)
+void *
+jit_block_get_meta(jit_block_t block, int type)
 {
 	return jit_meta_get(block->meta, type);
 }
@@ -340,7 +1073,8 @@ void *jit_block_get_meta(jit_block_t block, int type)
  * the @var{type} does not have any metadata associated with it.
  * @end deftypefun
 @*/
-void jit_block_free_meta(jit_block_t block, int type)
+void
+jit_block_free_meta(jit_block_t block, int type)
 {
 	jit_meta_free(&(block->meta), type);
 }
@@ -355,9 +1089,27 @@ void jit_block_free_meta(jit_block_t block, int type)
  * and assume that it is reachable.
  * @end deftypefun
 @*/
-int jit_block_is_reachable(jit_block_t block)
+int
+jit_block_is_reachable(jit_block_t block)
 {
-	return (block->entered_via_top || block->entered_via_branch);
+	jit_block_t entry;
+
+	/* Simple-minded reachability analysis that bothers only with
+	   fall-through control flow. The block is considered reachable
+	   if a) it is the entry block b) it has any label c) there is
+	   fall-through path to it from one of the above. */
+	entry = block->func->builder->entry_block;
+	while(block != entry && block->label == jit_label_undefined)
+	{
+		block = block->prev;
+		if(block->ends_in_dead)
+		{
+			/* There is no fall-through path from the prev block */
+			return 0;
+		}
+	}
+
+	return 1;
 }
 
 /*@
@@ -366,7 +1118,8 @@ int jit_block_is_reachable(jit_block_t block)
  * will not fall out through the end of the block.
  * @end deftypefun
 @*/
-int jit_block_ends_in_dead(jit_block_t block)
+int
+jit_block_ends_in_dead(jit_block_t block)
 {
 	return block->ends_in_dead;
 }
@@ -380,156 +1133,9 @@ int jit_block_ends_in_dead(jit_block_t block)
  * dead to find the dead block at the head of a chain of empty blocks.
  * @end deftypefun
 @*/
-int jit_block_current_is_dead(jit_function_t func)
+int
+jit_block_current_is_dead(jit_function_t func)
 {
 	jit_block_t block = jit_block_previous(func, 0);
-	while(block != 0)
-	{
-		if(block->ends_in_dead)
-		{
-			return 1;
-		}
-		else if(!(block->entered_via_top) &&
-				!(block->entered_via_branch))
-		{
-			return 1;
-		}
-		else if(block->entered_via_branch)
-		{
-			break;
-		}
-		else if(block->first_insn <= block->last_insn)
-		{
-			break;
-		}
-		block = block->prev;
-	}
-	return 0;
-}
-
-/*
- * Determine if a block is empty or is never entered.
- */
-static int block_is_empty_or_dead(jit_block_t block)
-{
-	if(block->first_insn > block->last_insn)
-	{
-		return 1;
-	}
-	else if(!(block->entered_via_top) && !(block->entered_via_branch))
-	{
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
-}
-
-/*
- * Determine if the next block after "block" has "label".
- */
-static int block_branches_to_next(jit_block_t block, jit_label_t label)
-{
-	jit_insn_t insn;
-	block = block->next;
-	while(block != 0)
-	{
-		if(block->label == label)
-		{
-			return 1;
-		}
-		if(!block_is_empty_or_dead(block))
-		{
-			if(block->first_insn < block->last_insn)
-			{
-				/* This block contains more than one instruction, so the
-				   first cannot be an unconditional branch */
-				break;
-			}
-			else
-			{
-				insn = block->func->builder->insns[block->first_insn];
-				if(insn->opcode == JIT_OP_BR)
-				{
-					/* If the instruction branches to its next block,
-					   then it is equivalent to an empty block.  If it
-					   does not, then we have to stop scanning here */
-					if(!block_branches_to_next
-							(block, (jit_label_t)(insn->dest)))
-					{
-						return 0;
-					}
-				}
-				else
-				{
-					/* The block does not contain an unconditional branch */
-					break;
-				}
-			}
-		}
-		block = block->next;
-	}
-	return 0;
-}
-
-void _jit_block_peephole_branch(jit_block_t block)
-{
-	jit_insn_t insn;
-	jit_insn_t new_insn;
-	jit_label_t label;
-	jit_block_t new_block;
-	int count;
-
-	/* Bail out if the last instruction is not actually a branch */
-	insn = _jit_block_get_last(block);
-	if(!insn || insn->opcode < JIT_OP_BR || insn->opcode > JIT_OP_BR_NFGE_INV)
-	{
-		return;
-	}
-
-	/* Thread unconditional branches.  We stop if we jump back to the
-	   starting block, or follow more than 32 links.  This is to prevent
-	   infinite loops in situations like "while true do nothing" */
-	label = (jit_label_t)(insn->dest);
-	count = 32;
-	while(label != block->label && count > 0)
-	{
-		new_block = jit_block_from_label(block->func, label);
-		while(new_block != 0 && block_is_empty_or_dead(new_block))
-		{
-			/* Skip past empty blocks */
-			new_block = new_block->next;
-		}
-		if(!new_block)
-		{
-			break;
-		}
-		if(new_block->first_insn < new_block->last_insn)
-		{
-			/* There is more than one instruction in this block,
-			   so the first instruction cannot be a branch */
-			break;
-		}
-		new_insn = new_block->func->builder->insns[new_block->first_insn];
-		if(new_insn->opcode != JIT_OP_BR)
-		{
-			/* The target block does not contain an unconditional branch */
-			break;
-		}
-		label = (jit_label_t)(new_insn->dest);
-		--count;
-	}
-	insn->dest = (jit_value_t)label;
-
-	/* Determine if we are branching to the immediately following block */
-	if(block_branches_to_next(block, label))
-	{
-		/* Remove the branch instruction, because it has no effect.
-		   It doesn't matter if the branch is unconditional or
-		   conditional.  Any side-effects in a conditional expression
-		   would have already been computed by now.  Expressions without
-		   side-effects will be optimized away by liveness analysis */
-		--(block->last_insn);
-	}
+	return !block || jit_block_ends_in_dead(block) || !jit_block_is_reachable(block);
 }

@@ -33,7 +33,6 @@ extern	"C" {
 #define _JIT_COMPILE_DEBUG	1
 */
 
-
 /*
  * Determine what kind of Win32 system we are running on.
  */
@@ -177,20 +176,58 @@ struct _jit_meta
 };
 
 /*
- * Internal structure of a block.
+ * Control flow graph edge.
+ */
+typedef struct _jit_edge *_jit_edge_t;
+struct _jit_edge
+{
+	/* Source node of the edge */
+	jit_block_t		src;
+
+	/* Destination node of the edge */
+	jit_block_t		dst;
+
+	/* Edge flags */
+	int			flags;
+};
+
+#define _JIT_EDGE_FALLTHRU	0
+#define _JIT_EDGE_BRANCH	1
+#define _JIT_EDGE_RETURN	2
+#define _JIT_EDGE_EXCEPT	3
+
+/*
+ * Internal structure of a basic block.
  */
 struct _jit_block
 {
 	jit_function_t		func;
 	jit_label_t		label;
+
+	/* Block's first and last instruction */
 	int			first_insn;
 	int			last_insn;
+
+	/* Next and previous blocks in the function's linear block list */
 	jit_block_t 		next;
 	jit_block_t 		prev;
+
+	/* Edges to successor blocks in control flow graph */
+	_jit_edge_t		*succs;
+	int			num_succs;
+
+	/* Edges to predecessor blocks in control flow graph */
+	_jit_edge_t		*preds;
+	int			num_preds;
+
+	/* Control flow flags */
+	unsigned		visited : 1;
+	unsigned		ends_in_dead : 1;
+
+	/* Metadata */
 	jit_meta_t		meta;
-	int			entered_via_top : 1;
-	int			entered_via_branch : 1;
-	int			ends_in_dead : 1;
+
+	/* Code generation data */
 	void			*address;
 	void			*fixup_list;
 	void			*fixup_absolute_list;
@@ -203,24 +240,24 @@ struct _jit_value
 {
 	jit_block_t		block;
 	jit_type_t		type;
-	int			is_temporary : 1;
-	int			is_local : 1;
-	int			is_volatile : 1;
-	int			is_addressable : 1;
-	int			is_constant : 1;
-	int			is_nint_constant : 1;
-	int			is_parameter : 1;
-	int			is_reg_parameter : 1;
-	int			has_address : 1;
-	int			free_address : 1;
-	int			in_register : 1;
-	int			in_frame : 1;
-	int			in_global_register : 1;
-	int			live : 1;
-	int			next_use : 1;
-	int			has_frame_offset : 1;
-	int			global_candidate : 1;
-	int			has_global_register : 1;
+	unsigned		is_temporary : 1;
+	unsigned		is_local : 1;
+	unsigned		is_volatile : 1;
+	unsigned		is_addressable : 1;
+	unsigned		is_constant : 1;
+	unsigned		is_nint_constant : 1;
+	unsigned		is_parameter : 1;
+	unsigned		is_reg_parameter : 1;
+	unsigned		has_address : 1;
+	unsigned		free_address : 1;
+	unsigned		in_register : 1;
+	unsigned		in_frame : 1;
+	unsigned		in_global_register : 1;
+	unsigned		live : 1;
+	unsigned		next_use : 1;
+	unsigned		has_frame_offset : 1;
+	unsigned		global_candidate : 1;
+	unsigned		has_global_register : 1;
 	short			reg;
 	short			global_reg;
 	jit_nint		address;
@@ -283,9 +320,21 @@ struct _jit_insn
 typedef struct _jit_builder *jit_builder_t;
 struct _jit_builder
 {
-	/* List of blocks within this function */
-	jit_block_t		first_block;
-	jit_block_t		last_block;
+	/* Entry point for the function (and the head of the block list) */
+	jit_block_t		entry_block;
+
+	/* Exit point for the function (and the tail of the block list) */
+	jit_block_t		exit_block;
+
+	/* The position to insert initialization blocks */
+	jit_block_t		init_block;
+
+	/* The current block that is being constructed */
+	jit_block_t		current_block;
+
+	/* Blocks sorted in order required by an optimization pass */
+	jit_block_t		*block_order;
+	int			num_block_order;
 
 	/* The next block label to be allocated */
 	jit_label_t		next_label;
@@ -293,16 +342,6 @@ struct _jit_builder
 	/* Mapping from label numbers to blocks */
 	jit_block_t		*label_blocks;
 	jit_label_t		max_label_blocks;
-
-	/* Entry point for the function */
-	jit_block_t		entry;
-
-	/* The current block that is being constructed */
-	jit_block_t		current_block;
-
-	/* The position to insert initialization blocks */
-	jit_block_t		init_block;
-	int			init_insn;
 
 	/* Exception handling definitions for the function */
 	jit_value_t		setjmp_value;
@@ -312,19 +351,19 @@ struct _jit_builder
 	jit_value_t		eh_frame_info;
 
 	/* Flag that is set to indicate that this function is not a leaf */
-	int			non_leaf : 1;
+	unsigned		non_leaf : 1;
 
 	/* Flag that indicates if we've seen code that may throw an exception */
-	int			may_throw : 1;
+	unsigned		may_throw : 1;
 
 	/* Flag that indicates if the function has an ordinary return */
-	int			ordinary_return : 1;
+	unsigned		ordinary_return : 1;
 
 	/* Flag that indicates that the current function contains a tail call */
-	int			has_tail_call : 1;
+	unsigned		has_tail_call : 1;
 
 	/* Generate position-independent code */
-	int			position_independent : 1;
+	unsigned		position_independent : 1;
 
 	/* List of all instructions in this function */
 	jit_insn_t		*insns;
@@ -334,6 +373,7 @@ struct _jit_builder
 	/* Memory pools that contain values, instructions, and metadata blocks */
 	jit_memory_pool		value_pool;
 	jit_memory_pool		insn_pool;
+	jit_memory_pool		edge_pool;
 	jit_memory_pool		meta_pool;
 
 	/* Common constants that have been cached */
@@ -386,11 +426,13 @@ struct _jit_function
 	jit_builder_t		builder;
 
 	/* Flag bits for this function */
-	int			is_recompilable : 1;
-	int			no_throw : 1;
-	int			no_return : 1;
-	int			has_try : 1;
-	int			optimization_level : 8;
+	unsigned		is_recompilable : 1;
+	unsigned		no_throw : 1;
+	unsigned		no_return : 1;
+	unsigned		has_try : 1;
+	unsigned		optimization_level : 8;
+
+	/* Flag set once the function is compiled */
 	int volatile		is_compiled;
 
 	/* The entry point for the function's compiled code */
@@ -542,9 +584,40 @@ int _jit_block_init(jit_function_t func);
 void _jit_block_free(jit_function_t func);
 
 /*
+ * Build control flow graph edges for all blocks associated with a
+ * function.
+ */
+int _jit_block_build_cfg(jit_function_t func);
+
+/*
+ * Eliminate useless control flow between blocks in a function.
+ */
+int _jit_block_clean_cfg(jit_function_t func);
+
+/*
+ * Compute block postorder for control flow graph depth first traversal.
+ */
+int _jit_block_compute_postorder(jit_function_t func);
+
+/*
  * Create a new block and associate it with a function.
  */
 jit_block_t _jit_block_create(jit_function_t func, jit_label_t *label);
+
+/*
+ * Detach blocks from their current position in a function.
+ */
+void _jit_block_detach(jit_block_t first, jit_block_t last);
+
+/*
+ * Attach blocks to a function after a specific position.
+ */
+void _jit_block_attach_after(jit_block_t block, jit_block_t first, jit_block_t last);
+
+/*
+ * Attach blocks to a function before a specific position.
+ */
+void _jit_block_attach_before(jit_block_t block, jit_block_t first, jit_block_t last);
 
 /*
  * Record the label mapping for a block.
@@ -560,13 +633,6 @@ jit_insn_t _jit_block_add_insn(jit_block_t block);
  * Get the last instruction in a block.  NULL if the block is empty.
  */
 jit_insn_t _jit_block_get_last(jit_block_t block);
-
-/*
- * Perform peephole optimization on the branch instruction at the
- * end of a block (if there is a branch).  This will resolve branches
- * to branches, and remove branches to the following block.
- */
-void _jit_block_peephole_branch(jit_block_t block);
 
 /*
  * Free one element in a metadata list.

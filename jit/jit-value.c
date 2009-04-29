@@ -512,7 +512,7 @@ jit_value_t jit_value_get_param(jit_function_t func, unsigned int param)
 		{
 			/* The value belongs to the entry block, no matter
 			   where it happens to be created */
-			values[current]->block = func->builder->entry;
+			values[current]->block = func->builder->entry_block;
 			values[current]->is_parameter = 1;
 		}
 	}
@@ -554,7 +554,7 @@ jit_value_t jit_value_get_struct_pointer(jit_function_t func)
 				{
 					/* The value belongs to the entry block, no matter
 					   where it happens to be created */
-					value->block = func->builder->entry;
+					value->block = func->builder->entry_block;
 					value->is_parameter = 1;
 				}
 				jit_type_free(type);

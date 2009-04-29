@@ -115,10 +115,10 @@ jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
 		 func, jit_type_get_abi(signature));
 	jit_flush_exec(func->redirector, jit_redirector_size);
 #endif
-# if !defined(JIT_BACKEND_INTERP) && defined(jit_indirector_size)
+#if !defined(JIT_BACKEND_INTERP) && defined(jit_indirector_size)
 	_jit_create_indirector(func->indirector, (void**) &(func->entry_point));
 	jit_flush_exec(func->indirector, jit_indirector_size);
-# endif
+#endif
 
 	/* Add the function to the context list */
 	func->next = 0;
@@ -190,9 +190,10 @@ int _jit_function_ensure_builder(jit_function_t func)
 	/* Initialize the function builder */
 	jit_memory_pool_init(&(func->builder->value_pool), struct _jit_value);
 	jit_memory_pool_init(&(func->builder->insn_pool), struct _jit_insn);
+	jit_memory_pool_init(&(func->builder->edge_pool), struct _jit_edge);
 	jit_memory_pool_init(&(func->builder->meta_pool), struct _jit_meta);
 
-	/* Create the initial entry block */
+	/* Create the entry block */
 	if(!_jit_block_init(func))
 	{
 		_jit_function_free_builder(func);
@@ -200,6 +201,7 @@ int _jit_function_ensure_builder(jit_function_t func)
 	}
 
 	/* Create instructions to initialize the incoming arguments */
+	func->builder->current_block = func->builder->entry_block;
 	if(!_jit_create_entry_insns(func))
 	{
 		_jit_function_free_builder(func);
@@ -209,7 +211,14 @@ int _jit_function_ensure_builder(jit_function_t func)
 	/* The current position is where initialization code will be
 	   inserted by "jit_insn_move_blocks_to_start" */
 	func->builder->init_block = func->builder->current_block;
-	func->builder->init_insn = func->builder->current_block->last_insn + 1;
+
+	/* Start first block for function body */
+	func->builder->current_block = _jit_block_create(func, 0);
+	if(!func->builder->current_block)
+	{
+		_jit_function_free_builder(func);
+		return 0;
+	}
 
 	/* The builder is ready to go */
 	return 1;
@@ -220,6 +229,7 @@ void _jit_function_free_builder(jit_function_t func)
 	if(func->builder)
 	{
 		_jit_block_free(func);
+		jit_memory_pool_free(&(func->builder->edge_pool), 0);
 		jit_memory_pool_free(&(func->builder->insn_pool), 0);
 		jit_memory_pool_free(&(func->builder->value_pool), _jit_value_free);
 		jit_memory_pool_free(&(func->builder->meta_pool), _jit_meta_free_one);
@@ -444,7 +454,7 @@ jit_block_t jit_function_get_entry(jit_function_t func)
 {
 	if(func && func->builder)
 	{
-		return func->builder->entry;
+		return func->builder->entry_block;
 	}
 	else
 	{
@@ -724,6 +734,18 @@ compile(jit_function_t func, void **entry_point)
 		func->no_return = 1;
 	}
 
+	/* Build control flow graph */
+	if(!_jit_block_build_cfg(func))
+	{
+		return 0;
+	}
+
+	/* Eliminate useless control flow */
+	if(!_jit_block_clean_cfg(func))
+	{
+		return 0;
+	}
+
 	/* Compute liveness and "next use" information for this function */
 	_jit_function_compute_liveness(func);
 
@@ -791,12 +813,6 @@ compile(jit_function_t func, void **entry_point)
 		block = 0;
 		while((block = jit_block_next(func, block)) != 0)
 		{
-			/* If this block is never entered, then discard it */
-			if(!(block->entered_via_top) && !(block->entered_via_branch))
-			{
-				continue;
-			}
-
 			/* Notify the back end that the block is starting */
 			_jit_gen_start_block(&gen, block);
 
@@ -937,7 +953,8 @@ struct jit_cache_eh
  * a second time.
  * @end deftypefun
 @*/
-int jit_function_compile(jit_function_t func)
+int
+jit_function_compile(jit_function_t func)
 {
 	int result;
 	void *entry_point;
@@ -972,7 +989,7 @@ int jit_function_compile(jit_function_t func)
 /*@
  * @deftypefun int jit_function_compile_entry (jit_function_t @var{func}, void **@var{entry_point})
  * Compile a function to its executable form but do not make it
- * available for invocation yet. It may be made available later
+ * available for invocation yet.  It may be made available later
  * with @code{jit_function_setup_entry}.
  * @end deftypefun
 @*/
@@ -1014,7 +1031,7 @@ jit_function_compile_entry(jit_function_t func, void **entry_point)
  * @deftypefun int jit_function_setup_entry (jit_function_t @var{func}, void *@var{entry_point})
  * Make a function compiled with @code{jit_function_compile_entry}
  * available for invocation and free the resources used for
- * compilation. If @var{entry_point} is null then it only
+ * compilation.  If @var{entry_point} is null then it only
  * frees the resources.
  * @end deftypefun
 @*/

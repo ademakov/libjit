@@ -1083,7 +1083,7 @@ int jit_insn_dest_is_value(jit_insn_t insn)
 int jit_insn_label(jit_function_t func, jit_label_t *label)
 {
 	jit_block_t current;
-	jit_insn_t last;
+
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
@@ -1092,9 +1092,9 @@ int jit_insn_label(jit_function_t func, jit_label_t *label)
 	{
 		return 0;
 	}
+
 	current = func->builder->current_block;
-	last = _jit_block_get_last(current);
-	if(current->label == jit_label_undefined && !last)
+	if(current->label == jit_label_undefined && !_jit_block_get_last(current))
 	{
 		/* We just started a new block after a branch instruction,
 		   so don't bother creating another new block */
@@ -1103,7 +1103,6 @@ int jit_insn_label(jit_function_t func, jit_label_t *label)
 			*label = (func->builder->next_label)++;
 		}
 		current->label = *label;
-		current->entered_via_branch = 1;
 		if(!_jit_block_record_label(current))
 		{
 			return 0;
@@ -1116,28 +1115,6 @@ int jit_insn_label(jit_function_t func, jit_label_t *label)
 		if(!block)
 		{
 			return 0;
-		}
-
-		/* The label indicates that something is branching to us */
-		block->entered_via_branch = 1;
-
-		/* Does the last block contain instructions? */
-		if(last)
-		{
-			/* We will be entered via the top if the last block
-			   is not explicitly marked as "dead" */
-			if(!(current->ends_in_dead))
-			{
-				block->entered_via_top = 1;
-			}
-		}
-		else
-		{
-			/* We will be entered via the top if the last empty
-			   block was entered via any mechanism */
-			block->entered_via_top =
-				(current->entered_via_top ||
-				 current->entered_via_branch);
 		}
 
 		/* Set the new block as the current one */
@@ -1157,10 +1134,6 @@ int jit_insn_new_block(jit_function_t func)
 	if(!block)
 	{
 		return 0;
-	}
-	if(!(func->builder->current_block->ends_in_dead))
-	{
-		block->entered_via_top = 1;
 	}
 	func->builder->current_block = block;
 	return 1;
@@ -7739,58 +7712,6 @@ jit_value_t jit_insn_alloca(jit_function_t func, jit_value_t size)
 	return apply_unary(func, JIT_OP_ALLOCA, size, jit_type_void_ptr);
 }
 
-/*
- * Detach a block from its current position in a function.
- */
-static void detach_block(jit_block_t block)
-{
-	if(block->next)
-	{
-		block->next->prev = block->prev;
-	}
-	else
-	{
-		block->func->builder->last_block = block->prev;
-	}
-	if(block->prev)
-	{
-		block->prev->next = block->next;
-	}
-	else
-	{
-		block->func->builder->first_block = block->next;
-	}
-}
-
-/*
- * Attach a block to a function after a specific position.
- */
-static void attach_block_after(jit_block_t block, jit_block_t after)
-{
-	if(after)
-	{
-		block->next = after->next;
-		block->prev = after;
-		if(after->next)
-		{
-			after->next->prev = block;
-		}
-		else
-		{
-			block->func->builder->last_block = block;
-		}
-		after->next = block;
-	}
-	else
-	{
-		/* Can only happen if the block list is empty */
-		block->next = 0;
-		block->prev = 0;
-		block->func->builder->first_block = block;
-		block->func->builder->last_block = block;
-	}
-}
-
 /*@
  * @deftypefun int jit_insn_move_blocks_to_end (jit_function_t @var{func}, jit_label_t @var{from_label}, jit_label_t @var{to_label})
  * Move all of the blocks between @var{from_label} (inclusive) and
@@ -7803,9 +7724,7 @@ static void attach_block_after(jit_block_t block, jit_block_t after)
 int jit_insn_move_blocks_to_end
 	(jit_function_t func, jit_label_t from_label, jit_label_t to_label)
 {
-	jit_block_t first_block;
-	jit_block_t block;
-	jit_block_t next;
+	jit_block_t first, last, block;
 
 	/* Make sure that deferred stack pops are flushed */
 	if(!jit_insn_flush_defer_pop(func, 0))
@@ -7814,25 +7733,34 @@ int jit_insn_move_blocks_to_end
 	}
 
 	/* Find the first block that needs to be moved */
-	first_block = jit_block_from_label(func, from_label);
-	if(!first_block)
+	first = jit_block_from_label(func, from_label);
+	if(!first)
 	{
 		return 0;
 	}
 
-	/* Keep moving blocks until we come across "to_label" */
-	block = first_block;
-	while(block != 0 && block->label != to_label)
+	/* Find the last block that needs to be moved */
+	last = jit_block_from_label(func, to_label);
+	if(!last)
 	{
-		next = block->next;
-		detach_block(block);
-		attach_block_after(block, func->builder->last_block);
-		block = next;
+		return 0;
 	}
-	func->builder->current_block = func->builder->last_block;
 
-	/* The first block will be entered via its top now */
-	first_block->entered_via_top = 1;
+	/* Sanity check -- the last block has to be after the first */
+	for(block = first->next; block != last; block = block->next)
+	{
+		if (!block) {
+			return 0;
+		}
+	}
+
+	/* The last block is excluded from the blocks to move */
+	block = last->prev;
+
+	/* Move the blocks to the end */
+	_jit_block_detach(first, block);
+	_jit_block_attach_before(func->builder->exit_block, first, block);
+	func->builder->current_block = block;
 
 	/* Create a new block after the last one we moved, to start fresh */
 	return jit_insn_new_block(func);
@@ -7849,11 +7777,7 @@ int jit_insn_move_blocks_to_end
 int jit_insn_move_blocks_to_start
 	(jit_function_t func, jit_label_t from_label, jit_label_t to_label)
 {
-	jit_block_t first_block;
-	jit_block_t init_block;
-	jit_block_t block;
-	jit_block_t next;
-	int move_current;
+	jit_block_t init, first, last, block;
 
 	/* Make sure that deferred stack pops are flushed */
 	if(!jit_insn_flush_defer_pop(func, 0))
@@ -7862,69 +7786,48 @@ int jit_insn_move_blocks_to_start
 	}
 
 	/* Find the first block that needs to be moved */
-	first_block = jit_block_from_label(func, from_label);
-	if(!first_block)
+	first = jit_block_from_label(func, from_label);
+	if(!first)
 	{
 		return 0;
 	}
 
-	/* If this is the first time that we have done this, we may need to
-	   split the function's entry block just after the arguments are set up */
-	init_block = func->builder->init_block;
-	if(func->builder->init_insn >= 0)
+	/* Find the last block that needs to be moved */
+	last = jit_block_from_label(func, to_label);
+	if(!last)
 	{
-		if(func->builder->init_insn <= init_block->last_insn)
-		{
-			_jit_value_ref_params(func);
-			block = _jit_block_create(func, 0);
-			if(!block)
-			{
-				return 0;
-			}
-			block->entered_via_top = 1;
-			block->first_insn = func->builder->init_insn;
-			block->last_insn = init_block->last_insn;
-			init_block->last_insn = func->builder->init_insn - 1;
-			detach_block(block);
-			attach_block_after(block, init_block);
+		return 0;
+	}
+
+	/* Init block */
+	init = func->builder->init_block;
+
+	/* Sanity check -- the first block has to be after the init */
+	for(block = init->next; block != first; block = block->next)
+	{
+		if (!block) {
+			return 0;
 		}
-		func->builder->init_insn = -1;
 	}
-
-	/* If the first block is just after "init_block", then only move
-	   the init_block pointer ahead */
-	if(init_block == first_block || init_block->next == first_block)
+	/* Sanity check -- the last block has to be after the first */
+	for(block = first->next; block != last; block = block->next)
 	{
-		while(init_block != 0 && init_block->label != to_label)
-		{
-			init_block = init_block->next;
+		if (!block) {
+			return 0;
 		}
-		func->builder->init_block = init_block;
-		return 1;
 	}
 
-	/* Keep moving blocks until we come across "to_label" */
-	block = first_block;
-	move_current = 0;
-	while(block != 0 && block->label != to_label)
-	{
-		next = block->next;
-		move_current = (block == func->builder->current_block);
-		detach_block(block);
-		attach_block_after(block, init_block);
-		init_block = block;
-		block = next;
-	}
-	func->builder->init_block = init_block;
+	/* The last block is excluded from the blocks to move */
+	block = last->prev;
 
-	/* The first block will be entered via its top now */
-	first_block->entered_via_top = 1;
+	/* Update the init block pointer */
+	func->builder->init_block = block;
 
-	/* Fix up the current block reference if we just moved it */
-	if(move_current)
+	/* Move the blocks after the original init block */
+	if(init->next != first)
 	{
-		func->builder->current_block = func->builder->last_block;
-		return jit_insn_new_block(func);
+		_jit_block_detach(first, block);
+		_jit_block_attach_after(init, first, block);
 	}
 
 	/* Done */
