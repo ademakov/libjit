@@ -24,8 +24,9 @@
 #include "dpas-internal.h"
 #include "dpas-parser.h"
 #include <config.h>
+
 #ifndef HAVE_UNISTD_H
-	#define YY_NO_UNISTD_H
+# define YY_NO_UNISTD_H
 #endif
 
 extern YYSTYPE yylval;
@@ -161,77 +162,77 @@ static void dpas_skip_comment(int star_style);
 %option nounput
 %option case-insensitive
 
-DIGIT					[0-9]
-HEX						[0-9A-Fa-f]
-IDALPHA					[a-zA-Z_]
-EXPONENT				[Ee][+-]?{DIGIT}+
-WHITE					[ \t\v\r\f]
+DIGIT			[0-9]
+HEX			[0-9A-Fa-f]
+IDALPHA			[a-zA-Z_]
+EXPONENT		[Ee][+-]?{DIGIT}+
+WHITE			[ \t\v\r\f]
 
 %%
 
-"<>"					{ RETURNTOK(K_NE); }
-"<="					{ RETURNTOK(K_LE); }
-">="					{ RETURNTOK(K_GE); }
-":="					{ RETURNTOK(K_ASSIGN); }
-".."					{ RETURNTOK(K_DOT_DOT); }
-"**"					{ RETURNTOK(K_POW); }
+"<>"			{ RETURNTOK(K_NE); }
+"<="			{ RETURNTOK(K_LE); }
+">="			{ RETURNTOK(K_GE); }
+":="			{ RETURNTOK(K_ASSIGN); }
+".."			{ RETURNTOK(K_DOT_DOT); }
+"**"			{ RETURNTOK(K_POW); }
 
-"and"					{ RETURNTOK(K_AND); }
-"array"					{ RETURNTOK(K_ARRAY); }
-"begin"					{ RETURNTOK(K_BEGIN); }
-"case"					{ RETURNTOK(K_CASE); }
-"catch"					{ RETURNTOK(K_CATCH); }
-"const"					{ RETURNTOK(K_CONST); }
-"div"					{ RETURNTOK(K_DIV); }
-"do"					{ RETURNTOK(K_DO); }
-"downto"				{ RETURNTOK(K_DOWNTO); }
-"else"					{ RETURNTOK(K_ELSE); }
-"end"					{ RETURNTOK(K_END); }
-"exit"					{ RETURNTOK(K_EXIT); }
-"fastcall"				{ RETURNTOK(K_FASTCALL); }
-"finally"				{ RETURNTOK(K_FINALLY); }
-"for"					{ RETURNTOK(K_FOR); }
-"forward"				{ RETURNTOK(K_FORWARD); }
-"function"				{ RETURNTOK(K_FUNCTION); }
-"goto"					{ RETURNTOK(K_GOTO); }
-"if"					{ RETURNTOK(K_IF); }
-"in"					{ RETURNTOK(K_IN); }
-"label"					{ RETURNTOK(K_LABEL); }
-"import"				{ RETURNTOK(K_IMPORT); }
-"mod"					{ RETURNTOK(K_MOD); }
-"module"				{ RETURNTOK(K_MODULE); }
-"nil"					{ RETURNTOK(K_NIL); }
-"not"					{ RETURNTOK(K_NOT); }
-"of"					{ RETURNTOK(K_OF); }
-"or"					{ RETURNTOK(K_OR); }
-"packed"				{ RETURNTOK(K_PACKED); }
-"pow"					{ RETURNTOK(K_POW); }
-"procedure"				{ RETURNTOK(K_PROCEDURE); }
-"program"				{ RETURNTOK(K_PROGRAM); }
-"record"				{ RETURNTOK(K_RECORD); }
-"repeat"				{ RETURNTOK(K_REPEAT); }
-"set"					{ RETURNTOK(K_SET); }
-"shl"					{ RETURNTOK(K_SHL); }
-"shr"					{ RETURNTOK(K_SHR); }
-"sizeof"				{ RETURNTOK(K_SIZEOF); }
-"stdcall"				{ RETURNTOK(K_STDCALL); }
-"then"					{ RETURNTOK(K_THEN); }
-"throw"					{ RETURNTOK(K_THROW); }
-"to"					{ RETURNTOK(K_TO); }
-"try"					{ RETURNTOK(K_TRY); }
-"type"					{ RETURNTOK(K_TYPE); }
-"until"					{ RETURNTOK(K_UNTIL); }
-"var"					{ RETURNTOK(K_VAR); }
-"va_arg"				{ RETURNTOK(K_VA_ARG); }
-"with"					{ RETURNTOK(K_WITH); }
-"while"					{ RETURNTOK(K_WHILE); }
-"xor"					{ RETURNTOK(K_XOR); }
+"and"			{ RETURNTOK(K_AND); }
+"array"			{ RETURNTOK(K_ARRAY); }
+"begin"			{ RETURNTOK(K_BEGIN); }
+"case"			{ RETURNTOK(K_CASE); }
+"catch"			{ RETURNTOK(K_CATCH); }
+"const"			{ RETURNTOK(K_CONST); }
+"div"			{ RETURNTOK(K_DIV); }
+"do"			{ RETURNTOK(K_DO); }
+"downto"		{ RETURNTOK(K_DOWNTO); }
+"else"			{ RETURNTOK(K_ELSE); }
+"end"			{ RETURNTOK(K_END); }
+"exit"			{ RETURNTOK(K_EXIT); }
+"fastcall"		{ RETURNTOK(K_FASTCALL); }
+"finally"		{ RETURNTOK(K_FINALLY); }
+"for"			{ RETURNTOK(K_FOR); }
+"forward"		{ RETURNTOK(K_FORWARD); }
+"function"		{ RETURNTOK(K_FUNCTION); }
+"goto"			{ RETURNTOK(K_GOTO); }
+"if"			{ RETURNTOK(K_IF); }
+"in"			{ RETURNTOK(K_IN); }
+"label"			{ RETURNTOK(K_LABEL); }
+"import"		{ RETURNTOK(K_IMPORT); }
+"mod"			{ RETURNTOK(K_MOD); }
+"module"		{ RETURNTOK(K_MODULE); }
+"nil"			{ RETURNTOK(K_NIL); }
+"not"			{ RETURNTOK(K_NOT); }
+"of"			{ RETURNTOK(K_OF); }
+"or"			{ RETURNTOK(K_OR); }
+"packed"		{ RETURNTOK(K_PACKED); }
+"pow"			{ RETURNTOK(K_POW); }
+"procedure"		{ RETURNTOK(K_PROCEDURE); }
+"program"		{ RETURNTOK(K_PROGRAM); }
+"record"		{ RETURNTOK(K_RECORD); }
+"repeat"		{ RETURNTOK(K_REPEAT); }
+"set"			{ RETURNTOK(K_SET); }
+"shl"			{ RETURNTOK(K_SHL); }
+"shr"			{ RETURNTOK(K_SHR); }
+"sizeof"		{ RETURNTOK(K_SIZEOF); }
+"stdcall"		{ RETURNTOK(K_STDCALL); }
+"then"			{ RETURNTOK(K_THEN); }
+"throw"			{ RETURNTOK(K_THROW); }
+"to"			{ RETURNTOK(K_TO); }
+"try"			{ RETURNTOK(K_TRY); }
+"type"			{ RETURNTOK(K_TYPE); }
+"until"			{ RETURNTOK(K_UNTIL); }
+"var"			{ RETURNTOK(K_VAR); }
+"va_arg"		{ RETURNTOK(K_VA_ARG); }
+"with"			{ RETURNTOK(K_WITH); }
+"while"			{ RETURNTOK(K_WHILE); }
+"xor"			{ RETURNTOK(K_XOR); }
 
-'(''|[^'])*'			{ yylval.name = dpas_parse_string(yytext);
-						  RETURNTOK(STRING_CONSTANT); }
+'(''|[^'])*'		{ yylval.name = dpas_parse_string(yytext);
+			  RETURNTOK(STRING_CONSTANT); }
 
-\"(\"\"|[^"])*\"		{ yylval.name = dpas_parse_string(yytext);
-						  RETURNTOK(STRING_CONSTANT); }
+\"(\"\"|[^"])*\"	{ yylval.name = dpas_parse_string(yytext);
+			  RETURNTOK(STRING_CONSTANT); }
 
 {IDALPHA}({DIGIT}|{IDALPHA})*	{
 			yylval.name = jit_strdup(yytext);
@@ -242,29 +243,29 @@ WHITE					[ \t\v\r\f]
 			RETURNTOK(IDENTIFIER);
 		}
 
-{DIGIT}+{EXPONENT}				{ yylval.real_const = dpas_parse_float(yytext);
-						  		  RETURNTOK(REAL_CONSTANT); }
+{DIGIT}+{EXPONENT}	{ yylval.real_const = dpas_parse_float(yytext);
+		  	  RETURNTOK(REAL_CONSTANT); }
 {DIGIT}+"."{DIGIT}*{EXPONENT}	{ yylval.real_const = dpas_parse_float(yytext);
-						  		  RETURNTOK(REAL_CONSTANT); }
-{DIGIT}+"."{DIGIT}+				{ yylval.real_const = dpas_parse_float(yytext);
-						  		  RETURNTOK(REAL_CONSTANT); }
-{DIGIT}+"."[^.]					{ yylval.real_const = dpas_parse_float(yytext);
-						  		  RETURNTOK(REAL_CONSTANT); }
+		  		  RETURNTOK(REAL_CONSTANT); }
+{DIGIT}+"."{DIGIT}+	{ yylval.real_const = dpas_parse_float(yytext);
+		  	  RETURNTOK(REAL_CONSTANT); }
+{DIGIT}+"."[^.]		{ yylval.real_const = dpas_parse_float(yytext);
+			  RETURNTOK(REAL_CONSTANT); }
 
-{DIGIT}{HEX}*[hH]				{ dpas_parse_hex(yytext, &yylval);
-								  RETURNTOK(INTEGER_CONSTANT); }
+{DIGIT}{HEX}*[hH]	{ dpas_parse_hex(yytext, &yylval);
+			  RETURNTOK(INTEGER_CONSTANT); }
 
-{DIGIT}+						{ dpas_parse_decimal(yytext, &yylval);
-								  RETURNTOK(INTEGER_CONSTANT); }
+{DIGIT}+		{ dpas_parse_decimal(yytext, &yylval);
+			  RETURNTOK(INTEGER_CONSTANT); }
 
-{WHITE}+						;
+{WHITE}+		;
 
-\n								{ ++dpas_linenum; }
+\n			{ ++dpas_linenum; }
 
-"{"								{ dpas_skip_comment(0); }
-"(*"							{ dpas_skip_comment(1); }
+"{"			{ dpas_skip_comment(0); }
+"(*"			{ dpas_skip_comment(1); }
 
-.								{ RETURNTOK(((int)(yytext[0])) & 0xFF); }
+.			{ RETURNTOK(((int)(yytext[0])) & 0xFF); }
 
 %%
 
@@ -354,4 +355,3 @@ static void dpas_skip_comment(int star_style)
 		}
 	}
 }
-
