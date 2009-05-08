@@ -25,16 +25,16 @@
 #include "jit-setjmp.h"
 #include <config.h>
 #if HAVE_STDLIB_H
-	#include <stdlib.h>
+# include <stdlib.h>
 #endif
 #if HAVE_ALLOCA_H
-	#include <alloca.h>
+# include <alloca.h>
 #endif
 #ifdef JIT_WIN32_PLATFORM
-	#include <malloc.h>
-	#ifndef alloca
-		#define	alloca	_alloca
-	#endif
+# include <malloc.h>
+# ifndef alloca
+#  define alloca _alloca
+# endif
 #endif
 
 /*@
@@ -7940,10 +7940,11 @@ int jit_insn_mark_breakpoint
  * Initialize an iterator to point to the first instruction in @var{block}.
  * @end deftypefun
 @*/
-void jit_insn_iter_init(jit_insn_iter_t *iter, jit_block_t block)
+void
+jit_insn_iter_init(jit_insn_iter_t *iter, jit_block_t block)
 {
 	iter->block = block;
-	iter->posn = block->first_insn;
+	iter->posn = 0;
 }
 
 /*@
@@ -7951,10 +7952,11 @@ void jit_insn_iter_init(jit_insn_iter_t *iter, jit_block_t block)
  * Initialize an iterator to point to the last instruction in @var{block}.
  * @end deftypefun
 @*/
-void jit_insn_iter_init_last(jit_insn_iter_t *iter, jit_block_t block)
+void
+jit_insn_iter_init_last(jit_insn_iter_t *iter, jit_block_t block)
 {
 	iter->block = block;
-	iter->posn = block->last_insn + 1;
+	iter->posn = block->num_insns;
 }
 
 /*@
@@ -7963,11 +7965,12 @@ void jit_insn_iter_init_last(jit_insn_iter_t *iter, jit_block_t block)
  * when there are no further instructions in the block.
  * @end deftypefun
 @*/
-jit_insn_t jit_insn_iter_next(jit_insn_iter_t *iter)
+jit_insn_t
+jit_insn_iter_next(jit_insn_iter_t *iter)
 {
-	if(iter->posn <= iter->block->last_insn)
+	if(iter->posn < iter->block->num_insns)
 	{
-		return iter->block->func->builder->insns[(iter->posn)++];
+		return &iter->block->insns[(iter->posn)++];
 	}
 	else
 	{
@@ -7981,11 +7984,12 @@ jit_insn_t jit_insn_iter_next(jit_insn_iter_t *iter)
  * when there are no further instructions in the block.
  * @end deftypefun
 @*/
-jit_insn_t jit_insn_iter_previous(jit_insn_iter_t *iter)
+jit_insn_t
+jit_insn_iter_previous(jit_insn_iter_t *iter)
 {
-	if(iter->posn > iter->block->first_insn)
+	if(iter->posn > 0)
 	{
-		return iter->block->func->builder->insns[--(iter->posn)];
+		return &iter->block->insns[--(iter->posn)];
 	}
 	else
 	{

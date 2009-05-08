@@ -51,8 +51,6 @@ create_block(jit_function_t func)
 	/* Initialize the block */
 	block->func = func;
 	block->label = jit_label_undefined;
-	block->first_insn = func->builder->num_insns;
-	block->last_insn = block->first_insn - 1;
 
 	return block;
 }
@@ -63,7 +61,25 @@ free_block(jit_block_t block)
 	jit_meta_destroy(&block->meta);
 	jit_free(block->succs);
 	jit_free(block->preds);
+	jit_free(block->insns);
 	jit_free(block);
+}
+
+/* Block may not be deleted right when it was found useless from
+   the control flow perspective as it might be referenced from
+   elsewhere, for instance, from some jit_value_t */
+static void
+delete_block(jit_block_t block)
+{
+	jit_free(block->succs);
+	block->succs = 0;
+	jit_free(block->preds);
+	block->preds = 0;
+	jit_free(block->insns);
+	block->insns = 0;
+
+	block->next = block->func->builder->deleted_blocks;
+	block->func->builder->deleted_blocks = block->next;
 }
 
 static int
@@ -320,13 +336,11 @@ attach_edge_dst(_jit_edge_t edge, jit_block_t block)
 static int
 is_empty_block(jit_block_t block)
 {
-	jit_insn_t *insns;
 	int index, opcode;
 
-	insns = block->func->builder->insns;
-	for(index = block->first_insn; index <= block->last_insn; index++)
+	for(index = 0; index < block->num_insns; index++)
 	{
-		opcode = insns[index]->opcode;
+		opcode = block->insns[index].opcode;
 		if(opcode != JIT_OP_NOP
 		   && opcode != JIT_OP_MARK_OFFSET
 		   && opcode != JIT_OP_BR)
@@ -415,7 +429,7 @@ merge_empty(jit_function_t func, jit_block_t block, int *changed)
 		detach_edge_dst(succ_edge);
 		jit_memory_pool_dealloc(&func->builder->edge_pool, succ_edge);
 		_jit_block_detach(block, block);
-		free_block(block);
+		delete_block(block);
 	}
 
 	return 1;
@@ -432,7 +446,7 @@ delete_edge(jit_function_t func, _jit_edge_t edge)
 
 /* Delete block along with references to it */
 static void
-delete_block(jit_block_t block)
+eliminate_block(jit_block_t block)
 {
 	_jit_edge_t edge;
 	int index;
@@ -454,8 +468,8 @@ delete_block(jit_block_t block)
 		jit_memory_pool_dealloc(&block->func->builder->edge_pool, edge);
 	}
 
-	/* Free memory */
-	free_block(block);
+	/* Finally delete the block */
+	delete_block(block);
 }
 
 #if 0
@@ -494,7 +508,7 @@ eliminate_unreachable(jit_function_t func)
 		}
 		else
 		{
-			delete_block(block);
+			eliminate_block(block);
 		}
 		block = next_block;
 	}
@@ -564,6 +578,14 @@ _jit_block_free(jit_function_t func)
 	free_order(func);
 
 	block = func->builder->entry_block;
+	while(block)
+	{
+		next = block->next;
+		free_block(block);
+		block = next;
+	}
+
+	block = func->builder->deleted_blocks;
 	while(block)
 	{
 		next = block->next;
@@ -712,13 +734,13 @@ _jit_block_compute_postorder(jit_function_t func)
 
 	num_blocks = count_blocks(func);
 
-	blocks = jit_malloc(num_blocks * sizeof(jit_block_t));
+	blocks = (jit_block_t *) jit_malloc(num_blocks * sizeof(jit_block_t));
 	if(!blocks)
 	{
 		return 0;
 	}
 
-	stack = jit_malloc(num_blocks * sizeof(_jit_block_stack_entry_t));
+	stack = (_jit_block_stack_entry_t *) jit_malloc(num_blocks * sizeof(_jit_block_stack_entry_t));
 	if(!stack)
 	{
 		jit_free(blocks);
@@ -847,18 +869,72 @@ _jit_block_record_label(jit_block_t block)
 		{
 			num *= 2;
 		}
-		blocks = (jit_block_t *)jit_realloc
-			(builder->label_blocks, num * sizeof(jit_block_t));
+		blocks = (jit_block_t *)jit_realloc(builder->label_blocks,
+						    num * sizeof(jit_block_t));
 		if(!blocks)
 		{
 			return 0;
 		}
 		jit_memzero(blocks + builder->max_label_blocks,
-					sizeof(jit_block_t) * (num - builder->max_label_blocks));
+			    sizeof(jit_block_t) * (num - builder->max_label_blocks));
 		builder->label_blocks = blocks;
 		builder->max_label_blocks = num;
 	}
 	builder->label_blocks[block->label] = block;
+	return 1;
+}
+
+jit_insn_t
+_jit_block_add_insn(jit_block_t block)
+{
+	int max_insns;
+	jit_insn_t insns;
+
+	/* Make space for the instruction in the block's instruction list */
+	if(block->num_insns == block->max_insns)
+	{
+		max_insns = block->max_insns ? block->max_insns * 2 : 4;
+		insns = (jit_insn_t) jit_realloc(block->insns,
+						 max_insns * sizeof(struct _jit_insn));
+		if(!insns)
+		{
+			return 0;
+		}
+
+		block->insns = insns;
+		block->max_insns = max_insns;
+	}
+
+	/* Zero-init the instruction */
+	jit_memzero(&block->insns[block->num_insns], sizeof(struct _jit_insn));
+
+	/* Return the instruction, which is now ready to fill in */
+	return &block->insns[block->num_insns++];
+}
+
+jit_insn_t
+_jit_block_get_last(jit_block_t block)
+{
+	if(block->num_insns > 0)
+	{
+		return &block->insns[block->num_insns - 1];
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+int
+_jit_block_is_final(jit_block_t block)
+{
+	for(block = block->next; block; block = block->next)
+	{
+		if(block->num_insns)
+		{
+			return 0;
+		}
+	}
 	return 1;
 }
 
@@ -976,61 +1052,6 @@ jit_block_from_label(jit_function_t func, jit_label_t label)
 	if(func && func->builder && label < func->builder->max_label_blocks)
 	{
 		return func->builder->label_blocks[label];
-	}
-	else
-	{
-		return 0;
-	}
-}
-
-jit_insn_t
-_jit_block_add_insn(jit_block_t block)
-{
-	jit_builder_t builder = block->func->builder;
-	jit_insn_t insn;
-	int num;
-	jit_insn_t *insns;
-
-	/* Allocate the instruction from the builder's memory pool */
-	insn = jit_memory_pool_alloc(&(builder->insn_pool), struct _jit_insn);
-	if(!insn)
-	{
-		return 0;
-	}
-
-	/* Make space for the instruction in the function's instruction list */
-	if(builder->num_insns >= builder->max_insns)
-	{
-		num = builder->max_insns * 2;
-		if(num < 64)
-		{
-			num = 64;
-		}
-		insns = (jit_insn_t *)jit_realloc(builder->insns, num * sizeof(jit_insn_t));
-		if(!insns)
-		{
-			return 0;
-		}
-		builder->insns = insns;
-		builder->max_insns = num;
-	}
-	else
-	{
-		insns = builder->insns;
-	}
-	insns[builder->num_insns] = insn;
-	block->last_insn = (builder->num_insns)++;
-
-	/* Return the instruction, which is now ready to fill in */
-	return insn;
-}
-
-jit_insn_t
-_jit_block_get_last(jit_block_t block)
-{
-	if(block->first_insn <= block->last_insn)
-	{
-		return block->func->builder->insns[block->last_insn];
 	}
 	else
 	{

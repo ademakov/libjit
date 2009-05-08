@@ -1316,12 +1316,7 @@ jump_to_epilog(jit_gencode_t gen, unsigned char *inst, jit_block_t block)
 
 	/* If the epilog is the next thing that we will output,
 	   then fall through to the epilog directly */
-	block = block->next;
-	while(block != 0 && block->first_insn > block->last_insn)
-	{
-		block = block->next;
-	}
-	if(!block)
+	if(_jit_block_is_final(block))
 	{
 		return inst;
 	}

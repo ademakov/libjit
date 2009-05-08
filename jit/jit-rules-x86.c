@@ -1311,17 +1311,12 @@ static unsigned char *output_branch
 /*
  * Jump to the current function's epilog.
  */
-static unsigned char *jump_to_epilog
-	(jit_gencode_t gen, unsigned char *inst, jit_block_t block)
+static unsigned char *
+jump_to_epilog(jit_gencode_t gen, unsigned char *inst, jit_block_t block)
 {
 	/* If the epilog is the next thing that we will output,
 	   then fall through to the epilog directly */
-	block = block->next;
-	while(block != 0 && block->first_insn > block->last_insn)
-	{
-		block = block->next;
-	}
-	if(!block)
+	if(_jit_block_is_final(block))
 	{
 		return inst;
 	}
@@ -1336,8 +1331,8 @@ static unsigned char *jump_to_epilog
 /*
  * Throw a builtin exception.
  */
-static unsigned char *throw_builtin
-		(unsigned char *inst, jit_function_t func, int type)
+static unsigned char *
+throw_builtin(unsigned char *inst, jit_function_t func, int type)
 {
 	/* We need to update "catch_pc" if we have a "try" block */
 	if(func->builder->setjmp_value != 0)

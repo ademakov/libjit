@@ -1,3 +1,19 @@
+2009-05-09  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-internal.h, jit/jit-block.c, jit/jit-insn.c,
+	* jit/jit-function.c: allocate insns as individual array for each
+	basic block instead of using common per-function pool.
+
+	* jit/jit-internal.h, jit/jit-block.c: keep useless basic blocks
+	in the deleted_blocks list instead of freeing them immediately as
+	these blocks still may be referenced from elsewhere, for instance,
+	from jit_value_t structs.
+
+	* jit/jit-internal.h, jit/jit-block.c (_jit_block_is_final): add
+	function to check if the given block is the last one.
+	* jit/jit-rules-alpha.c, jit/jit-rules-arm.c, jit/jit-rules-x86.c,
+	* jit/jit-rules-x86-64.c (jump_to_epilog): use _jit_block_is_final.
+
 2009-04-29  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-block.c (_jit_block_build_cfg, _jit_block_clean_cfg): add

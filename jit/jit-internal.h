@@ -204,9 +204,10 @@ struct _jit_block
 	jit_function_t		func;
 	jit_label_t		label;
 
-	/* Block's first and last instruction */
-	int			first_insn;
-	int			last_insn;
+	/* List of all instructions in this block */
+	jit_insn_t		insns;
+	int			num_insns;
+	int			max_insns;
 
 	/* Next and previous blocks in the function's linear block list */
 	jit_block_t 		next;
@@ -332,6 +333,9 @@ struct _jit_builder
 	/* The current block that is being constructed */
 	jit_block_t		current_block;
 
+	/* The list of deleted blocks */
+	jit_block_t		deleted_blocks;
+
 	/* Blocks sorted in order required by an optimization pass */
 	jit_block_t		*block_order;
 	int			num_block_order;
@@ -365,14 +369,8 @@ struct _jit_builder
 	/* Generate position-independent code */
 	unsigned		position_independent : 1;
 
-	/* List of all instructions in this function */
-	jit_insn_t		*insns;
-	int			num_insns;
-	int			max_insns;
-
 	/* Memory pools that contain values, instructions, and metadata blocks */
 	jit_memory_pool		value_pool;
-	jit_memory_pool		insn_pool;
 	jit_memory_pool		edge_pool;
 	jit_memory_pool		meta_pool;
 
@@ -633,6 +631,12 @@ jit_insn_t _jit_block_add_insn(jit_block_t block);
  * Get the last instruction in a block.  NULL if the block is empty.
  */
 jit_insn_t _jit_block_get_last(jit_block_t block);
+
+/*
+ * The block goes just before the function end possibly excluding
+ * some empty blocks.
+ */
+int _jit_block_is_final(jit_block_t block);
 
 /*
  * Free one element in a metadata list.

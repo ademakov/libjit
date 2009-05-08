@@ -189,7 +189,6 @@ int _jit_function_ensure_builder(jit_function_t func)
 
 	/* Initialize the function builder */
 	jit_memory_pool_init(&(func->builder->value_pool), struct _jit_value);
-	jit_memory_pool_init(&(func->builder->insn_pool), struct _jit_insn);
 	jit_memory_pool_init(&(func->builder->edge_pool), struct _jit_edge);
 	jit_memory_pool_init(&(func->builder->meta_pool), struct _jit_meta);
 
@@ -230,11 +229,9 @@ void _jit_function_free_builder(jit_function_t func)
 	{
 		_jit_block_free(func);
 		jit_memory_pool_free(&(func->builder->edge_pool), 0);
-		jit_memory_pool_free(&(func->builder->insn_pool), 0);
 		jit_memory_pool_free(&(func->builder->value_pool), _jit_value_free);
 		jit_memory_pool_free(&(func->builder->meta_pool), _jit_meta_free_one);
 		jit_free(func->builder->param_values);
-		jit_free(func->builder->insns);
 		jit_free(func->builder->label_blocks);
 		jit_free(func->builder);
 		func->builder = 0;
