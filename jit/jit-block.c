@@ -36,51 +36,6 @@ typedef struct _jit_block_stack_entry
 	int index;
 } _jit_block_stack_entry_t;
 
-static jit_block_t
-create_block(jit_function_t func)
-{
-	jit_block_t block;
-
-	/* Allocate memory for the block */
-	block = jit_cnew(struct _jit_block);
-	if(!block)
-	{
-		return 0;
-	}
-
-	/* Initialize the block */
-	block->func = func;
-	block->label = jit_label_undefined;
-
-	return block;
-}
-
-static void
-free_block(jit_block_t block)
-{
-	jit_meta_destroy(&block->meta);
-	jit_free(block->succs);
-	jit_free(block->preds);
-	jit_free(block->insns);
-	jit_free(block);
-}
-
-/* Block may not be deleted right when it was found useless from
-   the control flow perspective as it might be referenced from
-   elsewhere, for instance, from some jit_value_t */
-static void
-delete_block(jit_block_t block)
-{
-	jit_free(block->succs);
-	block->succs = 0;
-	jit_free(block->preds);
-	block->preds = 0;
-	jit_free(block->insns);
-	block->insns = 0;
-
-	block->next = block->func->builder->deleted_blocks;
-	block->func->builder->deleted_blocks = block->next;
-}
 
 static int
 create_edge(jit_function_t func, jit_block_t src, jit_block_t dst, int flags, int create)
@@ -332,6 +287,32 @@ attach_edge_dst(_jit_edge_t edge, jit_block_t block)
 	return 1;
 }
 
+/* Delete edge along with references to it */
+static void
+delete_edge(jit_function_t func, _jit_edge_t edge)
+{
+	detach_edge_src(edge);
+	detach_edge_dst(edge);
+	jit_memory_pool_dealloc(&func->builder->edge_pool, edge);
+}
+
+/* Block may not be deleted right when it was found useless from
+   the control flow perspective as it might be referenced from
+   elsewhere, for instance, from some jit_value_t */
+static void
+delete_block(jit_block_t block)
+{
+	jit_free(block->succs);
+	block->succs = 0;
+	jit_free(block->preds);
+	block->preds = 0;
+	jit_free(block->insns);
+	block->insns = 0;
+
+	block->next = block->func->builder->deleted_blocks;
+	block->func->builder->deleted_blocks = block->next;
+}
+
 /* The block is empty if it contains nothing apart from an unconditional branch */
 static int
 is_empty_block(jit_block_t block)
@@ -352,6 +333,23 @@ is_empty_block(jit_block_t block)
 	return 1;
 }
 
+static void
+merge_labels(jit_function_t func, jit_block_t block, jit_label_t label)
+{
+	_jit_label_info_t *info;
+	jit_label_t alias;
+
+	while(label != jit_label_undefined)
+	{
+		info = &func->builder->label_info[label];
+		alias = info->alias;
+		info->block = block;
+		info->alias = block->label;
+		block->label = label;
+		label = alias;
+	}
+}
+
 /* Merge empty block with its successor */
 static int
 merge_empty(jit_function_t func, jit_block_t block, int *changed)
@@ -364,23 +362,8 @@ merge_empty(jit_function_t func, jit_block_t block, int *changed)
 	succ_edge = block->succs[0];
 	succ_block = succ_edge->dst;
 
-	/* Retarget label to the successor block. */
-	if(block->label != jit_label_undefined)
-	{
-		func->builder->label_blocks[block->label] = succ_block;
-		if(succ_block->label == jit_label_undefined)
-		{
-			succ_block->label = block->label;
-		}
-		else
-		{
-			/* FIXME: If both blocks have labels then this results
-			   into a duplicate label which is not recorded in the
-			   target block. This shouldn't cause big problems now
-			   but perhaps some sort of block-to-label-list mappings
-			   might be useful someday. */
-		}
-	}
+	/* Retarget labels bound to this block to the successor block. */
+	merge_labels(func, succ_block, block->label);
 
 	/* Retarget all incoming edges except a fallthrough edge */
 	fallthru_edge = 0;
@@ -433,15 +416,6 @@ merge_empty(jit_function_t func, jit_block_t block, int *changed)
 	}
 
 	return 1;
-}
-
-/* Delete edge along with references to it */
-static void
-delete_edge(jit_function_t func, _jit_edge_t edge)
-{
-	detach_edge_src(edge);
-	detach_edge_dst(edge);
-	jit_memory_pool_dealloc(&func->builder->edge_pool, edge);
 }
 
 /* Delete block along with references to it */
@@ -553,13 +527,13 @@ free_order(jit_function_t func)
 int
 _jit_block_init(jit_function_t func)
 {
-	func->builder->entry_block = create_block(func);
+	func->builder->entry_block = _jit_block_create(func);
 	if(!func->builder->entry_block)
 	{
 		return 0;
 	}
 
-	func->builder->exit_block = create_block(func);
+	func->builder->exit_block = _jit_block_create(func);
 	if(!func->builder->exit_block)
 	{
 		return 0;
@@ -581,7 +555,7 @@ _jit_block_free(jit_function_t func)
 	while(block)
 	{
 		next = block->next;
-		free_block(block);
+		_jit_block_destroy(block);
 		block = next;
 	}
 
@@ -589,7 +563,7 @@ _jit_block_free(jit_function_t func)
 	while(block)
 	{
 		next = block->next;
-		free_block(block);
+		_jit_block_destroy(block);
 		block = next;
 	}
 
@@ -792,39 +766,38 @@ _jit_block_compute_postorder(jit_function_t func)
 }
 
 jit_block_t
-_jit_block_create(jit_function_t func, jit_label_t *label)
+_jit_block_create(jit_function_t func)
 {
 	jit_block_t block;
 
-	/* Create the block */
-	block = create_block(func);
+	/* Allocate memory for the block */
+	block = jit_cnew(struct _jit_block);
 	if(!block)
 	{
 		return 0;
 	}
 
-	/* Set the block label */
-	if(label)
-	{
-		if(*label == jit_label_undefined)
-		{
-			*label = (func->builder->next_label)++;
-		}
-		block->label = *label;
-		if(!_jit_block_record_label(block))
-		{
-			jit_free(block);
-			return 0;
-		}
-	}
-
-	/* Add the block to the end of the function's list */
-	block->next = func->builder->exit_block;
-	block->prev = func->builder->exit_block->prev;
-	block->next->prev = block;
-	block->prev->next = block;
+	/* Initialize the block */
+	block->func = func;
+	block->label = jit_label_undefined;
 
 	return block;
+}
+
+void
+_jit_block_destroy(jit_block_t block)
+{
+	/* Free all the memory owned by the block. CFG edges are not freed
+	   because each edge is shared between two blocks so the ownership
+	   of the edge is ambiguous. Sometimes an edge may be redirected to
+	   another block rather than freed. Therefore edges are freed (or
+	   not freed) separately. However succs and preds arrays are freed,
+	   these contain pointers to edges, not edges themselves. */
+	jit_meta_destroy(&block->meta);
+	jit_free(block->succs);
+	jit_free(block->preds);
+	jit_free(block->insns);
+	jit_free(block);
 }
 
 void
@@ -853,34 +826,42 @@ _jit_block_attach_before(jit_block_t block, jit_block_t first, jit_block_t last)
 }
 
 int
-_jit_block_record_label(jit_block_t block)
+_jit_block_record_label(jit_block_t block, jit_label_t label)
 {
-	jit_builder_t builder = block->func->builder;
+	jit_builder_t builder;
 	jit_label_t num;
-	jit_block_t *blocks;
-	if(block->label >= builder->max_label_blocks)
+	_jit_label_info_t *info;
+
+	builder = block->func->builder;
+	if(label >= builder->max_label_info)
 	{
-		num = builder->max_label_blocks;
+		num = builder->max_label_info;
 		if(num < 64)
 		{
 			num = 64;
 		}
-		while(num <= block->label)
+		while(num <= label)
 		{
 			num *= 2;
 		}
-		blocks = (jit_block_t *)jit_realloc(builder->label_blocks,
-						    num * sizeof(jit_block_t));
-		if(!blocks)
+
+		info = (_jit_label_info_t *) jit_realloc(builder->label_info,
+							 num * sizeof(_jit_label_info_t));
+		if(!info)
 		{
 			return 0;
 		}
-		jit_memzero(blocks + builder->max_label_blocks,
-			    sizeof(jit_block_t) * (num - builder->max_label_blocks));
-		builder->label_blocks = blocks;
-		builder->max_label_blocks = num;
+
+		jit_memzero(info + builder->max_label_info,
+			    sizeof(_jit_label_info_t) * (num - builder->max_label_info));
+		builder->label_info = info;
+		builder->max_label_info = num;
 	}
-	builder->label_blocks[block->label] = block;
+
+	builder->label_info[label].block = block;
+	builder->label_info[label].alias = block->label;
+	block->label = label;
+
 	return 1;
 }
 
@@ -986,10 +967,33 @@ jit_block_get_label(jit_block_t block)
 	{
 		return block->label;
 	}
-	else
+	return jit_label_undefined;
+}
+
+/*@
+ * @deftypefun jit_label_t jit_block_get_next_label (jit_block_t @var{block, jit_label_t @var{label}})
+ * Get the next label associated with a block.
+ * @end deftypefun
+@*/
+jit_label_t
+jit_block_get_next_label(jit_block_t block, jit_label_t label)
+{
+	jit_builder_t builder;
+	if(block)
 	{
-		return jit_label_undefined;
+		if(label == jit_label_undefined)
+		{
+			return block->label;
+		}
+		builder = block->func->builder;
+		if(builder
+		   && label < builder->max_label_info
+		   && block == builder->label_info[label].block)
+		{
+			return builder->label_info[label].alias;
+		}
 	}
+	return jit_label_undefined;
 }
 
 /*@
@@ -1049,9 +1053,9 @@ jit_block_previous(jit_function_t func, jit_block_t previous)
 jit_block_t
 jit_block_from_label(jit_function_t func, jit_label_t label)
 {
-	if(func && func->builder && label < func->builder->max_label_blocks)
+	if(func && func->builder && label < func->builder->max_label_info)
 	{
-		return func->builder->label_blocks[label];
+		return func->builder->label_info[label].block;
 	}
 	else
 	{

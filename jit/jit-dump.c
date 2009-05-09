@@ -25,14 +25,14 @@
 #include <jit/jit-dump.h>
 #include <config.h>
 #ifdef HAVE_STDLIB_H
-	#include <stdlib.h>
+# include <stdlib.h>
 #endif
 #ifdef HAVE_UNISTD_H
-	#include <unistd.h>
+# include <unistd.h>
 #endif
 
 #if defined(JIT_BACKEND_INTERP)
-	#include "jit-interp.h"
+# include "jit-interp.h"
 #endif
 
 /*@
@@ -56,16 +56,16 @@ void jit_dump_type(FILE *stream, jit_type_t type)
 	}
 	switch(type->kind)
 	{
-		case JIT_TYPE_VOID:			name = "void"; break;
+		case JIT_TYPE_VOID:		name = "void"; break;
 		case JIT_TYPE_SBYTE:		name = "sbyte"; break;
 		case JIT_TYPE_UBYTE:		name = "ubyte"; break;
 		case JIT_TYPE_SHORT:		name = "short"; break;
 		case JIT_TYPE_USHORT:		name = "ushort"; break;
-		case JIT_TYPE_INT:			name = "int"; break;
-		case JIT_TYPE_UINT:			name = "uint"; break;
-		case JIT_TYPE_NINT:			name = "nint"; break;
+		case JIT_TYPE_INT:		name = "int"; break;
+		case JIT_TYPE_UINT:		name = "uint"; break;
+		case JIT_TYPE_NINT:		name = "nint"; break;
 		case JIT_TYPE_NUINT:		name = "nuint"; break;
-		case JIT_TYPE_LONG:			name = "long"; break;
+		case JIT_TYPE_LONG:		name = "long"; break;
 		case JIT_TYPE_ULONG:		name = "ulong"; break;
 		case JIT_TYPE_FLOAT32:		name = "float32"; break;
 		case JIT_TYPE_FLOAT64:		name = "float64"; break;
@@ -74,7 +74,7 @@ void jit_dump_type(FILE *stream, jit_type_t type)
 		case JIT_TYPE_STRUCT:
 		{
 			fprintf(stream, "struct<%u>",
-					(unsigned int)(jit_type_get_size(type)));
+				(unsigned int)(jit_type_get_size(type)));
 			return;
 		}
 		/* Not reached */
@@ -82,14 +82,14 @@ void jit_dump_type(FILE *stream, jit_type_t type)
 		case JIT_TYPE_UNION:
 		{
 			fprintf(stream, "union<%u>",
-					(unsigned int)(jit_type_get_size(type)));
+				(unsigned int)(jit_type_get_size(type)));
 			return;
 		}
 		/* Not reached */
 
 		case JIT_TYPE_SIGNATURE:	name = "signature"; break;
-		case JIT_TYPE_PTR:			name = "ptr"; break;
-		default: 					name = "<unknown-type>"; break;
+		case JIT_TYPE_PTR:		name = "ptr"; break;
+		default: 			name = "<unknown-type>"; break;
 	}
 	fputs(name, stream);
 }
@@ -763,11 +763,11 @@ void jit_dump_function(FILE *stream, jit_function_t func, const char *name)
 	jit_block_t block;
 	jit_insn_iter_t iter;
 	jit_insn_t insn;
-	int prev_block;
 	jit_type_t signature;
 	unsigned int param;
 	unsigned int num_params;
 	jit_value_t value;
+	jit_label_t label;
 
 	/* Bail out if we don't have sufficient information to dump */
 	if(!stream || !func)
@@ -847,20 +847,30 @@ void jit_dump_function(FILE *stream, jit_function_t func, const char *name)
 	{
 		/* Output each of the three address blocks in turn */
 		block = 0;
-		prev_block = 0;
 		while((block = jit_block_next(func, block)) != 0)
 		{
-			/* Output the block's label, if it has one */
+			/* Output the block's labels, if it has any */
+			label = jit_block_get_label(block);
 			if(block->label != jit_label_undefined)
 			{
-				fprintf(stream, ".L%ld:\n", (long)(block->label));
+				for(;;)
+				{
+					fprintf(stream, ".L%ld:", (long) label);
+					label = jit_block_get_next_label(block, label);
+					if(label == jit_label_undefined)
+					{
+						fprintf(stream, "\n");
+						break;
+					}
+					fprintf(stream, " ");
+				}
 			}
-			else if (prev_block && _jit_block_get_last(block) != 0)
+			else if (block != func->builder->entry_block
+				 /*&& _jit_block_get_last(block) != 0*/)
 			{
 				/* A new block was started, but it doesn't have a label yet */
 				fprintf(stream, ".L:\n");
 			}
-			prev_block = 1;
 
 			/* Dump the instructions in the block */
 			jit_insn_iter_init(&iter, block);

@@ -1072,17 +1072,20 @@ int jit_insn_dest_is_value(jit_insn_t insn)
 
 /*@
  * @deftypefun void jit_insn_label (jit_function_t @var{func}, jit_label_t *@var{label})
- * Start a new block within the function @var{func} and give it the
- * specified @var{label}.  Returns zero if out of memory.
+ * Start a new basic block within the function @var{func} and give it the
+ * specified @var{label}.  If the call is made when a new block was just
+ * created by any previous call then that block is reused, no new block
+ * is created.  Returns zero if out of memory.
  *
  * If the contents of @var{label} are @code{jit_label_undefined}, then this
  * function will allocate a new label for this block.  Otherwise it will
  * reuse the specified label from a previous branch instruction.
  * @end deftypefun
 @*/
-int jit_insn_label(jit_function_t func, jit_label_t *label)
+int
+jit_insn_label(jit_function_t func, jit_label_t *label)
 {
-	jit_block_t current;
+	jit_block_t block;
 
 	if(!_jit_function_ensure_builder(func))
 	{
@@ -1093,33 +1096,36 @@ int jit_insn_label(jit_function_t func, jit_label_t *label)
 		return 0;
 	}
 
-	current = func->builder->current_block;
-	if(current->label == jit_label_undefined && !_jit_block_get_last(current))
+	/* Create a new block if the current one is not empty */
+	block = func->builder->current_block;
+	if(_jit_block_get_last(block))
 	{
-		/* We just started a new block after a branch instruction,
-		   so don't bother creating another new block */
-		if(*label == jit_label_undefined)
-		{
-			*label = (func->builder->next_label)++;
-		}
-		current->label = *label;
-		if(!_jit_block_record_label(current))
-		{
-			return 0;
-		}
-	}
-	else
-	{
-		/* Create a new block */
-		jit_block_t block = _jit_block_create(func, label);
+		block = _jit_block_create(func);
 		if(!block)
 		{
 			return 0;
 		}
+	}
 
-		/* Set the new block as the current one */
+	/* Record the label */
+	if(*label == jit_label_undefined)
+	{
+		*label = (func->builder->next_label)++;
+	}
+	if(!_jit_block_record_label(block, *label))
+	{
+		_jit_block_destroy(block);
+		return 0;
+	}
+
+	/* If the block is newly created then insert it to the end of
+	   the function's block list */
+	if(block != func->builder->current_block)
+	{
+		_jit_block_attach_before(func->builder->exit_block, block, block);
 		func->builder->current_block = block;
 	}
+
 	return 1;
 }
 
@@ -1128,14 +1134,22 @@ int jit_insn_label(jit_function_t func, jit_label_t *label)
  * Start a new basic block, without giving it an explicit label.
  * @end deftypefun
 @*/
-int jit_insn_new_block(jit_function_t func)
+int
+jit_insn_new_block(jit_function_t func)
 {
-	jit_block_t block = _jit_block_create(func, 0);
+	jit_block_t block;
+
+	/* Create a new block */
+	block = _jit_block_create(func);
 	if(!block)
 	{
 		return 0;
 	}
+
+	/* Insert the block to the end of the function's block list */
+	_jit_block_attach_before(func->builder->exit_block, block, block);
 	func->builder->current_block = block;
+
 	return 1;
 }
 

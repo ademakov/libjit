@@ -314,6 +314,22 @@ struct _jit_insn
 #define	JIT_INSN_DEST_IS_VALUE		0x1000
 
 /*
+ * Information about each label associated with a function.
+ *
+ * Multiple labels may belong to the same basic block. Such labels are
+ * linked into list.
+ */
+typedef struct _jit_label_info _jit_label_info_t;
+struct _jit_label_info
+{
+	/* Block the label assigned to */
+	jit_block_t		block;
+
+	/* Next label that might belong to the same block */
+	jit_label_t		alias;
+};
+
+/*
  * Information that is associated with a function for building
  * the instructions and values.  This structure can be discarded
  * once the function has been fully compiled.
@@ -344,8 +360,8 @@ struct _jit_builder
 	jit_label_t		next_label;
 
 	/* Mapping from label numbers to blocks */
-	jit_block_t		*label_blocks;
-	jit_label_t		max_label_blocks;
+	_jit_label_info_t	*label_info;
+	jit_label_t		max_label_info;
 
 	/* Exception handling definitions for the function */
 	jit_value_t		setjmp_value;
@@ -600,7 +616,12 @@ int _jit_block_compute_postorder(jit_function_t func);
 /*
  * Create a new block and associate it with a function.
  */
-jit_block_t _jit_block_create(jit_function_t func, jit_label_t *label);
+jit_block_t _jit_block_create(jit_function_t func);
+
+/*
+ * Destroy a block.
+ */
+void _jit_block_destroy(jit_block_t block);
 
 /*
  * Detach blocks from their current position in a function.
@@ -620,7 +641,7 @@ void _jit_block_attach_before(jit_block_t block, jit_block_t first, jit_block_t 
 /*
  * Record the label mapping for a block.
  */
-int _jit_block_record_label(jit_block_t block);
+int _jit_block_record_label(jit_block_t block, jit_label_t label);
 
 /*
  * Add an instruction to a block.

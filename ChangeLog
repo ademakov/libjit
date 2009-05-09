@@ -1,3 +1,16 @@
+2009-05-10  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-internal.h (struct _jit_label_info): add srtuct.
+	(struct _jit_builder): replace label_blocks with label_info.
+
+	* jit/jit-block.c (_jit_block_record_label):
+	* jit/jit-dump.c (jit_dump_function):
+	* jit/jit-insn.c (jit_insn_label): allow more than one label per
+	basic block.
+
+	* include/jit/jit-block.h:
+	* jit/jit-block.c (jit_block_get_next_label): add function.
+
 2009-05-09  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-internal.h, jit/jit-block.c, jit/jit-insn.c,
