@@ -24,10 +24,10 @@
 #include "jit-rules.h"
 #include <config.h>
 #ifdef HAVE_STDLIB_H
-	#include <stdlib.h>
+# include <stdlib.h>
 #endif
 #if defined(JIT_BACKEND_INTERP)
-	#include "jit-interp.h"
+# include "jit-interp.h"
 #endif
 #include <stdio.h>
 #include "jit-setjmp.h"
@@ -195,6 +195,15 @@ void jit_exception_throw(void *object)
  * @item JIT_RESULT_CALLED_NESTED
  * An attempt was made to call a nested function from a non-nested context
  * (value is -7).
+ *
+ * @vindex JIT_RESULT_OUT_OF_BOUNDS
+ * @item JIT_RESULT_OUT_OF_BOUNDS
+ * The operation resulted in an out of bounds array access (value is -8).
+ *
+ * @vindex JIT_RESULT_UNDEFINED_LABEL
+ * @item JIT_RESULT_UNDEFINED_LABEL
+ * A branch operation used a label that was not defined anywhere in the
+ * function (value is -9).
  * @end table
  * @end deftypefun
 @*/
@@ -212,7 +221,8 @@ void jit_exception_builtin(int exception_type)
 		"Null pointer dereferenced",
 		"Null function pointer called",
 		"Nested function called from non-nested context",
-		"Array index out of bounds"
+		"Array index out of bounds",
+		"Undefined label"
 	};
 	#define	num_messages	(sizeof(messages) / sizeof(const char *))
 

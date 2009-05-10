@@ -1,5 +1,9 @@
 2009-05-10  Aleksey Demakov  <ademakov@gmail.com>
 
+	* include/jit/jit-except.h (JIT_RESULT_UNDEFINED_LABEL):
+	* jit/jit-except.c (jit_exception_builtin): add new builtin
+	exception.
+
 	* jit/jit-internal.h (struct _jit_label_info): add srtuct.
 	(struct _jit_builder): replace label_blocks with label_info.
 
