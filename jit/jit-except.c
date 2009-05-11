@@ -211,7 +211,7 @@ void jit_exception_builtin(int exception_type)
 {
 	jit_exception_func handler;
 	void *object;
-	static const char * const messages[10] = {
+	static const char * const messages[11] = {
 		"Success",
 		"Overflow during checked arithmetic operation",
 		"Arithmetic exception (dividing the minimum integer by -1)",
