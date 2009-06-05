@@ -1,3 +1,8 @@
+2009-06-05  Aleksey Demakov  <ademakov@gmail.com>
+
+	* include/jit/jit-function.h: add optimization level constants
+	JIT_OPTLEVEL_NONE and JIT_OPTLEVEL_NORMAL,
+
 2009-05-10  Aleksey Demakov  <ademakov@gmail.com>
 
 	* include/jit/jit-except.h (JIT_RESULT_UNDEFINED_LABEL):

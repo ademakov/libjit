@@ -27,6 +27,10 @@
 extern	"C" {
 #endif
 
+/* Optimization levels */
+#define JIT_OPTLEVEL_NONE	0
+#define JIT_OPTLEVEL_NORMAL	1
+
 jit_function_t jit_function_create
 	(jit_context_t context, jit_type_t signature) JIT_NOTHROW;
 jit_function_t jit_function_create_nested
