@@ -37,7 +37,7 @@ typedef struct _jit_block_stack_entry
 } _jit_block_stack_entry_t;
 
 
-static int
+static void
 create_edge(jit_function_t func, jit_block_t src, jit_block_t dst, int flags, int create)
 {
 	_jit_edge_t edge;
@@ -49,7 +49,7 @@ create_edge(jit_function_t func, jit_block_t src, jit_block_t dst, int flags, in
 		edge = jit_memory_pool_alloc(&func->builder->edge_pool, struct _jit_edge);
 		if(!edge)
 		{
-			return 0;
+			jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 		}
 
 		/* Initialize edge fields */
@@ -65,11 +65,9 @@ create_edge(jit_function_t func, jit_block_t src, jit_block_t dst, int flags, in
 	/* Count it */
 	++(src->num_succs);
 	++(dst->num_preds);
-
-	return 1;
 }
 
-static int
+static void
 build_edges(jit_function_t func, int create)
 {
 	jit_block_t src, dst;
@@ -97,7 +95,7 @@ build_edges(jit_function_t func, int create)
 			if(!dst)
 			{
 				/* Bail out on undefined label */
-				return 0;
+				jit_exception_builtin(JIT_RESULT_UNDEFINED_LABEL);
 			}
 		}
 		else if(opcode > JIT_OP_BR && opcode <= JIT_OP_BR_NFGE_INV)
@@ -107,7 +105,7 @@ build_edges(jit_function_t func, int create)
 			if(!dst)
 			{
 				/* Bail out on undefined label */
-				return 0;
+				jit_exception_builtin(JIT_RESULT_UNDEFINED_LABEL);
 			}
 		}
 		else if(opcode == JIT_OP_THROW || opcode == JIT_OP_RETHROW)
@@ -126,7 +124,7 @@ build_edges(jit_function_t func, int create)
 			if(!dst)
 			{
 				/* Bail out on undefined label */
-				return 0;
+				jit_exception_builtin(JIT_RESULT_UNDEFINED_LABEL);
 			}
 		}
 		else if(opcode >= JIT_OP_CALL && opcode <= JIT_OP_CALL_EXTERNAL_TAIL)
@@ -148,12 +146,9 @@ build_edges(jit_function_t func, int create)
 				if(!dst)
 				{
 					/* Bail out on undefined label */
-					return 0;
+					jit_exception_builtin(JIT_RESULT_UNDEFINED_LABEL);
 				}
-				if(!create_edge(func, src, dst, _JIT_EDGE_BRANCH, create))
-				{
-					return 0;
-				}
+				create_edge(func, src, dst, _JIT_EDGE_BRANCH, create);
 			}
 			dst = 0;
 		}
@@ -165,25 +160,17 @@ build_edges(jit_function_t func, int create)
 		/* create a branch or exception edge if appropriate */
 		if(dst)
 		{
-			if(!create_edge(func, src, dst, flags, create))
-			{
-				return 0;
-			}
+			create_edge(func, src, dst, flags, create);
 		}
 		/* create a fall-through edge if appropriate */
 		if(!src->ends_in_dead)
 		{
-			if(!create_edge(func, src, src->next, _JIT_EDGE_FALLTHRU, create))
-			{
-				return 0;
-			}
+			create_edge(func, src, src->next, _JIT_EDGE_FALLTHRU, create);
 		}
 	}
-
-	return 1;
 }
 
-static int
+static void
 alloc_edges(jit_function_t func)
 {
 	jit_block_t block;
@@ -200,7 +187,7 @@ alloc_edges(jit_function_t func)
 			block->succs = jit_calloc(block->num_succs, sizeof(_jit_edge_t));
 			if(!block->succs)
 			{
-				return 0;
+				jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 			}
 			/* Reset edge count for the next build pass */
 			block->num_succs = 0;
@@ -216,14 +203,12 @@ alloc_edges(jit_function_t func)
 			block->preds = jit_calloc(block->num_preds, sizeof(_jit_edge_t));
 			if(!block->preds)
 			{
-				return 0;
+				jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 			}
 			/* Reset edge count for the next build pass */
 			block->num_preds = 0;
 		}
 	}
-
-	return 1;
 }
 
 static void
@@ -351,7 +336,7 @@ merge_labels(jit_function_t func, jit_block_t block, jit_label_t label)
 }
 
 /* Merge empty block with its successor */
-static int
+static void
 merge_empty(jit_function_t func, jit_block_t block, int *changed)
 {
 	_jit_edge_t succ_edge, pred_edge, fallthru_edge;
@@ -379,7 +364,7 @@ merge_empty(jit_function_t func, jit_block_t block, int *changed)
 			*changed = 1;
 			if(!attach_edge_dst(pred_edge, succ_block))
 			{
-				return 0;
+				jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 			}
 		}
 	}
@@ -394,7 +379,7 @@ merge_empty(jit_function_t func, jit_block_t block, int *changed)
 			*changed = 1;
 			if(!attach_edge_dst(pred_edge, succ_block))
 			{
-				return 0;
+				jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 			}
 			fallthru_edge = 0;
 		}
@@ -414,8 +399,6 @@ merge_empty(jit_function_t func, jit_block_t block, int *changed)
 		_jit_block_detach(block, block);
 		delete_block(block);
 	}
-
-	return 1;
 }
 
 /* Delete block along with references to it */
@@ -571,28 +554,20 @@ _jit_block_free(jit_function_t func)
 	func->builder->exit_block = 0;
 }
 
-int 
+void
 _jit_block_build_cfg(jit_function_t func)
 {
 	/* Count the edges */
-	if(!build_edges(func, 0))
-	{
-		return 0;
-	}
+	build_edges(func, 0);
+
 	/* Allocate memory for edges */
-	if(!alloc_edges(func))
-	{
-		return 0;
-	}
+	alloc_edges(func);
+
 	/* Actually build the edges */
-	if(!build_edges(func, 1))
-	{
-		return 0;
-	}
-	return 1;
+	build_edges(func, 1);
 }
 
-int
+void
 _jit_block_clean_cfg(jit_function_t func)
 {
 	int index, changed;
@@ -612,7 +587,7 @@ _jit_block_clean_cfg(jit_function_t func)
 
 	if(!_jit_block_compute_postorder(func))
 	{
-		return 0;
+		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 	}
 	eliminate_unreachable(func);
 
@@ -671,10 +646,7 @@ _jit_block_clean_cfg(jit_function_t func)
 			if(is_empty_block(block))
 			{
 				/* Remove empty block */
-				if(!merge_empty(func, block, &changed))
-				{
-					return 0;
-				}
+				merge_empty(func, block, &changed);
 			}
 		}
 
@@ -685,13 +657,11 @@ _jit_block_clean_cfg(jit_function_t func)
 	{
 		if(!_jit_block_compute_postorder(func))
 		{
-			return 0;
+			jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 		}
 		clear_visited(func);
 		goto loop;
 	}
-
-	return 1;
 }
 
 int

@@ -21,14 +21,10 @@
  */
 
 #include "jit-internal.h"
-#include "jit-memory.h"
-#include "jit-rules.h"
-#include "jit-reg-alloc.h"
 #include "jit-apply-func.h"
+#include "jit-cache.h"
+#include "jit-rules.h"
 #include "jit-setjmp.h"
-#ifdef _JIT_COMPILE_DEBUG
-#include <stdio.h>
-#endif
 
 /*@
  * @deftypefun jit_function_t jit_function_create (jit_context_t @var{context}, jit_type_t @var{signature})
@@ -105,6 +101,7 @@ jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
 	/* Initialize the function block */
 	func->context = context;
 	func->signature = jit_type_copy(signature);
+	func->optimization_level = JIT_OPTLEVEL_NORMAL;
 
 #if !defined(JIT_BACKEND_INTERP) && defined(jit_redirector_size)
 	/* If we aren't using interpretation, then point the function's
@@ -234,6 +231,7 @@ void _jit_function_free_builder(jit_function_t func)
 		jit_free(func->builder->label_info);
 		jit_free(func->builder);
 		func->builder = 0;
+		func->is_optimized = 0;
 	}
 }
 
@@ -495,433 +493,6 @@ jit_function_t jit_function_get_nested_parent(jit_function_t func)
 }
 
 /*
- * Compile a single basic block within a function.
- */
-static void
-compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
-{
-	jit_insn_iter_t iter;
-	jit_insn_t insn;
-
-#ifdef _JIT_COMPILE_DEBUG
-	printf("Block #%d: %d\n", func->builder->block_count++, block->label);
-#endif
-
-	/* Iterate over all blocks in the function */
-	jit_insn_iter_init(&iter, block);
-	while((insn = jit_insn_iter_next(&iter)) != 0)
-	{
-#ifdef _JIT_COMPILE_DEBUG
-		unsigned char *p1, *p2;
-		p1 = gen->posn.ptr;
-		printf("Insn: %5d, Opcode: 0x%04x\n", func->builder->insn_count++, insn->opcode);
-		printf("Start of binary code: 0x%08x\n", p1);
-#endif
-
-		switch(insn->opcode)
-		{
-		case JIT_OP_NOP:
-			/* Ignore NOP's */
-			break;
-
-		case JIT_OP_CHECK_NULL:
-			/* Determine if we can optimize the null check away */
-			if(!_jit_insn_check_is_redundant(&iter))
-			{
-				_jit_gen_insn(gen, func, block, insn);
-			}
-			break;
-
-		case JIT_OP_CALL:
-		case JIT_OP_CALL_TAIL:
-		case JIT_OP_CALL_INDIRECT:
-		case JIT_OP_CALL_INDIRECT_TAIL:
-		case JIT_OP_CALL_VTABLE_PTR:
-		case JIT_OP_CALL_VTABLE_PTR_TAIL:
-		case JIT_OP_CALL_EXTERNAL:
-		case JIT_OP_CALL_EXTERNAL_TAIL:
-			/* Spill all caller-saved registers before a call */
-			_jit_regs_spill_all(gen);
-			_jit_gen_insn(gen, func, block, insn);
-			break;
-
-#ifndef JIT_BACKEND_INTERP
-		case JIT_OP_INCOMING_REG:
-			/* Assign a register to an incoming value */
-			_jit_regs_set_incoming(gen,
-					       (int)jit_value_get_nint_constant(insn->value2),
-					       insn->value1);
-			_jit_gen_insn(gen, func, block, insn);
-			break;
-#endif
-
-		case JIT_OP_INCOMING_FRAME_POSN:
-			/* Set the frame position for an incoming value */
-			insn->value1->frame_offset = jit_value_get_nint_constant(insn->value2);
-			insn->value1->in_register = 0;
-			insn->value1->has_frame_offset = 1;
-			if(insn->value1->has_global_register)
-			{
-				insn->value1->in_global_register = 1;
-				_jit_gen_load_global(gen, insn->value1->global_reg, insn->value1);
-			}
-			else
-			{
-				insn->value1->in_frame = 1;
-			}
-			break;
-
-#ifndef JIT_BACKEND_INTERP
-		case JIT_OP_OUTGOING_REG:
-			/* Copy a value into an outgoing register */
-			_jit_regs_set_outgoing(gen,
-					       (int)jit_value_get_nint_constant(insn->value2),
-					       insn->value1);
-			break;
-#endif
-
-		case JIT_OP_OUTGOING_FRAME_POSN:
-			/* Set the frame position for an outgoing value */
-			insn->value1->frame_offset = jit_value_get_nint_constant(insn->value2);
-			insn->value1->in_register = 0;
-			insn->value1->in_global_register = 0;
-			insn->value1->in_frame = 0;
-			insn->value1->has_frame_offset = 1;
-			insn->value1->has_global_register = 0;
-			break;
-
-#ifndef JIT_BACKEND_INTERP
-		case JIT_OP_RETURN_REG:
-			/* Assign a register to a return value */
-			_jit_regs_set_incoming(gen,
-					       (int)jit_value_get_nint_constant(insn->value2),
-					       insn->value1);
-			_jit_gen_insn(gen, func, block, insn);
-			break;
-#endif
-
-		case JIT_OP_MARK_OFFSET:
-			/* Mark the current code position as corresponding
-			   to a particular bytecode offset */
-			_jit_cache_mark_bytecode(&gen->posn,
-						 (unsigned long)(long)
-						 jit_value_get_nint_constant(insn->value1));
-			break;
-
-		default:
-			/* Generate code for the instruction with the back end */
-			_jit_gen_insn(gen, func, block, insn);
-			break;
-		}
-
-#ifdef _JIT_COMPILE_DEBUG
-		p2 = gen->posn.ptr;
-		printf("Length of binary code: %d\n\n", p2 - p1);
-		fflush(stdout);
-#endif
-	}
-}
-
-/*
- * Reset value on restart.
- */
-static void
-reset_value(jit_value_t value)
-{
-	value->reg = -1;
-	value->in_register = 0;
-	value->in_global_register = 0;
-	value->in_frame = 0;
-}
-
-/*
- * Clean up the compilation state on restart.
- */
-static void
-cleanup_on_restart(jit_gencode_t gen, jit_function_t func)
-{
-	jit_block_t block;
-	jit_insn_iter_t iter;
-	jit_insn_t insn;
-
-	block = 0;
-	while((block = jit_block_next(func, block)) != 0)
-	{
-		/* Clear the block addresses and fixup lists */
-		block->address = 0;
-		block->fixup_list = 0;
-		block->fixup_absolute_list = 0;
-
-		/* Reset values referred to by block instructions */
-		jit_insn_iter_init(&iter, block);
-		while((insn = jit_insn_iter_next(&iter)) != 0)
-		{
-			if(insn->dest && (insn->flags & JIT_INSN_DEST_OTHER_FLAGS) == 0)
-			{
-				reset_value(insn->dest);
-			}
-			if(insn->value1 && (insn->flags & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
-			{
-				reset_value(insn->value1);
-			}
-			if(insn->value2 && (insn->flags & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
-			{
-				reset_value(insn->value2);
-			}
-		}
-	}
-
-	/* Reset values referred to by builder */
-	if(func->builder->setjmp_value)
-	{
-		reset_value(func->builder->setjmp_value);
-	}
-	if(func->builder->parent_frame)
-	{
-		reset_value(func->builder->parent_frame);
-	}
-
-	/* Reset the "touched" registers mask. The first time compilation
-	   might have followed wrong code paths and thus allocated wrong
-	   registers. */
-	if(func->builder->has_tail_call)
-	{
-		/* For functions with tail calls _jit_regs_alloc_global()
-		   does not allocate any global registers. The "permanent"
-		   mask has all global registers set to prevent their use. */
-		gen->touched = jit_regused_init;
-	}
-	else
-	{
-		gen->touched = gen->permanent;
-	}
-
-	/* Reset the epilog fixup list */
-	gen->epilog_fixup = 0;
-}
-
-/*
- * Compile a function and return its entry point.
- */
-static int
-compile(jit_function_t func, void **entry_point)
-{
-	struct jit_gencode gen;
-	jit_cache_t cache;
-	unsigned char *start;
-	unsigned char *end;
-	jit_block_t block;
-	int page_factor;
-	int result;
-
-	/* Initialize the code generation state */
-	jit_memzero(&gen, sizeof(gen));
-	page_factor = 0;
-	start = 0;
-	end = 0;
-
-	/* Intuit "nothrow" and "noreturn" flags for this function */
-	if(!(func->builder->may_throw))
-	{
-		func->no_throw = 1;
-	}
-	if(!(func->builder->ordinary_return))
-	{
-		func->no_return = 1;
-	}
-
-	/* Build control flow graph */
-	if(!_jit_block_build_cfg(func))
-	{
-		return 0;
-	}
-
-	/* Eliminate useless control flow */
-	if(!_jit_block_clean_cfg(func))
-	{
-		return 0;
-	}
-
-	/* Compute liveness and "next use" information for this function */
-	_jit_function_compute_liveness(func);
-
-	/* Allocate global registers to variables within the function */
-#ifndef JIT_BACKEND_INTERP
-	_jit_regs_alloc_global(&gen, func);
-#endif
-
-	/* We need the cache lock while we are compiling the function */
-	jit_mutex_lock(&(func->context->cache_lock));
-
-#ifdef _JIT_COMPILE_DEBUG
-	printf("\n*** Start compilation ***\n\n");
-	func->builder->block_count = 0;
-	func->builder->insn_count = 0;
-#endif
-
-	/* Get the method cache */
-	cache = _jit_context_get_cache(func->context);
-	if(!cache)
-	{
-		jit_mutex_unlock(&(func->context->cache_lock));
-		return 0;
-	}
-
-	/* Start function output to the cache */
-	result = _jit_cache_start_method(cache, &(gen.posn),
-					 page_factor++,
-					 JIT_FUNCTION_ALIGNMENT, func);
-	if (result == JIT_CACHE_RESTART)
-	{
-		/* No space left on the current cache page.  Allocate a new one. */
-		result = _jit_cache_start_method(cache, &(gen.posn),
-						 page_factor++,
-						 JIT_FUNCTION_ALIGNMENT, func);
-	}
-	if (result != JIT_CACHE_OK)
-	{
-		/* Failed to allocate any cache space */
-		jit_mutex_unlock(&(func->context->cache_lock));
-		return 0;
-	}
-
-	for(;;)
-	{
-		start = gen.posn.ptr;
-
-#ifdef jit_extra_gen_init
-		/* Initialize information that may need to be reset each loop */
-		jit_extra_gen_init(&gen);
-#endif
-
-#ifdef JIT_PROLOG_SIZE
-		/* Output space for the function prolog */
-		if(!jit_cache_check_for_n(&(gen.posn), JIT_PROLOG_SIZE))
-		{
-			/* No space left on the current cache page.  Restart. */
-			jit_cache_mark_full(&(gen.posn));
-			goto restart;
-		}
-		gen.posn.ptr += JIT_PROLOG_SIZE;
-#endif
-
-		/* Generate code for the blocks in the function */
-		block = 0;
-		while((block = jit_block_next(func, block)) != 0)
-		{
-			/* Notify the back end that the block is starting */
-			_jit_gen_start_block(&gen, block);
-
-#ifndef JIT_BACKEND_INTERP
-			/* Clear the local register assignments */
-			_jit_regs_init_for_block(&gen);
-#endif
-
-			/* Generate the block's code */
-			compile_block(&gen, func, block);
-
-#ifndef JIT_BACKEND_INTERP
-			/* Spill all live register values back to their frame positions */
-			_jit_regs_spill_all(&gen);
-#endif
-
-			/* Notify the back end that the block is finished */
-			_jit_gen_end_block(&gen, block);
-
-			/* Stop code generation if the cache page is full */
-			if(_jit_cache_is_full(cache, &(gen.posn)))
-			{
-				/* No space left on the current cache page.  Restart. */
-				goto restart;
-			}
-		}
-
-		/* Output the function epilog.  All return paths will jump to here */
-		_jit_gen_epilog(&gen, func);
-		end = gen.posn.ptr;
-
-#ifdef JIT_PROLOG_SIZE
-		/* Back-patch the function prolog and get the real entry point */
-		start = _jit_gen_prolog(&gen, func, start);
-#endif
-
-#if !defined(JIT_BACKEND_INTERP) && (!defined(jit_redirector_size) || !defined(jit_indirector_size))
-		/* If the function is recompilable, then we need an extra entry
-		   point to properly redirect previous references to the function */
-		if(func->is_recompilable && !func->indirector)
-		{
-			/* TODO: use _jit_create_indirector() instead of
-			   _jit_gen_redirector() as both do the same. */
-			func->indirector = _jit_gen_redirector(&gen, func);
-		}
-#endif
-
-	restart:
-		/* End the function's output process */
-		result = _jit_cache_end_method(&(gen.posn));
-		if(result != JIT_CACHE_RESTART)
-		{
-			break;
-		}
-
-		/* Clean up the compilation state before restart */
-		cleanup_on_restart(&gen, func);
-
-#ifdef _JIT_COMPILE_DEBUG
-		printf("\n*** Restart compilation ***\n\n");
-		func->builder->block_count = 0;
-		func->builder->insn_count = 0;
-#endif
-
-		/* Restart function output to the cache */
-		result = _jit_cache_start_method(cache, &(gen.posn),
-						 page_factor,
-						 JIT_FUNCTION_ALIGNMENT, func);
-		if(result != JIT_CACHE_OK)
-		{
-#ifdef jit_extra_gen_cleanup
-			/* Clean up the extra code generation state */
-			jit_extra_gen_cleanup(gen);
-#endif
-			jit_mutex_unlock(&(func->context->cache_lock));
-			return 0;
-		}
-		page_factor *= 2;
-	}
-
-#ifdef jit_extra_gen_cleanup
-	/* Clean up the extra code generation state */
-	jit_extra_gen_cleanup(gen);
-#endif
-
-	/* Bail out if we ran out of memory while translating the function */
-	if(result != JIT_CACHE_OK)
-	{
-		jit_mutex_unlock(&(func->context->cache_lock));
-		return 0;
-	}
-
-#ifndef JIT_BACKEND_INTERP
-	/* Perform a CPU cache flush, to make the code executable */
-	jit_flush_exec(start, (unsigned int)(end - start));
-#endif
-
-	/* The function has been compiled successfully */
-	jit_mutex_unlock(&(func->context->cache_lock));
-
-	/* Free the builder structure, which we no longer require */
-	_jit_function_free_builder(func);
-
-	/* Record the entry point */
-	if(entry_point)
-	{
-		*entry_point = start;
-	}
-
-	return 1;
-}
-
-/*
  * Information that is stored for an exception region in the cache.
  */
 typedef struct jit_cache_eh *jit_cache_eh_t;
@@ -931,122 +502,6 @@ struct jit_cache_eh
 	unsigned char  *handler;
 	jit_cache_eh_t	previous;
 };
-
-/*@
- * @deftypefun int jit_function_compile (jit_function_t @var{func})
- * Compile a function to its executable form.  If the function was
- * already compiled, then do nothing.  Returns zero on error.
- *
- * If an error occurs, you can use @code{jit_function_abandon} to
- * completely destroy the function.  Once the function has been compiled
- * successfully, it can no longer be abandoned.
- *
- * Sometimes you may wish to recompile a function, to apply greater
- * levels of optimization the second time around.  You must call
- * @code{jit_function_set_recompilable} before you compile the function
- * the first time.  On the second time around, build the function's
- * instructions again, and call @code{jit_function_compile}
- * a second time.
- * @end deftypefun
-@*/
-int
-jit_function_compile(jit_function_t func)
-{
-	int result;
-	void *entry_point;
-
-	/* Bail out if we have nothing to do */
-	if(!func)
-	{
-		return 0;
-	}
-	if(func->is_compiled && !(func->builder))
-	{
-		/* The function is already compiled, and we don't need to recompile */
-		return 1;
-	}
-	if(!(func->builder))
-	{
-		/* We don't have anything to compile at all */
-		return 0;
-	}
-
-	/* Compile and record the entry point. */
-	result = compile(func, &entry_point);
-	if(result)
-	{
-		func->entry_point = entry_point;
-		func->is_compiled = 1;
-	}
-
-	return result;
-}
-
-/*@
- * @deftypefun int jit_function_compile_entry (jit_function_t @var{func}, void **@var{entry_point})
- * Compile a function to its executable form but do not make it
- * available for invocation yet.  It may be made available later
- * with @code{jit_function_setup_entry}.
- * @end deftypefun
-@*/
-int
-jit_function_compile_entry(jit_function_t func, void **entry_point)
-{
-	/* Init entry_point */
-	if(entry_point)
-	{
-		*entry_point = 0;
-	}
-	else
-	{
-		return 0;
-	}
-
-	/* Bail out if we have nothing to do */
-	if(!func)
-	{
-		return 0;
-	}
-	if(func->is_compiled && !(func->builder))
-	{
-		/* The function is already compiled, and we don't need to recompile */
-		*entry_point = func->entry_point;
-		return 1;
-	}
-	if(!(func->builder))
-	{
-		/* We don't have anything to compile at all */
-		return 0;
-	}
-
-	/* Compile and return the entry point. */
-	return compile(func, entry_point);
-}
-
-/*@
- * @deftypefun int jit_function_setup_entry (jit_function_t @var{func}, void *@var{entry_point})
- * Make a function compiled with @code{jit_function_compile_entry}
- * available for invocation and free the resources used for
- * compilation.  If @var{entry_point} is null then it only
- * frees the resources.
- * @end deftypefun
-@*/
-void
-jit_function_setup_entry(jit_function_t func, void *entry_point)
-{
-	/* Bail out if we have nothing to do */
-	if(!func)
-	{
-		return;
-	}
-	/* Record the entry point */
-	if(entry_point)
-	{
-		func->entry_point = entry_point;
-		func->is_compiled = 1;
-	}
-	_jit_function_free_builder(func);
-}
 
 /*@
  * @deftypefun int jit_function_is_compiled (jit_function_t @var{func})
@@ -1369,62 +824,6 @@ jit_function_get_on_demand_compiler(jit_function_t func)
 	return 0;
 }
 
-void *_jit_function_compile_on_demand(jit_function_t func)
-{
-	void *entry = 0;
-	int result = JIT_RESULT_OK;
-
-	/* Lock down the context */
-	jit_context_build_start(func->context);
-
-	/* If we are already compiled, then bail out */
-	if(func->is_compiled)
-	{
-		entry = func->entry_point;
-		jit_context_build_end(func->context);
-		return entry;
-	}
-
-	/* Call the user's on-demand compiler.  Bail out with an error
-	   if the user didn't supply an on-demand compiler */
-	if(func->on_demand)
-	{
-		result = (*(func->on_demand))(func);
-		if(result == JIT_RESULT_OK)
-		{
-			/* Compile the function if the user didn't do so */
-			if(!(func->is_compiled))
-			{
-				if(jit_function_compile(func))
-				{
-					entry = func->entry_point;
-				}
-				else
-				{
-					result = JIT_RESULT_OUT_OF_MEMORY;
-				}
-			}
-			else
-			{
-				entry = func->entry_point;
-			}
-		}
-		_jit_function_free_builder(func);
-	}
-	else
-	{
-		result = JIT_RESULT_COMPILE_ERROR;
-	}
-
-	/* Unlock the context and report the result */
-	jit_context_build_end(func->context);
-	if(result != JIT_RESULT_OK)
-	{
-		jit_exception_builtin(result);
-	}
-	return entry;
-}
-
 /*@
  * @deftypefun int jit_function_apply (jit_function_t @var{func}, void **@var{args}, void *@var{return_area})
  * Call the function @var{func} with the supplied arguments.  Each element
@@ -1547,8 +946,8 @@ int jit_function_apply_vararg
  * reached the maximum optimization level.
  * @end deftypefun
 @*/
-void jit_function_set_optimization_level
-	(jit_function_t func, unsigned int level)
+void
+jit_function_set_optimization_level(jit_function_t func, unsigned int level)
 {
 	unsigned int max_level = jit_function_get_max_optimization_level();
 	if(level > max_level)
@@ -1557,7 +956,7 @@ void jit_function_set_optimization_level
 	}
 	if(func)
 	{
-		func->optimization_level = (int)level;
+		func->optimization_level = level;
 	}
 }
 
@@ -1566,15 +965,16 @@ void jit_function_set_optimization_level
  * Get the current optimization level for @var{func}.
  * @end deftypefun
 @*/
-unsigned int jit_function_get_optimization_level(jit_function_t func)
+unsigned int
+jit_function_get_optimization_level(jit_function_t func)
 {
 	if(func)
 	{
-		return (unsigned int)(func->optimization_level);
+		return func->optimization_level;
 	}
 	else
 	{
-		return 0;
+		return JIT_OPTLEVEL_NONE;
 	}
 }
 
@@ -1583,10 +983,10 @@ unsigned int jit_function_get_optimization_level(jit_function_t func)
  * Get the maximum optimization level that is supported by @code{libjit}.
  * @end deftypefun
 @*/
-unsigned int jit_function_get_max_optimization_level(void)
+unsigned int
+jit_function_get_max_optimization_level(void)
 {
-	/* TODO - implement more than basic optimization */
-	return 0;
+	return JIT_OPTLEVEL_NORMAL;
 }
 
 /*@

@@ -441,6 +441,7 @@ struct _jit_function
 
 	/* Flag bits for this function */
 	unsigned		is_recompilable : 1;
+	unsigned		is_optimized : 1;
 	unsigned		no_throw : 1;
 	unsigned		no_return : 1;
 	unsigned		has_try : 1;
@@ -601,12 +602,12 @@ void _jit_block_free(jit_function_t func);
  * Build control flow graph edges for all blocks associated with a
  * function.
  */
-int _jit_block_build_cfg(jit_function_t func);
+void _jit_block_build_cfg(jit_function_t func);
 
 /*
  * Eliminate useless control flow between blocks in a function.
  */
-int _jit_block_clean_cfg(jit_function_t func);
+void _jit_block_clean_cfg(jit_function_t func);
 
 /*
  * Compute block postorder for control flow graph depth first traversal.

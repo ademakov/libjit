@@ -1,7 +1,28 @@
 2009-06-05  Aleksey Demakov  <ademakov@gmail.com>
 
+	* jit/jit-compile.c (jit_function_compile) 
+	(jit_function_compile_entry, jit_function_setup_entry) 
+	(_jit_function_compile_on_demand): new file, move all compile
+	functions here from jit-function.c.
+
+	* jit/jit-compile.c (jit_compile, jit_compile_entry): add new
+	functions that do exactly the same as jit_function_compile and
+	jit_function_compile_entry but return JIT_RESULT_ error code.
+
+	* jit/jit-compile.c (jit_optimize): add function to optimize IR.
+
 	* include/jit/jit-function.h: add optimization level constants
-	JIT_OPTLEVEL_NONE and JIT_OPTLEVEL_NORMAL,
+	JIT_OPTLEVEL_NONE and JIT_OPTLEVEL_NORMAL.
+	* jit/jit-function.c (jit_function_create) set JIT_OPTLEVEL_NORMAL
+	optimization level by default.
+	* jit/jit-function.c (jit_function_get_max_optimization_level):
+	return JIT_OPTLEVEL_NORMAL.
+	* jit/jit-internal.h (struct _jit_function): add is_optimized field
+	to _jit_function struct.
+
+	* jit/jit-compile.c (compile): catch internal exceptions.
+	* jit/jit-block.c: use internal exceptions instead of return codes
+	for CFG error handling.
 
 2009-05-10  Aleksey Demakov  <ademakov@gmail.com>
 
