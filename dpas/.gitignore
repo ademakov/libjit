@@ -8,3 +8,5 @@ dpas-scanner.c
 dpas
 *.lo
 *.la
+*.o
+*.a

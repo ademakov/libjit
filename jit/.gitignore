@@ -8,3 +8,5 @@ jit-interp-labels.h
 *.slc
 *.lo
 *.la
+*.o
+*.a
