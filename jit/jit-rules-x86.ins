@@ -1249,6 +1249,12 @@ JIT_OP_BR_IGE_UN: branch
 		inst = output_branch(func, inst, 0x73 /* ge_un */, insn);
 	}
 
+JIT_OP_BR_LTRUE: branch
+	[lreg] -> {
+		x86_alu_reg_reg(inst, X86_OR, $1, %1);
+		inst = output_branch(func, inst, 0x75 /* ne */, insn);
+	}
+
 /*
  * Comparison opcodes.
  */
