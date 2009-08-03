@@ -604,11 +604,16 @@ _jit_block_clean_cfg(jit_function_t func)
 		}
 		if(block->succs[0]->flags == _JIT_EDGE_BRANCH)
 		{
+			insn = _jit_block_get_last(block);
+			if(insn->opcode == JIT_OP_JUMP_TABLE)
+			{
+				/* skip jump tables, handle only branches */
+				continue;
+			}
 			if(block->succs[0]->dst == block->next)
 			{
 				/* Replace useless branch with NOP */
 				changed = 1;
-				insn = _jit_block_get_last(block);
 				insn->opcode = JIT_OP_NOP;
 				if(block->num_succs == 1)
 				{
@@ -633,7 +638,6 @@ _jit_block_clean_cfg(jit_function_t func)
 				   remove the fallthough edge while leaving the branch
 				   edge */
 				changed = 1;
-				insn = _jit_block_get_last(block);
 				insn->opcode = JIT_OP_BR;
 				block->ends_in_dead = 1;
 				delete_edge(func, block->succs[1]);
