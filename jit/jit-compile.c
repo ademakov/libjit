@@ -679,19 +679,6 @@ jit_compile_entry(jit_function_t func, void **entry_point)
 		}
 	}
 
-
-	if(func->is_compiled && !func->builder)
-	{
-		/* The function is already compiled, and we don't need to recompile */
-		*entry_point = func->entry_point;
-		return 1;
-	}
-	if(!func->builder)
-	{
-		/* We don't have anything to compile at all */
-		return 0;
-	}
-
 	/* Compile and return the entry point. */
 	return compile(func, entry_point);
 }
