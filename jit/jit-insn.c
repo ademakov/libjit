@@ -3549,18 +3549,12 @@ int jit_insn_branch(jit_function_t func, jit_label_t *label)
  * @deftypefun int jit_insn_branch_if (jit_function_t @var{func}, jit_value_t @var{value}, jit_label_t *@var{label})
  * Terminate the current block by branching to a specific label if
  * the specified value is non-zero.  Returns zero if out of memory.
- *
- * If @var{value} refers to a conditional expression that was created
- * by @code{jit_insn_eq}, @code{jit_insn_ne}, etc, then the conditional
- * expression will be replaced by an appropriate conditional branch
- * instruction.
  * @end deftypefun
 @*/
 int jit_insn_branch_if
 		(jit_function_t func, jit_value_t value, jit_label_t *label)
 {
 	jit_insn_t insn;
-	jit_block_t block;
 	jit_type_t type;
 	int opcode;
 	jit_value_t value2;
@@ -3600,80 +3594,6 @@ int jit_insn_branch_if
 		else
 		{
 			return 1;
-		}
-	}
-
-	/* Determine if we can replace a previous comparison instruction */
-	block = func->builder->current_block;
-	insn = _jit_block_get_last(block);
-	if(value->is_temporary && insn && insn->dest == value)
-	{
-		opcode = insn->opcode;
-		if(opcode >= JIT_OP_IEQ && opcode <= JIT_OP_NFGE_INV)
-		{
-			switch(opcode)
-			{
-				case JIT_OP_IEQ:		opcode = JIT_OP_BR_IEQ;      break;
-				case JIT_OP_INE:		opcode = JIT_OP_BR_INE;      break;
-				case JIT_OP_ILT:		opcode = JIT_OP_BR_ILT;      break;
-				case JIT_OP_ILT_UN:		opcode = JIT_OP_BR_ILT_UN;   break;
-				case JIT_OP_ILE:		opcode = JIT_OP_BR_ILE;      break;
-				case JIT_OP_ILE_UN:		opcode = JIT_OP_BR_ILE_UN;   break;
-				case JIT_OP_IGT:		opcode = JIT_OP_BR_IGT;      break;
-				case JIT_OP_IGT_UN:		opcode = JIT_OP_BR_IGT_UN;   break;
-				case JIT_OP_IGE:		opcode = JIT_OP_BR_IGE;      break;
-				case JIT_OP_IGE_UN:		opcode = JIT_OP_BR_IGE_UN;   break;
-				case JIT_OP_LEQ:		opcode = JIT_OP_BR_LEQ;      break;
-				case JIT_OP_LNE:		opcode = JIT_OP_BR_LNE;      break;
-				case JIT_OP_LLT:		opcode = JIT_OP_BR_LLT;      break;
-				case JIT_OP_LLT_UN:		opcode = JIT_OP_BR_LLT_UN;   break;
-				case JIT_OP_LLE:		opcode = JIT_OP_BR_LLE;      break;
-				case JIT_OP_LLE_UN:		opcode = JIT_OP_BR_LLE_UN;   break;
-				case JIT_OP_LGT:		opcode = JIT_OP_BR_LGT;      break;
-				case JIT_OP_LGT_UN:		opcode = JIT_OP_BR_LGT_UN;   break;
-				case JIT_OP_LGE:		opcode = JIT_OP_BR_LGE;      break;
-				case JIT_OP_LGE_UN:		opcode = JIT_OP_BR_LGE_UN;   break;
-				case JIT_OP_FEQ:		opcode = JIT_OP_BR_FEQ;      break;
-				case JIT_OP_FNE:		opcode = JIT_OP_BR_FNE;      break;
-				case JIT_OP_FLT:		opcode = JIT_OP_BR_FLT;      break;
-				case JIT_OP_FLE:		opcode = JIT_OP_BR_FLE;      break;
-				case JIT_OP_FGT:		opcode = JIT_OP_BR_FGT;      break;
-				case JIT_OP_FGE:		opcode = JIT_OP_BR_FGE;      break;
-				case JIT_OP_FEQ_INV:	opcode = JIT_OP_BR_FEQ_INV;  break;
-				case JIT_OP_FNE_INV:	opcode = JIT_OP_BR_FNE_INV;  break;
-				case JIT_OP_FLT_INV:	opcode = JIT_OP_BR_FLT_INV;  break;
-				case JIT_OP_FLE_INV:	opcode = JIT_OP_BR_FLE_INV;  break;
-				case JIT_OP_FGT_INV:	opcode = JIT_OP_BR_FGT_INV;  break;
-				case JIT_OP_FGE_INV:	opcode = JIT_OP_BR_FGE_INV;  break;
-				case JIT_OP_DEQ:		opcode = JIT_OP_BR_DEQ;      break;
-				case JIT_OP_DNE:		opcode = JIT_OP_BR_DNE;      break;
-				case JIT_OP_DLT:		opcode = JIT_OP_BR_DLT;      break;
-				case JIT_OP_DLE:		opcode = JIT_OP_BR_DLE;      break;
-				case JIT_OP_DGT:		opcode = JIT_OP_BR_DGT;      break;
-				case JIT_OP_DGE:		opcode = JIT_OP_BR_DGE;      break;
-				case JIT_OP_DEQ_INV:	opcode = JIT_OP_BR_DEQ_INV;  break;
-				case JIT_OP_DNE_INV:	opcode = JIT_OP_BR_DNE_INV;  break;
-				case JIT_OP_DLT_INV:	opcode = JIT_OP_BR_DLT_INV;  break;
-				case JIT_OP_DLE_INV:	opcode = JIT_OP_BR_DLE_INV;  break;
-				case JIT_OP_DGT_INV:	opcode = JIT_OP_BR_DGT_INV;  break;
-				case JIT_OP_DGE_INV:	opcode = JIT_OP_BR_DGE_INV;  break;
-				case JIT_OP_NFEQ:		opcode = JIT_OP_BR_NFEQ;     break;
-				case JIT_OP_NFNE:		opcode = JIT_OP_BR_NFNE;     break;
-				case JIT_OP_NFLT:		opcode = JIT_OP_BR_NFLT;     break;
-				case JIT_OP_NFLE:		opcode = JIT_OP_BR_NFLE;     break;
-				case JIT_OP_NFGT:		opcode = JIT_OP_BR_NFGT;     break;
-				case JIT_OP_NFGE:		opcode = JIT_OP_BR_NFGE;     break;
-				case JIT_OP_NFEQ_INV:	opcode = JIT_OP_BR_NFEQ_INV; break;
-				case JIT_OP_NFNE_INV:	opcode = JIT_OP_BR_NFNE_INV; break;
-				case JIT_OP_NFLT_INV:	opcode = JIT_OP_BR_NFLT_INV; break;
-				case JIT_OP_NFLE_INV:	opcode = JIT_OP_BR_NFLE_INV; break;
-				case JIT_OP_NFGT_INV:	opcode = JIT_OP_BR_NFGT_INV; break;
-				case JIT_OP_NFGE_INV:	opcode = JIT_OP_BR_NFGE_INV; break;
-			}
-			insn->opcode = (short)opcode;
-			insn->flags = JIT_INSN_DEST_IS_LABEL;
-			insn->dest = (jit_value_t)(*label);
-			goto add_block;
 		}
 	}
 
@@ -3740,7 +3660,6 @@ int jit_insn_branch_if
 	insn->value1 = value;
 	insn->value2 = value2;
 
-add_block:
 	/* Add a new block for the fall-through case */
 	return jit_insn_new_block(func);
 }
@@ -3749,18 +3668,12 @@ add_block:
  * @deftypefun int jit_insn_branch_if_not (jit_function_t @var{func}, jit_value_t @var{value}, jit_label_t *@var{label})
  * Terminate the current block by branching to a specific label if
  * the specified value is zero.  Returns zero if out of memory.
- *
- * If @var{value} refers to a conditional expression that was created
- * by @code{jit_insn_eq}, @code{jit_insn_ne}, etc, then the conditional
- * expression will be replaced by an appropriate conditional branch
- * instruction.
  * @end deftypefun
 @*/
 int jit_insn_branch_if_not
 		(jit_function_t func, jit_value_t value, jit_label_t *label)
 {
 	jit_insn_t insn;
-	jit_block_t block;
 	jit_type_t type;
 	int opcode;
 	jit_value_t value2;
@@ -3800,80 +3713,6 @@ int jit_insn_branch_if_not
 		else
 		{
 			return 1;
-		}
-	}
-
-	/* Determine if we can replace a previous comparison instruction */
-	block = func->builder->current_block;
-	insn = _jit_block_get_last(block);
-	if(value->is_temporary && insn && insn->dest == value)
-	{
-		opcode = insn->opcode;
-		if(opcode >= JIT_OP_IEQ && opcode <= JIT_OP_NFGE_INV)
-		{
-			switch(opcode)
-			{
-				case JIT_OP_IEQ:		opcode = JIT_OP_BR_INE;      break;
-				case JIT_OP_INE:		opcode = JIT_OP_BR_IEQ;      break;
-				case JIT_OP_ILT:		opcode = JIT_OP_BR_IGE;      break;
-				case JIT_OP_ILT_UN:		opcode = JIT_OP_BR_IGE_UN;   break;
-				case JIT_OP_ILE:		opcode = JIT_OP_BR_IGT;      break;
-				case JIT_OP_ILE_UN:		opcode = JIT_OP_BR_IGT_UN;   break;
-				case JIT_OP_IGT:		opcode = JIT_OP_BR_ILE;      break;
-				case JIT_OP_IGT_UN:		opcode = JIT_OP_BR_ILE_UN;   break;
-				case JIT_OP_IGE:		opcode = JIT_OP_BR_ILT;      break;
-				case JIT_OP_IGE_UN:		opcode = JIT_OP_BR_ILT_UN;   break;
-				case JIT_OP_LEQ:		opcode = JIT_OP_BR_LNE;      break;
-				case JIT_OP_LNE:		opcode = JIT_OP_BR_LEQ;      break;
-				case JIT_OP_LLT:		opcode = JIT_OP_BR_LGE;      break;
-				case JIT_OP_LLT_UN:		opcode = JIT_OP_BR_LGE_UN;   break;
-				case JIT_OP_LLE:		opcode = JIT_OP_BR_LGT;      break;
-				case JIT_OP_LLE_UN:		opcode = JIT_OP_BR_LGT_UN;   break;
-				case JIT_OP_LGT:		opcode = JIT_OP_BR_LLE;      break;
-				case JIT_OP_LGT_UN:		opcode = JIT_OP_BR_LLE_UN;   break;
-				case JIT_OP_LGE:		opcode = JIT_OP_BR_LLT;      break;
-				case JIT_OP_LGE_UN:		opcode = JIT_OP_BR_LLT_UN;   break;
-				case JIT_OP_FEQ:		opcode = JIT_OP_BR_FNE_INV;  break;
-				case JIT_OP_FNE:		opcode = JIT_OP_BR_FEQ_INV;  break;
-				case JIT_OP_FLT:		opcode = JIT_OP_BR_FGE_INV;  break;
-				case JIT_OP_FLE:		opcode = JIT_OP_BR_FGT_INV;  break;
-				case JIT_OP_FGT:		opcode = JIT_OP_BR_FLE_INV;  break;
-				case JIT_OP_FGE:		opcode = JIT_OP_BR_FLT_INV;  break;
-				case JIT_OP_FEQ_INV:	opcode = JIT_OP_BR_FNE;      break;
-				case JIT_OP_FNE_INV:	opcode = JIT_OP_BR_FEQ;      break;
-				case JIT_OP_FLT_INV:	opcode = JIT_OP_BR_FGE;      break;
-				case JIT_OP_FLE_INV:	opcode = JIT_OP_BR_FGT;      break;
-				case JIT_OP_FGT_INV:	opcode = JIT_OP_BR_FLE;      break;
-				case JIT_OP_FGE_INV:	opcode = JIT_OP_BR_FLT;      break;
-				case JIT_OP_DEQ:		opcode = JIT_OP_BR_DNE_INV;  break;
-				case JIT_OP_DNE:		opcode = JIT_OP_BR_DEQ_INV;  break;
-				case JIT_OP_DLT:		opcode = JIT_OP_BR_DGE_INV;  break;
-				case JIT_OP_DLE:		opcode = JIT_OP_BR_DGT_INV;  break;
-				case JIT_OP_DGT:		opcode = JIT_OP_BR_DLE_INV;  break;
-				case JIT_OP_DGE:		opcode = JIT_OP_BR_DLT_INV;  break;
-				case JIT_OP_DEQ_INV:	opcode = JIT_OP_BR_DNE;      break;
-				case JIT_OP_DNE_INV:	opcode = JIT_OP_BR_DEQ;      break;
-				case JIT_OP_DLT_INV:	opcode = JIT_OP_BR_DGE;      break;
-				case JIT_OP_DLE_INV:	opcode = JIT_OP_BR_DGT;      break;
-				case JIT_OP_DGT_INV:	opcode = JIT_OP_BR_DLE;      break;
-				case JIT_OP_DGE_INV:	opcode = JIT_OP_BR_DLT;      break;
-				case JIT_OP_NFEQ:		opcode = JIT_OP_BR_NFNE_INV; break;
-				case JIT_OP_NFNE:		opcode = JIT_OP_BR_NFEQ_INV; break;
-				case JIT_OP_NFLT:		opcode = JIT_OP_BR_NFGE_INV; break;
-				case JIT_OP_NFLE:		opcode = JIT_OP_BR_NFGT_INV; break;
-				case JIT_OP_NFGT:		opcode = JIT_OP_BR_NFLE_INV; break;
-				case JIT_OP_NFGE:		opcode = JIT_OP_BR_NFLT_INV; break;
-				case JIT_OP_NFEQ_INV:	opcode = JIT_OP_BR_NFNE;     break;
-				case JIT_OP_NFNE_INV:	opcode = JIT_OP_BR_NFEQ;     break;
-				case JIT_OP_NFLT_INV:	opcode = JIT_OP_BR_NFGE;     break;
-				case JIT_OP_NFLE_INV:	opcode = JIT_OP_BR_NFGT;     break;
-				case JIT_OP_NFGT_INV:	opcode = JIT_OP_BR_NFLE;     break;
-				case JIT_OP_NFGE_INV:	opcode = JIT_OP_BR_NFLT;     break;
-			}
-			insn->opcode = (short)opcode;
-			insn->flags = JIT_INSN_DEST_IS_LABEL;
-			insn->dest = (jit_value_t)(*label);
-			goto add_block;
 		}
 	}
 
@@ -3940,7 +3779,6 @@ int jit_insn_branch_if_not
 	insn->value1 = value;
 	insn->value2 = value2;
 
-add_block:
 	/* Add a new block for the fall-through case */
 	return jit_insn_new_block(func);
 }
