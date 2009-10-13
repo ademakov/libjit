@@ -1,3 +1,10 @@
+
+2009-10-13  Gopal V  <gopalv@php.net>
+
+	* jit/jit-insn.c (jit_insn_branch_if_not,jit_insn_branch_if): Redo
+	last patch to use the branch instructions, but without removing the
+	actual compare step (Aleksey's suggestion).
+
 2009-10-09  Gopal V  <gopalv@php.net>
 
 	* jit/jit-insn.c (jit_insn_branch_if_not,jit_insn_branch_if): Remove
