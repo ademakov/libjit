@@ -193,19 +193,13 @@ generation is complete.
 /*
  * Write "n" bytes to the cache, rounded up to a multiple of "void *".
  */
-#define	jit_cache_add_n(posn,buf,size)	\
-		do { \
-			unsigned int __size = \
+#define	jit_cache_add_n(posn,buf,size)					\
+		do {							\
+			unsigned int __size = 				\
 				((size) + sizeof(void *) - 1) & ~(sizeof(void *) - 1); \
-			if(jit_cache_check_for_n((posn), __size)) \
-			{ \
-				jit_memcpy((posn)->ptr, (buf), (size)); \
-				(posn)->ptr += __size; \
-			} \
-			else \
-			{ \
-				jit_cache_mark_full((posn)); \
-			} \
+			_jit_cache_check_space((posn), __size);		\
+			jit_memcpy((posn)->ptr, (buf), (size));		\
+			(posn)->ptr += __size;				\
 		} while (0)
 
 /*

@@ -1779,11 +1779,7 @@ JIT_OP_SETUP_FOR_SIBLING: branch
 		while(level > 0)
 		{
 			gen->posn.ptr = inst;
-			if(!jit_cache_check_for_n(&(gen->posn), 16))
-			{
-				jit_cache_mark_full(&(gen->posn));
-				return;
-			}
+			_jit_cache_check_space(&gen->posn, 16);
 			x86_mov_reg_membase(inst, cpu_reg, cpu_reg, 0, sizeof(void *));
 			--level;
 		}
@@ -1802,11 +1798,7 @@ JIT_OP_IMPORT: manual
 		reg = _jit_regs_load_value
 			(gen, func->builder->parent_frame, 1, 0);
 		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 32 + level * 8))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		_jit_cache_check_space(&gen->posn, 32 + level * 8);
 		reg = _jit_reg_info[reg].cpu_reg;
 		while(level > 0)
 		{
@@ -2323,11 +2315,7 @@ JIT_OP_STORE_RELATIVE_STRUCT: manual
 		_jit_regs_spill_all(gen);
 		_jit_gen_fix_value(insn->value1);
 		inst = gen->posn.ptr;
-		if(!jit_cache_check_for_n(&(gen->posn), 128))
-		{
-			jit_cache_mark_full(&(gen->posn));
-			return;
-		}
+		_jit_cache_check_space(&gen->posn, 128);
 		reg = _jit_reg_info[reg].cpu_reg;
 		inst = memory_copy(gen, inst, reg, (int)(insn->value2->address),
 						   X86_EBP, insn->value1->frame_offset,

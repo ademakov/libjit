@@ -264,12 +264,8 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	void **fixup;
 	void **next;
 
-	/* Bail out if there is insufficient space for the epilog */
-	if(!jit_cache_check_for_n(&(gen->posn), 48))
-	{
-		jit_cache_mark_full(&(gen->posn));
-		return;
-	}
+	/* Check if there is sufficient space for the epilog */
+	_jit_cache_check_space(&gen->posn, 48);
 
 #if JIT_APPLY_X86_FASTCALL == 1
 	/* Determine the number of parameter bytes to pop when we return */
@@ -408,11 +404,7 @@ void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func)
 {
 	void *ptr, *entry;
-	if(!jit_cache_check_for_n(&(gen->posn), 8))
-	{
-		jit_cache_mark_full(&(gen->posn));
-		return 0;
-	}
+	_jit_cache_check_space(&gen->posn, 8);
 	ptr = (void *)&(func->entry_point);
 	entry = gen->posn.ptr;
 	x86_jump_mem(gen->posn.ptr, ptr);
@@ -423,13 +415,10 @@ void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func)
 /*
  * Setup or teardown the x86 code output process.
  */
-#define	jit_cache_setup_output(needed)	\
-	unsigned char *inst = gen->posn.ptr; \
-	if(!jit_cache_check_for_n(&(gen->posn), (needed))) \
-	{ \
-		jit_cache_mark_full(&(gen->posn)); \
-		return; \
-	}
+#define	jit_cache_setup_output(needed)			\
+	unsigned char *inst = gen->posn.ptr;		\
+	_jit_cache_check_space(&gen->posn, (needed))
+
 #define	jit_cache_end_output()	\
 	gen->posn.ptr = inst
 
@@ -641,21 +630,15 @@ void _jit_gen_spill_reg(jit_gencode_t gen, int reg,
 	jit_cache_end_output();
 }
 
-void _jit_gen_free_reg(jit_gencode_t gen, int reg,
-					   int other_reg, int value_used)
+void
+_jit_gen_free_reg(jit_gencode_t gen, int reg, int other_reg, int value_used)
 {
 	/* We only need to take explicit action if we are freeing a
 	   floating-point register whose value hasn't been used yet */
 	if(!value_used && IS_FLOAT_REG(reg))
 	{
-		if(jit_cache_check_for_n(&(gen->posn), 2))
-		{
-			x86_fstp(gen->posn.ptr, reg - X86_REG_ST0);
-		}
-		else
-		{
-			jit_cache_mark_full(&(gen->posn));
-		}
+		_jit_cache_check_space(&gen->posn, 2);
+		x86_fstp(gen->posn.ptr, reg - X86_REG_ST0);
 	}
 }
 

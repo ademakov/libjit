@@ -600,7 +600,7 @@ set_regdesc_register(jit_gencode_t gen, _jit_regs_t *regs, int index, int reg, i
 /*
  * Determine value flags.
  */
-static int
+static void
 set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 {
   	_jit_regdesc_t *desc;
@@ -615,7 +615,7 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	desc = &regs->descs[index];
 	if(desc->reg < 0 || desc->duplicate)
 	{
-		return 1;
+		return;
 	}
 
 	/* See if the value clobbers the register it is assigned to. */
@@ -863,8 +863,6 @@ set_regdesc_flags(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	printf("copy = %d\n", desc->copy);
 	printf("kill = %d\n", desc->kill);
 #endif
-
-	return 1;
 }
 
 /*
@@ -1044,7 +1042,7 @@ thrashes_value(jit_gencode_t gen,
 	return 0;
 }
 
-static int
+static void
 choose_scratch_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 {
 	_jit_regclass_t *regclass;
@@ -1126,13 +1124,14 @@ choose_scratch_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	if(suitable_reg >= 0)
 	{
 		set_scratch_register(gen, regs, index, suitable_reg);
-		return 1;
 	}
-
-	return 0;
+	else
+	{
+		jit_exception_builtin(JIT_RESULT_COMPILE_ERROR);
+	}
 }
 
-static int
+static void
 choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 {
 	_jit_regclass_t *regclass;
@@ -1310,10 +1309,11 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 	if(suitable_reg >= 0)
 	{
 		set_regdesc_register(gen, regs, 0, suitable_reg, suitable_other_reg);
-		return 1;
 	}
-
-	return 0;
+	else
+	{
+		jit_exception_builtin(JIT_RESULT_COMPILE_ERROR);
+	}
 }
 
 /*
@@ -1359,7 +1359,7 @@ choose_input_order(jit_gencode_t gen, _jit_regs_t *regs)
 	}
 }
 
-static int
+static void
 choose_input_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 {
 	_jit_regclass_t *regclass;
@@ -1379,7 +1379,7 @@ choose_input_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	desc = &regs->descs[index];
 	if(!desc->value)
 	{
-		return 0;
+		jit_exception_builtin(JIT_RESULT_COMPILE_ERROR);
 	}
 
 	regclass = regs->descs[index].regclass;
@@ -1490,10 +1490,11 @@ choose_input_register(jit_gencode_t gen, _jit_regs_t *regs, int index)
 	if(suitable_reg >= 0)
 	{
 		set_regdesc_register(gen, regs, index, suitable_reg, suitable_other_reg);
-		return 1;
 	}
-
-	return 0;
+	else
+	{
+		jit_exception_builtin(JIT_RESULT_COMPILE_ERROR);
+	}
 }
 
 /*
@@ -3319,7 +3320,7 @@ _jit_regs_clobber_all(jit_gencode_t gen, _jit_regs_t *regs)
 	}
 }
 
-int
+void
 _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 {
 	int index;
@@ -3352,17 +3353,11 @@ _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 		{
 			if(regs->ternary)
 			{
-				if(!choose_input_register(gen, regs, 0))
-				{
-					return 0;
-				}
+				choose_input_register(gen, regs, 0);
 			}
 			else
 			{
-				if(!choose_output_register(gen, regs))
-				{
-					return 0;
-				}
+				choose_output_register(gen, regs);
 			}
 		}
 		if(regs->ternary)
@@ -3383,18 +3378,12 @@ _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 	}
 	if(regs->descs[1].value && regs->descs[1].reg < 0)
 	{
-		if(!choose_input_register(gen, regs, 1))
-		{
-			return 0;
-		}
+		choose_input_register(gen, regs, 1);
 	}
 	check_duplicate_value(regs, &regs->descs[1], &regs->descs[2]);
 	if(regs->descs[2].value && regs->descs[2].reg < 0)
 	{
-		if(!choose_input_register(gen, regs, 2))
-		{
-			return 0;
-		}
+		choose_input_register(gen, regs, 2);
 	}
 
 	/* Assign scratch registers. */
@@ -3402,31 +3391,17 @@ _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 	{
 		if(regs->scratch[index].reg < 0)
 		{
-			if(choose_scratch_register(gen, regs, index) < 0)
-			{
-				return 0;
-			}
+			choose_scratch_register(gen, regs, index);
 		}
 	}
 
 	/* Collect information about registers. */
-	if(!set_regdesc_flags(gen, regs, 0))
-	{
-		return 0;
-	}
-	if(!set_regdesc_flags(gen, regs, 1))
-	{
-		return 0;
-	}
-	if(!set_regdesc_flags(gen, regs, 2))
-	{
-		return 0;
-	}
-
-	return 1;
+	set_regdesc_flags(gen, regs, 0);
+	set_regdesc_flags(gen, regs, 1);
+	set_regdesc_flags(gen, regs, 2);
 }
 
-int
+void
 _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs)
 {
 	int reg;
@@ -3469,7 +3444,7 @@ _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs)
 			{
 				/* After the branch is taken there is no way
 				   to load the global register back. */
-				return 0;
+				jit_exception_builtin(JIT_RESULT_COMPILE_ERROR);
 			}
 			_jit_gen_spill_global(gen, reg, 0);
 			continue;
@@ -3590,7 +3565,6 @@ _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs)
 #ifdef JIT_REG_DEBUG
 	dump_regs(gen, "leave _jit_regs_gen");
 #endif
-	return 1;
 }
 
 #ifdef JIT_REG_STACK
@@ -3747,39 +3721,10 @@ _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs)
 #endif
 }
 
-unsigned char *
-_jit_regs_inst_ptr(jit_gencode_t gen, int space)
-{
-	unsigned char *inst;
-
-	inst = (unsigned char *)(gen->posn.ptr);
-	if(!jit_cache_check_for_n(&(gen->posn), space))
-	{
-		jit_cache_mark_full(&(gen->posn));
-		return 0;
-	}
-
-	return inst;
-}
-
-unsigned char *
+void
 _jit_regs_begin(jit_gencode_t gen, _jit_regs_t *regs, int space)
 {
-	if(!_jit_regs_assign(gen, regs))
-	{
-		return 0;
-	}
-	if(!_jit_regs_gen(gen, regs))
-	{
-		return 0;
-	}
-
-	return _jit_regs_inst_ptr(gen, space);
-}
-
-void
-_jit_regs_end(jit_gencode_t gen, _jit_regs_t *regs, unsigned char *inst)
-{
-	gen->posn.ptr = inst;
-	_jit_regs_commit(gen, regs);
+	_jit_regs_assign(gen, regs);
+	_jit_regs_gen(gen, regs);
+	_jit_cache_check_space(&gen->posn, space);
 }

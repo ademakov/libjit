@@ -1429,14 +1429,8 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 		{
 			if(contains_registers)
 			{
-				printf("\t\tif(!_jit_regs_assign(gen, &regs))\n");
-				printf("\t\t{\n");
-				printf("\t\t\treturn;\n");
-				printf("\t\t}\n");
-				printf("\t\tif(!_jit_regs_gen(gen, &regs))\n");
-				printf("\t\t{\n");
-				printf("\t\t\treturn;\n");
-				printf("\t\t}\n");
+				printf("\t\t_jit_regs_assign(gen, &regs);\n");
+				printf("\t\t_jit_regs_gen(gen, &regs);\n");
 			}
 			printf("\t\tjit_gen_load_inst_ptr(gen, inst);\n");
 		}
@@ -1447,12 +1441,11 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 
 			if(contains_registers)
 			{
-				printf("\t\tif(!(inst = (%s)_jit_regs_begin(gen, &regs, ", gensel_inst_type);
+				printf("\t\t_jit_regs_begin(gen, &regs, ");
 			}
 			else
 			{
-				printf("\t\tinst = (%s)(gen->posn.ptr);\n", gensel_inst_type);
-				printf("\t\tif(!jit_cache_check_for_n(&(gen->posn), ");
+				printf("\t\t_jit_cache_check_space(&gen->posn, ");
 			}
 			if(space && space->values && space->values->value)
 			{
@@ -1472,22 +1465,10 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 					      ? gensel_reserve_space
 					      : gensel_reserve_more_space));
 			}
-			if(contains_registers)
-			{
-				printf(")))\n");
-				printf("\t\t{\n");
-				printf("\t\t\treturn;\n");
-				printf("\t\t}\n");
-			}
-			else
-			{
-				printf("))\n");
-				printf("\t\t{\n");
-				printf("\t\t\tjit_cache_mark_full(&(gen->posn));\n");
-				printf("\t\t\treturn;\n");
-				printf("\t\t}\n");
-			}
+			printf(");\n");
 		}
+
+		printf("\t\tinst = (%s)(gen->posn.ptr);\n", gensel_inst_type);
 
 		regs = 0;
 		imms = 0;
@@ -1563,18 +1544,14 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 		if(gensel_new_inst_type)
 		{
 			printf("\t\tjit_gen_save_inst_ptr(gen, inst);\n");
-			if(contains_registers)
-			{
-				printf("\t\t_jit_regs_commit(gen, &regs);\n");
-			}
-		}
-		else if(contains_registers)
-		{
-			printf("\t\t_jit_regs_end(gen, &regs, (unsigned char *)inst);\n");
 		}
 		else
 		{
 			printf("\t\tgen->posn.ptr = (unsigned char *)inst;\n");
+		}
+		if(contains_registers)
+		{
+			printf("\t\t_jit_regs_commit(gen, &regs);\n");
 		}
 
 		printf("\t}\n");

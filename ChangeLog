@@ -5,6 +5,13 @@
 	function to check the available cache space.
 	* jit/jit-compile.c: use internal exception to handle the cache full
 	condition.
+	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c, jit/jit-rules-alpha.c,
+	* jit/jit-rules-arm.c, jit/jit-rules-interp.c, jit/jit-rules-x86.c,
+	* jit/jit-rules-x86-64.c, tools/gen-rules-parser.y: use internal
+	exceptions to signal the cache full condition and other codegen
+	errors.
+	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c (_jit_regs_inst_ptr)
+	(_jit_regs_end): remove functions.
 
 2009-10-13  Gopal V  <gopalv@php.net>
 

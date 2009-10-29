@@ -122,13 +122,10 @@ do { \
 /*
  * Setup or teardown the x86 code output process.
  */
-#define	jit_cache_setup_output(needed)	\
-	unsigned char *inst = gen->posn.ptr; \
-	if(!jit_cache_check_for_n(&(gen->posn), (needed))) \
-	{ \
-		jit_cache_mark_full(&(gen->posn)); \
-		return; \
-	}
+#define	jit_cache_setup_output(needed)			\
+	unsigned char *inst = gen->posn.ptr;		\
+	_jit_cache_check_space(&gen->posn, (needed))
+
 #define	jit_cache_end_output()	\
 	gen->posn.ptr = inst
 
@@ -1155,14 +1152,8 @@ _jit_gen_free_reg(jit_gencode_t gen, int reg,
 	   floating-point register whose value hasn't been used yet */
 	if(!value_used && IS_FPU_REG(reg))
 	{
-		if(jit_cache_check_for_n(&(gen->posn), 2))
-		{
-			x86_fstp(gen->posn.ptr, reg - X86_64_REG_ST0);
-		}
-		else
-		{
-			jit_cache_mark_full(&(gen->posn));
-		}
+		_jit_cache_check_space(&gen->posn, 2);
+		x86_fstp(gen->posn.ptr, reg - X86_64_REG_ST0);
 	}
 }
 
@@ -2459,11 +2450,7 @@ _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	jit_int *next;
 
 	/* Bail out if there is insufficient space for the epilog */
-	if(!jit_cache_check_for_n(&(gen->posn), 48))
-	{
-		jit_cache_mark_full(&(gen->posn));
-		return;
-	}
+	_jit_cache_check_space(&gen->posn, 48);
 
 	inst = gen->posn.ptr;
 

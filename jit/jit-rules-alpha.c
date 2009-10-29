@@ -78,12 +78,9 @@ int _alpha_has_ieeefp() {
 /*
  * Setup or teardown the alpha code output process.
  */
-#define jit_cache_setup_output(needed)				\
-	alpha_inst inst = (alpha_inst) gen->posn.ptr;		\
-	if(!jit_cache_check_for_n(&(gen->posn), (needed))) {	\
-		jit_cache_mark_full(&(gen->posn));		\
-		return;						\
-	}							\
+#define jit_cache_setup_output(needed)			\
+	alpha_inst inst = (alpha_inst) gen->posn.ptr;	\
+	_jit_cache_check_space(&gen->posn, (needed))
 
 #define jit_cache_end_output()  \
 	gen->posn.ptr = (unsigned char*) inst
@@ -533,10 +530,7 @@ void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func) {
 	void *ptr, *entry;
 	alpha_inst inst = (alpha_inst) gen->posn.ptr;
 
-	if (!jit_cache_check_for_n(&(gen->posn), 8*6)) {
-		jit_cache_mark_full(&(gen->posn));
-		return NULL;
-	}
+	_jit_cache_check_space(&gen->posn, 8*6);
 
 	ptr = (void *)&(func->entry_point);
 	entry = gen->posn.ptr;

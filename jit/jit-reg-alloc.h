@@ -168,11 +168,12 @@ void _jit_regs_clobber(_jit_regs_t *regs, int reg);
 void _jit_regs_clobber_class(jit_gencode_t gen, _jit_regs_t *regs, _jit_regclass_t *regclass);
 void _jit_regs_clobber_all(jit_gencode_t gen, _jit_regs_t *regs);
 
-int _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs);
-int _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs);
+void _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs);
+void _jit_regs_gen(jit_gencode_t gen, _jit_regs_t *regs);
 #ifdef JIT_REG_STACK
 int _jit_regs_select(_jit_regs_t *regs);
 #endif
+
 void _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs);
 
 int _jit_regs_get_dest(_jit_regs_t *regs);
@@ -183,9 +184,7 @@ int _jit_regs_get_value1_other(_jit_regs_t *regs);
 int _jit_regs_get_value2_other(_jit_regs_t *regs);
 int _jit_regs_get_scratch(_jit_regs_t *regs, int index);
 
-unsigned char *_jit_regs_inst_ptr(jit_gencode_t gen, int space);
-unsigned char *_jit_regs_begin(jit_gencode_t gen, _jit_regs_t *regs, int space);
-void _jit_regs_end(jit_gencode_t gen, _jit_regs_t *regs, unsigned char *inst);
+void _jit_regs_begin(jit_gencode_t gen, _jit_regs_t *regs, int space);
 
 #ifdef	__cplusplus
 };
