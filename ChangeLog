@@ -3,6 +3,8 @@
 	* include/jit/jit-except.h (JIT_RESULT_CACHE_FULL): add result code.
 	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_check_space): add
 	function to check the available cache space.
+	* jit/jit-compile.c: use internal exception to handle the cache full
+	condition.
 
 2009-10-13  Gopal V  <gopalv@php.net>
 
