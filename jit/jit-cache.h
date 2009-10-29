@@ -68,6 +68,12 @@ void _jit_cache_destroy(jit_cache_t cache);
 int _jit_cache_is_full(jit_cache_t cache, jit_cache_posn *posn);
 
 /*
+ * Determine if there is sufficient space in the code cache.
+ * If not throws JIT_RESULT_CACHE_FULL exception.
+ */
+void _jit_cache_check_space(jit_cache_posn *posn, int space);
+
+/*
  * Return values for "_jit_cache_start_method" and "_jit_cache_end_method".
  */
 #define	JIT_CACHE_OK		0		/* Function is OK */
@@ -174,8 +180,7 @@ void **_jit_cache_get_method_list(jit_cache_t cache);
  * if the native offset could not be determined.
  */
 #define	JIT_CACHE_NO_OFFSET		(~((unsigned long)0))
-unsigned long _jit_cache_get_native(jit_cache_t cache, void *start,
-						   			unsigned long offset, int exact);
+unsigned long _jit_cache_get_native(jit_cache_t cache, void *start, unsigned long offset, int exact);
 
 /*
  * Get the bytecode offset that is associated with a native
@@ -183,8 +188,7 @@ unsigned long _jit_cache_get_native(jit_cache_t cache, void *start,
  * entry point for the method.  Returns JIT_CACHE_NO_OFFSET
  * if the bytecode offset could not be determined.
  */
-unsigned long _jit_cache_get_bytecode(jit_cache_t cache, void *start,
-							 		  unsigned long offset, int exact);
+unsigned long _jit_cache_get_bytecode(jit_cache_t cache, void *start, unsigned long offset, int exact);
 
 /*
  * Get the number of bytes currently in use in the method cache.
@@ -198,102 +202,78 @@ unsigned long _jit_cache_get_size(jit_cache_t cache);
  * an instruction that falls within a method region.  This
  * macro corrects for the "off by 1" address.
  */
-#define	jit_cache_return_to_pc(addr)	\
-			((void *)(((unsigned char *)(addr)) - 1))
+#define jit_cache_return_to_pc(addr)			\
+	((void *)(((unsigned char *)(addr)) - 1))
 
 /*
  * Output a single byte to the current method.
  */
-#define	jit_cache_byte(posn,value)	\
-			do { \
-				if((posn)->ptr < (posn)->limit) \
-				{ \
-					*(((posn)->ptr)++) = (unsigned char)(value); \
-				} \
-			} while (0)
+#define jit_cache_byte(posn,value)					\
+	do {								\
+		if((posn)->ptr < (posn)->limit)				\
+		{							\
+			*(((posn)->ptr)++) = (unsigned char)(value);	\
+		}							\
+	} while (0)
 
 /*
  * Output a 16-bit word to the current method.
  */
-#define	jit_cache_word16(posn,value)	\
-			do { \
-				if(((posn)->ptr + 1) < (posn)->limit) \
-				{ \
-					*((jit_ushort *)((posn)->ptr)) = (jit_ushort)(value); \
-					(posn)->ptr += 2; \
-				} \
-				else \
-				{ \
-					(posn)->ptr = (posn)->limit; \
-				} \
-			} while (0)
+#define jit_cache_word16(posn,value)					\
+	do {								\
+		_jit_cache_check_space((posn), 2);			\
+		*((jit_ushort *)((posn)->ptr)) = (jit_ushort)(value);	\
+		(posn)->ptr += 2;					\
+	} while (0)
 
 /*
  * Output a 32-bit word to the current method.
  */
-#define	jit_cache_word32(posn,value)	\
-			do { \
-				if(((posn)->ptr + 3) < (posn)->limit) \
-				{ \
-					*((jit_uint *)((posn)->ptr)) = (jit_uint)(value); \
-					(posn)->ptr += 4; \
-				} \
-				else \
-				{ \
-					(posn)->ptr = (posn)->limit; \
-				} \
-			} while (0)
+#define jit_cache_word32(posn,value)					\
+	do {								\
+		_jit_cache_check_space((posn), 4);			\
+		*((jit_uint *)((posn)->ptr)) = (jit_uint)(value); 	\
+		(posn)->ptr += 4;					\
+	} while (0)
 
 /*
  * Output a native word to the current method.
  */
-#define	jit_cache_native(posn,value)	\
-			do { \
-				if(((posn)->ptr + sizeof(jit_nuint) - 1) < (posn)->limit) \
-				{ \
-					*((jit_nuint *)((posn)->ptr)) = (jit_nuint)(value); \
-					(posn)->ptr += sizeof(jit_nuint); \
-				} \
-				else \
-				{ \
-					(posn)->ptr = (posn)->limit; \
-				} \
-			} while (0)
+#define jit_cache_native(posn,value)					\
+	do {								\
+		_jit_cache_check_space((posn), sizeof(jit_nuint));	\
+		*((jit_nuint *)((posn)->ptr)) = (jit_nuint)(value); 	\
+		(posn)->ptr += sizeof(jit_nuint);			\
+	} while (0)
 
 /*
  * Output a 64-bit word to the current method.
  */
-#define	jit_cache_word64(posn,value)	\
-			do { \
-				if(((posn)->ptr + 7) < (posn)->limit) \
-				{ \
-					*((jit_ulong *)((posn)->ptr)) = (jit_ulong)(value); \
-					(posn)->ptr += 8; \
-				} \
-				else \
-				{ \
-					(posn)->ptr = (posn)->limit; \
-				} \
-			} while (0)
+#define jit_cache_word64(posn,value)					\
+	do {								\
+		_jit_cache_check_space((posn), 8);			\
+		*((jit_ulong *)((posn)->ptr)) = (jit_ulong)(value);	\
+		(posn)->ptr += 8;					\
+	} while (0)
 
 /*
  * Get the output position within the current method.
  */
-#define	jit_cache_get_posn(posn)	((posn)->ptr)
+#define jit_cache_get_posn(posn)	((posn)->ptr)
 
 /*
  * Determine if there is sufficient space for N bytes in the current method.
  */
-#define	jit_cache_check_for_n(posn,n)	\
-				(((posn)->ptr + (n)) <= (posn)->limit)
+#define jit_cache_check_for_n(posn,n)		\
+	(((posn)->ptr + (n)) <= (posn)->limit)
 
 /*
  * Mark the cache as full.
  */
-#define	jit_cache_mark_full(posn)	\
-			do { \
-				(posn)->ptr = (posn)->limit; \
-			} while (0)
+#define jit_cache_mark_full(posn)		\
+	do {					\
+		(posn)->ptr = (posn)->limit;	\
+	} while (0)
 
 #ifdef	__cplusplus
 };

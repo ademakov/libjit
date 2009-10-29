@@ -726,6 +726,17 @@ int _jit_cache_is_full(jit_cache_t cache, jit_cache_posn *posn)
 	return (!cache->freeStart || (posn && posn->ptr >= posn->limit));
 }
 
+void
+_jit_cache_check_space(jit_cache_posn *posn, int space)
+{
+	if(!jit_cache_check_for_n(posn, space))
+	{
+		/* No space left on the current cache page. */
+		jit_cache_mark_full(posn);
+		jit_exception_builtin(JIT_RESULT_CACHE_FULL);
+	}
+}
+
 int _jit_cache_start_method(jit_cache_t cache,
 			    jit_cache_posn *posn,
 			    int page_factor,
