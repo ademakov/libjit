@@ -1,5 +1,9 @@
 2009-10-30  Aleksey Demakov  <ademakov@gmail.com>
 
+	* include/jit/jit-function.h, jit/jit-function.c
+	(jit_function_labels_equal): add function that checks if two labels
+	belong to the same basic block.
+
 	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c
 	(_jit_regs_clear_all_outgoing): add function.
 	* jit/jit-compile.c (compile_block): use _jit_regs_clear_all_outgoing

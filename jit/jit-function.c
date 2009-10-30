@@ -991,7 +991,7 @@ jit_function_get_max_optimization_level(void)
 
 /*@
  * @deftypefun {jit_label_t} jit_function_reserve_label (jit_function_t @var{func})
- * Allocate a new label for later use within the function @var{func}. Most
+ * Allocate a new label for later use within the function @var{func}.  Most
  * instructions that require a label could perform label allocation themselves.
  * A separate label allocation could be useful to fill a jump table with
  * identical entries.
@@ -1007,4 +1007,33 @@ jit_function_reserve_label(jit_function_t func)
 	}
 
 	return (func->builder->next_label)++;
+}
+
+/*@
+ * @deftypefun {int} jit_function_labels_equal (jit_function_t @var{func}, jit_label_t @var{label}, jit_label_t @var{label2})
+ * Check if labels @var{label} and @var{label2} defined within the function
+ * @var{func} are equal that is belong to the same basic block.  Labels that
+ * are not associated with any block are never considered equal.
+ * @end deftypefun
+@*/
+int
+jit_function_labels_equal(jit_function_t func, jit_label_t label, jit_label_t label2)
+{
+	jit_block_t block, block2;
+
+	if(func && func->builder
+	   && label != jit_label_undefined
+	   && label2 != jit_label_undefined
+	   && label < func->builder->max_label_info
+	   && label2 < func->builder->max_label_info)
+	{
+		block = func->builder->label_info[label].block;
+		if(block)
+		{
+			block2 = func->builder->label_info[label2].block;
+			return block == block2;
+		}
+	}
+
+	return 0;
 }
