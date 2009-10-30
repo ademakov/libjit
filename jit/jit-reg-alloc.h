@@ -146,6 +146,7 @@ void _jit_regs_init_for_block(jit_gencode_t gen);
 void _jit_regs_spill_all(jit_gencode_t gen);
 void _jit_regs_set_incoming(jit_gencode_t gen, int reg, jit_value_t value);
 void _jit_regs_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value);
+void _jit_regs_clear_all_outgoing(jit_gencode_t gen);
 void _jit_regs_force_out(jit_gencode_t gen, jit_value_t value, int is_dest);
 int _jit_regs_load_value(jit_gencode_t gen, jit_value_t value, int destroy, int used_again);
 

@@ -189,6 +189,7 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 			}
 			break;
 
+#ifndef JIT_BACKEND_INTERP
 		case JIT_OP_CALL:
 		case JIT_OP_CALL_TAIL:
 		case JIT_OP_CALL_INDIRECT:
@@ -199,8 +200,12 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 		case JIT_OP_CALL_EXTERNAL_TAIL:
 			/* Spill all caller-saved registers before a call */
 			_jit_regs_spill_all(gen);
+			/* Generate code for the instruction with the back end */
 			_jit_gen_insn(gen, func, block, insn);
+			/* Free outgoing registers if any */
+			_jit_regs_clear_all_outgoing(gen);
 			break;
+#endif
 
 #ifndef JIT_BACKEND_INTERP
 		case JIT_OP_INCOMING_REG:
@@ -208,6 +213,7 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 			_jit_regs_set_incoming(gen,
 					       (int)jit_value_get_nint_constant(insn->value2),
 					       insn->value1);
+			/* Generate code for the instruction with the back end */
 			_jit_gen_insn(gen, func, block, insn);
 			break;
 #endif
@@ -253,6 +259,7 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 			_jit_regs_set_incoming(gen,
 					       (int)jit_value_get_nint_constant(insn->value2),
 					       insn->value1);
+			/* Generate code for the instruction with the back end */
 			_jit_gen_insn(gen, func, block, insn);
 			break;
 #endif

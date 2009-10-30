@@ -2760,7 +2760,8 @@ void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func)
  * Initialize the register allocation state for a new block.
  * @end deftypefun
 @*/
-void _jit_regs_init_for_block(jit_gencode_t gen)
+void
+_jit_regs_init_for_block(jit_gencode_t gen)
 {
 	int reg;
 	gen->current_age = 1;
@@ -2938,6 +2939,18 @@ _jit_regs_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value)
 	{
 		jit_reg_set_used(gen->inhibit, other_reg);
 	}
+}
+
+/*@
+ * @deftypefun void _jit_regs_clear_all_outgoing (jit_gencode_t gen)
+ * Free registers used fot outgoing parameters.  This is used to
+ * clean up after a function call.
+ * @end deftypefun
+@*/
+void
+_jit_regs_clear_all_outgoing(jit_gencode_t gen)
+{
+	gen->inhibit = jit_regused_init;
 }
 
 /* TODO: remove this function */
