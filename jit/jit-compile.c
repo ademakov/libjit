@@ -50,8 +50,8 @@ typedef struct
 
 } _jit_compile_t;
 
-#define _JIT_RESULT_TO_OBJECT(x)	((void *) ((int) (x) - JIT_RESULT_OK))
-#define _JIT_RESULT_FROM_OBJECT(x)	((int) ((void *) (x)) + JIT_RESULT_OK)
+#define _JIT_RESULT_TO_OBJECT(x)	((void *) ((jit_nint) (x) - JIT_RESULT_OK))
+#define _JIT_RESULT_FROM_OBJECT(x)	((jit_nint) ((void *) (x)) + JIT_RESULT_OK)
 
 /*
  * This exception handler overrides a user-defined handler during compilation.
