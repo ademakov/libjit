@@ -3167,6 +3167,16 @@ JIT_OP_MEMSET: ternary
 		inst = x86_64_call_code(inst, (jit_nint)jit_memset);
 	}
 
+JIT_OP_ALLOCA:
+	[reg] -> {
+		x86_64_add_reg_imm_size(inst, $1, 15, 8);
+		x86_64_and_reg_imm_size(inst, $1, ~15, 8);
+		x86_64_sub_reg_reg_size(inst, X86_64_RSP, $1, 8);
+		x86_64_mov_reg_reg_size(inst, $1, X86_64_RSP, 8);
+		inst = fixup_alloca(gen, inst, $1);
+		gen->stack_changed = 1;
+}
+
 JIT_OP_JUMP_TABLE: ternary, branch
 	[reg, imm, imm, scratch reg, space("64")] -> {
 		unsigned char *patch_jump_table;

@@ -1328,6 +1328,47 @@ jump_to_epilog(jit_gencode_t gen, unsigned char *inst, jit_block_t block)
 }
 
 /*
+ * fixup a register being alloca'd to by accounting for the param area
+ */
+static unsigned char *
+fixup_alloca(jit_gencode_t gen, unsigned char *inst, int reg)
+{
+#ifdef JIT_USE_PARAM_AREA
+	jit_int fixup;
+	jit_int temp;
+
+	/*
+	 * emit the instruction and then replace the imm section of op with
+	 * the fixup.
+	 * NOTE: We are using the temp variable here to avoid a compiler
+	 * warning and the temp value to make sure that an instruction with
+	 * a 32 bit immediate is emitted. The temp value in the instruction
+	 * will be replaced by the fixup
+	 */
+	temp = 1234567;
+	x86_64_add_reg_imm_size(inst, reg, temp, 8);
+
+	/* Make inst pointing to the 32bit immediate in the instruction */
+	inst -= 4;
+
+	/* calculalte the fixup */
+	if (gen->alloca_fixup)
+	{
+		fixup = _JIT_CALC_FIXUP(gen->alloca_fixup, inst);
+	}
+	else
+	{
+		fixup = 0;
+	}
+	gen->alloca_fixup = (void *)inst;
+	x86_imm_emit32(inst, fixup);
+#else /* !JIT_USE_PARAM_AREA */
+	/* alloca fixup is not needed if the param area is not used */
+#endif /* JIT_USE_PARAM_AREA */
+	return inst;
+}
+
+/*
  * Compare a xmm register with an immediate value.
  */
 static unsigned char *
@@ -2469,27 +2510,22 @@ _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	}
 	gen->epilog_fixup = 0;
 
-	/* Restore the used callee saved registers */
-#ifdef JIT_USE_PARAM_AREA
-	if(func->builder->param_area_size > 0)
+	/* Perform fixups on any alloca calls */
+	fixup = (jit_int *)(gen->alloca_fixup);
+	while (fixup != 0)
 	{
-		current_offset = func->builder->param_area_size;
-	}
-	else
-	{
-		current_offset = 0;
-	}
-	for(reg = 0; reg <= 14; ++reg)
-	{
-		if(jit_reg_is_used(gen->touched, reg) &&
-		   (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0)
+		next = (jit_int *)_JIT_CALC_NEXT_FIXUP(fixup, fixup[0]);
+		fixup[0] = func->builder->param_area_size;
+		if(DEBUG_FIXUPS)
 		{
-			x86_64_mov_reg_membase_size(inst, _jit_reg_info[reg].cpu_reg,
-						    X86_64_RSP, current_offset, 8);
-			current_offset += 8;
+			fprintf(stderr, "Fixup Param Area Size: %lx, Value: %x\n",
+					(jit_nint)fixup, fixup[0]);
 		}
+		fixup = next;
 	}
-#else /* !JIT_USE_PARAM_AREA */
+	gen->alloca_fixup = 0;
+
+	/* Restore the used callee saved registers */
 	if(gen->stack_changed)
 	{
 		int frame_size = func->builder->frame_size;
@@ -2520,26 +2556,36 @@ _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 			   (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0)
 			{
 				x86_64_mov_reg_membase_size(inst, _jit_reg_info[reg].cpu_reg,
-											X86_64_RBP, current_offset, 8);
+							    X86_64_RBP, current_offset, 8);
 				current_offset += 8;
 			}
 		}
 	}
 	else
 	{
+#ifdef JIT_USE_PARAM_AREA
+		if(func->builder->param_area_size > 0)
+		{
+			current_offset = func->builder->param_area_size;
+		}
+		else
+		{
+			current_offset = 0;
+		}
+#else /* !JIT_USE_PARAM_AREA */
 		current_offset = 0;
+#endif /* !JIT_USE_PARAM_AREA */
 		for(reg = 0; reg <= 14; ++reg)
 		{
 			if(jit_reg_is_used(gen->touched, reg) &&
 			   (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0)
 			{
 				x86_64_mov_reg_membase_size(inst, _jit_reg_info[reg].cpu_reg,
-											X86_64_RSP, current_offset, 8);
+							    X86_64_RSP, current_offset, 8);
 				current_offset += 8;
 			}
 		}
 	}
-#endif /* !JIT_USE_PARAM_AREA */
 
 	/* Restore stackpointer and frame register */
 	x86_64_mov_reg_reg_size(inst, X86_64_RSP, X86_64_RBP, 8);

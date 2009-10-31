@@ -110,6 +110,20 @@ extern	"C" {
 #define	JIT_ALIGN_OVERRIDES		1
 
 /*
+ * Extra state information that is added to the "jit_gencode" structure.
+ */
+
+#define jit_extra_gen_state	\
+	void *alloca_fixup
+
+#define jit_extra_gen_init(gen)	\
+	do {	\
+		(gen)->alloca_fixup = 0;	\
+	} while (0)
+
+#define jit_extra_gen_cleanup(gen)	do { ; } while (0)
+
+/*
  * Parameter passing rules.
  */
 #define	JIT_INITIAL_STACK_OFFSET	(2 * sizeof(void *))

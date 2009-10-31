@@ -3,6 +3,17 @@
 	* jit/jit-compile.c (_JIT_RESULT_TO_OBJECT, _JIT_RESULT_FROM_OBJECT):
 	Fix compiler warnings on systems where sizeof(int) != sizeof(void *)
 
+	* jit/jit-rules-x86-64.c (fixup_alloca): Added to handle alloca
+	fixups with param area enabled.
+	(_jit_gen_epilog): Generate the epilog differenty if the stackpointer
+	was changed during code generation with param area enabled.
+
+	* jit/jit-rules-x86-64.h: Add the alloca_fixups to the
+	extra_gen_state.
+
+	* jit/jit-rules-x86-64.ins: Add support for JIT_OP_ALLOCA.
+	(alloca support based on a patch from Peter Lobsinger, thanks)
+
 2009-10-30  Aleksey Demakov  <ademakov@gmail.com>
 
 	* include/jit/jit-function.h, jit/jit-function.c
