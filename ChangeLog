@@ -1,3 +1,8 @@
+2009-11-01  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-block.c (_jit_block_clean_cfg): implement the "combine" part
+	of cleanup algorithm.
+
 2009-10-31  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-compile.c (_JIT_RESULT_TO_OBJECT, _JIT_RESULT_FROM_OBJECT):

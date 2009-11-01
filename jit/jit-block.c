@@ -370,14 +370,14 @@ merge_empty(jit_function_t func, jit_block_t block, int *changed)
 	}
 
 	/* If there is an incoming fallthrough edge then retarget it
-	   if the outgoing edge is also fallthough. Otherwise adjust
+	   if the outgoing edge is also fallthrough. Otherwise adjust
 	   the preds array to contain this edge only.  */
-	if(fallthru_edge != NULL)
+	if(fallthru_edge)
 	{
 		if(succ_edge->flags == _JIT_EDGE_FALLTHRU)
 		{
 			*changed = 1;
-			if(!attach_edge_dst(pred_edge, succ_block))
+			if(!attach_edge_dst(fallthru_edge, succ_block))
 			{
 				jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 			}
@@ -399,6 +399,84 @@ merge_empty(jit_function_t func, jit_block_t block, int *changed)
 		_jit_block_detach(block, block);
 		delete_block(block);
 	}
+}
+
+/* Combine non-empty block with its successor */
+static void
+combine_block(jit_function_t func, jit_block_t block, int *changed)
+{
+	jit_block_t succ_block;
+	int branch, num_insns, max_insns;
+	jit_insn_t insns;
+
+	/* Find block successor */
+	succ_block = block->succs[0]->dst;
+
+	/* Does block end with a (redundant) branch instruction? */
+	branch = (block->succs[0]->flags == _JIT_EDGE_BRANCH);
+
+	/* If the branch is there then preallocate memory for it,
+	   doing it here simplifies handling of the out-of-memory
+	   condition */
+	if(branch && !succ_block->max_insns)
+	{
+		succ_block->insns = jit_malloc(sizeof(struct _jit_insn));
+		if(!succ_block->insns)
+		{
+			jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
+		}
+		succ_block->max_insns = 1;
+	}
+
+	/* Allocate enough memory for combined instructions */
+	max_insns = block->max_insns;
+	num_insns = block->num_insns + succ_block->num_insns;
+	if(num_insns > max_insns)
+	{
+		max_insns = num_insns;
+		insns = (jit_insn_t) jit_realloc(block->insns,
+						 max_insns * sizeof(struct _jit_insn));
+		if(!insns)
+		{
+			jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
+		}
+	}
+	else
+	{
+		insns = block->insns;
+	}
+
+	/* Copy instruction from the successor block after the instructions
+	   of the original block */
+	if(succ_block->num_insns)
+	{
+		jit_memcpy(insns + block->num_insns,
+			   succ_block->insns,
+			   succ_block->num_insns * sizeof(struct _jit_insn));
+	}
+
+	/* Move combined instructions to the successor, but if there was
+	   a branch in the original block then keep the branch around,
+	   merge_empty() will take care of it if it may be optimized away.
+	   To reduce the number of allocations, swap the arrays around
+	   rather than allocating a fresh array for the empty block. */
+	block->insns = succ_block->insns;
+	block->max_insns = succ_block->max_insns;
+	if(branch)
+	{
+		/* Copy the branch instruction */
+		jit_memcpy(block->insns,
+			   insns + block->num_insns - 1,
+			   sizeof(struct _jit_insn));
+		/* In the combined block turn branch into NOP */
+		insns[block->num_insns - 1].opcode = JIT_OP_NOP;
+	}
+	block->num_insns = branch;
+	succ_block->insns = insns;
+	succ_block->max_insns = max_insns;
+	succ_block->num_insns = num_insns;
+
+	merge_empty(func, block, changed);
 }
 
 /* Delete block along with references to it */
@@ -602,6 +680,10 @@ _jit_block_clean_cfg(jit_function_t func)
 		{
 			continue;
 		}
+
+		/* Take care of redundant branches that is, if possible, either
+		   replace a branch with NOP turning it to a fall-through case
+		   or conditional branch reduce to unconditional */
 		if(block->succs[0]->flags == _JIT_EDGE_BRANCH)
 		{
 			insn = _jit_block_get_last(block);
@@ -615,34 +697,40 @@ _jit_block_clean_cfg(jit_function_t func)
 				/* Replace useless branch with NOP */
 				changed = 1;
 				insn->opcode = JIT_OP_NOP;
-				if(block->num_succs == 1)
+				if(block->num_succs == 2)
+				{
+					/* For conditional branch delete the branch
+					   edge while leaving the fallthough edge
+					   intact */
+					delete_edge(func, block->succs[0]);
+				}
+				else
 				{
 					/* For unconditional branch replace the branch
 					   edge with a fallthrough edge */
 					block->ends_in_dead = 0;
 					block->succs[0]->flags = _JIT_EDGE_FALLTHRU;
 				}
-				else
-				{
-					/* For conditional branch delete the branch
-					   edge while leaving the fallthough edge */
-					delete_edge(func, block->succs[0]);
-				}
 			}
-			else if(block->num_succs == 2 && block->next->num_succs == 1
+			else if(block->num_succs == 2
+				&& block->next->num_succs == 1
 				&& block->next->succs[0]->flags == _JIT_EDGE_BRANCH
 				&& block->succs[0]->dst == block->next->succs[0]->dst
 				&& is_empty_block(block->next))
 			{
-				/* Replace conditional branch with unconditional,
-				   remove the fallthough edge while leaving the branch
-				   edge */
+				/* For conditional branch followed by unconditional
+				   that has the same target make the first branch
+				   unconditional too, remove the fallthough edge while
+				   leaving the branch edge intact */
 				changed = 1;
 				insn->opcode = JIT_OP_BR;
 				block->ends_in_dead = 1;
 				delete_edge(func, block->succs[1]);
 			}
 		}
+
+		/* Try to simplify basic blocks that end with fall-thtough or
+		   unconditional branch */
 		if(block->num_succs == 1
 		   && (block->succs[0]->flags == _JIT_EDGE_BRANCH
 		       || block->succs[0]->flags == _JIT_EDGE_FALLTHRU))
@@ -652,9 +740,18 @@ _jit_block_clean_cfg(jit_function_t func)
 				/* Remove empty block */
 				merge_empty(func, block, &changed);
 			}
-		}
+			else if(block->succs[0]->dst->num_preds == 1)
+			{
+				/* Combine with the successor block if it has
+				   only one predecessor */
+				combine_block(func, block, &changed);
+			}
 
-		/* TODO: "combine blocks" and "hoist branch" parts of the Clean algorithm */
+			/* TODO: "hoist branch" part of the Clean algorithm.
+			   It is somewhat complicated as libjit conditional
+			   branches differ too much from ILOC conditional
+			   branches */
+		}
 	}
 
 	if(changed)
