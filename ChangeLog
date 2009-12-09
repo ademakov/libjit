@@ -1,3 +1,15 @@
+2009-12-09  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-block.c (merge_empty): fix label merging.
+
+	* jit/jit-internal.h, jit/jit-insn.c (jit_insn_address_of_label)
+	* jit/jit-block.c (_jit_block_record_label_flags): flag labels that
+	are taken address of.
+
+	* jit/jit-block.c (eliminate_unreachable, _jit_block_clean_cfg):
+	do not optimize away blocks with labels flagged as being taken
+	address of.
+
 2009-11-01  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-block.c (_jit_block_clean_cfg): implement the "combine" part

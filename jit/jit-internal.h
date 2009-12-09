@@ -31,6 +31,7 @@ extern	"C" {
 
 /*
 #define _JIT_COMPILE_DEBUG	1
+#define _JIT_BLOCK_DEBUG	1
 */
 
 /*
@@ -224,6 +225,7 @@ struct _jit_block
 	/* Control flow flags */
 	unsigned		visited : 1;
 	unsigned		ends_in_dead : 1;
+	unsigned		address_of : 1;
 
 	/* Metadata */
 	jit_meta_t		meta;
@@ -327,7 +329,13 @@ struct _jit_label_info
 
 	/* Next label that might belong to the same block */
 	jit_label_t		alias;
+
+	/* Label flags */
+	int			flags;
 };
+
+#define JIT_LABEL_ADDRESS_OF		0x0001
+
 
 /*
  * Information that is associated with a function for building
@@ -643,6 +651,11 @@ void _jit_block_attach_before(jit_block_t block, jit_block_t first, jit_block_t 
  * Record the label mapping for a block.
  */
 int _jit_block_record_label(jit_block_t block, jit_label_t label);
+
+/*
+ * Record the label flags.
+ */
+int _jit_block_record_label_flags(jit_function_t func, jit_label_t label, int flags);
 
 /*
  * Add an instruction to a block.

@@ -1138,6 +1138,9 @@ int
 jit_insn_new_block(jit_function_t func)
 {
 	jit_block_t block;
+#ifdef _JIT_BLOCK_DEBUG
+	jit_label_t label;
+#endif
 
 	/* Create a new block */
 	block = _jit_block_create(func);
@@ -1145,6 +1148,15 @@ jit_insn_new_block(jit_function_t func)
 	{
 		return 0;
 	}
+
+#ifdef _JIT_BLOCK_DEBUG
+	label = (func->builder->next_label)++;
+	if(!_jit_block_record_label(block, label))
+	{
+		_jit_block_destroy(block);
+		return 0;
+	}
+#endif
 
 	/* Insert the block to the end of the function's block list */
 	_jit_block_attach_before(func->builder->exit_block, block, block);
@@ -4120,6 +4132,11 @@ jit_value_t jit_insn_address_of_label(jit_function_t func, jit_label_t *label)
 	{
 		*label = (func->builder->next_label)++;
 	}
+	if(!_jit_block_record_label_flags(func, *label, JIT_LABEL_ADDRESS_OF))
+	{
+		return 0;
+	}
+
 	insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{

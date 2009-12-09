@@ -254,7 +254,7 @@ detach_edge_dst(_jit_edge_t edge)
 	}
 }
 
-static int
+static void
 attach_edge_dst(_jit_edge_t edge, jit_block_t block)
 {
 	_jit_edge_t *preds;
@@ -262,14 +262,12 @@ attach_edge_dst(_jit_edge_t edge, jit_block_t block)
 	preds = jit_realloc(block->preds, (block->num_preds + 1) * sizeof(_jit_edge_t));
 	if(!preds)
 	{
-		return 0;
+		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 	}
 
 	preds[block->num_preds++] = edge;
 	block->preds = preds;
 	edge->dst = block;
-
-	return 1;
 }
 
 /* Delete edge along with references to it */
@@ -318,11 +316,31 @@ is_empty_block(jit_block_t block)
 	return 1;
 }
 
+#ifdef _JIT_BLOCK_DEBUG
+static void
+label_loop_check(jit_function_t func, jit_block_t block, jit_label_t label)
+{
+	jit_label_t block_label = block->label;
+	while (block_label != jit_label_undefined)
+	{
+		if (block_label == label)
+		{
+			abort();
+		}
+		block_label = func->builder->label_info[block_label].alias;
+	}
+}
+#endif
+
 static void
 merge_labels(jit_function_t func, jit_block_t block, jit_label_t label)
 {
 	_jit_label_info_t *info;
 	jit_label_t alias;
+
+#ifdef _JIT_BLOCK_DEBUG
+	label_loop_check(func, block, label);
+#endif
 
 	while(label != jit_label_undefined)
 	{
@@ -349,6 +367,7 @@ merge_empty(jit_function_t func, jit_block_t block, int *changed)
 
 	/* Retarget labels bound to this block to the successor block. */
 	merge_labels(func, succ_block, block->label);
+	block->label = jit_label_undefined;
 
 	/* Retarget all incoming edges except a fallthrough edge */
 	fallthru_edge = 0;
@@ -362,10 +381,7 @@ merge_empty(jit_function_t func, jit_block_t block, int *changed)
 		else
 		{
 			*changed = 1;
-			if(!attach_edge_dst(pred_edge, succ_block))
-			{
-				jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
-			}
+			attach_edge_dst(pred_edge, succ_block);
 		}
 	}
 
@@ -377,10 +393,7 @@ merge_empty(jit_function_t func, jit_block_t block, int *changed)
 		if(succ_edge->flags == _JIT_EDGE_FALLTHRU)
 		{
 			*changed = 1;
-			if(!attach_edge_dst(fallthru_edge, succ_block))
-			{
-				jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
-			}
+			attach_edge_dst(fallthru_edge, succ_block);
 			fallthru_edge = 0;
 		}
 		else if (block->num_preds > 1)
@@ -479,6 +492,22 @@ combine_block(jit_function_t func, jit_block_t block, int *changed)
 	merge_empty(func, block, changed);
 }
 
+/* Mark blocks that might be taken address of */
+static void
+set_address_of(jit_function_t func)
+{
+	int index;
+
+	for(index = 0; index < func->builder->max_label_info; index++)
+	{
+		if((func->builder->label_info[index].flags & JIT_LABEL_ADDRESS_OF) != 0
+		   && func->builder->label_info[index].block)
+		{
+			func->builder->label_info[index].block->address_of = 1;
+		}
+	}
+}
+
 /* Delete block along with references to it */
 static void
 eliminate_block(jit_block_t block)
@@ -537,13 +566,16 @@ eliminate_unreachable(jit_function_t func)
 	while(block != func->builder->exit_block)
 	{
 		next_block = block->next;
-		if(block->visited)
+		if(!block->address_of)
 		{
-			block->visited = 0;
-		}
-		else
-		{
-			eliminate_block(block);
+			if(block->visited)
+			{
+				block->visited = 0;
+			}
+			else
+			{
+				eliminate_block(block);
+			}
 		}
 		block = next_block;
 	}
@@ -652,6 +684,8 @@ _jit_block_clean_cfg(jit_function_t func)
 	jit_block_t block;
 	jit_insn_t insn;
 
+	set_address_of(func);
+
 	/*
 	 * The code below is based on the Clean algorithm described in
 	 * "Engineering a Compiler" by Keith D. Cooper and Linda Torczon,
@@ -683,7 +717,7 @@ _jit_block_clean_cfg(jit_function_t func)
 
 		/* Take care of redundant branches that is, if possible, either
 		   replace a branch with NOP turning it to a fall-through case
-		   or conditional branch reduce to unconditional */
+		   or reduce a conditional branch to unconditional */
 		if(block->succs[0]->flags == _JIT_EDGE_BRANCH)
 		{
 			insn = _jit_block_get_last(block);
@@ -702,12 +736,18 @@ _jit_block_clean_cfg(jit_function_t func)
 					/* For conditional branch delete the branch
 					   edge while leaving the fallthough edge
 					   intact */
+#ifdef _JIT_BLOCK_DEBUG
+					printf("%d cbranch->fallthru %d\n", index, block->label);
+#endif
 					delete_edge(func, block->succs[0]);
 				}
 				else
 				{
 					/* For unconditional branch replace the branch
 					   edge with a fallthrough edge */
+#ifdef _JIT_BLOCK_DEBUG
+					printf("%d ubranch->fallthru %d\n", index, block->label);
+#endif
 					block->ends_in_dead = 0;
 					block->succs[0]->flags = _JIT_EDGE_FALLTHRU;
 				}
@@ -722,6 +762,9 @@ _jit_block_clean_cfg(jit_function_t func)
 				   that has the same target make the first branch
 				   unconditional too, remove the fallthough edge while
 				   leaving the branch edge intact */
+#ifdef _JIT_BLOCK_DEBUG
+				printf("%d cbranch->ubranch %d\n", index, block->label);
+#endif
 				changed = 1;
 				insn->opcode = JIT_OP_BR;
 				block->ends_in_dead = 1;
@@ -738,12 +781,19 @@ _jit_block_clean_cfg(jit_function_t func)
 			if(is_empty_block(block))
 			{
 				/* Remove empty block */
+#ifdef _JIT_BLOCK_DEBUG
+				printf("%d merge_empty %d\n", index, block->label);
+#endif
 				merge_empty(func, block, &changed);
 			}
-			else if(block->succs[0]->dst->num_preds == 1)
+			else if(block->succs[0]->dst->num_preds == 1
+				&& block->succs[0]->dst->address_of == 0)
 			{
 				/* Combine with the successor block if it has
 				   only one predecessor */
+#ifdef _JIT_BLOCK_DEBUG
+				printf("%d combine_block %d\n", index, block->label);
+#endif
 				combine_block(func, block, &changed);
 			}
 
@@ -896,17 +946,16 @@ _jit_block_attach_before(jit_block_t block, jit_block_t first, jit_block_t last)
 	block->prev = last;
 }
 
-int
-_jit_block_record_label(jit_block_t block, jit_label_t label)
+/* Make space for the label in the label info table */
+static int
+ensure_label_table(jit_function_t func, jit_label_t label)
 {
-	jit_builder_t builder;
 	jit_label_t num;
 	_jit_label_info_t *info;
 
-	builder = block->func->builder;
-	if(label >= builder->max_label_info)
+	if(label >= func->builder->max_label_info)
 	{
-		num = builder->max_label_info;
+		num = func->builder->max_label_info;
 		if(num < 64)
 		{
 			num = 64;
@@ -916,23 +965,57 @@ _jit_block_record_label(jit_block_t block, jit_label_t label)
 			num *= 2;
 		}
 
-		info = (_jit_label_info_t *) jit_realloc(builder->label_info,
+		info = (_jit_label_info_t *) jit_realloc(func->builder->label_info,
 							 num * sizeof(_jit_label_info_t));
 		if(!info)
 		{
 			return 0;
 		}
 
-		jit_memzero(info + builder->max_label_info,
-			    sizeof(_jit_label_info_t) * (num - builder->max_label_info));
-		builder->label_info = info;
-		builder->max_label_info = num;
+		jit_memzero(info + func->builder->max_label_info,
+			    sizeof(_jit_label_info_t) * (num - func->builder->max_label_info));
+		func->builder->label_info = info;
+		func->builder->max_label_info = num;
 	}
 
+	return 1;
+}
+
+int
+_jit_block_record_label(jit_block_t block, jit_label_t label)
+{
+	jit_builder_t builder;
+
+	if(!ensure_label_table(block->func, label))
+	{
+		return 0;
+	}
+
+	builder = block->func->builder;
+
+	/* Bail out on previously recorded label */
+	if(builder->label_info[label].block)
+	{
+		abort();
+	}
+
+	/* Record label info to the table */
 	builder->label_info[label].block = block;
 	builder->label_info[label].alias = block->label;
 	block->label = label;
 
+	return 1;
+}
+
+int
+_jit_block_record_label_flags(jit_function_t func, jit_label_t label, int flags)
+{
+	if(!ensure_label_table(func, label))
+	{
+		return 0;
+	}
+
+	func->builder->label_info[label].flags = flags;
 	return 1;
 }
 
