@@ -996,7 +996,7 @@ _jit_block_record_label(jit_block_t block, jit_label_t label)
 	/* Bail out on previously recorded label */
 	if(builder->label_info[label].block)
 	{
-		abort();
+		return 0;
 	}
 
 	/* Record label info to the table */

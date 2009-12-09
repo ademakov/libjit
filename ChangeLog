@@ -1,5 +1,8 @@
 2009-12-09  Aleksey Demakov  <ademakov@gmail.com>
 
+	* jit/jit-block.c (_jit_block_record_label): bail out on previously
+	assigned label.
+
 	* jit/jit-block.c (merge_empty): fix label merging.
 
 	* jit/jit-internal.h, jit/jit-insn.c (jit_insn_address_of_label)
