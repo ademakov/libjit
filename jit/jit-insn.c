@@ -3576,6 +3576,7 @@ int jit_insn_branch_if
 	jit_block_t block;
 	jit_type_t type;
 	int opcode;
+	jit_value_t value1;
 	jit_value_t value2;
 
 	/* Bail out if the parameters are invalid */
@@ -3684,19 +3685,24 @@ int jit_insn_branch_if
 				case JIT_OP_NFGE_INV:	opcode = JIT_OP_BR_NFGE_INV; break;
 			}
 			/* Add a new branch instruction */
+			/* Save the values from the previous insn because *prev might
+			   become invalid if the call to _jit_block_add_insn triggers
+			   a reallocation of the insns array. */
+			value1 = prev->value1;
+			value2 = prev->value2;
 			insn = _jit_block_add_insn(func->builder->current_block);
 			if(!insn)
 			{
 				return 0;
 			}
 
-			jit_value_ref(func, prev->value1);
-			jit_value_ref(func, prev->value2);
+			jit_value_ref(func, value1);
+			jit_value_ref(func, value2);
 			insn->opcode = (short)opcode;
 			insn->flags = JIT_INSN_DEST_IS_LABEL;
 			insn->dest = (jit_value_t)(*label);
-			insn->value1 = prev->value1;
-			insn->value2 = prev->value2;
+			insn->value1 = value1;
+			insn->value2 = value2;
 			goto add_block;
 		}
 	}
@@ -3788,6 +3794,7 @@ int jit_insn_branch_if_not
 	jit_block_t block;
 	jit_type_t type;
 	int opcode;
+	jit_value_t value1;
 	jit_value_t value2;
 
 	/* Bail out if the parameters are invalid */
@@ -3897,19 +3904,24 @@ int jit_insn_branch_if_not
 			}
 
 			/* Add a new branch instruction */
+			/* Save the values from the previous insn because *prev might
+			   become invalid if the call to _jit_block_add_insn triggers
+			   a reallocation of the insns array. */
+			value1 = prev->value1;
+			value2 = prev->value2;
 			insn = _jit_block_add_insn(func->builder->current_block);
 			if(!insn)
 			{
 				return 0;
 			}
 
-			jit_value_ref(func, prev->value1);
-			jit_value_ref(func, prev->value2);
+			jit_value_ref(func, value1);
+			jit_value_ref(func, value2);
 			insn->opcode = (short)opcode;
 			insn->flags = JIT_INSN_DEST_IS_LABEL;
 			insn->dest = (jit_value_t)(*label);
-			insn->value1 = prev->value1;
-			insn->value2 = prev->value2;
+			insn->value1 = value1;
+			insn->value2 = value2;
 			goto add_block;
 		}
 	}

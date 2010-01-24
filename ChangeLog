@@ -1,3 +1,8 @@
+2010-01-24  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-insn.c (jit_insn_branch_if, jit_insn_branch_if_not): Fix
+	accesses to possibly freed memory.
+
 2009-12-09  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-block.c (_jit_block_record_label): bail out on previously
