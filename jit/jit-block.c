@@ -778,7 +778,8 @@ _jit_block_clean_cfg(jit_function_t func)
 		   && (block->succs[0]->flags == _JIT_EDGE_BRANCH
 		       || block->succs[0]->flags == _JIT_EDGE_FALLTHRU))
 		{
-			if(is_empty_block(block))
+			if(block->address_of == 0 &&
+			   is_empty_block(block))
 			{
 				/* Remove empty block */
 #ifdef _JIT_BLOCK_DEBUG

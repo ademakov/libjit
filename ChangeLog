@@ -1,3 +1,8 @@
+2010-05-08  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-block.c (_jit_block_clean_cfg): Don't merge an empty block
+	if the block's address was used.
+
 2010-01-24  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-insn.c (jit_insn_branch_if, jit_insn_branch_if_not): Fix
