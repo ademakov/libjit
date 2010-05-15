@@ -1126,7 +1126,7 @@ jit_block_get_label(jit_block_t block)
 }
 
 /*@
- * @deftypefun jit_label_t jit_block_get_next_label (jit_block_t @var{block, jit_label_t @var{label}})
+ * @deftypefun jit_label_t jit_block_get_next_label (jit_block_t @var{block}, jit_label_t @var{label})
  * Get the next label associated with a block.
  * @end deftypefun
 @*/
