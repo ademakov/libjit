@@ -1170,7 +1170,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_int_ovf
+						if(!jit_float32_to_int_ovf
 								(&(result->un.int_value),
 								 value->un.float32_value))
 						{
@@ -1187,7 +1187,7 @@ int jit_constant_convert
 					{
 						result->un.int_value =
 							jit_int_to_sbyte
-								(jit_nfloat_to_int(value->un.float32_value));
+								(jit_float32_to_int(value->un.float32_value));
 					}
 				}
 				break;
@@ -1196,7 +1196,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_int_ovf
+						if(!jit_float64_to_int_ovf
 								(&(result->un.int_value),
 								 value->un.float64_value))
 						{
@@ -1213,7 +1213,7 @@ int jit_constant_convert
 					{
 						result->un.int_value =
 							jit_int_to_sbyte
-								(jit_nfloat_to_int(value->un.float64_value));
+								(jit_float64_to_int(value->un.float64_value));
 					}
 				}
 				break;
@@ -1354,7 +1354,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_int_ovf
+						if(!jit_float32_to_int_ovf
 								(&(result->un.int_value),
 								 value->un.float32_value))
 						{
@@ -1371,7 +1371,7 @@ int jit_constant_convert
 					{
 						result->un.int_value =
 							jit_int_to_ubyte
-								(jit_nfloat_to_int(value->un.float32_value));
+								(jit_float32_to_int(value->un.float32_value));
 					}
 				}
 				break;
@@ -1380,7 +1380,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_int_ovf
+						if(!jit_float64_to_int_ovf
 								(&(result->un.int_value),
 								 value->un.float64_value))
 						{
@@ -1397,7 +1397,7 @@ int jit_constant_convert
 					{
 						result->un.int_value =
 							jit_int_to_ubyte
-								(jit_nfloat_to_int(value->un.float64_value));
+								(jit_float64_to_int(value->un.float64_value));
 					}
 				}
 				break;
@@ -1538,7 +1538,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_int_ovf
+						if(!jit_float32_to_int_ovf
 								(&(result->un.int_value),
 								 value->un.float32_value))
 						{
@@ -1555,7 +1555,7 @@ int jit_constant_convert
 					{
 						result->un.int_value =
 							jit_int_to_short
-								(jit_nfloat_to_int(value->un.float32_value));
+								(jit_float32_to_int(value->un.float32_value));
 					}
 				}
 				break;
@@ -1564,7 +1564,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_int_ovf
+						if(!jit_float64_to_int_ovf
 								(&(result->un.int_value),
 								 value->un.float64_value))
 						{
@@ -1581,7 +1581,7 @@ int jit_constant_convert
 					{
 						result->un.int_value =
 							jit_int_to_short
-								(jit_nfloat_to_int(value->un.float64_value));
+								(jit_float64_to_int(value->un.float64_value));
 					}
 				}
 				break;
@@ -1722,7 +1722,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_int_ovf
+						if(!jit_float32_to_int_ovf
 								(&(result->un.int_value),
 								 value->un.float32_value))
 						{
@@ -1739,7 +1739,7 @@ int jit_constant_convert
 					{
 						result->un.int_value =
 							jit_int_to_ushort
-								(jit_nfloat_to_int(value->un.float32_value));
+								(jit_float32_to_int(value->un.float32_value));
 					}
 				}
 				break;
@@ -1748,7 +1748,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_int_ovf
+						if(!jit_float64_to_int_ovf
 								(&(result->un.int_value),
 								 value->un.float64_value))
 						{
@@ -1765,7 +1765,7 @@ int jit_constant_convert
 					{
 						result->un.int_value =
 							jit_int_to_ushort
-								(jit_nfloat_to_int(value->un.float64_value));
+								(jit_float64_to_int(value->un.float64_value));
 					}
 				}
 				break;
@@ -1873,7 +1873,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_int_ovf
+						if(!jit_float32_to_int_ovf
 								(&(result->un.int_value),
 								 value->un.float32_value))
 						{
@@ -1883,7 +1883,7 @@ int jit_constant_convert
 					else
 					{
 						result->un.int_value =
-							jit_nfloat_to_int(value->un.float32_value);
+							jit_float32_to_int(value->un.float32_value);
 					}
 				}
 				break;
@@ -1892,7 +1892,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_int_ovf
+						if(!jit_float64_to_int_ovf
 								(&(result->un.int_value),
 								 value->un.float64_value))
 						{
@@ -1902,7 +1902,7 @@ int jit_constant_convert
 					else
 					{
 						result->un.int_value =
-							jit_nfloat_to_int(value->un.float64_value);
+							jit_float64_to_int(value->un.float64_value);
 					}
 				}
 				break;
@@ -2003,7 +2003,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_uint_ovf
+						if(!jit_float32_to_uint_ovf
 								(&(result->un.uint_value),
 								 value->un.float32_value))
 						{
@@ -2013,7 +2013,7 @@ int jit_constant_convert
 					else
 					{
 						result->un.uint_value =
-							jit_nfloat_to_uint(value->un.float32_value);
+							jit_float32_to_uint(value->un.float32_value);
 					}
 				}
 				break;
@@ -2022,7 +2022,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_uint_ovf
+						if(!jit_float64_to_uint_ovf
 								(&(result->un.uint_value),
 								 value->un.float64_value))
 						{
@@ -2032,7 +2032,7 @@ int jit_constant_convert
 					else
 					{
 						result->un.uint_value =
-							jit_nfloat_to_uint(value->un.float64_value);
+							jit_float64_to_uint(value->un.float64_value);
 					}
 				}
 				break;
@@ -2109,7 +2109,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_long_ovf
+						if(!jit_float32_to_long_ovf
 								(&(result->un.long_value),
 								 value->un.float32_value))
 						{
@@ -2119,7 +2119,7 @@ int jit_constant_convert
 					else
 					{
 						result->un.long_value =
-							jit_nfloat_to_long(value->un.float32_value);
+							jit_float32_to_long(value->un.float32_value);
 					}
 				}
 				break;
@@ -2128,7 +2128,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_long_ovf
+						if(!jit_float64_to_long_ovf
 								(&(result->un.long_value),
 								 value->un.float64_value))
 						{
@@ -2138,7 +2138,7 @@ int jit_constant_convert
 					else
 					{
 						result->un.long_value =
-							jit_nfloat_to_long(value->un.float64_value);
+							jit_float64_to_long(value->un.float64_value);
 					}
 				}
 				break;
@@ -2227,7 +2227,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_ulong_ovf
+						if(!jit_float32_to_ulong_ovf
 								(&(result->un.ulong_value),
 								 value->un.float32_value))
 						{
@@ -2237,7 +2237,7 @@ int jit_constant_convert
 					else
 					{
 						result->un.ulong_value =
-							jit_nfloat_to_ulong(value->un.float32_value);
+							jit_float32_to_ulong(value->un.float32_value);
 					}
 				}
 				break;
@@ -2246,7 +2246,7 @@ int jit_constant_convert
 				{
 					if(overflow_check)
 					{
-						if(!jit_nfloat_to_ulong_ovf
+						if(!jit_float64_to_ulong_ovf
 								(&(result->un.ulong_value),
 								 value->un.float64_value))
 						{
@@ -2256,7 +2256,7 @@ int jit_constant_convert
 					else
 					{
 						result->un.ulong_value =
-							jit_nfloat_to_ulong(value->un.float64_value);
+							jit_float64_to_ulong(value->un.float64_value);
 					}
 				}
 				break;
@@ -2293,32 +2293,28 @@ int jit_constant_convert
 				case JIT_TYPE_INT:
 				{
 					result->un.float32_value =
-						jit_nfloat_to_float32
-							(jit_int_to_nfloat(value->un.int_value));
+						jit_int_to_float32(value->un.int_value);
 				}
 				break;
 
 				case JIT_TYPE_UINT:
 				{
 					result->un.float32_value =
-						jit_nfloat_to_float32
-							(jit_uint_to_nfloat(value->un.uint_value));
+						jit_uint_to_float32(value->un.uint_value);
 				}
 				break;
 
 				case JIT_TYPE_LONG:
 				{
 					result->un.float32_value =
-						jit_nfloat_to_float32
-							(jit_long_to_nfloat(value->un.long_value));
+						jit_long_to_float32(value->un.long_value);
 				}
 				break;
 
 				case JIT_TYPE_ULONG:
 				{
 					result->un.float32_value =
-						jit_nfloat_to_float32
-							(jit_ulong_to_nfloat(value->un.ulong_value));
+						jit_ulong_to_float32(value->un.ulong_value);
 				}
 				break;
 
@@ -2331,7 +2327,7 @@ int jit_constant_convert
 				case JIT_TYPE_FLOAT64:
 				{
 					result->un.float32_value =
-						jit_nfloat_to_float32(value->un.float64_value);
+						jit_float64_to_float32(value->un.float64_value);
 				}
 				break;
 
@@ -2355,39 +2351,35 @@ int jit_constant_convert
 				case JIT_TYPE_INT:
 				{
 					result->un.float64_value =
-						jit_nfloat_to_float64
-							(jit_int_to_nfloat(value->un.int_value));
+						jit_int_to_float64(value->un.int_value);
 				}
 				break;
 
 				case JIT_TYPE_UINT:
 				{
 					result->un.float64_value =
-						jit_nfloat_to_float64
-							(jit_uint_to_nfloat(value->un.uint_value));
+						jit_uint_to_float64(value->un.uint_value);
 				}
 				break;
 
 				case JIT_TYPE_LONG:
 				{
 					result->un.float64_value =
-						jit_nfloat_to_float64
-							(jit_long_to_nfloat(value->un.long_value));
+						jit_long_to_float64(value->un.long_value);
 				}
 				break;
 
 				case JIT_TYPE_ULONG:
 				{
 					result->un.float64_value =
-						jit_nfloat_to_float64
-							(jit_ulong_to_nfloat(value->un.ulong_value));
+						jit_ulong_to_float64(value->un.ulong_value);
 				}
 				break;
 
 				case JIT_TYPE_FLOAT32:
 				{
 					result->un.float64_value =
-						jit_nfloat_to_float64(value->un.float32_value);
+						jit_float32_to_float64(value->un.float32_value);
 				}
 				break;
 

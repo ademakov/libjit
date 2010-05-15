@@ -1,3 +1,26 @@
+2010-05-15  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-instrinsic.c ((jit_float32_to_int, jit_float32_to_uint,
+	jit_float32_to_long, jit_float32_to_ulong, jit_float32_to_int_ovf,
+	jit_float32_to_uint_ovf, jit_float32_to_long_ovf,
+	jit_float32_to_ulong_ovf, jit_float64_to_int, jit_float64_to_uint,
+	jit_float64_to_long, jit_float64_to_ulong, jit_float64_to_int_ovf,
+	jit_float64_to_uint_ovf, jit_float64_to_long_ovf,
+	jit_float64_to_ulong_ovf, jit_int_to_float32, jit_int_to_float64,
+	jit_uint_to_float32, jit_uint_to_float64, jit_long_to_float32,
+	jit_long_to_float64, jit_ulong_to_float32, jit_ulong_to_float64,
+	jit_float32_to_float64, jit_float64_to_float32): Add intrinsics for
+	direct conversion from float32 and float64 to the various integer
+	types and float32 to float64 and vice versa.
+
+	* include/jit/jit-intrinsic.h: Add the prototypes for the new
+	intrinsics.
+
+	* jit/jit-symbol.c: Add the new intrinsics to the symbol table.
+
+	* jit/jit-value.c (jit_constant_convert): Use the new intrinsics in
+	constant conversions.
+
 2010-05-08  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-block.c (_jit_block_clean_cfg): Don't merge an empty block

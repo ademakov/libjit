@@ -3289,6 +3289,294 @@ jit_int jit_ulong_to_ulong_ovf(jit_ulong *result, jit_ulong value)
 }
 
 /*@
+ * @deftypefun jit_int jit_float32_to_int (jit_float32 @var{value})
+ * @deftypefunx jit_uint jit_float32_to_uint (jit_float32 @var{value})
+ * @deftypefunx jit_long jit_float32_to_long (jit_float32 @var{value})
+ * @deftypefunx jit_ulong jit_float32_to_ulong (jit_float32 @var{value})
+ * Convert a 32-bit floating-point value into an integer.
+ * @end deftypefun
+@*/
+jit_int jit_float32_to_int(jit_float32 value)
+{
+	return (jit_int)value;
+}
+
+jit_uint jit_float32_to_uint(jit_float32 value)
+{
+	return (jit_uint)value;
+}
+
+jit_long jit_float32_to_long(jit_float32 value)
+{
+	return (jit_long)value;
+}
+
+jit_ulong jit_float32_to_ulong(jit_float32 value)
+{
+	/* Some platforms cannot perform the conversion directly,
+	   so we need to do it in stages */
+	if(jit_float32_is_finite(value))
+	{
+		if(value >= (jit_float32)0.0)
+		{
+			if(value < (jit_float32)9223372036854775808.0)
+			{
+				return (jit_ulong)(jit_long)value;
+			}
+			else if(value < (jit_float32)18446744073709551616.0)
+			{
+				jit_long temp = (jit_long)(value - 9223372036854775808.0);
+				return (jit_ulong)(temp - jit_min_long);
+			}
+			else
+			{
+				return jit_max_ulong;
+			}
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	else if(jit_float32_is_nan(value))
+	{
+		return 0;
+	}
+	else if(value < (jit_float32)0.0)
+	{
+		return 0;
+	}
+	else
+	{
+		return jit_max_ulong;
+	}
+}
+
+/*@
+ * @deftypefun jit_int jit_float32_to_int_ovf (jit_int *@var{result}, jit_float32 @var{value})
+ * @deftypefunx jit_uint jit_float32_to_uint_ovf (jit_uint *@var{result}, jit_float32 @var{value})
+ * @deftypefunx jit_long jit_float32_to_long_ovf (jit_long *@var{result}, jit_float32 @var{value})
+ * @deftypefunx jit_ulong jit_float32_to_ulong_ovf (jit_ulong *@var{result}, jit_float32 @var{value})
+ * Convert a 32-bit floating-point value into an integer,
+ * with overflow detection.  Returns @code{JIT_RESULT_OK} if the conversion
+ * was successful or @code{JIT_RESULT_OVERFLOW} if an overflow occurred.
+ * @end deftypefun
+@*/
+jit_int jit_float32_to_int_ovf(jit_int *result, jit_float32 value)
+{
+	if(jit_float32_is_finite(value))
+	{
+		if(value > (jit_float32)(-2147483649.0) &&
+		   value < (jit_float32)2147483648.0)
+		{
+			*result = jit_float32_to_int(value);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+jit_int jit_float32_to_uint_ovf(jit_uint *result, jit_float32 value)
+{
+	if(jit_float32_is_finite(value))
+	{
+		if(value >= (jit_float32)0.0 &&
+		   value < (jit_float32)4294967296.0)
+		{
+			*result = jit_float32_to_uint(value);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+jit_int jit_float32_to_long_ovf(jit_long *result, jit_float32 value)
+{
+	if(jit_float32_is_finite(value))
+	{
+		if(value >= (jit_float32)-9223372036854775808.0 &&
+		   value < (jit_float32)9223372036854775808.0)
+		{
+			*result = jit_float32_to_long(value);
+			return 1;
+		}
+		else if(value < (jit_float32)0.0)
+		{
+			/* Account for the range -9223372036854775809.0 to
+			   -9223372036854775808.0, which may get rounded
+			   off if we aren't careful */
+			value += (jit_float32)9223372036854775808.0;
+			if(value > (jit_float32)(-1.0))
+			{
+				*result = jit_min_long;
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+jit_int jit_float32_to_ulong_ovf(jit_ulong *result, jit_float32 value)
+{
+	if(jit_float32_is_finite(value))
+	{
+		if(value >= (jit_float32)0.0)
+		{
+			if(value < (jit_float32)18446744073709551616.0)
+			{
+				*result = jit_float32_to_ulong(value);
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+/*@
+ * @deftypefun jit_int jit_float64_to_int (jit_float64 @var{value})
+ * @deftypefunx jit_uint jit_float64_to_uint (jit_float64 @var{value})
+ * @deftypefunx jit_long jit_float64_to_long (jit_float64 @var{value})
+ * @deftypefunx jit_ulong jit_float64_to_ulong (jit_float64 @var{value})
+ * Convert a 64-bit floating-point value into an integer.
+ * @end deftypefun
+@*/
+jit_int jit_float64_to_int(jit_float64 value)
+{
+	return (jit_int)value;
+}
+
+jit_uint jit_float64_to_uint(jit_float64 value)
+{
+	return (jit_uint)value;
+}
+
+jit_long jit_float64_to_long(jit_float64 value)
+{
+	return (jit_long)value;
+}
+
+jit_ulong jit_float64_to_ulong(jit_float64 value)
+{
+	/* Some platforms cannot perform the conversion directly,
+	   so we need to do it in stages */
+	if(jit_float64_is_finite(value))
+	{
+		if(value >= (jit_float64)0.0)
+		{
+			if(value < (jit_float64)9223372036854775808.0)
+			{
+				return (jit_ulong)(jit_long)value;
+			}
+			else if(value < (jit_float64)18446744073709551616.0)
+			{
+				jit_long temp = (jit_long)(value - 9223372036854775808.0);
+				return (jit_ulong)(temp - jit_min_long);
+			}
+			else
+			{
+				return jit_max_ulong;
+			}
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	else if(jit_float64_is_nan(value))
+	{
+		return 0;
+	}
+	else if(value < (jit_float64)0.0)
+	{
+		return 0;
+	}
+	else
+	{
+		return jit_max_ulong;
+	}
+}
+
+/*@
+ * @deftypefun jit_int jit_float64_to_int_ovf (jit_int *@var{result}, jit_float64 @var{value})
+ * @deftypefunx jit_uint jit_float64_to_uint_ovf (jit_uint *@var{result}, jit_float64 @var{value})
+ * @deftypefunx jit_long jit_float64_to_long_ovf (jit_long *@var{result}, jit_float64 @var{value})
+ * @deftypefunx jit_ulong jit_float64_to_ulong_ovf (jit_ulong *@var{result}, jit_float64 @var{value})
+ * Convert a 64-bit floating-point value into an integer,
+ * with overflow detection.  Returns @code{JIT_RESULT_OK} if the conversion
+ * was successful or @code{JIT_RESULT_OVERFLOW} if an overflow occurred.
+ * @end deftypefun
+@*/
+jit_int jit_float64_to_int_ovf(jit_int *result, jit_float64 value)
+{
+	if(jit_float64_is_finite(value))
+	{
+		if(value > (jit_float64)(-2147483649.0) &&
+		   value < (jit_float64)2147483648.0)
+		{
+			*result = jit_float64_to_int(value);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+jit_int jit_float64_to_uint_ovf(jit_uint *result, jit_float64 value)
+{
+	if(jit_float64_is_finite(value))
+	{
+		if(value >= (jit_float64)0.0 &&
+		   value < (jit_float64)4294967296.0)
+		{
+			*result = jit_float64_to_uint(value);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+jit_int jit_float64_to_long_ovf(jit_long *result, jit_float64 value)
+{
+	if(jit_float64_is_finite(value))
+	{
+		if(value >= (jit_float64)-9223372036854775808.0 &&
+		   value < (jit_float64)9223372036854775808.0)
+		{
+			*result = jit_float64_to_long(value);
+			return 1;
+		}
+		else if(value < (jit_float64)0.0)
+		{
+			/* Account for the range -9223372036854775809.0 to
+			   -9223372036854775808.0, which may get rounded
+			   off if we aren't careful */
+			value += (jit_float64)9223372036854775808.0;
+			if(value > (jit_float64)(-1.0))
+			{
+				*result = jit_min_long;
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+jit_int jit_float64_to_ulong_ovf(jit_ulong *result, jit_float64 value)
+{
+	if(jit_float64_is_finite(value))
+	{
+		if(value >= (jit_float64)0.0)
+		{
+			if(value < (jit_float64)18446744073709551616.0)
+			{
+				*result = jit_float64_to_ulong(value);
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+/*@
  * @deftypefun jit_int jit_nfloat_to_int (jit_nfloat @var{value})
  * @deftypefunx jit_uint jit_nfloat_to_uint (jit_nfloat @var{value})
  * @deftypefunx jit_long jit_nfloat_to_long (jit_nfloat @var{value})
@@ -3433,6 +3721,82 @@ jit_int jit_nfloat_to_ulong_ovf(jit_ulong *result, jit_nfloat value)
 }
 
 /*@
+ * @deftypefun jit_float32 jit_int_to_float32 (jit_int @var{value})
+ * @deftypefunx jit_float32 jit_uint_to_float32 (jit_uint @var{value})
+ * @deftypefunx jit_float32 jit_long_to_float32 (jit_long @var{value})
+ * @deftypefunx jit_float32 jit_ulong_to_float32 (jit_ulong @var{value})
+ * Convert an integer into 32-bit floating-point value.
+ * @end deftypefun
+@*/
+jit_float32 jit_int_to_float32(jit_int value)
+{
+	return (jit_float32)value;
+}
+
+jit_float32 jit_uint_to_float32(jit_uint value)
+{
+	return (jit_float32)value;
+}
+
+jit_float32 jit_long_to_float32(jit_long value)
+{
+	return (jit_float32)value;
+}
+
+jit_float32 jit_ulong_to_float32(jit_ulong value)
+{
+	/* Some platforms cannot perform the conversion directly,
+	   so we need to do it in stages */
+	if(value < (((jit_ulong)1) << 63))
+	{
+		return (jit_float32)(jit_long)value;
+	}
+	else
+	{
+		return (jit_float32)((jit_long)value) +
+					(jit_float32)18446744073709551616.0;
+	}
+}
+
+/*@
+ * @deftypefun jit_float64 jit_int_to_float64 (jit_int @var{value})
+ * @deftypefunx jit_float64 jit_uint_to_float64 (jit_uint @var{value})
+ * @deftypefunx jit_float64 jit_long_to_float64 (jit_long @var{value})
+ * @deftypefunx jit_float64 jit_ulong_to_float64 (jit_ulong @var{value})
+ * Convert an integer into 64-bit floating-point value.
+ * @end deftypefun
+@*/
+jit_float64 jit_int_to_float64(jit_int value)
+{
+	return (jit_float64)value;
+}
+
+jit_float64 jit_uint_to_float64(jit_uint value)
+{
+	return (jit_float64)value;
+}
+
+jit_float64 jit_long_to_float64(jit_long value)
+{
+	return (jit_float64)value;
+}
+
+jit_float64 jit_ulong_to_float64(jit_ulong value)
+{
+	/* Some platforms cannot perform the conversion directly,
+	   so we need to do it in stages */
+	if(value < (((jit_ulong)1) << 63))
+	{
+		return (jit_float64)(jit_long)value;
+	}
+	else
+	{
+		return (jit_float64)((jit_long)value) +
+					(jit_float64)18446744073709551616.0;
+	}
+}
+
+/*@
  * @deftypefun jit_nfloat jit_int_to_nfloat (jit_int @var{value})
  * @deftypefunx jit_nfloat jit_uint_to_nfloat (jit_uint @var{value})
  * @deftypefunx jit_nfloat jit_long_to_nfloat (jit_long @var{value})
@@ -3471,16 +3835,28 @@ jit_nfloat jit_ulong_to_nfloat(jit_ulong value)
 }
 
 /*@
- * @deftypefun jit_nfloat jit_float32_to_nfloat (jit_float32 @var{value})
+ * @deftypefun jit_float64 jit_float32_to_float64 (jit_float32 @var{value})
+ * @deftypefunx jit_nfloat jit_float32_to_nfloat (jit_float32 @var{value})
+ * @deftypefunx jit_float32 jit_float64_to_float32 (jit_float64 @var{value})
  * @deftypefunx jit_nfloat jit_float64_to_nfloat (jit_float64 @var{value})
  * @deftypefunx jit_float32 jit_nfloat_to_float32 (jit_nfloat @var{value})
  * @deftypefunx jit_float64 jit_nfloat_to_float64 (jit_nfloat @var{value})
  * Convert between floating-point types.
  * @end deftypefun
 @*/
+jit_float64 jit_float32_to_float64(jit_float32 value)
+{
+	return (jit_float64)value;
+}
+
 jit_nfloat jit_float32_to_nfloat(jit_float32 value)
 {
 	return (jit_nfloat)value;
+}
+
+jit_float32 jit_float64_to_float32(jit_float64 value)
+{
+	return (jit_float32)value;
 }
 
 jit_nfloat jit_float64_to_nfloat(jit_float64 value)

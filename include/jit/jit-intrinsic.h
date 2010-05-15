@@ -368,6 +368,42 @@ jit_int jit_ulong_to_long_ovf(jit_long *result, jit_ulong value) JIT_NOTHROW;
 jit_int jit_ulong_to_ulong_ovf(jit_ulong *result, jit_ulong value) JIT_NOTHROW;
 
 /*
+ * Convert a 32-bit floating-point value into various integer types.
+ */
+jit_int jit_float32_to_int(jit_float32 value) JIT_NOTHROW;
+jit_uint jit_float32_to_uint(jit_float32 value) JIT_NOTHROW;
+jit_long jit_float32_to_long(jit_float32 value) JIT_NOTHROW;
+jit_ulong jit_float32_to_ulong(jit_float32 value) JIT_NOTHROW;
+
+/*
+ * Convert a 32-bit floating-point value into various integer types,
+ * with overflow detection.
+ */
+jit_int jit_float32_to_int_ovf(jit_int *result, jit_float32 value) JIT_NOTHROW;
+jit_int jit_float32_to_uint_ovf(jit_uint *result, jit_float32 value) JIT_NOTHROW;
+jit_int jit_float32_to_long_ovf(jit_long *result, jit_float32 value) JIT_NOTHROW;
+jit_int jit_float32_to_ulong_ovf
+	(jit_ulong *result, jit_float32 value) JIT_NOTHROW;
+
+/*
+ * Convert a 64-bit floating-point value into various integer types.
+ */
+jit_int jit_float64_to_int(jit_float64 value) JIT_NOTHROW;
+jit_uint jit_float64_to_uint(jit_float64 value) JIT_NOTHROW;
+jit_long jit_float64_to_long(jit_float64 value) JIT_NOTHROW;
+jit_ulong jit_float64_to_ulong(jit_float64 value) JIT_NOTHROW;
+
+/*
+ * Convert a 64-bit floating-point value into various integer types,
+ * with overflow detection.
+ */
+jit_int jit_float64_to_int_ovf(jit_int *result, jit_float64 value) JIT_NOTHROW;
+jit_int jit_float64_to_uint_ovf(jit_uint *result, jit_float64 value) JIT_NOTHROW;
+jit_int jit_float64_to_long_ovf(jit_long *result, jit_float64 value) JIT_NOTHROW;
+jit_int jit_float64_to_ulong_ovf
+	(jit_ulong *result, jit_float64 value) JIT_NOTHROW;
+
+/*
  * Convert a native floating-point value into various integer types.
  */
 jit_int jit_nfloat_to_int(jit_nfloat value) JIT_NOTHROW;
@@ -388,15 +424,25 @@ jit_int jit_nfloat_to_ulong_ovf
 /*
  * Convert integer types into floating-point values.
  */
+jit_float32 jit_int_to_float32(jit_int value) JIT_NOTHROW;
+jit_float64 jit_int_to_float64(jit_int value) JIT_NOTHROW;
 jit_nfloat jit_int_to_nfloat(jit_int value) JIT_NOTHROW;
+jit_float32 jit_uint_to_float32(jit_uint value) JIT_NOTHROW;
+jit_float64 jit_uint_to_float64(jit_uint value) JIT_NOTHROW;
 jit_nfloat jit_uint_to_nfloat(jit_uint value) JIT_NOTHROW;
+jit_float32 jit_long_to_float32(jit_long value) JIT_NOTHROW;
+jit_float64 jit_long_to_float64(jit_long value) JIT_NOTHROW;
 jit_nfloat jit_long_to_nfloat(jit_long value) JIT_NOTHROW;
+jit_float32 jit_ulong_to_float32(jit_ulong value) JIT_NOTHROW;
+jit_float64 jit_ulong_to_float64(jit_ulong value) JIT_NOTHROW;
 jit_nfloat jit_ulong_to_nfloat(jit_ulong value) JIT_NOTHROW;
 
 /*
  * Convert between floating-point types.
  */
+jit_float64 jit_float32_to_float64(jit_float32 value) JIT_NOTHROW;
 jit_nfloat jit_float32_to_nfloat(jit_float32 value) JIT_NOTHROW;
+jit_float32 jit_float64_to_float32(jit_float64 value) JIT_NOTHROW;
 jit_nfloat jit_float64_to_nfloat(jit_float64 value) JIT_NOTHROW;
 jit_float32 jit_nfloat_to_float32(jit_nfloat value) JIT_NOTHROW;
 jit_float64 jit_nfloat_to_float64(jit_nfloat value) JIT_NOTHROW;
