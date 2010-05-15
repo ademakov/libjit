@@ -22,7 +22,9 @@
 	constant conversions.
 
 	* jit/jit-block.c (jit_block_get_next_label): Fix comment for texinfo.
-  
+
+	* tools/gen-apply.c: Fix strict-alias-rules in returning struct tests.
+
 2010-05-08  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-block.c (_jit_block_clean_cfg): Don't merge an empty block

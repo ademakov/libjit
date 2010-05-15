@@ -954,6 +954,11 @@ void detect_float_return(void)
 	{ \
 		jit_sbyte value[(n)]; \
 	}; \
+	union detect_un_##n \
+	{ \
+		struct detect_##n d; \
+		jit_nint value[64 / sizeof(jit_nint)]; \
+	}; \
 	struct detect_##n detect_struct_##n(void) \
 	{ \
 		struct detect_##n d; \
@@ -964,23 +969,23 @@ void detect_float_return(void)
 	{ \
 		jit_nint *args; \
 		volatile jit_nint stack[1]; \
-		jit_nint buffer[64 / sizeof(jit_nint)]; \
+		union detect_un_##n buffer; \
 		void *apply_return; \
 		jit_builtin_apply_args(jit_nint *, args); \
 		args[0] = (jit_nint)stack; \
-		stack[0] = (jit_nint)buffer; \
+		stack[0] = (jit_nint)&buffer; \
 		if(struct_return_special_reg || num_word_regs > 0) \
 		{ \
-			args[1] = (jit_nint)buffer; \
+			args[1] = (jit_nint)&buffer; \
 			if(struct_reg_overlaps_word_reg) \
 			{ \
-				args[2] = (jit_nint)buffer; \
+				args[2] = (jit_nint)&buffer; \
 			} \
 		} \
-		mem_set(buffer, 0, sizeof(buffer)); \
+		mem_set(&buffer, 0, sizeof(buffer)); \
 		jit_builtin_apply(detect_struct_##n, args, \
 						  sizeof(jit_nint), 0, apply_return); \
-		if(((struct detect_##n *)buffer)->value[0] == 0x00) \
+		if(buffer.d.value[0] == 0x00) \
 		{ \
 			struct_return_in_reg[(n) - 1] = 1; \
 		} \
