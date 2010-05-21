@@ -1,3 +1,7 @@
+2010-05-22  Aleksey Demakov  <ademakov@gmail.co>
+
+	* jit/jit-apply-x86-64.h (JIT_MEMCPY): fix build for MacOS X.
+
 2010-05-15  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-instrinsic.c ((jit_float32_to_int, jit_float32_to_uint,

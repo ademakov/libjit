@@ -137,7 +137,11 @@ _jit_classify_struct(jit_param_passing_t *passing,
 #if defined(__GNUC__)
 
 #ifndef	JIT_MEMCPY
-#define	JIT_MEMCPY	"jit_memcpy@PLT"
+# if defined(__APPLE__) && defined(__MACH__)
+#  define JIT_MEMCPY "_jit_memcpy"
+# else
+#  define JIT_MEMCPY "jit_memcpy@PLT"
+# endif
 #endif
 
 /*
