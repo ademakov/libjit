@@ -1,4 +1,11 @@
-2010-05-22  Aleksey Demakov  <ademakov@gmail.co>
+2010-05-31  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-block.c: allow empty block branch optimization for blocks
+	used both in branch insns and in address-of insns. Branch labels are
+	split from address-of labels and become eligible for optimization
+	while the address-of labels stay with the original block.
+
+2010-05-22  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-apply-x86-64.h (JIT_MEMCPY): fix build for MacOS X.
 

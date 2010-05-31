@@ -302,12 +302,22 @@ is_empty_block(jit_block_t block)
 {
 	int index, opcode;
 
-	for(index = 0; index < block->num_insns; index++)
+	index = block->num_insns;
+	if(index == 0)
 	{
-		opcode = block->insns[index].opcode;
-		if(opcode != JIT_OP_NOP
-		   && opcode != JIT_OP_MARK_OFFSET
-		   && opcode != JIT_OP_BR)
+		return 1;
+	}
+
+	opcode = block->insns[--index].opcode;
+	if(opcode != JIT_OP_NOP && opcode != JIT_OP_MARK_OFFSET && opcode != JIT_OP_BR)
+	{
+		return 0;
+	}
+
+	while(index > 0)
+	{
+		opcode = block->insns[--index].opcode;
+		if(opcode != JIT_OP_NOP && opcode != JIT_OP_MARK_OFFSET)
 		{
 			return 0;
 		}
@@ -321,9 +331,9 @@ static void
 label_loop_check(jit_function_t func, jit_block_t block, jit_label_t label)
 {
 	jit_label_t block_label = block->label;
-	while (block_label != jit_label_undefined)
+	while(block_label != jit_label_undefined)
 	{
-		if (block_label == label)
+		if(block_label == label)
 		{
 			abort();
 		}
@@ -332,23 +342,40 @@ label_loop_check(jit_function_t func, jit_block_t block, jit_label_t label)
 }
 #endif
 
+/* Merge labels of the src block with labels of the dst block but retain
+   the address_of labels.  This requires the address_of labels to be used
+   exclusively as such, no branches are allowed to use address_of labels.
+   This is ensured by the split_address_of() function. */
 static void
-merge_labels(jit_function_t func, jit_block_t block, jit_label_t label)
+merge_labels(jit_function_t func, jit_block_t src, jit_block_t dst)
 {
 	_jit_label_info_t *info;
-	jit_label_t alias;
+	jit_label_t label, alias;
+
+	label = src->label;
+	src->label = jit_label_undefined;
 
 #ifdef _JIT_BLOCK_DEBUG
-	label_loop_check(func, block, label);
+	label_loop_check(func, dst, label);
 #endif
 
 	while(label != jit_label_undefined)
 	{
 		info = &func->builder->label_info[label];
 		alias = info->alias;
-		info->block = block;
-		info->alias = block->label;
-		block->label = label;
+
+		if((info->flags & JIT_LABEL_ADDRESS_OF) == 0)
+		{
+			info->block = dst;
+			info->alias = dst->label;
+			dst->label = label;
+		}
+		else
+		{
+			info->alias = src->label;
+			src->label = label;
+		}
+
 		label = alias;
 	}
 }
@@ -366,8 +393,7 @@ merge_empty(jit_function_t func, jit_block_t block, int *changed)
 	succ_block = succ_edge->dst;
 
 	/* Retarget labels bound to this block to the successor block. */
-	merge_labels(func, succ_block, block->label);
-	block->label = jit_label_undefined;
+	merge_labels(func, block, succ_block);
 
 	/* Retarget all incoming edges except a fallthrough edge */
 	fallthru_edge = 0;
@@ -385,27 +411,37 @@ merge_empty(jit_function_t func, jit_block_t block, int *changed)
 		}
 	}
 
-	/* If there is an incoming fallthrough edge then retarget it
-	   if the outgoing edge is also fallthrough. Otherwise adjust
-	   the preds array to contain this edge only.  */
+	/* Unless the block is taken address of, the incoming fallthrough edge
+	   can be retargeted and then the block deleted if the outgoing edge is
+	   also fallthrough. */
+	if(!block->address_of && fallthru_edge && succ_edge->flags == _JIT_EDGE_FALLTHRU)
+	{
+		*changed = 1;
+		attach_edge_dst(fallthru_edge, succ_block);
+		fallthru_edge = 0;
+	}
+
+	/* Free the block if there is no incoming edge left and it is not taken
+	   address of. Otherwise adjust the preds array accordingly.  */
 	if(fallthru_edge)
 	{
-		if(succ_edge->flags == _JIT_EDGE_FALLTHRU)
-		{
-			*changed = 1;
-			attach_edge_dst(fallthru_edge, succ_block);
-			fallthru_edge = 0;
-		}
-		else if (block->num_preds > 1)
+		if(block->num_preds > 1)
 		{
 			block->num_preds = 1;
 			block->preds = jit_realloc(block->preds, sizeof(_jit_edge_t));
 			block->preds[0] = fallthru_edge;
 		}
 	}
-
-	/* Free block if no incoming edge is left */
-	if(!fallthru_edge)
+	else if(block->address_of)
+	{
+		if(block->num_preds > 0)
+		{
+			block->num_preds = 0;
+			jit_free(block->preds);
+			block->preds = 0;
+		}
+	}
+	else
 	{
 		detach_edge_dst(succ_edge);
 		jit_memory_pool_dealloc(&func->builder->edge_pool, succ_edge);
@@ -492,18 +528,71 @@ combine_block(jit_function_t func, jit_block_t block, int *changed)
 	merge_empty(func, block, changed);
 }
 
+/* Allow branch optimization by splitting the label that is both a branch target
+   and an address-of opcode source into two separate labels with single role.
+   TODO: handle jump tables. */
+static void
+split_address_of(jit_function_t func, jit_block_t block, jit_label_t label)
+{
+	int index;
+	jit_insn_t insn;
+	jit_label_t branch_label;
+	jit_label_t *jump_labels;
+	int jump_index, num_labels;
+
+	branch_label = jit_label_undefined;
+
+	for(index = 0; index < block->num_preds; index++)
+	{
+		if(block->preds[index]->flags != _JIT_EDGE_BRANCH)
+		{
+			continue;
+		}
+
+		if(branch_label == jit_label_undefined)
+		{
+			branch_label = (func->builder->next_label)++;
+			if(!_jit_block_record_label(block, branch_label))
+			{
+				jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
+			}
+		}
+
+		insn = _jit_block_get_last(block->preds[index]->src);
+		if(insn->opcode != JIT_OP_JUMP_TABLE)
+		{
+			insn->dest = (jit_value_t)branch_label;
+		}
+		else
+		{
+			jump_labels = (jit_label_t *) insn->value1->address;
+			num_labels = (int) insn->value2->address;
+			for(jump_index = 0; jump_index < num_labels; jump_index++)
+			{
+				if(jump_labels[jump_index] == label)
+				{
+					jump_labels[jump_index] = branch_label;
+				}
+			}
+		}
+	}
+}
+
 /* Mark blocks that might be taken address of */
 static void
 set_address_of(jit_function_t func)
 {
-	int index;
+	int index, count;
+	jit_block_t block;
 
-	for(index = 0; index < func->builder->max_label_info; index++)
+	count = func->builder->max_label_info;
+	for(index = 0; index < count; index++)
 	{
-		if((func->builder->label_info[index].flags & JIT_LABEL_ADDRESS_OF) != 0
-		   && func->builder->label_info[index].block)
+		block = func->builder->label_info[index].block;
+		if(block && (func->builder->label_info[index].flags & JIT_LABEL_ADDRESS_OF) != 0)
 		{
-			func->builder->label_info[index].block->address_of = 1;
+			block->address_of = 1;
+			split_address_of(func, block, index);
 		}
 	}
 }
@@ -566,16 +655,13 @@ eliminate_unreachable(jit_function_t func)
 	while(block != func->builder->exit_block)
 	{
 		next_block = block->next;
-		if(!block->address_of)
+		if(block->visited)
 		{
-			if(block->visited)
-			{
-				block->visited = 0;
-			}
-			else
-			{
-				eliminate_block(block);
-			}
+			block->visited = 0;
+		}
+		else if(!block->address_of)
+		{
+			eliminate_block(block);
 		}
 		block = next_block;
 	}
@@ -684,8 +770,6 @@ _jit_block_clean_cfg(jit_function_t func)
 	jit_block_t block;
 	jit_insn_t insn;
 
-	set_address_of(func);
-
 	/*
 	 * The code below is based on the Clean algorithm described in
 	 * "Engineering a Compiler" by Keith D. Cooper and Linda Torczon,
@@ -701,6 +785,8 @@ _jit_block_clean_cfg(jit_function_t func)
 	{
 		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 	}
+
+	set_address_of(func);
 	eliminate_unreachable(func);
 
  loop:
@@ -716,7 +802,7 @@ _jit_block_clean_cfg(jit_function_t func)
 		}
 
 		/* Take care of redundant branches that is, if possible, either
-		   replace a branch with NOP turning it to a fall-through case
+		   replace a branch with NOP turning it to a fallthrough case
 		   or reduce a conditional branch to unconditional */
 		if(block->succs[0]->flags == _JIT_EDGE_BRANCH)
 		{
@@ -760,7 +846,7 @@ _jit_block_clean_cfg(jit_function_t func)
 			{
 				/* For conditional branch followed by unconditional
 				   that has the same target make the first branch
-				   unconditional too, remove the fallthough edge while
+				   unconditional too, remove the fallthrough edge while
 				   leaving the branch edge intact */
 #ifdef _JIT_BLOCK_DEBUG
 				printf("%d cbranch->ubranch %d\n", index, block->label);
@@ -772,14 +858,13 @@ _jit_block_clean_cfg(jit_function_t func)
 			}
 		}
 
-		/* Try to simplify basic blocks that end with fall-thtough or
+		/* Try to simplify basic blocks that end with fallthrough or
 		   unconditional branch */
 		if(block->num_succs == 1
 		   && (block->succs[0]->flags == _JIT_EDGE_BRANCH
 		       || block->succs[0]->flags == _JIT_EDGE_FALLTHRU))
 		{
-			if(block->address_of == 0 &&
-			   is_empty_block(block))
+			if(is_empty_block(block))
 			{
 				/* Remove empty block */
 #ifdef _JIT_BLOCK_DEBUG
