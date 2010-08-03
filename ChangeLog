@@ -46,6 +46,9 @@
 	* config/jit-interp-opcodes.ops: Add definition source of the
 	interpreter specific libjit opcodes.
 
+	* include/jit/.gitignore, jit/.gitignore: Add new built files to
+	the ignore list.
+
 2010-05-31  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-block.c: allow empty block branch optimization for blocks
