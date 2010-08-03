@@ -3525,7 +3525,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_IMPORT_LOCAL):
+		VMCASE(JIT_INTERP_OP_IMPORT_LOCAL):
 		{
 			/* TODO!!! */
 			/* Import the address of a local variable from an outer scope */
@@ -3543,7 +3543,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_IMPORT_ARG):
+		VMCASE(JIT_INTERP_OP_IMPORT_ARG):
 		{
 			/* TODO!!! */
 			/* Import the address of an argument from an outer scope */
@@ -4070,7 +4070,7 @@ restart_tail:
 		 * Argument variable access opcodes.
 		 ******************************************************************/
 
-		VMCASE(JIT_OP_LDA_0_SBYTE):
+		VMCASE(JIT_INTERP_OP_LDA_0_SBYTE):
 		{
 			/* Load a signed 8-bit integer argument into the register 0 */
 			VM_R0_INT = *VM_ARG(jit_sbyte);
@@ -4078,7 +4078,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_0_UBYTE):
+		VMCASE(JIT_INTERP_OP_LDA_0_UBYTE):
 		{
 			/* Load an unsigned 8-bit integer argument into the register 0 */
 			VM_R0_INT = *VM_ARG(jit_ubyte);
@@ -4086,7 +4086,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_0_SHORT):
+		VMCASE(JIT_INTERP_OP_LDA_0_SHORT):
 		{
 			/* Load a signed 16-bit integer argument into the register 0 */
 			VM_R0_INT = *VM_ARG(jit_short);
@@ -4094,7 +4094,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_0_USHORT):
+		VMCASE(JIT_INTERP_OP_LDA_0_USHORT):
 		{
 			/* Load am unsigned 16-bit argument local into the register 0 */
 			VM_R0_INT = *VM_ARG(jit_ushort);
@@ -4102,7 +4102,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_0_INT):
+		VMCASE(JIT_INTERP_OP_LDA_0_INT):
 		{
 			/* Load a 32-bit integer argument into the register 0 */
 			VM_R0_INT = *VM_ARG(jit_int);
@@ -4110,7 +4110,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_0_LONG):
+		VMCASE(JIT_INTERP_OP_LDA_0_LONG):
 		{
 			/* Load a 64-bit integer argument into the register 0 */
 			VM_R0_LONG = *VM_ARG(jit_long);
@@ -4118,7 +4118,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_0_FLOAT32):
+		VMCASE(JIT_INTERP_OP_LDA_0_FLOAT32):
 		{
 			/* Load a 32-bit float argument into the register 0 */
 			VM_R0_FLOAT32 = *VM_ARG(jit_float32);
@@ -4126,7 +4126,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_0_FLOAT64):
+		VMCASE(JIT_INTERP_OP_LDA_0_FLOAT64):
 		{
 			/* Load a 64-bit float argument into the register 0 */
 			VM_R0_FLOAT64 = *VM_ARG(jit_float64);
@@ -4134,7 +4134,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_0_NFLOAT):
+		VMCASE(JIT_INTERP_OP_LDA_0_NFLOAT):
 		{
 			/* Load a native float argument into the register 0 */
 			VM_R0_NFLOAT = *VM_ARG(jit_nfloat);
@@ -4142,7 +4142,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDAA_0):
+		VMCASE(JIT_INTERP_OP_LDAA_0):
 		{
 			/* Load the address of an argument into the register 0 */
 			VM_R0_PTR = VM_ARG(void);
@@ -4150,7 +4150,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_1_SBYTE):
+		VMCASE(JIT_INTERP_OP_LDA_1_SBYTE):
 		{
 			/* Load a signed 8-bit integer argument into the register 1 */
 			VM_R1_INT = *VM_ARG(jit_sbyte);
@@ -4158,7 +4158,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_1_UBYTE):
+		VMCASE(JIT_INTERP_OP_LDA_1_UBYTE):
 		{
 			/* Load an unsigned 8-bit integer argument into the register 1 */
 			VM_R1_INT = *VM_ARG(jit_ubyte);
@@ -4166,7 +4166,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_1_SHORT):
+		VMCASE(JIT_INTERP_OP_LDA_1_SHORT):
 		{
 			/* Load a signed 16-bit integer argument into the register 1 */
 			VM_R1_INT = *VM_ARG(jit_short);
@@ -4174,7 +4174,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_1_USHORT):
+		VMCASE(JIT_INTERP_OP_LDA_1_USHORT):
 		{
 			/* Load am unsigned 16-bit argument local into the register 1 */
 			VM_R1_INT = *VM_ARG(jit_ushort);
@@ -4182,7 +4182,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_1_INT):
+		VMCASE(JIT_INTERP_OP_LDA_1_INT):
 		{
 			/* Load a 32-bit integer argument into the register 1 */
 			VM_R1_INT = *VM_ARG(jit_int);
@@ -4190,7 +4190,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_1_LONG):
+		VMCASE(JIT_INTERP_OP_LDA_1_LONG):
 		{
 			/* Load a 64-bit integer argument into the register 1 */
 			VM_R1_LONG = *VM_ARG(jit_long);
@@ -4198,7 +4198,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_1_FLOAT32):
+		VMCASE(JIT_INTERP_OP_LDA_1_FLOAT32):
 		{
 			/* Load a 32-bit float argument into the register 1 */
 			VM_R1_FLOAT32 = *VM_ARG(jit_float32);
@@ -4206,7 +4206,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_1_FLOAT64):
+		VMCASE(JIT_INTERP_OP_LDA_1_FLOAT64):
 		{
 			/* Load a 64-bit float argument into the register 1 */
 			VM_R1_FLOAT64 = *VM_ARG(jit_float64);
@@ -4214,7 +4214,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_1_NFLOAT):
+		VMCASE(JIT_INTERP_OP_LDA_1_NFLOAT):
 		{
 			/* Load a native float argument into the register 1 */
 			VM_R1_NFLOAT = *VM_ARG(jit_nfloat);
@@ -4222,7 +4222,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDAA_1):
+		VMCASE(JIT_INTERP_OP_LDAA_1):
 		{
 			/* Load the address of an argument into the register 1 */
 			VM_R1_PTR = VM_ARG(void);
@@ -4230,7 +4230,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_2_SBYTE):
+		VMCASE(JIT_INTERP_OP_LDA_2_SBYTE):
 		{
 			/* Load a signed 8-bit integer argument into the register 2 */
 			VM_R2_INT = *VM_ARG(jit_sbyte);
@@ -4238,7 +4238,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_2_UBYTE):
+		VMCASE(JIT_INTERP_OP_LDA_2_UBYTE):
 		{
 			/* Load an unsigned 8-bit integer argument into the register 2 */
 			VM_R2_INT = *VM_ARG(jit_ubyte);
@@ -4246,7 +4246,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_2_SHORT):
+		VMCASE(JIT_INTERP_OP_LDA_2_SHORT):
 		{
 			/* Load a signed 16-bit integer argument into the register 2 */
 			VM_R2_INT = *VM_ARG(jit_short);
@@ -4254,7 +4254,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_2_USHORT):
+		VMCASE(JIT_INTERP_OP_LDA_2_USHORT):
 		{
 			/* Load am unsigned 16-bit argument local into the register 2 */
 			VM_R2_INT = *VM_ARG(jit_ushort);
@@ -4262,7 +4262,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_2_INT):
+		VMCASE(JIT_INTERP_OP_LDA_2_INT):
 		{
 			/* Load a 32-bit integer argument into the register 2 */
 			VM_R2_INT = *VM_ARG(jit_int);
@@ -4270,7 +4270,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_2_LONG):
+		VMCASE(JIT_INTERP_OP_LDA_2_LONG):
 		{
 			/* Load a 64-bit integer argument into the register 2 */
 			VM_R2_LONG = *VM_ARG(jit_long);
@@ -4278,7 +4278,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_2_FLOAT32):
+		VMCASE(JIT_INTERP_OP_LDA_2_FLOAT32):
 		{
 			/* Load a 32-bit float argument into the register 2 */
 			VM_R2_FLOAT32 = *VM_ARG(jit_float32);
@@ -4286,7 +4286,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_2_FLOAT64):
+		VMCASE(JIT_INTERP_OP_LDA_2_FLOAT64):
 		{
 			/* Load a 64-bit float argument into the register 2 */
 			VM_R2_FLOAT64 = *VM_ARG(jit_float64);
@@ -4294,7 +4294,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDA_2_NFLOAT):
+		VMCASE(JIT_INTERP_OP_LDA_2_NFLOAT):
 		{
 			/* Load a native float argument into the register 2 */
 			VM_R2_NFLOAT = *VM_ARG(jit_nfloat);
@@ -4302,7 +4302,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDAA_2):
+		VMCASE(JIT_INTERP_OP_LDAA_2):
 		{
 			/* Load the address of an argument into the register 2 */
 			VM_R2_PTR = VM_ARG(void);
@@ -4310,7 +4310,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_STA_0_BYTE):
+		VMCASE(JIT_INTERP_OP_STA_0_BYTE):
 		{
 			/* Store an 8-bit integer into an argument */
 			*VM_ARG(jit_sbyte) = (jit_sbyte)VM_R0_INT;
@@ -4318,7 +4318,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_STA_0_SHORT):
+		VMCASE(JIT_INTERP_OP_STA_0_SHORT):
 		{
 			/* Store an 16-bit integer into an argument */
 			*VM_ARG(jit_short) = (jit_short)VM_R0_INT;
@@ -4326,7 +4326,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_STA_0_INT):
+		VMCASE(JIT_INTERP_OP_STA_0_INT):
 		{
 			/* Store an 32-bit integer into an argument */
 			*VM_ARG(jit_int) = (jit_int)VM_R0_INT;
@@ -4334,7 +4334,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_STA_0_LONG):
+		VMCASE(JIT_INTERP_OP_STA_0_LONG):
 		{
 			/* Store an 64-bit integer into an argument */
 			*VM_ARG(jit_long) = (jit_long)VM_R0_LONG;
@@ -4342,7 +4342,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_STA_0_FLOAT32):
+		VMCASE(JIT_INTERP_OP_STA_0_FLOAT32):
 		{
 			/* Store a 32-bit float into an argument */
 			*VM_ARG(jit_float32) = VM_R0_FLOAT32;
@@ -4350,7 +4350,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_STA_0_FLOAT64):
+		VMCASE(JIT_INTERP_OP_STA_0_FLOAT64):
 		{
 			/* Store a 64-bit float into an argument */
 			*VM_ARG(jit_float64) = VM_R0_FLOAT64;
@@ -4358,7 +4358,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_STA_0_NFLOAT):
+		VMCASE(JIT_INTERP_OP_STA_0_NFLOAT):
 		{
 			/* Store a native float into an argument */
 			*VM_ARG(jit_nfloat) = VM_R0_NFLOAT;
@@ -4370,7 +4370,7 @@ restart_tail:
 		 * Local variable frame access opcodes.
 		 ******************************************************************/
 
-		VMCASE(JIT_OP_LDL_0_SBYTE):
+		VMCASE(JIT_INTERP_OP_LDL_0_SBYTE):
 		{
 			/* Load a signed 8-bit integer local into the register 0 */
 			VM_R0_INT = *VM_LOC(jit_sbyte);
@@ -4378,7 +4378,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_0_UBYTE):
+		VMCASE(JIT_INTERP_OP_LDL_0_UBYTE):
 		{
 			/* Load an unsigned 8-bit integer local into the register 0 */
 			VM_R0_INT = *VM_LOC(jit_ubyte);
@@ -4386,7 +4386,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_0_SHORT):
+		VMCASE(JIT_INTERP_OP_LDL_0_SHORT):
 		{
 			/* Load a signed 16-bit integer local into the register 0 */
 			VM_R0_INT = *VM_LOC(jit_short);
@@ -4394,7 +4394,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_0_USHORT):
+		VMCASE(JIT_INTERP_OP_LDL_0_USHORT):
 		{
 			/* Load am unsigned 16-bit integer local into the register 0 */
 			VM_R0_INT = *VM_LOC(jit_ushort);
@@ -4402,7 +4402,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_0_INT):
+		VMCASE(JIT_INTERP_OP_LDL_0_INT):
 		{
 			/* Load a 32-bit integer local into the register 0 */
 			VM_R0_INT = *VM_LOC(jit_int);
@@ -4410,7 +4410,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_0_LONG):
+		VMCASE(JIT_INTERP_OP_LDL_0_LONG):
 		{
 			/* Load a 64-bit integer local into the register 0 */
 			VM_R0_LONG = *VM_LOC(jit_long);
@@ -4418,7 +4418,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_0_FLOAT32):
+		VMCASE(JIT_INTERP_OP_LDL_0_FLOAT32):
 		{
 			/* Load a 32-bit float local into the register 0 */
 			VM_R0_FLOAT32 = *VM_LOC(jit_float32);
@@ -4426,7 +4426,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_0_FLOAT64):
+		VMCASE(JIT_INTERP_OP_LDL_0_FLOAT64):
 		{
 			/* Load a 64-bit float local into the register 0 */
 			VM_R0_FLOAT64 = *VM_LOC(jit_float64);
@@ -4434,7 +4434,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_0_NFLOAT):
+		VMCASE(JIT_INTERP_OP_LDL_0_NFLOAT):
 		{
 			/* Load a native float local into the register 0 */
 			VM_R0_NFLOAT = *VM_LOC(jit_nfloat);
@@ -4442,7 +4442,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDLA_0):
+		VMCASE(JIT_INTERP_OP_LDLA_0):
 		{
 			/* Load the address of a local into the register 0 */
 			VM_R0_PTR = VM_LOC(void);
@@ -4450,7 +4450,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_1_SBYTE):
+		VMCASE(JIT_INTERP_OP_LDL_1_SBYTE):
 		{
 			/* Load a signed 8-bit integer local into the register 1 */
 			VM_R1_INT = *VM_LOC(jit_sbyte);
@@ -4458,7 +4458,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_1_UBYTE):
+		VMCASE(JIT_INTERP_OP_LDL_1_UBYTE):
 		{
 			/* Load an unsigned 8-bit integer local into the register 1 */
 			VM_R1_INT = *VM_LOC(jit_ubyte);
@@ -4466,7 +4466,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_1_SHORT):
+		VMCASE(JIT_INTERP_OP_LDL_1_SHORT):
 		{
 			/* Load a signed 16-bit integer local into the register 1 */
 			VM_R1_INT = *VM_LOC(jit_short);
@@ -4474,7 +4474,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_1_USHORT):
+		VMCASE(JIT_INTERP_OP_LDL_1_USHORT):
 		{
 			/* Load am unsigned 16-bit integer local into the register 1 */
 			VM_R1_INT = *VM_LOC(jit_ushort);
@@ -4482,7 +4482,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_1_INT):
+		VMCASE(JIT_INTERP_OP_LDL_1_INT):
 		{
 			/* Load a 32-bit integer local into the register 1 */
 			VM_R1_INT = *VM_LOC(jit_int);
@@ -4490,7 +4490,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_1_LONG):
+		VMCASE(JIT_INTERP_OP_LDL_1_LONG):
 		{
 			/* Load a 64-bit integer local into the register 1 */
 			VM_R1_LONG = *VM_LOC(jit_long);
@@ -4498,7 +4498,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_1_FLOAT32):
+		VMCASE(JIT_INTERP_OP_LDL_1_FLOAT32):
 		{
 			/* Load a 32-bit float local into the register 1 */
 			VM_R1_FLOAT32 = *VM_LOC(jit_float32);
@@ -4506,7 +4506,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_1_FLOAT64):
+		VMCASE(JIT_INTERP_OP_LDL_1_FLOAT64):
 		{
 			/* Load a 64-bit float local into the register 1 */
 			VM_R1_FLOAT64 = *VM_LOC(jit_float64);
@@ -4514,7 +4514,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_1_NFLOAT):
+		VMCASE(JIT_INTERP_OP_LDL_1_NFLOAT):
 		{
 			/* Load a native float local into the register 1 */
 			VM_R1_NFLOAT = *VM_LOC(jit_nfloat);
@@ -4522,7 +4522,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDLA_1):
+		VMCASE(JIT_INTERP_OP_LDLA_1):
 		{
 			/* Load the address of a local into the register 1 */
 			VM_R1_PTR = VM_LOC(void);
@@ -4530,7 +4530,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_2_SBYTE):
+		VMCASE(JIT_INTERP_OP_LDL_2_SBYTE):
 		{
 			/* Load a signed 8-bit integer local into the register 2 */
 			VM_R2_INT = *VM_LOC(jit_sbyte);
@@ -4538,7 +4538,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_2_UBYTE):
+		VMCASE(JIT_INTERP_OP_LDL_2_UBYTE):
 		{
 			/* Load an unsigned 8-bit integer local into the register 2 */
 			VM_R2_INT = *VM_LOC(jit_ubyte);
@@ -4546,7 +4546,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_2_SHORT):
+		VMCASE(JIT_INTERP_OP_LDL_2_SHORT):
 		{
 			/* Load a signed 16-bit integer local into the register 2 */
 			VM_R2_INT = *VM_LOC(jit_short);
@@ -4554,7 +4554,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_2_USHORT):
+		VMCASE(JIT_INTERP_OP_LDL_2_USHORT):
 		{
 			/* Load am unsigned 16-bit integer local into the register 2 */
 			VM_R2_INT = *VM_LOC(jit_ushort);
@@ -4562,7 +4562,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_2_INT):
+		VMCASE(JIT_INTERP_OP_LDL_2_INT):
 		{
 			/* Load a 32-bit integer local into the register 2 */
 			VM_R2_INT = *VM_LOC(jit_int);
@@ -4570,7 +4570,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_2_LONG):
+		VMCASE(JIT_INTERP_OP_LDL_2_LONG):
 		{
 			/* Load a 64-bit integer local into the register 2 */
 			VM_R2_LONG = *VM_LOC(jit_long);
@@ -4578,7 +4578,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_2_FLOAT32):
+		VMCASE(JIT_INTERP_OP_LDL_2_FLOAT32):
 		{
 			/* Load a 32-bit float local into the register 2 */
 			VM_R2_FLOAT32 = *VM_LOC(jit_float32);
@@ -4586,7 +4586,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_2_FLOAT64):
+		VMCASE(JIT_INTERP_OP_LDL_2_FLOAT64):
 		{
 			/* Load a 64-bit float local into the register 2 */
 			VM_R2_FLOAT64 = *VM_LOC(jit_float64);
@@ -4594,7 +4594,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDL_2_NFLOAT):
+		VMCASE(JIT_INTERP_OP_LDL_2_NFLOAT):
 		{
 			/* Load a native float local into the register 2 */
 			VM_R2_NFLOAT = *VM_LOC(jit_nfloat);
@@ -4602,7 +4602,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDLA_2):
+		VMCASE(JIT_INTERP_OP_LDLA_2):
 		{
 			/* Load the address of a local into the register 2 */
 			VM_R2_PTR = VM_LOC(void);
@@ -4610,7 +4610,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_STL_0_BYTE):
+		VMCASE(JIT_INTERP_OP_STL_0_BYTE):
 		{
 			/* Store an 8-bit integer into a local */
 			*VM_LOC(jit_sbyte) = (jit_sbyte)VM_R0_INT;
@@ -4618,7 +4618,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_STL_0_SHORT):
+		VMCASE(JIT_INTERP_OP_STL_0_SHORT):
 		{
 			/* Store an 16-bit integer into a local */
 			*VM_LOC(jit_short) = (jit_short)VM_R0_INT;
@@ -4626,7 +4626,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_STL_0_INT):
+		VMCASE(JIT_INTERP_OP_STL_0_INT):
 		{
 			/* Store an 32-bit integer into a local */
 			*VM_LOC(jit_int) = (jit_int)VM_R0_INT;
@@ -4634,7 +4634,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_STL_0_LONG):
+		VMCASE(JIT_INTERP_OP_STL_0_LONG):
 		{
 			/* Store an 64-bit integer into a local */
 			*VM_LOC(jit_long) = (jit_long)VM_R0_LONG;
@@ -4642,7 +4642,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_STL_0_FLOAT32):
+		VMCASE(JIT_INTERP_OP_STL_0_FLOAT32):
 		{
 			/* Store a 32-bit float into a local */
 			*VM_LOC(jit_float32) = VM_R0_FLOAT32;
@@ -4650,7 +4650,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_STL_0_FLOAT64):
+		VMCASE(JIT_INTERP_OP_STL_0_FLOAT64):
 		{
 			/* Store a 64-bit float into a local */
 			*VM_LOC(jit_float64) = VM_R0_FLOAT64;
@@ -4658,7 +4658,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_STL_0_NFLOAT):
+		VMCASE(JIT_INTERP_OP_STL_0_NFLOAT):
 		{
 			/* Store a native float into a local */
 			*VM_LOC(jit_nfloat) = VM_R0_NFLOAT;
@@ -4673,7 +4673,7 @@ restart_tail:
 		#define	JIT_WORDS_PER_TYPE(type) \
 			((sizeof(type) + sizeof(void *) - 1) / sizeof(void *))
 
-		VMCASE(JIT_OP_LDC_0_INT):
+		VMCASE(JIT_INTERP_OP_LDC_0_INT):
 		{
 			/* Load an integer constant into the register 0 */
 			VM_R0_INT = (jit_int)VM_NINT_ARG;
@@ -4681,7 +4681,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDC_0_LONG):
+		VMCASE(JIT_INTERP_OP_LDC_0_LONG):
 		{
 			/* Load a long constant into the register 0 */
 #ifdef JIT_NATIVE_INT64
@@ -4694,7 +4694,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDC_0_FLOAT32):
+		VMCASE(JIT_INTERP_OP_LDC_0_FLOAT32):
 		{
 			/* Load a 32-bit float constant into the register 0 */
 			jit_memcpy(&r0.float32_value, pc + 1, sizeof(jit_float32));
@@ -4702,7 +4702,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDC_0_FLOAT64):
+		VMCASE(JIT_INTERP_OP_LDC_0_FLOAT64):
 		{
 			/* Load a 64-bit float constant into the register 0 */
 			jit_memcpy(&r0.float64_value, pc + 1, sizeof(jit_float64));
@@ -4710,7 +4710,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDC_0_NFLOAT):
+		VMCASE(JIT_INTERP_OP_LDC_0_NFLOAT):
 		{
 			/* Load a native float constant into the registre 0 */
 			jit_memcpy(&r0.nfloat_value, pc + 1, sizeof(jit_nfloat));
@@ -4718,7 +4718,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDC_1_INT):
+		VMCASE(JIT_INTERP_OP_LDC_1_INT):
 		{
 			/* Load an integer constant into the register 1 */
 			VM_R1_INT = (jit_int)VM_NINT_ARG;
@@ -4726,7 +4726,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDC_1_LONG):
+		VMCASE(JIT_INTERP_OP_LDC_1_LONG):
 		{
 			/* Load a long constant into the register 1 */
 #ifdef JIT_NATIVE_INT64
@@ -4739,7 +4739,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDC_1_FLOAT32):
+		VMCASE(JIT_INTERP_OP_LDC_1_FLOAT32):
 		{
 			/* Load a 32-bit float constant into the register 1 */
 			jit_memcpy(&r1.float32_value, pc + 1, sizeof(jit_float32));
@@ -4747,7 +4747,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDC_1_FLOAT64):
+		VMCASE(JIT_INTERP_OP_LDC_1_FLOAT64):
 		{
 			/* Load a 64-bit float constant into the register 1 */
 			jit_memcpy(&r1.float64_value, pc + 1, sizeof(jit_float64));
@@ -4755,7 +4755,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDC_1_NFLOAT):
+		VMCASE(JIT_INTERP_OP_LDC_1_NFLOAT):
 		{
 			/* Load a native float constant into the registre 1 */
 			jit_memcpy(&r1.nfloat_value, pc + 1, sizeof(jit_nfloat));
@@ -4763,7 +4763,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDC_2_INT):
+		VMCASE(JIT_INTERP_OP_LDC_2_INT):
 		{
 			/* Load an integer constant into the register 2 */
 			VM_R2_INT = (jit_int)VM_NINT_ARG;
@@ -4771,7 +4771,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDC_2_LONG):
+		VMCASE(JIT_INTERP_OP_LDC_2_LONG):
 		{
 			/* Load a long constant into the register 2 */
 #ifdef JIT_NATIVE_INT64
@@ -4784,7 +4784,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDC_2_FLOAT32):
+		VMCASE(JIT_INTERP_OP_LDC_2_FLOAT32):
 		{
 			/* Load a 32-bit float constant into the register 2 */
 			jit_memcpy(&r2.float32_value, pc + 1, sizeof(jit_float32));
@@ -4792,7 +4792,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDC_2_FLOAT64):
+		VMCASE(JIT_INTERP_OP_LDC_2_FLOAT64):
 		{
 			/* Load a 64-bit float constant into the register 2 */
 			jit_memcpy(&r2.float64_value, pc + 1, sizeof(jit_float64));
@@ -4800,7 +4800,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDC_2_NFLOAT):
+		VMCASE(JIT_INTERP_OP_LDC_2_NFLOAT):
 		{
 			/* Load a native float constant into the registre 2 */
 			jit_memcpy(&r2.nfloat_value, pc + 1, sizeof(jit_nfloat));
@@ -4812,7 +4812,7 @@ restart_tail:
 		 * Load return value.
 		 ******************************************************************/
 
-		VMCASE(JIT_OP_LDR_0_INT):
+		VMCASE(JIT_INTERP_OP_LDR_0_INT):
 		{
 			/* Load an integer return value into the register 0 */
 			VM_R0_INT = return_area->int_value;
@@ -4820,7 +4820,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDR_0_LONG):
+		VMCASE(JIT_INTERP_OP_LDR_0_LONG):
 		{
 			/* Load a long integer return value into the register 0 */
 			VM_R0_LONG = return_area->long_value;
@@ -4828,7 +4828,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDR_0_FLOAT32):
+		VMCASE(JIT_INTERP_OP_LDR_0_FLOAT32):
 		{
 			/* Load a 32-bit float return value into the register 0 */
 			VM_R0_FLOAT32 = return_area->float32_value;
@@ -4836,7 +4836,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDR_0_FLOAT64):
+		VMCASE(JIT_INTERP_OP_LDR_0_FLOAT64):
 		{
 			/* Load a 64-bit float return value into the register 0 */
 			VM_R0_FLOAT64 = return_area->float64_value;
@@ -4844,7 +4844,7 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_LDR_0_NFLOAT):
+		VMCASE(JIT_INTERP_OP_LDR_0_NFLOAT):
 		{
 			/* Load a native float return value into the register 0 */
 			VM_R0_NFLOAT = return_area->nfloat_value;
@@ -4864,21 +4864,21 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_POP):
+		VMCASE(JIT_INTERP_OP_POP):
 		{
 			/* Pop a single item from the stack */
 			VM_MODIFY_PC_AND_STACK(1, 1);
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_POP_2):
+		VMCASE(JIT_INTERP_OP_POP_2):
 		{
 			/* Pop two items from the stack */
 			VM_MODIFY_PC_AND_STACK(1, 2);
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_POP_3):
+		VMCASE(JIT_INTERP_OP_POP_3):
 		{
 			/* Pop three items from the stack */
 			VM_MODIFY_PC_AND_STACK(1, 3);

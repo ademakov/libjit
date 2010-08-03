@@ -152,11 +152,11 @@ pic_table()
 }
 
 # Output the label table (PIC version).
-echo 'static int const main_label_table[JIT_OP_END_MARKER] = {'
+echo 'static int const main_label_table[JIT_INTERP_OP_END_MARKER] = {'
 grep '^#define[ 	]*JIT_OP_' "$2" | grep -v 'JIT_OP_NUM_OPCODES' | \
 	pic_table "$1" JIT_OP_NOP_label
-grep '^#define[ 	]*JIT_OP_' "$3" | grep -v 'JIT_OP_NUM_INTERP_OPCODES' | \
-	grep -v 'JIT_OP_END_MARKER' | pic_table "$1" JIT_OP_NOP_label
+grep '^#define[ 	]*JIT_INTERP_OP_' "$3" | grep -v 'JIT_INTERP_OP_NUM_OPCODES' | \
+	grep -v 'JIT_INTERP_OP_END_MARKER' | pic_table "$1" JIT_OP_NOP_label
 echo '};'
 echo ''
 
@@ -270,11 +270,11 @@ non_pic_table()
 }
 
 # Output the label table (non-PIC).
-echo 'static void * main_label_table[JIT_OP_END_MARKER] = {'
+echo 'static void * main_label_table[JIT_INTERP_OP_END_MARKER] = {'
 grep '^#define[ 	]*JIT_OP_' "$2" | grep -v 'JIT_OP_NUM_OPCODES' | \
 	non_pic_table "$1" JIT_OP_NOP_label
-grep '^#define[ 	]*JIT_OP_' "$3" | grep -v 'JIT_OP_NUM_INTERP_OPCODES' | \
-	grep -v 'JIT_OP_END_MARKER' | non_pic_table "$1" JIT_OP_NOP_label
+grep '^#define[ 	]*JIT_INTERP_OP_' "$3" | grep -v 'JIT_INTERP_OP_NUM_OPCODES' | \
+	grep -v 'JIT_INTERP_OP_END_MARKER' | non_pic_table "$1" JIT_OP_NOP_label
 echo '};'
 echo ''
 

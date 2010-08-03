@@ -1,3 +1,51 @@
+2010-08-03  Klaus Treichel  <ktreichel@web.de>
+
+	* Makefile.am: Add config to the subdirectories.
+
+	* configure.ac: Add config/Makefile the the makefiles to generate.
+
+	* include/jit/Makefile.am: Add jit-opcode.h to BUILT_SOURCES and
+	DISTCLEANFILES. Add the rule to generate jit-opcodes.h.
+
+	* include/jit/jit-opcode.h: Delete because it will be generated.
+
+	* jit/Makefile.am: Add jit-opcode.c, jit-interp-opcode.c and
+	jit-interp-opcode.h to BUILT_SOURCES.
+	Add jit-interp-opcode.c and jit-interp-opcode.h to libjit_la_SOURCES.
+	Add rules to generate jit-opcode.c, jit-interp-opcode.c and
+	jit-interp-opcode.h.
+	Adjust rule to generate jit-interp-labels.h. 
+
+	* jit/jit-dump.c: Remove the extern declaration of the interpreter
+	opcode table.
+
+	* jit/jit-interp.h: Replace the opcode declaration by including
+	the generated file.
+
+	* jit/jit-opcode.c: Delete because its generated now.
+
+	* jit/jit-interp.c: Adjust names of interpreter specific opcodes.
+
+	* jit/jit-rules-interp.c: Likewise.
+
+	* jit/mklabel.sh: Adjust for opcode name change of interpreter
+	specific opcodes.
+
+	* tools/.gitignore: Add new built files.
+
+	* tools/Makefile.am: Add rules to build gen-ops.
+
+	* tools/gen-ops-parser.y, tools/gen-ops-scanner.l: Add opcode table
+	generator.
+
+	* config/Makefile.am: Added
+
+	* config/jit-opcodes.ops: Add definition source of the bastic
+	libjit opcodes.
+
+	* config/jit-interp-opcodes.ops: Add definition source of the
+	interpreter specific libjit opcodes.
+
 2010-05-31  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-block.c: allow empty block branch optimization for blocks

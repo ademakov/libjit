@@ -534,8 +534,6 @@ void jit_dump_insn(FILE *stream, jit_function_t func, jit_insn_t insn)
 
 #if defined(JIT_BACKEND_INTERP)
 
-extern jit_opcode_info_t const _jit_interp_opcodes[JIT_OP_NUM_INTERP_OPCODES];
-
 /*
  * Dump the interpreted bytecode representation of a function.
  */

@@ -1,6 +1,6 @@
 ARCH_HEADER = jit-arch-@JIT_ARCH@.h
 
-BUILT_SOURCES = jit-arch.h
+BUILT_SOURCES = jit-arch.h jit-opcode.h
 
 libjitincludedir = $(includedir)/jit
 libjitinclude_HEADERS = \
@@ -33,8 +33,11 @@ libjitinclude_HEADERS = \
 
 noinst_HEADERS = jit-arch-generic.h jit-arch-x86.h jit-arch-x86-64.h
 
-DISTCLEANFILES = jit-arch.h jit-defs.h
+DISTCLEANFILES = jit-arch.h jit-defs.h jit-opcode.h
 
 jit-arch.h: $(ARCH_HEADER)
 	rm -f $@
 	$(LN_S) $(srcdir)/$(ARCH_HEADER) $@
+
+jit-opcode.h: $(top_srcdir)/config/jit-opcodes.ops
+	$(top_builddir)/tools/gen-ops -H $(top_srcdir)/config/jit-opcodes.ops >jit-opcode.h

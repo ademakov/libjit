@@ -900,7 +900,7 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 		case JIT_TYPE_USHORT:
 		case JIT_TYPE_INT:
 		case JIT_TYPE_UINT:
-			jit_cache_opcode(&(gen->posn), JIT_OP_LDC_0_INT + index);
+			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDC_0_INT + index);
 			jit_cache_native(&(gen->posn), (jit_nint)(value->address));
 			break;
 
@@ -909,7 +909,7 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			{
 				jit_long long_value;
 				long_value = jit_value_get_long_constant(value);
-				jit_cache_opcode(&(gen->posn), JIT_OP_LDC_0_LONG + index);
+				jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDC_0_LONG + index);
 #ifdef JIT_NATIVE_INT64
 				jit_cache_native(&(gen->posn), long_value);
 #else
@@ -922,7 +922,7 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			{
 				jit_float32 float32_value;
 				float32_value = jit_value_get_float32_constant(value);
-				jit_cache_opcode(&(gen->posn), JIT_OP_LDC_0_FLOAT32 + index);
+				jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDC_0_FLOAT32 + index);
 				jit_cache_add_n(&(gen->posn), &float32_value, sizeof(float32_value));
 				break;
 			}
@@ -931,7 +931,7 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			{
 				jit_float64 float64_value;
 				float64_value = jit_value_get_float64_constant(value);
-				jit_cache_opcode(&(gen->posn), JIT_OP_LDC_0_FLOAT64 + index);
+				jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDC_0_FLOAT64 + index);
 				jit_cache_add_n	(&(gen->posn), &float64_value, sizeof(float64_value));
 				break;
 			}
@@ -940,7 +940,7 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			{
 				jit_nfloat nfloat_value;
 				nfloat_value = jit_value_get_nfloat_constant(value);
-				jit_cache_opcode(&(gen->posn), JIT_OP_LDC_0_NFLOAT + index);
+				jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDC_0_NFLOAT + index);
 				jit_cache_add_n	(&(gen->posn), &nfloat_value, sizeof(nfloat_value));
 				break;
 			}
@@ -958,13 +958,13 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			switch(index)
 			{
 			case 0:
-				opcode = JIT_OP_LDL_0_SBYTE;
+				opcode = JIT_INTERP_OP_LDL_0_SBYTE;
 				break;
 			case 1:
-				opcode = JIT_OP_LDL_1_SBYTE;
+				opcode = JIT_INTERP_OP_LDL_1_SBYTE;
 				break;
 			case 2:
-				opcode = JIT_OP_LDL_2_SBYTE;
+				opcode = JIT_INTERP_OP_LDL_2_SBYTE;
 				break;
 			default:
 				return;
@@ -978,13 +978,13 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			switch(index)
 			{
 			case 0:
-				opcode = JIT_OP_LDA_0_SBYTE;
+				opcode = JIT_INTERP_OP_LDA_0_SBYTE;
 				break;
 			case 1:
-				opcode = JIT_OP_LDA_1_SBYTE;
+				opcode = JIT_INTERP_OP_LDA_1_SBYTE;
 				break;
 			case 2:
-				opcode = JIT_OP_LDA_2_SBYTE;
+				opcode = JIT_INTERP_OP_LDA_2_SBYTE;
 				break;
 			default:
 				return;
@@ -1011,11 +1011,11 @@ store_value(jit_gencode_t gen, jit_value_t value)
 	offset = value->frame_offset;
 	if(offset >= 0)
 	{
-		opcode = _jit_store_opcode(JIT_OP_STL_0_BYTE, 0, value->type);
+		opcode = _jit_store_opcode(JIT_INTERP_OP_STL_0_BYTE, 0, value->type);
 	}
 	else
 	{
-		opcode = _jit_store_opcode(JIT_OP_STA_0_BYTE, 0, value->type);
+		opcode = _jit_store_opcode(JIT_INTERP_OP_STA_0_BYTE, 0, value->type);
 		offset = -(offset + 1);
 	}
 	jit_cache_opcode(&(gen->posn), opcode);
@@ -1276,13 +1276,13 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		_jit_gen_fix_value(insn->value1);
 		if(insn->value1->frame_offset >= 0)
 		{
-			jit_cache_opcode(&(gen->posn), JIT_OP_IMPORT_LOCAL);
+			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_IMPORT_LOCAL);
 			jit_cache_native(&(gen->posn), insn->value1->frame_offset);
 			jit_cache_native(&(gen->posn), jit_value_get_nint_constant(insn->value2));
 		}
 		else
 		{
-			jit_cache_opcode(&(gen->posn), JIT_OP_IMPORT_ARG);
+			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_IMPORT_ARG);
 			jit_cache_native(&(gen->posn), -(insn->value1->frame_offset + 1));
 			jit_cache_native(&(gen->posn), jit_value_get_nint_constant(insn->value2));
 		}
@@ -1346,28 +1346,28 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		case JIT_TYPE_USHORT:
 		case JIT_TYPE_INT:
 		case JIT_TYPE_UINT:
-			jit_cache_opcode(&(gen->posn), JIT_OP_LDR_0_INT);
+			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDR_0_INT);
 			store_value(gen, insn->value1);
 			break;
 
 		case JIT_TYPE_LONG:
 		case JIT_TYPE_ULONG:
-			jit_cache_opcode(&(gen->posn), JIT_OP_LDR_0_LONG);
+			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDR_0_LONG);
 			store_value(gen, insn->value1);
 			break;
 
 		case JIT_TYPE_FLOAT32:
-			jit_cache_opcode(&(gen->posn), JIT_OP_LDR_0_FLOAT32);
+			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDR_0_FLOAT32);
 			store_value(gen, insn->value1);
 			break;
 
 		case JIT_TYPE_FLOAT64:
-			jit_cache_opcode(&(gen->posn), JIT_OP_LDR_0_FLOAT64);
+			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDR_0_FLOAT64);
 			store_value(gen, insn->value1);
 			break;
 
 		case JIT_TYPE_NFLOAT:
-			jit_cache_opcode(&(gen->posn), JIT_OP_LDR_0_NFLOAT);
+			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDR_0_NFLOAT);
 			store_value(gen, insn->value1);
 			break;
 		}
@@ -1403,12 +1403,12 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		_jit_gen_fix_value(insn->value1);
 		if(insn->value1->frame_offset >= 0)
 		{
-			jit_cache_opcode(&(gen->posn), JIT_OP_LDLA_0);
+			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDLA_0);
 			jit_cache_native(&(gen->posn), insn->value1->frame_offset);
 		}
 		else
 		{
-			jit_cache_opcode(&(gen->posn), JIT_OP_LDAA_0);
+			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDAA_0);
 			jit_cache_native(&(gen->posn), -(insn->value1->frame_offset + 1));
 		}
 		store_value(gen, insn->dest);
@@ -1446,15 +1446,15 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		size = jit_value_get_nint_constant(insn->value1);
 		if(size == 1)
 		{
-			jit_cache_opcode(&(gen->posn), JIT_OP_POP);
+			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_POP);
 		}
 		else if(size == 2)
 		{
-			jit_cache_opcode(&(gen->posn), JIT_OP_POP_2);
+			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_POP_2);
 		}
 		else if(size == 3)
 		{
-			jit_cache_opcode(&(gen->posn), JIT_OP_POP_3);
+			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_POP_3);
 		}
 		else if(size != 0)
 		{
