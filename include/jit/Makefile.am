@@ -3,9 +3,8 @@ ARCH_HEADER = jit-arch-@JIT_ARCH@.h
 BUILT_SOURCES = jit-arch.h jit-opcode.h
 
 libjitincludedir = $(includedir)/jit
-libjitinclude_HEADERS = \
+dist_libjitinclude_HEADERS = \
 	jit.h \
-	jit-arch.h \
 	jit-apply.h \
 	jit-block.h \
 	jit-common.h \
@@ -30,6 +29,9 @@ libjitinclude_HEADERS = \
 	jit-util.h \
 	jit-value.h \
 	jit-walk.h
+
+nodist_libjitinclude_HEADERS = \
+	jit-arch.h
 
 noinst_HEADERS = jit-arch-generic.h jit-arch-x86.h jit-arch-x86-64.h
 

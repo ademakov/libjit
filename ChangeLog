@@ -1,3 +1,15 @@
+2010-08-04  Klaus Treichel  <ktreichel@web.de>
+
+	* include/jit/Makefile.am: Don't include jit-arch.h in the
+	distribution.
+
+	* tools/gen-apply.c: Include a local copy of jit-arch.h instead of
+	the one in the include dir because that one is not yet present in
+	the build process.
+
+	* tools/Makefile.am: Create a local symbolic link jit-arch.h to
+	the arch specific header in the include dir.
+
 2010-08-03  Klaus Treichel  <ktreichel@web.de>
 
 	* Makefile.am: Add config to the subdirectories.

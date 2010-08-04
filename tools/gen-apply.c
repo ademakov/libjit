@@ -20,7 +20,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <jit/jit-arch.h>
+#include "jit-arch.h"
 #include <jit/jit-defs.h>
 
 #if defined(__APPLE__) && defined(__MACH__)
