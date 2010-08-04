@@ -18,3 +18,4 @@ gen-rules-scanner.c
 gen-ops-parser.c
 gen-ops-parser.h
 gen-ops-scanner.c
+jit-arch.h
