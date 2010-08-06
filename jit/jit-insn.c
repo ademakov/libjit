@@ -2887,16 +2887,12 @@ jit_value_t jit_insn_to_not_bool(jit_function_t func, jit_value_t value1)
  * @deftypefunx jit_value_t jit_insn_asin (jit_function_t @var{func}, jit_value_t @var{value1})
  * @deftypefunx jit_value_t jit_insn_atan (jit_function_t @var{func}, jit_value_t @var{value1})
  * @deftypefunx jit_value_t jit_insn_atan2 (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
- * @deftypefunx jit_value_t jit_insn_ceil (jit_function_t @var{func}, jit_value_t @var{value1})
  * @deftypefunx jit_value_t jit_insn_cos (jit_function_t @var{func}, jit_value_t @var{value1})
  * @deftypefunx jit_value_t jit_insn_cosh (jit_function_t @var{func}, jit_value_t @var{value1})
  * @deftypefunx jit_value_t jit_insn_exp (jit_function_t @var{func}, jit_value_t @var{value1})
- * @deftypefunx jit_value_t jit_insn_floor (jit_function_t @var{func}, jit_value_t @var{value1})
  * @deftypefunx jit_value_t jit_insn_log (jit_function_t @var{func}, jit_value_t @var{value1})
  * @deftypefunx jit_value_t jit_insn_log10 (jit_function_t @var{func}, jit_value_t @var{value1})
  * @deftypefunx jit_value_t jit_insn_pow (jit_function_t @var{func}, jit_value_t @var{value1}, jit_value_t @var{value2})
- * @deftypefunx jit_value_t jit_insn_rint (jit_function_t @var{func}, jit_value_t @var{value1})
- * @deftypefunx jit_value_t jit_insn_round (jit_function_t @var{func}, jit_value_t @var{value1})
  * @deftypefunx jit_value_t jit_insn_sin (jit_function_t @var{func}, jit_value_t @var{value1})
  * @deftypefunx jit_value_t jit_insn_sinh (jit_function_t @var{func}, jit_value_t @var{value1})
  * @deftypefunx jit_value_t jit_insn_sqrt (jit_function_t @var{func}, jit_value_t @var{value1})
@@ -2978,6 +2974,11 @@ jit_value_t jit_insn_atan2
 	return apply_arith(func, &atan2_descr, value1, value2, 0, 1, 0);
 }
 
+/*@
+ * @deftypefun jit_value_t jit_insn_ceil (jit_function_t @var{func}, jit_value_t @var{value1})
+ * Round @var{value1} up towads positive infinity.
+ * @end deftypefun
+@*/
 jit_value_t jit_insn_ceil(jit_function_t func, jit_value_t value1)
 {
 	static jit_opcode_descr const ceil_descr = {
@@ -3050,6 +3051,11 @@ jit_value_t jit_insn_exp(jit_function_t func, jit_value_t value1)
 	return apply_unary_arith(func, &exp_descr, value1, 0, 1, 0);
 }
 
+/*@
+ * @deftypefun jit_value_t jit_insn_floor (jit_function_t @var{func}, jit_value_t @var{value1})
+ * Round @var{value1} down towards negative infinity.
+ * @end deftypefun
+@*/
 jit_value_t jit_insn_floor(jit_function_t func, jit_value_t value1)
 {
 	static jit_opcode_descr const floor_descr = {
@@ -3123,6 +3129,11 @@ jit_value_t jit_insn_pow
 	return apply_arith(func, &pow_descr, value1, value2, 0, 1, 0);
 }
 
+/*@
+ * @deftypefun jit_value_t jit_insn_rint (jit_function_t @var{func}, jit_value_t @var{value1})
+ * Round @var{value1} to the nearest integer. Half-way cases are rounded to the even number.
+ * @end deftypefun
+@*/
 jit_value_t jit_insn_rint(jit_function_t func, jit_value_t value1)
 {
 	static jit_opcode_descr const rint_descr = {
@@ -3141,6 +3152,11 @@ jit_value_t jit_insn_rint(jit_function_t func, jit_value_t value1)
 	return apply_unary_arith(func, &rint_descr, value1, 0, 1, 0);
 }
 
+/*@
+ * @deftypefun jit_value_t jit_insn_round (jit_function_t @var{func}, jit_value_t @var{value1})
+ * Round @var{value1} to the nearest integer. Half-way cases are rounded away from zero.
+ * @end deftypefun
+@*/
 jit_value_t jit_insn_round(jit_function_t func, jit_value_t value1)
 {
 	static jit_opcode_descr const round_descr = {
@@ -3249,6 +3265,11 @@ jit_value_t jit_insn_tanh(jit_function_t func, jit_value_t value1)
 	return apply_unary_arith(func, &tanh_descr, value1, 0, 1, 0);
 }
 
+/*@
+ * @deftypefun jit_value_t jit_insn_trunc (jit_function_t @var{func}, jit_value_t @var{value1})
+ * Round @var{value1} towards zero.
+ * @end deftypefun
+@*/
 jit_value_t jit_insn_trunc(jit_function_t func, jit_value_t value1)
 {
 	static jit_opcode_descr const trunc_descr = {

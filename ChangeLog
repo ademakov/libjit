@@ -14,6 +14,7 @@
 	jit_nfloat_trunc): Add prototypes.
 
 	* jit/jit-insn.c (jit_insn_trunc): Add new float rounding function.
+	Refine comments for the rounding functions.
 
 	* jit/jit-interp.c (_jit_run_function): Add support for the new
 	trunc opcodes.
