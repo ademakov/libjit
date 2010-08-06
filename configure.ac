@@ -472,6 +472,8 @@ AC_CHECK_FUNCS(sinf sinhf sqrtf tanf tanhf)
 AC_CHECK_FUNCS(isnanl isinfl finitel fmodl remainderl dreml ceill floorl)
 AC_CHECK_FUNCS(acosl asinl atanl atan2l cosl coshl expl logl log10l powl)
 AC_CHECK_FUNCS(sinl sinhl sqrtl tanl tanhl)
+AC_CHECK_FUNCS(trunc truncf truncl)
+AC_CHECK_FUNCS(roundf round roundl rint rintf rintl)
 AC_CHECK_FUNCS(dlopen cygwin_conv_to_win32_path mmap munmap mprotect)
 AC_CHECK_FUNCS(sigsetjmp __sigsetjmp _setjmp)
 AC_FUNC_ALLOCA

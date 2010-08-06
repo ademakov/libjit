@@ -1434,11 +1434,9 @@ jit_int jit_float32_sign(jit_float32 value1)
  * @deftypefunx jit_float32 jit_float32_asin (jit_float32 @var{value1})
  * @deftypefunx jit_float32 jit_float32_atan (jit_float32 @var{value1})
  * @deftypefunx jit_float32 jit_float32_atan2 (jit_float32 @var{value1}, jit_float32 @var{value2})
- * @deftypefunx jit_float32 jit_float32_ceil (jit_float32 @var{value1})
  * @deftypefunx jit_float32 jit_float32_cos (jit_float32 @var{value1})
  * @deftypefunx jit_float32 jit_float32_cosh (jit_float32 @var{value1})
  * @deftypefunx jit_float32 jit_float32_exp (jit_float32 @var{value1})
- * @deftypefunx jit_float32 jit_float32_floor (jit_float32 @var{value1})
  * @deftypefunx jit_float32 jit_float32_log (jit_float32 @var{value1})
  * @deftypefunx jit_float32 jit_float32_log10 (jit_float32 @var{value1})
  * @deftypefunx jit_float32 jit_float32_pow (jit_float32 @var{value1}, jit_float32 @var{value2})
@@ -1494,17 +1492,6 @@ jit_float32 jit_float32_atan2(jit_float32 value1, jit_float32 value2)
 #endif
 }
 
-jit_float32 jit_float32_ceil(jit_float32 value1)
-{
-#if defined(HAVE_CEILF)
-	return (jit_float32)(ceilf(value1));
-#elif defined(HAVE_CEIL)
-	return (jit_float32)(ceil(value1));
-#else
-	return jit_float32_nan;
-#endif
-}
-
 jit_float32 jit_float32_cos(jit_float32 value1)
 {
 #if defined(HAVE_COSF)
@@ -1533,17 +1520,6 @@ jit_float32 jit_float32_exp(jit_float32 value1)
 	return (jit_float32)(expf(value1));
 #elif defined(HAVE_EXP)
 	return (jit_float32)(exp(value1));
-#else
-	return jit_float32_nan;
-#endif
-}
-
-jit_float32 jit_float32_floor(jit_float32 value1)
-{
-#if defined(HAVE_FLOORF)
-	return (jit_float32)(floorf(value1));
-#elif defined(HAVE_FLOOR)
-	return (jit_float32)(floor(value1));
 #else
 	return jit_float32_nan;
 #endif
@@ -1580,72 +1556,6 @@ jit_float32 jit_float32_pow(jit_float32 value1, jit_float32 value2)
 #else
 	return jit_float32_nan;
 #endif
-}
-
-/*@
- * @deftypefun jit_float32 jit_float32_rint (jit_float32 @var{value1})
- * Round @var{value1} to the nearest integer.  Half-way cases
- * are rounded to an even number.
- * @end deftypefun
-@*/
-jit_float32 jit_float32_rint(jit_float32 value1)
-{
-	jit_float32 above, below;
-	if(!jit_float32_is_finite(value1))
-	{
-		return value1;
-	}
-	above = jit_float32_ceil(value1);
-	below = jit_float32_floor(value1);
-	if((above - value1) < (jit_float32)0.5)
-	{
-		return above;
-	}
-	else if((value1 - below) < (jit_float32)0.5)
-	{
-		return below;
-	}
-	else if(jit_float32_ieee_rem(above, (jit_float32)2.0) == (jit_float32)0.0)
-	{
-		return above;
-	}
-	else
-	{
-		return below;
-	}
-}
-
-/*@
- * @deftypefun jit_float32 jit_float32_round (jit_float32 @var{value1})
- * Round @var{value1} to the nearest integer.  Half-way cases
- * are rounded away from zero.
- * @end deftypefun
-@*/
-jit_float32 jit_float32_round(jit_float32 value1)
-{
-	jit_float32 above, below;
-	if(!jit_float32_is_finite(value1))
-	{
-		return value1;
-	}
-	above = jit_float32_ceil(value1);
-	below = jit_float32_floor(value1);
-	if((above - value1) < (jit_float32)0.5)
-	{
-		return above;
-	}
-	else if((value1 - below) < (jit_float32)0.5)
-	{
-		return below;
-	}
-	else if(above >= (jit_float32)0.0)
-	{
-		return above;
-	}
-	else
-	{
-		return below;
-	}
 }
 
 jit_float32 jit_float32_sin(jit_float32 value1)
@@ -2046,11 +1956,9 @@ jit_int jit_float64_sign(jit_float64 value1)
  * @deftypefunx jit_float64 jit_float64_asin (jit_float64 @var{value1})
  * @deftypefunx jit_float64 jit_float64_atan (jit_float64 @var{value1})
  * @deftypefunx jit_float64 jit_float64_atan2 (jit_float64 @var{value1}, jit_float64 @var{value2})
- * @deftypefunx jit_float64 jit_float64_ceil (jit_float64 @var{value1})
  * @deftypefunx jit_float64 jit_float64_cos (jit_float64 @var{value1})
  * @deftypefunx jit_float64 jit_float64_cosh (jit_float64 @var{value1})
  * @deftypefunx jit_float64 jit_float64_exp (jit_float64 @var{value1})
- * @deftypefunx jit_float64 jit_float64_floor (jit_float64 @var{value1})
  * @deftypefunx jit_float64 jit_float64_log (jit_float64 @var{value1})
  * @deftypefunx jit_float64 jit_float64_log10 (jit_float64 @var{value1})
  * @deftypefunx jit_float64 jit_float64_pow (jit_float64 @var{value1}, jit_float64 @var{value2})
@@ -2098,15 +2006,6 @@ jit_float64 jit_float64_atan2(jit_float64 value1, jit_float64 value2)
 #endif
 }
 
-jit_float64 jit_float64_ceil(jit_float64 value1)
-{
-#if defined(HAVE_CEIL)
-	return (jit_float64)(ceil(value1));
-#else
-	return jit_float64_nan;
-#endif
-}
-
 jit_float64 jit_float64_cos(jit_float64 value1)
 {
 #if defined(HAVE_COS)
@@ -2129,15 +2028,6 @@ jit_float64 jit_float64_exp(jit_float64 value1)
 {
 #if defined(HAVE_EXP)
 	return (jit_float64)(exp(value1));
-#else
-	return jit_float64_nan;
-#endif
-}
-
-jit_float64 jit_float64_floor(jit_float64 value1)
-{
-#if defined(HAVE_FLOOR)
-	return (jit_float64)(floor(value1));
 #else
 	return jit_float64_nan;
 #endif
@@ -2168,72 +2058,6 @@ jit_float64 jit_float64_pow(jit_float64 value1, jit_float64 value2)
 #else
 	return jit_float64_nan;
 #endif
-}
-
-/*@
- * @deftypefun jit_float64 jit_float64_rint (jit_float64 @var{value1})
- * Round @var{value1} to the nearest integer.  Half-way cases
- * are rounded to an even number.
- * @end deftypefun
-@*/
-jit_float64 jit_float64_rint(jit_float64 value1)
-{
-	jit_float64 above, below;
-	if(!jit_float64_is_finite(value1))
-	{
-		return value1;
-	}
-	above = jit_float64_ceil(value1);
-	below = jit_float64_floor(value1);
-	if((above - value1) < (jit_float64)0.5)
-	{
-		return above;
-	}
-	else if((value1 - below) < (jit_float64)0.5)
-	{
-		return below;
-	}
-	else if(jit_float64_ieee_rem(above, (jit_float64)2.0) == (jit_float64)0.0)
-	{
-		return above;
-	}
-	else
-	{
-		return below;
-	}
-}
-
-/*@
- * @deftypefun jit_float64 jit_float64_round (jit_float64 @var{value1})
- * Round @var{value1} to the nearest integer.  Half-way cases
- * are rounded away from zero.
- * @end deftypefun
-@*/
-jit_float64 jit_float64_round(jit_float64 value1)
-{
-	jit_float64 above, below;
-	if(!jit_float64_is_finite(value1))
-	{
-		return value1;
-	}
-	above = jit_float64_ceil(value1);
-	below = jit_float64_floor(value1);
-	if((above - value1) < (jit_float64)0.5)
-	{
-		return above;
-	}
-	else if((value1 - below) < (jit_float64)0.5)
-	{
-		return below;
-	}
-	else if(above >= (jit_float64)0.0)
-	{
-		return above;
-	}
-	else
-	{
-		return below;
-	}
 }
 
 jit_float64 jit_float64_sin(jit_float64 value1)
@@ -2663,11 +2487,9 @@ jit_int jit_nfloat_sign(jit_nfloat value1)
  * @deftypefunx jit_nfloat jit_nfloat_asin (jit_nfloat @var{value1})
  * @deftypefunx jit_nfloat jit_nfloat_atan (jit_nfloat @var{value1})
  * @deftypefunx jit_nfloat jit_nfloat_atan2 (jit_nfloat @var{value1}, jit_nfloat @var{value2})
- * @deftypefunx jit_nfloat jit_nfloat_ceil (jit_nfloat @var{value1})
  * @deftypefunx jit_nfloat jit_nfloat_cos (jit_nfloat @var{value1})
  * @deftypefunx jit_nfloat jit_nfloat_cosh (jit_nfloat @var{value1})
  * @deftypefunx jit_nfloat jit_nfloat_exp (jit_nfloat @var{value1})
- * @deftypefunx jit_nfloat jit_nfloat_floor (jit_nfloat @var{value1})
  * @deftypefunx jit_nfloat jit_nfloat_log (jit_nfloat @var{value1})
  * @deftypefunx jit_nfloat jit_nfloat_log10 (jit_nfloat @var{value1})
  * @deftypefunx jit_nfloat jit_nfloat_pow (jit_nfloat @var{value1}, jit_nfloat @var{value2})
@@ -2723,17 +2545,6 @@ jit_nfloat jit_nfloat_atan2(jit_nfloat value1, jit_nfloat value2)
 #endif
 }
 
-jit_nfloat jit_nfloat_ceil(jit_nfloat value1)
-{
-#if defined(HAVE_CEILL) && !defined(JIT_NFLOAT_IS_DOUBLE)
-	return (jit_nfloat)(ceill(value1));
-#elif defined(HAVE_CEIL)
-	return (jit_nfloat)(ceil(value1));
-#else
-	return jit_nfloat_nan;
-#endif
-}
-
 jit_nfloat jit_nfloat_cos(jit_nfloat value1)
 {
 #if defined(HAVE_COSL) && !defined(JIT_NFLOAT_IS_DOUBLE)
@@ -2762,17 +2573,6 @@ jit_nfloat jit_nfloat_exp(jit_nfloat value1)
 	return (jit_nfloat)(expl(value1));
 #elif defined(HAVE_EXP)
 	return (jit_nfloat)(exp(value1));
-#else
-	return jit_nfloat_nan;
-#endif
-}
-
-jit_nfloat jit_nfloat_floor(jit_nfloat value1)
-{
-#if defined(HAVE_FLOORL) && !defined(JIT_NFLOAT_IS_DOUBLE)
-	return (jit_nfloat)(floorl(value1));
-#elif defined(HAVE_FLOOR)
-	return (jit_nfloat)(floor(value1));
 #else
 	return jit_nfloat_nan;
 #endif
@@ -2809,72 +2609,6 @@ jit_nfloat jit_nfloat_pow(jit_nfloat value1, jit_nfloat value2)
 #else
 	return jit_nfloat_nan;
 #endif
-}
-
-/*@
- * @deftypefun jit_nfloat jit_nfloat_rint (jit_nfloat @var{value1})
- * Round @var{value1} to the nearest integer.  Half-way cases
- * are rounded to an even number.
- * @end deftypefun
-@*/
-jit_nfloat jit_nfloat_rint(jit_nfloat value1)
-{
-	jit_nfloat above, below;
-	if(!jit_nfloat_is_finite(value1))
-	{
-		return value1;
-	}
-	above = jit_nfloat_ceil(value1);
-	below = jit_nfloat_floor(value1);
-	if((above - value1) < (jit_nfloat)0.5)
-	{
-		return above;
-	}
-	else if((value1 - below) < (jit_nfloat)0.5)
-	{
-		return below;
-	}
-	else if(jit_nfloat_ieee_rem(above, (jit_nfloat)2.0) == (jit_nfloat)0.0)
-	{
-		return above;
-	}
-	else
-	{
-		return below;
-	}
-}
-
-/*@
- * @deftypefun jit_nfloat jit_nfloat_round (jit_nfloat @var{value1})
- * Round @var{value1} to the nearest integer.  Half-way cases
- * are rounded away from zero.
- * @end deftypefun
-@*/
-jit_nfloat jit_nfloat_round(jit_nfloat value1)
-{
-	jit_nfloat above, below;
-	if(!jit_nfloat_is_finite(value1))
-	{
-		return value1;
-	}
-	above = jit_nfloat_ceil(value1);
-	below = jit_nfloat_floor(value1);
-	if((above - value1) < (jit_nfloat)0.5)
-	{
-		return above;
-	}
-	else if((value1 - below) < (jit_nfloat)0.5)
-	{
-		return below;
-	}
-	else if(above >= (jit_nfloat)0.0)
-	{
-		return above;
-	}
-	else
-	{
-		return below;
-	}
 }
 
 jit_nfloat jit_nfloat_sin(jit_nfloat value1)
@@ -3022,6 +2756,352 @@ jit_int jit_nfloat_is_inf(jit_nfloat value)
 	{
 		return 1;
 	}
+}
+
+/*@
+ * Floatingpoint rounding operations.defined by ieee754
+ * @deftypefun jit_float32 jit_float32_rint (jit_float32 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_rint (jit_float64 @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_rint (jit_nfloat @var{value1})
+ * Round @var{value1} to the nearest integer.  Half-way cases
+ * are rounded to an even number.
+ * @end deftypefun
+ * @deftypefun jit_float32 jit_float32_ceil (jit_float32 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_ceil (jit_float64 @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_ceil (jit_nfloat @var{value1})
+ * Round @var{value1} up towards positive infinity.
+ * @end deftypefun
+ * @deftypefun jit_float32 jit_float32_floor (jit_float32 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_floor (jit_float64 @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_floor (jit_nfloat @var{value1})
+ * Round @var{value1} down towards negative infinity.
+ * @end deftypefun
+ * @deftypefun jit_float32 jit_float32_trunc (jit_float32 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_trunc (jit_float64 @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_trunc (jit_nfloat @var{value1})
+ * Round @var{value1} towards zero.
+ * @end deftypefun
+@*/
+
+/*
+ * NOTE: rint rounds the value according to the current rounding mode.
+ * The default rounding mode is round to nearest with half way cases
+ * rounded to the even number. So there is no need to set the rounding
+ * mode here.
+ */
+jit_float32 jit_float32_rint(jit_float32 value1)
+{
+#ifdef HAVE_RINTF
+	return (jit_float32)rintf(value1);
+#elif defined(HAVE_RINT)
+	return (jit_float32)(rint(value1));
+#else
+	jit_float32 above, below;
+	if(!jit_float32_is_finite(value1))
+	{
+		return value1;
+	}
+	above = jit_float32_ceil(value1);
+	below = jit_float32_floor(value1);
+	if((above - value1) < (jit_float32)0.5)
+	{
+		return above;
+	}
+	else if((value1 - below) < (jit_float32)0.5)
+	{
+		return below;
+	}
+	else if(jit_float32_ieee_rem(above, (jit_float32)2.0) == (jit_float32)0.0)
+	{
+		return above;
+	}
+	else
+	{
+		return below;
+	}
+#endif
+}
+
+jit_float64 jit_float64_rint(jit_float64 value1)
+{
+#ifdef HAVE_RINT
+	return (jit_float64)rint(value1);
+#else
+	jit_float64 above, below;
+	if(!jit_float64_is_finite(value1))
+	{
+		return value1;
+	}
+	above = jit_float64_ceil(value1);
+	below = jit_float64_floor(value1);
+	if((above - value1) < (jit_float64)0.5)
+	{
+		return above;
+	}
+	else if((value1 - below) < (jit_float64)0.5)
+	{
+		return below;
+	}
+	else if(jit_float64_ieee_rem(above, (jit_float64)2.0) == (jit_float64)0.0)
+	{
+		return above;
+	}
+	else
+	{
+		return below;
+	}
+#endif
+}
+
+jit_nfloat jit_nfloat_rint(jit_nfloat value1)
+{
+#if defined(HAVE_RINTL) && !defined(JIT_NFLOAT_IS_DOUBLE)
+	return (jit_nfloat)(rintl(value1));
+#elif defined(HAVE_RINT) && defined(JIT_NFLOAT_IS_DOUBLE)
+	return (jit_nfloat)(rint(value1));
+#else
+	jit_nfloat above, below;
+	if(!jit_nfloat_is_finite(value1))
+	{
+		return value1;
+	}
+	above = jit_nfloat_ceil(value1);
+	below = jit_nfloat_floor(value1);
+	if((above - value1) < (jit_nfloat)0.5)
+	{
+		return above;
+	}
+	else if((value1 - below) < (jit_nfloat)0.5)
+	{
+		return below;
+	}
+	else if(jit_nfloat_ieee_rem(above, (jit_nfloat)2.0) == (jit_nfloat)0.0)
+	{
+		return above;
+	}
+	else
+	{
+		return below;
+	}
+#endif
+}
+
+jit_float32 jit_float32_ceil(jit_float32 value1)
+{
+#if defined(HAVE_CEILF)
+	return (jit_float32)(ceilf(value1));
+#elif defined(HAVE_CEIL)
+	return (jit_float32)(ceil(value1));
+#else
+	return jit_float32_nan;
+#endif
+}
+
+jit_float64 jit_float64_ceil(jit_float64 value1)
+{
+#if defined(HAVE_CEIL)
+	return (jit_float64)(ceil(value1));
+#else
+	return jit_float64_nan;
+#endif
+}
+
+jit_nfloat jit_nfloat_ceil(jit_nfloat value1)
+{
+#if defined(HAVE_CEILL) && !defined(JIT_NFLOAT_IS_DOUBLE)
+	return (jit_nfloat)(ceill(value1));
+#elif defined(HAVE_CEIL) && defined(JIT_NFLOAT_IS_DOUBLE)
+	return (jit_nfloat)(ceil(value1));
+#else
+	return jit_nfloat_nan;
+#endif
+}
+
+jit_float32 jit_float32_floor(jit_float32 value1)
+{
+#if defined(HAVE_FLOORF)
+	return (jit_float32)(floorf(value1));
+#elif defined(HAVE_FLOOR)
+	return (jit_float32)(floor(value1));
+#else
+	return jit_float32_nan;
+#endif
+}
+
+jit_float64 jit_float64_floor(jit_float64 value1)
+{
+#if defined(HAVE_FLOOR)
+	return (jit_float64)(floor(value1));
+#else
+	return jit_float64_nan;
+#endif
+}
+
+jit_nfloat jit_nfloat_floor(jit_nfloat value1)
+{
+#if defined(HAVE_FLOORL) && !defined(JIT_NFLOAT_IS_DOUBLE)
+	return (jit_nfloat)(floorl(value1));
+#elif defined(HAVE_FLOOR) && defined(JIT_NFLOAT_IS_DOUBLE)
+	return (jit_nfloat)(floor(value1));
+#else
+	return jit_nfloat_nan;
+#endif
+}
+
+jit_float32 jit_float32_trunc(jit_float32 value1)
+{
+#if defined(HAVE_TRUNCF)
+	return (jit_float32)(truncf(value1));
+#elif defined(HAVE_TRUNC)
+	return (jit_float32)(trunc(value1));
+#else
+	if(value1 > 0)
+	{
+		return jit_float32_floor(value1);
+	}
+	else
+	{
+		return jit_float32_ceil(value1);
+	}
+#endif
+}
+
+jit_float64 jit_float64_trunc(jit_float64 value1)
+{
+#if defined(HAVE_TRUNC)
+	return (jit_float64)(trunc(value1));
+#else
+	if(value1 > 0)
+	{
+		return jit_float64_floor(value1);
+	}
+	else
+	{
+		return jit_float64_ceil(value1);
+	}
+#endif
+}
+
+jit_nfloat jit_nfloat_trunc(jit_nfloat value1)
+{
+#if defined(HAVE_TRUNCL) && !defined(JIT_NFLOAT_IS_DOUBLE)
+	return (jit_nfloat)(truncl(value1));
+#elif defined(HAVE_TRUNC) && defined(JIT_NFLOAT_IS_DOUBLE)
+	return (jit_nfloat)(trunc(value1));
+#else
+	if(value1 > 0)
+	{
+		return jit_nfloat_floor(value1);
+	}
+	else
+	{
+		return jit_nfloat_ceil(value1);
+	}
+#endif
+}
+
+/*@
+ * Floatingpoint rounding operations.not covered by ieee754
+ * @deftypefun jit_float32 jit_float32_round (jit_float32 @var{value1})
+ * @deftypefunx jit_float64 jit_float64_round (jit_float64 @var{value1})
+ * @deftypefunx jit_nfloat jit_nfloat_round (jit_nfloat @var{value1})
+ * Round @var{value1} to the nearest integer.  Half-way cases
+ * are rounded away from zero.
+ * @end deftypefun
+@*/
+jit_float32 jit_float32_round(jit_float32 value1)
+{
+#ifdef HAVE_ROUNDF
+	return (jit_float32)roundf(value1);
+#else
+	jit_float32 above, below;
+	if(!jit_float32_is_finite(value1))
+	{
+		return value1;
+	}
+	above = jit_float32_ceil(value1);
+	below = jit_float32_floor(value1);
+	if((above - value1) < (jit_float32)0.5)
+	{
+		return above;
+	}
+	else if((value1 - below) < (jit_float32)0.5)
+	{
+		return below;
+	}
+	else if(above >= (jit_float32)0.0)
+	{
+		return above;
+	}
+	else
+	{
+		return below;
+	}
+#endif
+}
+
+jit_float64 jit_float64_round(jit_float64 value1)
+{
+#ifdef HAVE_ROUND
+	return (jit_float64)round(value1);
+#else
+	jit_float64 above, below;
+	if(!jit_float64_is_finite(value1))
+	{
+		return value1;
+	}
+	above = jit_float64_ceil(value1);
+	below = jit_float64_floor(value1);
+	if((above - value1) < (jit_float64)0.5)
+	{
+		return above;
+	}
+	else if((value1 - below) < (jit_float64)0.5)
+	{
+		return below;
+	}
+	else if(above >= (jit_float64)0.0)
+	{
+		return above;
+	}
+	else
+	{
+		return below;
+	}
+#endif
+}
+
+jit_nfloat jit_nfloat_round(jit_nfloat value1)
+{
+#if defined(HAVE_ROUNDL) && !defined(JIT_NFLOAT_IS_DOUBLE)
+	return (jit_nfloat)(roundl(value1));
+#elif defined(HAVE_ROUND) && defined(JIT_NFLOAT_IS_DOUBLE)
+	return (jit_nfloat)(round(value1));
+#else
+	jit_nfloat above, below;
+	if(!jit_nfloat_is_finite(value1))
+	{
+		return value1;
+	}
+	above = jit_nfloat_ceil(value1);
+	below = jit_nfloat_floor(value1);
+	if((above - value1) < (jit_nfloat)0.5)
+	{
+		return above;
+	}
+	else if((value1 - below) < (jit_nfloat)0.5)
+	{
+		return below;
+	}
+	else if(above >= (jit_nfloat)0.0)
+	{
+		return above;
+	}
+	else
+	{
+		return below;
+	}
+#endif
 }
 
 /*@

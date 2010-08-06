@@ -1,3 +1,25 @@
+2010-08-06  Klaus Treichel  <ktreichel@web.de>
+
+	* configure.ac: Add checks for the rint, round and trunc c library
+	functions.
+
+	* include/jit/jit-intrinsic.h (jit_float32_trunc, jit_float64_trunc,
+	jit_nfloat_trunc): Add prototypes.
+
+	* jit/jit-intrinsic.c: Nove float rounding intrinsics to one block
+	and refine conmments.
+	(jit_float32_rint): Use rintf or rint if available.
+	(jit_float64_rint): Use rint if available.
+	(jit_nfloat_rint): Use rintl if available.
+	(jit_float32_round): Use roundf or round if available.
+	(jit_float64_round): Use round if available.
+	(jit_nfloat_round): Use roundl if available.
+	(jit_float32_trunc, jit_float64_trunc, jit_nfloat_trunc): Add new
+	rounding intrinsics for rounding float values towards zero.
+
+	* jit/jit-symbol.c: Add the new intrinsics jit_float32_trunc,
+	jit_float64_trunc and jit_nfloat_trunc to the symbol table.
+
 2010-08-04  Klaus Treichel  <ktreichel@web.de>
 
 	* include/jit/Makefile.am: Don't include jit-arch.h in the
