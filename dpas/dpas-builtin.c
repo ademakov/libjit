@@ -498,6 +498,7 @@ dpas_math_unary(sinh, jit_insn_sinh)
 dpas_math_unary(sqrt, jit_insn_sqrt)
 dpas_math_unary(tan, jit_insn_tan)
 dpas_math_unary(tanh, jit_insn_tanh)
+dpas_math_unary(trunc, jit_insn_trunc)
 dpas_math_unary(abs, jit_insn_abs)
 dpas_math_binary(min, jit_insn_min)
 dpas_math_binary(max, jit_insn_max)
@@ -535,13 +536,14 @@ dpas_math_test(finite, jit_insn_is_finite)
 #define	DPAS_BUILTIN_SQRT			24
 #define	DPAS_BUILTIN_TAN			25
 #define	DPAS_BUILTIN_TANH			26
-#define	DPAS_BUILTIN_ABS			27
-#define	DPAS_BUILTIN_MIN			28
-#define	DPAS_BUILTIN_MAX			29
-#define	DPAS_BUILTIN_SIGN			30
-#define	DPAS_BUILTIN_ISNAN			31
-#define	DPAS_BUILTIN_ISINF			32
-#define	DPAS_BUILTIN_FINITE			33
+#define	DPAS_BUILTIN_TRUNC			27
+#define	DPAS_BUILTIN_ABS			28
+#define	DPAS_BUILTIN_MIN			29
+#define	DPAS_BUILTIN_MAX			30
+#define	DPAS_BUILTIN_SIGN			31
+#define	DPAS_BUILTIN_ISNAN			32
+#define	DPAS_BUILTIN_ISINF			33
+#define	DPAS_BUILTIN_FINITE			34
 
 /*
  * Table that defines the builtins.
@@ -581,6 +583,7 @@ static dpas_builtin const builtins[] = {
 	{"Sqrt",		DPAS_BUILTIN_SQRT,		dpas_sqrt,        1},
 	{"Tan",			DPAS_BUILTIN_TAN,		dpas_tan,         1},
 	{"Tanh",		DPAS_BUILTIN_TANH,		dpas_tanh,        1},
+	{"Trunc",		DPAS_BUILTIN_TRUNC,		dpas_trunc,       1},
 	{"Abs",			DPAS_BUILTIN_ABS,		dpas_abs,         1},
 	{"Min",			DPAS_BUILTIN_MIN,		dpas_min,         2},
 	{"Max",			DPAS_BUILTIN_MAX,		dpas_max,         2},

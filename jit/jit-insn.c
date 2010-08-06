@@ -3249,6 +3249,24 @@ jit_value_t jit_insn_tanh(jit_function_t func, jit_value_t value1)
 	return apply_unary_arith(func, &tanh_descr, value1, 0, 1, 0);
 }
 
+jit_value_t jit_insn_trunc(jit_function_t func, jit_value_t value1)
+{
+	static jit_opcode_descr const trunc_descr = {
+		0, 0, 0, 0,
+		JIT_OP_FTRUNC,
+		JIT_OP_DTRUNC,
+		JIT_OP_NFTRUNC,
+		jit_no_intrinsic,
+		jit_no_intrinsic,
+		jit_no_intrinsic,
+		jit_no_intrinsic,
+		jit_intrinsic(jit_float32_trunc, descr_f_f),
+		jit_intrinsic(jit_float64_trunc, descr_d_d),
+		jit_intrinsic(jit_nfloat_trunc, descr_D_D)
+	};
+	return apply_unary_arith(func, &trunc_descr, value1, 0, 1, 0);
+}
+
 /*@
  * @deftypefun jit_value_t jit_insn_is_nan (jit_function_t @var{func}, jit_value_t @var{value1})
  * @deftypefunx jit_value_t jit_insn_is_finite (jit_function_t @var{func}, jit_value_t @var{value1})

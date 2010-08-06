@@ -342,6 +342,7 @@ opcodes(JIT_OP_, "jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES]")
 	op_def("fsqrt") { op_values(float32, float32) }
 	op_def("ftan") { op_values(float32, float32) }
 	op_def("ftanh") { op_values(float32, float32) }
+	op_def("ftrunc") { op_values(float32, float32) }
 	op_def("dacos") { op_values(float64, float64) }
 	op_def("dasin") { op_values(float64, float64) }
 	op_def("datan") { op_values(float64, float64) }
@@ -361,6 +362,7 @@ opcodes(JIT_OP_, "jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES]")
 	op_def("dsqrt") { op_values(float64, float64) }
 	op_def("dtan") { op_values(float64, float64) }
 	op_def("dtanh") { op_values(float64, float64) }
+	op_def("dtrunc") { op_values(float64, float64) }
 	op_def("nfacos") { op_values(nfloat, nfloat) }
 	op_def("nfasin") { op_values(nfloat, nfloat) }
 	op_def("nfatan") { op_values(nfloat, nfloat) }
@@ -380,6 +382,7 @@ opcodes(JIT_OP_, "jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES]")
 	op_def("nfsqrt") { op_values(nfloat, nfloat) }
 	op_def("nftan") { op_values(nfloat, nfloat) }
 	op_def("nftanh") { op_values(nfloat, nfloat) }
+	op_def("nftrunc") { op_values(nfloat, nfloat) }
 	/*
 	 * Absolute, minimum, maximum, and sign.
 	 */

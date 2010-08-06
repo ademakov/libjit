@@ -300,6 +300,9 @@ begin
 	runf("math_f_rint_2.5", Rint(ShortReal(2.5)), ShortReal(2.0), 0.00001);
 	runf("math_f_round_1.5", Round(ShortReal(1.5)), ShortReal(2.0), 0.00001);
 	runf("math_f_round_2.5", Round(ShortReal(2.5)), ShortReal(3.0), 0.00001);
+	runf("math_f_trunc_1.5", Trunc(ShortReal(1.5)), ShortReal(1.0), 0.00001);
+	runf("math_f_trunc_2.5", Trunc(ShortReal(2.5)), ShortReal(2.0), 0.00001);
+	runf("math_f_trunc_m1.5", Trunc(ShortReal(-1.5)), ShortReal(-1.0), 0.00001);
 
 	{ real versions }
 	rund("math_d_abs_1.5", Abs(Real(1.5)), Real(1.5), 0.00001);
@@ -325,6 +328,9 @@ begin
 	rund("math_d_rint_2.5", Rint(Real(2.5)), Real(2.0), 0.00001);
 	rund("math_d_round_1.5", Round(Real(1.5)), Real(2.0), 0.00001);
 	rund("math_d_round_2.5", Round(Real(2.5)), Real(3.0), 0.00001);
+	rund("math_d_trunc_1.5", Trunc(Real(1.5)), Real(1.0), 0.00001);
+	rund("math_d_trunc_2.5", Trunc(Real(2.5)), Real(2.0), 0.00001);
+	rund("math_d_trunc_m1.5", Trunc(Real(-1.5)), Real(-1.0), 0.00001);
 
 	{ long real versions }
 	runn("math_n_abs_1.5", Abs(LongReal(1.5)), LongReal(1.5), 0.00001);
@@ -350,6 +356,9 @@ begin
 	runn("math_n_rint_2.5", Rint(LongReal(2.5)), LongReal(2.0), 0.00001);
 	runn("math_n_round_1.5", Round(LongReal(1.5)), LongReal(2.0), 0.00001);
 	runn("math_n_round_2.5", Round(LongReal(2.5)), LongReal(3.0), 0.00001);
+	runn("math_n_trunc_1.5", Trunc(LongReal(1.5)), LongReal(1.0), 0.00001);
+	runn("math_n_trunc_2.5", Trunc(LongReal(2.5)), LongReal(2.0), 0.00001);
+	runn("math_n_trunc_m1.5", Trunc(LongReal(-1.5)), LongReal(-1.0), 0.00001);
 
 end;
 

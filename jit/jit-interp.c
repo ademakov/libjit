@@ -2786,6 +2786,14 @@ restart_tail:
 		}
 		VMBREAK;
 
+		VMCASE(JIT_OP_FTRUNC):
+		{
+			/* Compute 32-bit float "trunc" */
+			VM_R0_FLOAT32 = jit_float32_trunc(VM_R1_FLOAT32);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
 		VMCASE(JIT_OP_DACOS):
 		{
 			/* Compute 64-bit float "acos" */
@@ -2938,6 +2946,14 @@ restart_tail:
 		}
 		VMBREAK;
 
+		VMCASE(JIT_OP_DTRUNC):
+		{
+			/* Compute 64-bit float "trunc" */
+			VM_R0_FLOAT64 = jit_float64_trunc(VM_R1_FLOAT64);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
 		VMCASE(JIT_OP_NFACOS):
 		{
 			/* Compute native float "acos" */
@@ -3086,6 +3102,14 @@ restart_tail:
 		{
 			/* Compute native float "tanh" */
 			VM_R0_NFLOAT = jit_nfloat_tanh(VM_R1_NFLOAT);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_NFTRUNC):
+		{
+			/* Compute native float "trunc" */
+			VM_R0_NFLOAT = jit_nfloat_trunc(VM_R1_NFLOAT);
 			VM_MODIFY_PC(1);
 		}
 		VMBREAK;

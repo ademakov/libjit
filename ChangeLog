@@ -3,8 +3,20 @@
 	* configure.ac: Add checks for the rint, round and trunc c library
 	functions.
 
+	* config/jit-opcodes.ops: (ftrunc, dtrunc, nftrunc): Add opcode
+	definitions for the new trunc instruction.
+
+	* dpas/dpas-builtin.c: Add new Trunc builtin.
+
+	* include/jit/jit-insn.c (jit_insn_trunc): Add prototype.
+
 	* include/jit/jit-intrinsic.h (jit_float32_trunc, jit_float64_trunc,
 	jit_nfloat_trunc): Add prototypes.
+
+	* jit/jit-insn.c (jit_insn_trunc): Add new float rounding function.
+
+	* jit/jit-interp.c (_jit_run_function): Add support for the new
+	trunc opcodes.
 
 	* jit/jit-intrinsic.c: Nove float rounding intrinsics to one block
 	and refine conmments.
@@ -19,6 +31,8 @@
 
 	* jit/jit-symbol.c: Add the new intrinsics jit_float32_trunc,
 	jit_float64_trunc and jit_nfloat_trunc to the symbol table.
+
+	* tests/math.pas: Add tests for the new trunc insn.
 
 2010-08-04  Klaus Treichel  <ktreichel@web.de>
 

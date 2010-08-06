@@ -189,6 +189,8 @@ jit_value_t jit_insn_tan
 	(jit_function_t func, jit_value_t value1) JIT_NOTHROW;
 jit_value_t jit_insn_tanh
 	(jit_function_t func, jit_value_t value1) JIT_NOTHROW;
+jit_value_t jit_insn_trunc
+	(jit_function_t func, jit_value_t value1) JIT_NOTHROW;
 jit_value_t jit_insn_is_nan
 	(jit_function_t func, jit_value_t value1) JIT_NOTHROW;
 jit_value_t jit_insn_is_finite
