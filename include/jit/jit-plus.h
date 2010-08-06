@@ -309,6 +309,7 @@ public:
 	jit_value insn_sqrt(const jit_value& value1);
 	jit_value insn_tan(const jit_value& value1);
 	jit_value insn_tanh(const jit_value& value1);
+	jit_value insn_trunc(const jit_value& value1);
 	jit_value insn_is_nan(const jit_value& value1);
 	jit_value insn_is_finite(const jit_value& value1);
 	jit_value insn_is_inf(const jit_value& value1);

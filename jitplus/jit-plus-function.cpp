@@ -595,6 +595,7 @@ jit_label jit_function::new_label()
  * @deftypemethodx jit_function jit_value insn_sqrt (const jit_value& @var{value1})
  * @deftypemethodx jit_function jit_value insn_tan (const jit_value& @var{value1})
  * @deftypemethodx jit_function jit_value insn_tanh (const jit_value& @var{value1})
+ * @deftypemethodx jit_function jit_value insn_trunc (const jit_value& @var{value1})
  * @deftypemethodx jit_function jit_value insn_is_nan (const jit_value& @var{value1})
  * @deftypemethodx jit_function jit_value insn_is_finite (const jit_value& @var{value1})
  * @deftypemethodx jit_function jit_value insn_is_inf (const jit_value& @var{value1})
@@ -1009,6 +1010,11 @@ jit_value jit_function::insn_tan(const jit_value& value1)
 jit_value jit_function::insn_tanh(const jit_value& value1)
 {
 	value_wrap(jit_insn_tanh(func, value1.raw()));
+}
+
+jit_value jit_function::insn_trunc(const jit_value& value1)
+{
+	value_wrap(jit_insn_trunc(func, value1.raw()));
 }
 
 jit_value jit_function::insn_is_nan(const jit_value& value1)

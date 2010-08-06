@@ -35,6 +35,11 @@
 
 	* tests/math.pas: Add tests for the new trunc insn.
 
+	* include/jit/jit-plus.h: Add jit_function insn_trunc member.
+
+	* jitplus/jit-plus-function.cpp (insn_trunc): Implement wrapper for
+	the new trunc insn.
+
 2010-08-04  Klaus Treichel  <ktreichel@web.de>
 
 	* include/jit/Makefile.am: Don't include jit-arch.h in the
