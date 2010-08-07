@@ -1,3 +1,16 @@
+2010-08-07  Klaus Treichel  <ktreichel@web.de>
+
+	* config/jit-opcodes.ops: Add opcodes for direct conversions from
+	and to 32-bit and 64-bit floatingpoint values.
+
+	* jit/jit-interp.c (_jit_run_function): Add support for the new
+	opcodes.
+
+	* jit/jit-insn.c: Add the new opcodes to the convert_intrinsics
+	table.
+	(jit_insn_convert): Use the new opcodes for conversions from and to
+	32-bit and 64-bit floatingpoint values.
+
 2010-08-06  Klaus Treichel  <ktreichel@web.de>
 
 	* configure.ac: Add checks for the rint, round and trunc c library

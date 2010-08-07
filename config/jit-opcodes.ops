@@ -93,6 +93,32 @@ opcodes(JIT_OP_, "jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES]")
 	op_def("check_signed_low_word") { op_values(int, long) }
 	op_def("check_long") { op_values(long, long) }
 	op_def("check_ulong") { op_values(long, long) }
+	op_def("float32_to_int") { op_values(int, float32) }
+	op_def("float32_to_uint") { op_values(int, float32) }
+	op_def("float32_to_long") { op_values(long, float32) }
+	op_def("float32_to_ulong") { op_values(long, float32) }
+	op_def("check_float32_to_int") { op_values(int, float32) }
+	op_def("check_float32_to_uint") { op_values(int, float32) }
+	op_def("check_float32_to_long") { op_values(long, float32) }
+	op_def("check_float32_to_ulong") { op_values(long, float32) }
+	op_def("int_to_float32") { op_values(float32, int) }
+	op_def("uint_to_float32") { op_values(float32, int) }
+	op_def("long_to_float32") { op_values(float32, long) }
+	op_def("ulong_to_float32") { op_values(float32, long) }
+	op_def("float32_to_float64") { op_values(float64, float32) }
+	op_def("float64_to_int") { op_values(int, float64) }
+	op_def("float64_to_uint") { op_values(int, float64) }
+	op_def("float64_to_long") { op_values(long, float64) }
+	op_def("float64_to_ulong") { op_values(long, float64) }
+	op_def("check_float64_to_int") { op_values(int, float64) }
+	op_def("check_float64_to_uint") { op_values(int, float64) }
+	op_def("check_float64_to_long") { op_values(long, float64) }
+	op_def("check_float64_to_ulong") { op_values(long, float64) }
+	op_def("int_to_float64") { op_values(float64, int) }
+	op_def("uint_to_float64") { op_values(float64, int) }
+	op_def("long_to_float64") { op_values(float64, long) }
+	op_def("ulong_to_float64") { op_values(float64, long) }
+	op_def("float64_to_float32") { op_values(float32, float64) }
 	op_def("nfloat_to_int") { op_values(int, nfloat) }
 	op_def("nfloat_to_uint") { op_values(int, nfloat) }
 	op_def("nfloat_to_long") { op_values(long, nfloat) }

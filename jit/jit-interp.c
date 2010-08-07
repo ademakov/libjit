@@ -522,6 +522,214 @@ restart_tail:
 		}
 		VMBREAK;
 
+		VMCASE(JIT_OP_FLOAT32_TO_INT):
+		{
+			/* Convert 32-bit float into 32-bit signed integer */
+			VM_R0_INT = jit_float32_to_int(VM_R1_FLOAT32);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_FLOAT32_TO_UINT):
+		{
+			/* Convert 32-bit float into 32-bit unsigned integer */
+			VM_R0_UINT = jit_float32_to_uint(VM_R1_FLOAT32);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_FLOAT32_TO_LONG):
+		{
+			/* Convert 32-bit float into 64-bit signed integer */
+			VM_R0_LONG = jit_float32_to_long(VM_R1_FLOAT32);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_FLOAT32_TO_ULONG):
+		{
+			/* Convert 32-bit float into 64-bit unsigned integer */
+			VM_R0_ULONG = jit_float32_to_ulong(VM_R1_FLOAT32);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_CHECK_FLOAT32_TO_INT):
+		{
+			/* Convert 32-bit float into 32-bit signed integer, and check */
+			VM_BUILTIN(jit_float32_to_int_ovf(&VM_R0_INT, VM_R1_FLOAT32));
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_CHECK_FLOAT32_TO_UINT):
+		{
+			/* Convert 32-bit float into 32-bit unsigned integer, and check */
+			VM_BUILTIN(jit_float32_to_uint_ovf(&VM_R0_UINT, VM_R1_FLOAT32));
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_CHECK_FLOAT32_TO_LONG):
+		{
+			/* Convert 32-bit float into 64-bit signed integer, and check */
+			VM_BUILTIN(jit_float32_to_long_ovf(&VM_R0_LONG, VM_R1_FLOAT32));
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_CHECK_FLOAT32_TO_ULONG):
+		{
+			/* Convert 32-bit float into 64-bit unsigned integer, and check */
+			VM_BUILTIN(jit_float32_to_ulong_ovf(&VM_R0_ULONG, VM_R1_FLOAT32));
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_INT_TO_FLOAT32):
+		{
+			/* Convert 32-bit signed integer into 32-bit float */
+			VM_R0_FLOAT32 = jit_int_to_float32(VM_R1_INT);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_UINT_TO_FLOAT32):
+		{
+			/* Convert 32-bit unsigned integer into 32-bit float */
+			VM_R0_FLOAT32 = jit_uint_to_float32(VM_R1_UINT);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_LONG_TO_FLOAT32):
+		{
+			/* Convert 64-bit signed integer into 32-bit float */
+			VM_R0_FLOAT32 = jit_long_to_float32(VM_R1_LONG);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_ULONG_TO_FLOAT32):
+		{
+			/* Convert 64-bit unsigned integer into 32-bit float */
+			VM_R0_FLOAT32 = jit_ulong_to_float32(VM_R1_ULONG);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_FLOAT32_TO_FLOAT64):
+		{
+			/* Convert 32-bit float into 64-bit float */
+			VM_R0_FLOAT64 = jit_float32_to_float64(VM_R1_FLOAT32);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_FLOAT64_TO_INT):
+		{
+			/* Convert 64-bit float into 32-bit signed integer */
+			VM_R0_INT = jit_float64_to_int(VM_R1_FLOAT64);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_FLOAT64_TO_UINT):
+		{
+			/* Convert 64-bit float into 32-bit unsigned integer */
+			VM_R0_UINT = jit_float64_to_uint(VM_R1_FLOAT64);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_FLOAT64_TO_LONG):
+		{
+			/* Convert 64-bit float into 64-bit signed integer */
+			VM_R0_LONG = jit_float64_to_long(VM_R1_FLOAT64);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_FLOAT64_TO_ULONG):
+		{
+			/* Convert 64-bit float into 64-bit unsigned integer */
+			VM_R0_ULONG = jit_float64_to_ulong(VM_R1_FLOAT64);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_CHECK_FLOAT64_TO_INT):
+		{
+			/* Convert 64-bit float into 32-bit signed integer, and check */
+			VM_BUILTIN(jit_float64_to_int_ovf(&VM_R0_INT, VM_R1_FLOAT64));
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_CHECK_FLOAT64_TO_UINT):
+		{
+			/* Convert 64-bit float into 32-bit unsigned integer, and check */
+			VM_BUILTIN(jit_float64_to_uint_ovf(&VM_R0_UINT, VM_R1_FLOAT64));
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_CHECK_FLOAT64_TO_LONG):
+		{
+			/* Convert 64-bit float into 64-bit signed integer, and check */
+			VM_BUILTIN(jit_float64_to_long_ovf(&VM_R0_LONG, VM_R1_FLOAT64));
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_CHECK_FLOAT64_TO_ULONG):
+		{
+			/* Convert 64-bit float into 64-bit unsigned integer, and check */
+			VM_BUILTIN(jit_float64_to_ulong_ovf(&VM_R0_ULONG, VM_R1_FLOAT64));
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_INT_TO_FLOAT64):
+		{
+			/* Convert 32-bit signed integer into 64-bit float */
+			VM_R0_FLOAT64 = jit_int_to_float64(VM_R1_INT);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_UINT_TO_FLOAT64):
+		{
+			/* Convert 32-bit unsigned integer into 64-bit float */
+			VM_R0_FLOAT64 = jit_uint_to_float64(VM_R1_UINT);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_LONG_TO_FLOAT64):
+		{
+			/* Convert 64-bit signed integer into 64-bit float */
+			VM_R0_FLOAT64 = jit_long_to_float64(VM_R1_LONG);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_ULONG_TO_FLOAT64):
+		{
+			/* Convert 64-bit unsigned integer into 64-bit float */
+			VM_R0_FLOAT64 = jit_ulong_to_float64(VM_R1_ULONG);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
+		VMCASE(JIT_OP_FLOAT64_TO_FLOAT32):
+		{
+			/* Convert 64-bit float into 32-bit float */
+			VM_R0_FLOAT32 = jit_float64_to_float32(VM_R1_FLOAT64);
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
 		VMCASE(JIT_OP_NFLOAT_TO_INT):
 		{
 			/* Convert native float into 32-bit signed integer */
