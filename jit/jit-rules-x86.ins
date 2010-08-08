@@ -143,7 +143,7 @@ JIT_OP_EXPAND_UINT:
 		x86_clear_reg(inst, %1);
 	}
 
-JIT_OP_NFLOAT_TO_INT: stack
+JIT_OP_FLOAT32_TO_INT, JIT_OP_FLOAT64_TO_INT, JIT_OP_NFLOAT_TO_INT: stack
 	[=reg, freg] -> {
 		/* allocate space on the stack for 2 shorts and 1 int */
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, 8);
@@ -164,7 +164,7 @@ JIT_OP_NFLOAT_TO_INT: stack
 		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, 8);
 	}
 
-JIT_OP_NFLOAT_TO_LONG: stack
+JIT_OP_FLOAT32_TO_LONG, JIT_OP_FLOAT64_TO_LONG, JIT_OP_NFLOAT_TO_LONG: stack
 	[=lreg, freg] -> {
 		/* allocate space on the stack for 2 shorts and 1 long */
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, 12);
@@ -186,7 +186,23 @@ JIT_OP_NFLOAT_TO_LONG: stack
 		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, 12);
 	}
 
-JIT_OP_INT_TO_NFLOAT:
+JIT_OP_INT_TO_FLOAT32:
+	[=freg, local] -> {
+		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(void *));
+		x86_fild_membase(inst, X86_EBP, $2, 0);
+		x86_fst_membase(inst, X86_ESP, 0, 0, 1);
+		x86_fld_membase(inst, X86_ESP, 0, 0);
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(void *));
+	}
+	[=freg, reg] -> {
+		x86_push_reg(inst, $2);
+		x86_fild_membase(inst, X86_ESP, 0, 0);
+		x86_fst_membase(inst, X86_ESP, 0, 0, 1);
+		x86_fld_membase(inst, X86_ESP, 0, 0);
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_nint));
+	}
+
+JIT_OP_INT_TO_FLOAT64, JIT_OP_INT_TO_NFLOAT:
 	[=freg, local] -> {
 		x86_fild_membase(inst, X86_EBP, $2, 0);
 	}
@@ -196,12 +212,57 @@ JIT_OP_INT_TO_NFLOAT:
 		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_nint));
 	}
 
-JIT_OP_UINT_TO_NFLOAT:
+JIT_OP_UINT_TO_FLOAT32:
 	[=freg, reg, scratch reg] -> {
 		x86_clear_reg(inst, $3);
 		x86_push_reg(inst, $3);
 		x86_push_reg(inst, $2);
 		x86_fild_membase(inst, X86_ESP, 0, 1);
+		x86_fst_membase(inst, X86_ESP, 0, 0, 1);
+		x86_fld_membase(inst, X86_ESP, 0, 0);
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_long));
+	}
+
+JIT_OP_UINT_TO_FLOAT64, JIT_OP_UINT_TO_NFLOAT:
+	[=freg, reg, scratch reg] -> {
+		x86_clear_reg(inst, $3);
+		x86_push_reg(inst, $3);
+		x86_push_reg(inst, $2);
+		x86_fild_membase(inst, X86_ESP, 0, 1);
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_long));
+	}
+
+JIT_OP_LONG_TO_FLOAT32:
+	[=freg, local] -> {
+		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float32));
+		x86_fild_membase(inst, X86_EBP, $2, 1);
+		x86_fst_membase(inst, X86_ESP, 0, 0, 1);
+		x86_fld_membase(inst, X86_ESP, 0, 0);
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_float32));
+	}
+	[=freg, lreg] -> {
+		x86_push_reg(inst, %2);
+		x86_push_reg(inst, $2);
+		x86_fild_membase(inst, X86_ESP, 0, 1);
+		x86_fst_membase(inst, X86_ESP, 0, 0, 1);
+		x86_fld_membase(inst, X86_ESP, 0, 0);
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_long));
+	}
+
+JIT_OP_LONG_TO_FLOAT64:
+	[=freg, local] -> {
+		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(jit_float64));
+		x86_fild_membase(inst, X86_EBP, $2, 1);
+		x86_fst_membase(inst, X86_ESP, 0, 1, 1);
+		x86_fld_membase(inst, X86_ESP, 0, 1);
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_float64));
+	}
+	[=freg, lreg] -> {
+		x86_push_reg(inst, %2);
+		x86_push_reg(inst, $2);
+		x86_fild_membase(inst, X86_ESP, 0, 1);
+		x86_fst_membase(inst, X86_ESP, 0, 1, 1);
+		x86_fld_membase(inst, X86_ESP, 0, 1);
 		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_long));
 	}
 
@@ -216,7 +277,7 @@ JIT_OP_LONG_TO_NFLOAT:
 		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_long));
 	}
 
-JIT_OP_ULONG_TO_NFLOAT: more_space
+JIT_OP_ULONG_TO_FLOAT32, JIT_OP_ULONG_TO_FLOAT64, JIT_OP_ULONG_TO_NFLOAT: more_space
 	[=freg, lreg] -> {
 		/* TODO: review wrt relocation for elf pre-compilation */
 		static float f2pow64;
@@ -230,15 +291,25 @@ JIT_OP_ULONG_TO_NFLOAT: more_space
 		x86_push_reg(inst, %2);
 		x86_push_reg(inst, $2);
 		x86_fild_membase(inst, X86_ESP, 0, 1);
-		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_long));
 		x86_test_reg_reg(inst, %2, %2);
 		patch = inst;
 		x86_branch8(inst, X86_CC_NS, 0, 1);
 		x86_fp_op_mem(inst, X86_FADD, &f2pow64, 0);
 		x86_patch(patch, inst);
+		if(insn->opcode == JIT_OP_ULONG_TO_FLOAT32)
+		{
+			x86_fst_membase(inst, X86_ESP, 0, 0, 1);
+			x86_fld_membase(inst, X86_ESP, 0, 0);
+		}
+		else if(insn->opcode == JIT_OP_ULONG_TO_FLOAT64)
+		{
+			x86_fst_membase(inst, X86_ESP, 0, 1, 1);
+			x86_fld_membase(inst, X86_ESP, 0, 1);
+		}
+		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_long));
 	}
 
-JIT_OP_NFLOAT_TO_FLOAT32: stack
+JIT_OP_FLOAT64_TO_FLOAT32, JIT_OP_NFLOAT_TO_FLOAT32: stack
 	[freg] -> {
 		x86_alu_reg_imm(inst, X86_SUB, X86_ESP, sizeof(void *));
 		x86_fst_membase(inst, X86_ESP, 0, 0, 1);
@@ -254,7 +325,7 @@ JIT_OP_NFLOAT_TO_FLOAT64: stack
 		x86_alu_reg_imm(inst, X86_ADD, X86_ESP, sizeof(jit_float64));
 	}
 
-JIT_OP_FLOAT32_TO_NFLOAT, JIT_OP_FLOAT64_TO_NFLOAT: copy, stack
+JIT_OP_FLOAT32_TO_NFLOAT, JIT_OP_FLOAT32_TO_FLOAT64, JIT_OP_FLOAT64_TO_NFLOAT: copy, stack
 	[freg] -> {
 		/* Nothing to do: loading the value onto the FP stack is sufficient */
 	}

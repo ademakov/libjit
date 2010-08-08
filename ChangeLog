@@ -1,3 +1,16 @@
+2010-08-08  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-rules-x86.ins (JIT_OP_FLOAT32_TO_INT,
+	JIT_OP_FLOAT64_TO_INT, JIT_OP_FLOAT32_TO_LONG,
+	JIT_OP_FLOAT64_TO_LONG, JIT_OP_INT_TO_FLOAT32,
+	JIT_OP_INT_TO_FLOAT64, JIT_OP_UINT_TO_FLOAT32,
+	JIT_OP_UINT_TO_FLOAT64, JIT_OP_LONG_TO_FLOAT32,
+	JIT_OP_LONG_TO_FLOAT64, JIT_OP_ULONG_TO_FLOAT32,
+	JIT_OP_ULONG_TO_FLOAT64, JIT_OP_FLOAT64_TO_FLOAT32,
+	JIT_OP_FLOAT32_TO_FLOAT64: Add support for these new opcodes.
+
+	* tests/math.pas: Add tests for integer/float conversions.
+
 2010-08-07  Klaus Treichel  <ktreichel@web.de>
 
 	* config/jit-opcodes.ops: Add opcodes for direct conversions from

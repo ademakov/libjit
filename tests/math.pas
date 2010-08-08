@@ -90,6 +90,131 @@ begin
 	nfneg := -f;
 end;
 
+procedure run_conversion_tests;
+var
+	f: ShortReal;
+	d: Real;
+	nf: LongReal;
+	i: Integer;
+	u: Cardinal;
+	l: LongInt;
+	ul: LongCard;
+begin
+
+	{ Tests for conversions from ShortReal to other types }
+	f:= 1.5;
+	run("math_conv_float32_int 1.5", Integer(f) = 1);
+	f:= ShortReal(-1.5);
+	run("math_conv_float32_int -1.5", Integer(f) = -1);
+	f:= 1.5;
+	run("math_conv_float32_uint 1.5", Cardinal(f) = Cardinal(1));
+	{ The float mantissa is less than 32 bit so precision might get lost }
+	f:= ShortReal(81234500H);
+	run("math_conv_float32_uint 81234500H", Cardinal(f) = Cardinal(81234500H));
+	f:= 1.5;
+	run("math_conv_float32_long 1.5", LongInt(f) = LongInt(1));
+	f:= ShortReal(-1.5);
+	run("math_conv_float32_long -1.5", LongInt(f) = LongInt(-1));
+	f:= 1.5;
+	run("math_conv_float32_ulong 1.5", LongCard(f) = LongCard(1));
+	{ The 32-bit float fraction is less than 32 bit so precision might get lost }
+	f:= ShortReal(81234500H);
+	run("math_conv_float32_ulong 81234500H", LongCard(f) = LongCard(81234500H));
+
+	{ Tests for conversions from Real to other types }
+	d := 1.5;
+	run("math_conv_float64_int 1.5", Integer(d) = 1);
+	d := Real(-1.5);
+	run("math_conv_float64_int -1.5", Integer(d) = -1);
+	d := 1.5;
+	run("math_conv_float64_uint 1.5", Cardinal(d) = Cardinal(1));
+	d := Real(81234567H);
+	run("math_conv_float64_uint 81234567H", Cardinal(d) = Cardinal(81234567H));
+	d := 1.5;
+	run("math_conv_float64_long 1.5", LongInt(d) = LongInt(1));
+	d := Real(-1.5);
+	run("math_conv_float64_long -1.5", LongInt(d) = LongInt(-1));
+	d := 1.5;
+	run("math_conv_float64_ulong 1.5", LongCard(d) = LongCard(1));
+	{ The 64-bit float fraction is less than 64 bit so precision might get lost }
+	d := Real(8123456789ABC000H);
+	run("math_conv_float64_ulong 8123456789ABC000H", LongCard(d) = LongCard(8123456789ABC000H));
+
+	{ Tests for conversions from LongReal to other types }
+	nf := 1.5;
+	run("math_conv_nfloat_int 1.5", Integer(nf) = 1);
+	nf := LongReal(-1.5);
+	run("math_conv_nfloat_int -1.5", Integer(nf) = -1);
+	nf := 1.5;
+	run("math_conv_nfloat_uint 1.5", Cardinal(nf) = Cardinal(1));
+	nf := LongReal(81234567H);
+	run("math_conv_nfloat_uint 81234567H", Cardinal(nf) = Cardinal(81234567H));
+	nf := 1.5;
+	run("math_conv_nfloat_long 1.5", LongInt(nf) = LongInt(1));
+	nf := LongReal(-1.5);
+	run("math_conv_nfloat_long -1.5", LongInt(nf) = LongInt(-1));
+	nf := 1.5;
+	run("math_conv_nfloat_ulong 1.5", LongCard(nf) = LongCard(1));
+	{ The native float fraction might less than 64 bit so precision might get lost }
+	nf:= LongReal(8123456789ABC000H);
+	run("math_conv_nfloat_ulong 8123456789ABC000H", LongCard(nf) = LongCard(8123456789ABC000H));
+
+	{ Tests for conversions from integer types to ShortReal }
+	i := 1;
+	runf("math_conv_int_float32 1", ShortReal(i), ShortReal(1.0), 0.00001);
+	i := -1;
+	runf("math_conv_int_float32 -1", ShortReal(i), ShortReal(-1.0), 0.00001);
+	u := 1;
+	runf("math_conv_uint_float32 1", ShortReal(u), ShortReal(1.0), 0.00001);
+	u := 81234500H;
+	runf("math_conv_uint_float32 81234500H", ShortReal(u), ShortReal(81234500H), 0.00001);
+	l := 1;
+	runf("math_conv_long_float32 1", ShortReal(l), ShortReal(1.0), 0.00001);
+	l := -1;
+	runf("math_conv_long_float32 -1", ShortReal(l), ShortReal(-1.0), 0.00001);
+	ul := 1;
+	runf("math_conv_ulong_float32 1", ShortReal(ul), ShortReal(1.0), 0.00001);
+	ul := 8123450000000000H;
+	runf("math_conv_ulong_float32 8123450000000000H", ShortReal(ul), ShortReal(8123450000000000H), 0.00001);
+		
+	{ Tests for conversions from integer types to Real }
+	i := 1;
+	rund("math_conv_int_float64 1", Real(i), Real(1.0), 0.00001);
+	i := -1;
+	rund("math_conv_int_float64 -1", Real(i), Real(-1.0), 0.00001);
+	u := 1;
+	rund("math_conv_uint_float64 1", Real(u), Real(1.0), 0.00001);
+	u := 81234567H;
+	rund("math_conv_uint_float64 81234567H", Real(u), Real(81234567H), 0.00001);
+	l := 1;
+	rund("math_conv_long_float64 1", Real(l), Real(1.0), 0.00001);
+	l := -1;
+	rund("math_conv_long_float64 -1", Real(l), Real(-1.0), 0.00001);
+	ul := 1;
+	rund("math_conv_ulong_float64 1", Real(ul), Real(1.0), 0.00001);
+	ul := 8123456789ABC000H;
+	rund("math_conv_ulong_float64 8123456789ABC000H", Real(ul), Real(8123456789ABC000H), 0.00001);
+
+	{ Tests for conversions from integer types to LomgReal }
+	i := 1;
+	runn("math_conv_int_nfloat 1", LongReal(i), LongReal(1.0), 0.00001);
+	i := -1;
+	runn("math_conv_int_nfloat -1", LongReal(i), LongReal(-1.0), 0.00001);
+	u := 1;
+	runn("math_conv_uint_nfloat 1", LongReal(u), LongReal(1.0), 0.00001);
+	u := 81234567H;
+	runn("math_conv_uint_nfloat 81234567H", LongReal(u), LongReal(81234567H), 0.00001);
+	l := 1;
+	runn("math_conv_long_nfloat 1", LongReal(l), LongReal(1.0), 0.00001);
+	l := -1;
+	runn("math_conv_long_nfloat -1", LongReal(l), LongReal(-1.0), 0.00001);
+	ul := 1;
+	runn("math_conv_ulong_nfloat 1", LongReal(ul), LongReal(1.0), 0.00001);
+	ul := 8123456789ABC000H;
+	runn("math_conv_ulong_nfloat 8123456789ABC000H", LongReal(ul), LongReal(8123456789ABC000H), 0.00001);
+	
+end;
+
 procedure run_tests;
 var
 	b: Byte;
@@ -348,18 +473,19 @@ begin
 	runn("math_n_sqrt_2", Sqrt(LongReal(2.0)), LongReal(1.4142), 0.0001);
 	n := Sqrt(LongReal(-1.0));
 	run("math_n_sqrt_m1", IsNaN(n));
-	runn("math_n_ceil_1.5", Ceil(LongReal(1.5)), LongReal(2.0), 0.00001);
-	runn("math_n_ceil_m1.5", Ceil(LongReal(-1.5)), LongReal(-1.0), 0.00001);
-	runn("math_n_floor_1.5", Floor(LongReal(1.5)), LongReal(1.0), 0.00001);
-	runn("math_n_floor_m1.5", Floor(LongReal(-1.5)), LongReal(-2.0), 0.00001);
-	runn("math_n_rint_1.5", Rint(LongReal(1.5)), LongReal(2.0), 0.00001);
-	runn("math_n_rint_2.5", Rint(LongReal(2.5)), LongReal(2.0), 0.00001);
-	runn("math_n_round_1.5", Round(LongReal(1.5)), LongReal(2.0), 0.00001);
-	runn("math_n_round_2.5", Round(LongReal(2.5)), LongReal(3.0), 0.00001);
-	runn("math_n_trunc_1.5", Trunc(LongReal(1.5)), LongReal(1.0), 0.00001);
-	runn("math_n_trunc_2.5", Trunc(LongReal(2.5)), LongReal(2.0), 0.00001);
-	runn("math_n_trunc_m1.5", Trunc(LongReal(-1.5)), LongReal(-1.0), 0.00001);
+	runn("math_n_ceil 1.5", Ceil(LongReal(1.5)), LongReal(2.0), 0.00001);
+	runn("math_n_ceil -1.5", Ceil(LongReal(-1.5)), LongReal(-1.0), 0.00001);
+	runn("math_n_floor 1.5", Floor(LongReal(1.5)), LongReal(1.0), 0.00001);
+	runn("math_n_floor -1.5", Floor(LongReal(-1.5)), LongReal(-2.0), 0.00001);
+	runn("math_n_rint 1.5", Rint(LongReal(1.5)), LongReal(2.0), 0.00001);
+	runn("math_n_rint 2.5", Rint(LongReal(2.5)), LongReal(2.0), 0.00001);
+	runn("math_n_round 1.5", Round(LongReal(1.5)), LongReal(2.0), 0.00001);
+	runn("math_n_round 2.5", Round(LongReal(2.5)), LongReal(3.0), 0.00001);
+	runn("math_n_trunc 1.5", Trunc(LongReal(1.5)), LongReal(1.0), 0.00001);
+	runn("math_n_trunc 2.5", Trunc(LongReal(2.5)), LongReal(2.0), 0.00001);
+	runn("math_n_trunc -1.5", Trunc(LongReal(-1.5)), LongReal(-1.0), 0.00001);
 
+	run_conversion_tests;
 end;
 
 begin
