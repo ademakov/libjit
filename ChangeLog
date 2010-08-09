@@ -1,3 +1,17 @@
+2010-08-09  Klaus Treichel  <ktreichel@web.de
+
+	* jit/jit-gen-x86-64.h: Add macros for the cvttss2si and cvttsd2si
+	instructions.
+
+	* jit-rules-x86-64.ins  (JIT_OP_FLOAT32_TO_INT,
+	JIT_OP_FLOAT32_TO_UINT, JIT_OP_FLOAT32_TO_LONG,
+	JIT_OP_INT_TO_FLOAT32, JIT_OP_UINT_TO_FLOAT32,
+	JIT_OP_LONG_TO_FLOAT32, JIT_OP_FLOAT64_TO_FLOAT32,
+	JIT_OP_FLOAT64_TO_INT, JIT_OP_FLOAT64_TO_UINT,
+	JIT_OP_FLOAT64_TO_LONG, JIT_OP_INT_TO_FLOAT64,
+	JIT_OP_UINT_TO_FLOAT64, JIT_OP_LONG_TO_FLOAT64,
+	JIT_OP_FLOAT32_TO_FLOAT64: Add support for these new opcodes.
+
 2010-08-08  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-rules-x86.ins (JIT_OP_FLOAT32_TO_INT,

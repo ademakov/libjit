@@ -4107,6 +4107,35 @@ typedef union
 	} while(0)
 
 /*
+ * cvttss2si: Convert float32.to a signed integer using the truncate rounding mode.
+ * The size is the size of the integer value (4 or 8)
+ */
+#define x86_64_cvttss2si_reg_reg_size(inst, dreg, sxreg, size) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf3, 0x0f, 0x2c, (dreg), (sxreg), (size)); \
+	} while(0)
+
+#define x86_64_cvttss2si_reg_regp_size(inst, dreg, sregp, size) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf3, 0x0f, 0x2c, (dreg), (sregp), (size)); \
+	} while(0)
+
+#define x86_64_cvttss2si_reg_mem_size(inst, dreg, mem, size) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf3, 0x0f, 0x2c, (dreg), (mem), (size)); \
+	} while(0)
+
+#define x86_64_cvttss2si_reg_membase_size(inst, dreg, basereg, disp, size) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf3, 0x0f, 0x2c, (dreg), (basereg), (disp), (size)); \
+	} while(0)
+
+#define x86_64_cvttss2si_reg_memindex_size(inst, dreg, basereg, disp, indexreg, shift, size) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf3, 0x0f, 0x2c, (dreg), (basereg), (disp), (indexreg), (shift), (size)); \
+	} while(0)
+
+/*
  * cvtsd2si: Convert float64 to a signed integer using the rounding mode
  * in the mxcsr register
  * The size is the size of the integer value (4 or 8)
@@ -4134,6 +4163,35 @@ typedef union
 #define x86_64_cvtsd2si_reg_memindex_size(inst, dreg, basereg, disp, indexreg, shift, size) \
 	do { \
 		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf2, 0x0f, 0x2d, (dreg), (basereg), (disp), (indexreg), (shift), (size)); \
+	} while(0)
+
+/*
+ * cvttsd2si: Convert float64 to a signed integer using the truncate rounding mode.
+ * The size is the size of the integer value (4 or 8)
+ */
+#define x86_64_cvttsd2si_reg_reg_size(inst, dreg, sxreg, size) \
+	do { \
+		x86_64_p1_xmm2_reg_reg_size((inst), 0xf2, 0x0f, 0x2c, (dreg), (sxreg), (size)); \
+	} while(0)
+
+#define x86_64_cvttsd2si_reg_regp_size(inst, dreg, sregp, size) \
+	do { \
+		x86_64_p1_xmm2_reg_regp_size((inst), 0xf2, 0x0f, 0x2c, (dreg), (sregp), (size)); \
+	} while(0)
+
+#define x86_64_cvttsd2si_reg_mem_size(inst, dreg, mem, size) \
+	do { \
+		x86_64_p1_xmm2_reg_mem_size((inst), 0xf2, 0x0f, 0x2c, (dreg), (mem), (size)); \
+	} while(0)
+
+#define x86_64_cvttsd2si_reg_membase_size(inst, dreg, basereg, disp, size) \
+	do { \
+		x86_64_p1_xmm2_reg_membase_size((inst), 0xf2, 0x0f, 0x2c, (dreg), (basereg), (disp), (size)); \
+	} while(0)
+
+#define x86_64_cvttsd2si_reg_memindex_size(inst, dreg, basereg, disp, indexreg, shift, size) \
+	do { \
+		x86_64_p1_xmm2_reg_memindex_size((inst), 0xf2, 0x0f, 0x2c, (dreg), (basereg), (disp), (indexreg), (shift), (size)); \
 	} while(0)
 
 /*

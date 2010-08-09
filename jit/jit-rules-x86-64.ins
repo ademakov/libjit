@@ -122,6 +122,114 @@ JIT_OP_LONG_TO_NFLOAT:
 #endif
 	}
 
+JIT_OP_FLOAT32_TO_INT:
+	[=reg, local] -> {
+		x86_64_cvttss2si_reg_membase_size(inst, $1, X86_64_RBP, $2, 4);
+	}
+	[=reg, xreg] -> {
+		x86_64_cvttss2si_reg_reg_size(inst, $1, $2, 4);
+	}
+
+JIT_OP_FLOAT32_TO_UINT:
+	[=reg, local] -> {
+		x86_64_cvttss2si_reg_membase_size(inst, $1, X86_64_RBP, $2, 8);
+	}
+	[=reg, xreg] -> {
+		x86_64_cvttss2si_reg_reg_size(inst, $1, $2, 8);
+	}
+
+JIT_OP_FLOAT32_TO_LONG:
+	[=reg, local] -> {
+		x86_64_cvttss2si_reg_membase_size(inst, $1, X86_64_RBP, $2, 8);
+	}
+	[=reg, xreg] -> {
+		x86_64_cvttss2si_reg_reg_size(inst, $1, $2, 8);
+	}
+
+JIT_OP_INT_TO_FLOAT32:
+	[=xreg, local] -> {
+		x86_64_cvtsi2ss_reg_membase_size(inst, $1, X86_64_RBP, $2, 4);
+	}
+	[=xreg, reg] -> {
+		x86_64_cvtsi2ss_reg_reg_size(inst, $1, $2, 4);
+	}
+
+JIT_OP_UINT_TO_FLOAT32:
+	[=xreg, reg] -> {
+		x86_64_mov_reg_reg_size(inst, $2, $2, 4);
+		x86_64_cvtsi2ss_reg_reg_size(inst, $1, $2, 8);
+	}
+
+JIT_OP_LONG_TO_FLOAT32:
+	[=xreg, local] -> {
+		x86_64_cvtsi2ss_reg_membase_size(inst, $1, X86_64_RBP, $2, 8);
+	}
+	[=xreg, reg] -> {
+		x86_64_cvtsi2ss_reg_reg_size(inst, $1, $2, 8);
+	}
+
+JIT_OP_FLOAT64_TO_FLOAT32:
+	[=xreg, local] -> {
+		x86_64_cvtsd2ss_reg_membase(inst, $1, X86_64_RBP, $2);
+	}
+	[=xreg, xreg] -> {
+		x86_64_cvtsd2ss_reg_reg(inst, $1, $2);
+	}
+
+JIT_OP_FLOAT64_TO_INT:
+	[=reg, local] -> {
+		x86_64_cvttsd2si_reg_membase_size(inst, $1, X86_64_RBP, $2, 4);
+	}
+	[=reg, xreg] -> {
+		x86_64_cvttsd2si_reg_reg_size(inst, $1, $2, 4);
+	}
+
+JIT_OP_FLOAT64_TO_UINT:
+	[=reg, local] -> {
+		x86_64_cvttsd2si_reg_membase_size(inst, $1, X86_64_RBP, $2, 8);
+	}
+	[=reg, xreg] -> {
+		x86_64_cvttsd2si_reg_reg_size(inst, $1, $2, 8);
+	}
+
+JIT_OP_FLOAT64_TO_LONG:
+	[=reg, local] -> {
+		x86_64_cvttsd2si_reg_membase_size(inst, $1, X86_64_RBP, $2, 8);
+	}
+	[=reg, xreg] -> {
+		x86_64_cvttsd2si_reg_reg_size(inst, $1, $2, 8);
+	}
+
+JIT_OP_INT_TO_FLOAT64:
+	[=xreg, local] -> {
+		x86_64_cvtsi2sd_reg_membase_size(inst, $1, X86_64_RBP, $2, 4);
+	}
+	[=xreg, reg] -> {
+		x86_64_cvtsi2sd_reg_reg_size(inst, $1, $2, 4);
+	}
+
+JIT_OP_UINT_TO_FLOAT64:
+	[=xreg, reg] -> {
+		x86_64_mov_reg_reg_size(inst, $2, $2, 4);
+		x86_64_cvtsi2sd_reg_reg_size(inst, $1, $2, 8);
+	}
+
+JIT_OP_LONG_TO_FLOAT64:
+	[=xreg, local] -> {
+		x86_64_cvtsi2sd_reg_membase_size(inst, $1, X86_64_RBP, $2, 8);
+	}
+	[=xreg, reg] -> {
+		x86_64_cvtsi2sd_reg_reg_size(inst, $1, $2, 8);
+	}
+
+JIT_OP_FLOAT32_TO_FLOAT64:
+	[=xreg, local] -> {
+		x86_64_cvtss2sd_reg_membase(inst, $1, X86_64_RBP, $2);
+	}
+	[=xreg, xreg] -> {
+		x86_64_cvtss2sd_reg_reg(inst, $1, $2);
+	}
+
 JIT_OP_NFLOAT_TO_INT: stack
 	[=reg, freg, scratch reg] -> {
 		inst = x86_64_nfloat_to_int(inst, $1, $3, 4);
