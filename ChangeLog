@@ -1,4 +1,8 @@
-2010-08-09  Klaus Treichel  <ktreichel@web.de
+2010-08-10  Klaus Treichel  <ktreichel@web.de>
+
+	* config/jit-opcodes.ops: Fix arg1 for the address_of opcode.
+
+2010-08-09  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-gen-x86-64.h: Add macros for the cvttss2si and cvttsd2si
 	instructions.

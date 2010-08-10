@@ -491,7 +491,7 @@ opcodes(JIT_OP_, "jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES]")
 	op_def("copy_struct", =) { op_values(ptr, ptr), "NINT_ARG" }
 	op_def("copy_store_byte") { op_values(int, int) }
 	op_def("copy_store_short") { op_values(int, int) }
-	op_def("address_of", address_of) { op_values(ptr) }
+	op_def("address_of", address_of) { op_values(ptr, any) }
 	/*
 	 * Incoming registers, outgoing registers, and stack pushes.
 	 */
