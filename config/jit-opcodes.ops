@@ -238,8 +238,6 @@ opcodes(JIT_OP_, "jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES]")
 	op_def("br_fle", <=) { op_type(branch), op_values(empty, float32, float32) }
 	op_def("br_fgt", >) { op_type(branch), op_values(empty, float32, float32) }
 	op_def("br_fge", >=) { op_type(branch), op_values(empty, float32, float32) }
-	op_def("br_feq_inv") { op_type(branch), op_values(empty, float32, float32) }
-	op_def("br_fne_inv") { op_type(branch), op_values(empty, float32, float32) }
 	op_def("br_flt_inv") { op_type(branch), op_values(empty, float32, float32) }
 	op_def("br_fle_inv") { op_type(branch), op_values(empty, float32, float32) }
 	op_def("br_fgt_inv") { op_type(branch), op_values(empty, float32, float32) }
@@ -250,8 +248,6 @@ opcodes(JIT_OP_, "jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES]")
 	op_def("br_dle", <=) { op_type(branch), op_values(empty, float64, float64) }
 	op_def("br_dgt", >) { op_type(branch), op_values(empty, float64, float64) }
 	op_def("br_dge", >=) { op_type(branch), op_values(empty, float64, float64) }
-	op_def("br_deq_inv") { op_type(branch), op_values(empty, float64, float64) }
-	op_def("br_dne_inv") { op_type(branch), op_values(empty, float64, float64) }
 	op_def("br_dlt_inv") { op_type(branch), op_values(empty, float64, float64) }
 	op_def("br_dle_inv") { op_type(branch), op_values(empty, float64, float64) }
 	op_def("br_dgt_inv") { op_type(branch), op_values(empty, float64, float64) }
@@ -262,8 +258,6 @@ opcodes(JIT_OP_, "jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES]")
 	op_def("br_nfle", <=) { op_type(branch), op_values(empty, nfloat, nfloat) }
 	op_def("br_nfgt", >) { op_type(branch), op_values(empty, nfloat, nfloat) }
 	op_def("br_nfge", >=) { op_type(branch), op_values(empty, nfloat, nfloat) }
-	op_def("br_nfeq_inv") { op_type(branch), op_values(empty, nfloat, nfloat) }
-	op_def("br_nfne_inv") { op_type(branch), op_values(empty, nfloat, nfloat) }
 	op_def("br_nflt_inv") { op_type(branch), op_values(empty, nfloat, nfloat) }
 	op_def("br_nfle_inv") { op_type(branch), op_values(empty, nfloat, nfloat) }
 	op_def("br_nfgt_inv") { op_type(branch), op_values(empty, nfloat, nfloat) }
@@ -307,8 +301,6 @@ opcodes(JIT_OP_, "jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES]")
 	op_def("fle", <=) { op_values(int, float32, float32) }
 	op_def("fgt", >) { op_values(int, float32, float32) }
 	op_def("fge", >=) { op_values(int, float32, float32) }
-	op_def("feq_inv") { op_values(int, float32, float32) }
-	op_def("fne_inv") { op_values(int, float32, float32) }
 	op_def("flt_inv") { op_values(int, float32, float32) }
 	op_def("fle_inv") { op_values(int, float32, float32) }
 	op_def("fgt_inv") { op_values(int, float32, float32) }
@@ -319,8 +311,6 @@ opcodes(JIT_OP_, "jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES]")
 	op_def("dle", <=) { op_values(int, float64, float64) }
 	op_def("dgt", >) { op_values(int, float64, float64) }
 	op_def("dge", >=) { op_values(int, float64, float64) }
-	op_def("deq_inv") { op_values(int, float64, float64) }
-	op_def("dne_inv") { op_values(int, float64, float64) }
 	op_def("dlt_inv") { op_values(int, float64, float64) }
 	op_def("dle_inv") { op_values(int, float64, float64) }
 	op_def("dgt_inv") { op_values(int, float64, float64) }
@@ -331,8 +321,6 @@ opcodes(JIT_OP_, "jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES]")
 	op_def("nfle", <=) { op_values(int, nfloat, nfloat) }
 	op_def("nfgt", >) { op_values(int, nfloat, nfloat) }
 	op_def("nfge", >=) { op_values(int, nfloat, nfloat) }
-	op_def("nfeq_inv") { op_values(int, nfloat, nfloat) }
-	op_def("nfne_inv") { op_values(int, nfloat, nfloat) }
 	op_def("nflt_inv") { op_values(int, nfloat, nfloat) }
 	op_def("nfle_inv") { op_values(int, nfloat, nfloat) }
 	op_def("nfgt_inv") { op_values(int, nfloat, nfloat) }
@@ -650,6 +638,23 @@ struct jit_opcode_info
 #define	JIT_OPCODE_SRC2_PTR				JIT_OPCODE_SRC2_LONG
 #endif
 JIT_EXPORT_DATA jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES];
+
+/*
+ * Some obsolete opcodes that have been removed because they are duplicates
+ * of other opcodes.
+ */
+#define JIT_OP_FEQ_INV		JIT_OP_FEQ
+#define JIT_OP_FNE_INV		JIT_OP_FNE
+#define JIT_OP_DEQ_INV		JIT_OP_DEQ
+#define JIT_OP_DNE_INV		JIT_OP_DNE
+#define JIT_OP_NFEQ_INV		JIT_OP_NFEQ
+#define JIT_OP_NFNE_INV		JIT_OP_NFNE
+#define JIT_OP_BR_FEQ_INV	JIT_OP_BR_FEQ
+#define JIT_OP_BR_FNE_INV	JIT_OP_BR_NFE
+#define JIT_OP_BR_DEQ_INV	JIT_OP_BR_DEQ
+#define JIT_OP_BR_DNE_INV	JIT_OP_BR_DNE
+#define JIT_OP_BR_NFEQ_INV	JIT_OP_BR_NFEQ
+#define JIT_OP_BR_NFNE_INV	JIT_OP_BR_NFNE
 
 #ifdef	__cplusplus
 };

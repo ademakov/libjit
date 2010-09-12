@@ -2803,38 +2803,32 @@ jit_value_t jit_insn_to_not_bool(jit_function_t func, jit_value_t value1)
 				case JIT_OP_LGT_UN:		opcode = JIT_OP_LLE_UN;   break;
 				case JIT_OP_LGE:		opcode = JIT_OP_LLT;      break;
 				case JIT_OP_LGE_UN:		opcode = JIT_OP_LLT_UN;   break;
-				case JIT_OP_FEQ:		opcode = JIT_OP_FNE_INV;  break;
-				case JIT_OP_FNE:		opcode = JIT_OP_FEQ_INV;  break;
+				case JIT_OP_FEQ:		opcode = JIT_OP_FNE;      break;
+				case JIT_OP_FNE:		opcode = JIT_OP_FEQ;      break;
 				case JIT_OP_FLT:		opcode = JIT_OP_FGE_INV;  break;
 				case JIT_OP_FLE:		opcode = JIT_OP_FGT_INV;  break;
 				case JIT_OP_FGT:		opcode = JIT_OP_FLE_INV;  break;
 				case JIT_OP_FGE:		opcode = JIT_OP_FLT_INV;  break;
-				case JIT_OP_FEQ_INV:	opcode = JIT_OP_FNE;      break;
-				case JIT_OP_FNE_INV:	opcode = JIT_OP_FEQ;      break;
 				case JIT_OP_FLT_INV:	opcode = JIT_OP_FGE;      break;
 				case JIT_OP_FLE_INV:	opcode = JIT_OP_FGT;      break;
 				case JIT_OP_FGT_INV:	opcode = JIT_OP_FLE;      break;
 				case JIT_OP_FGE_INV:	opcode = JIT_OP_FLT;      break;
-				case JIT_OP_DEQ:		opcode = JIT_OP_DNE_INV;  break;
-				case JIT_OP_DNE:		opcode = JIT_OP_DEQ_INV;  break;
+				case JIT_OP_DEQ:		opcode = JIT_OP_DNE;      break;
+				case JIT_OP_DNE:		opcode = JIT_OP_DEQ;      break;
 				case JIT_OP_DLT:		opcode = JIT_OP_DGE_INV;  break;
 				case JIT_OP_DLE:		opcode = JIT_OP_DGT_INV;  break;
 				case JIT_OP_DGT:		opcode = JIT_OP_DLE_INV;  break;
 				case JIT_OP_DGE:		opcode = JIT_OP_DLT_INV;  break;
-				case JIT_OP_DEQ_INV:	opcode = JIT_OP_DNE;      break;
-				case JIT_OP_DNE_INV:	opcode = JIT_OP_DEQ;      break;
 				case JIT_OP_DLT_INV:	opcode = JIT_OP_DGE;      break;
 				case JIT_OP_DLE_INV:	opcode = JIT_OP_DGT;      break;
 				case JIT_OP_DGT_INV:	opcode = JIT_OP_DLE;      break;
 				case JIT_OP_DGE_INV:	opcode = JIT_OP_DLT;      break;
-				case JIT_OP_NFEQ:		opcode = JIT_OP_NFNE_INV; break;
-				case JIT_OP_NFNE:		opcode = JIT_OP_NFEQ_INV; break;
+				case JIT_OP_NFEQ:		opcode = JIT_OP_NFNE;     break;
+				case JIT_OP_NFNE:		opcode = JIT_OP_NFEQ;     break;
 				case JIT_OP_NFLT:		opcode = JIT_OP_NFGE_INV; break;
 				case JIT_OP_NFLE:		opcode = JIT_OP_NFGT_INV; break;
 				case JIT_OP_NFGT:		opcode = JIT_OP_NFLE_INV; break;
 				case JIT_OP_NFGE:		opcode = JIT_OP_NFLT_INV; break;
-				case JIT_OP_NFEQ_INV:	opcode = JIT_OP_NFNE;     break;
-				case JIT_OP_NFNE_INV:	opcode = JIT_OP_NFEQ;     break;
 				case JIT_OP_NFLT_INV:	opcode = JIT_OP_NFGE;     break;
 				case JIT_OP_NFLE_INV:	opcode = JIT_OP_NFGT;     break;
 				case JIT_OP_NFGT_INV:	opcode = JIT_OP_NFLE;     break;
@@ -3692,8 +3686,6 @@ int jit_insn_branch_if
 				case JIT_OP_FLE:		opcode = JIT_OP_BR_FLE;      break;
 				case JIT_OP_FGT:		opcode = JIT_OP_BR_FGT;      break;
 				case JIT_OP_FGE:		opcode = JIT_OP_BR_FGE;      break;
-				case JIT_OP_FEQ_INV:	opcode = JIT_OP_BR_FEQ_INV;  break;
-				case JIT_OP_FNE_INV:	opcode = JIT_OP_BR_FNE_INV;  break;
 				case JIT_OP_FLT_INV:	opcode = JIT_OP_BR_FLT_INV;  break;
 				case JIT_OP_FLE_INV:	opcode = JIT_OP_BR_FLE_INV;  break;
 				case JIT_OP_FGT_INV:	opcode = JIT_OP_BR_FGT_INV;  break;
@@ -3704,8 +3696,6 @@ int jit_insn_branch_if
 				case JIT_OP_DLE:		opcode = JIT_OP_BR_DLE;      break;
 				case JIT_OP_DGT:		opcode = JIT_OP_BR_DGT;      break;
 				case JIT_OP_DGE:		opcode = JIT_OP_BR_DGE;      break;
-				case JIT_OP_DEQ_INV:	opcode = JIT_OP_BR_DEQ_INV;  break;
-				case JIT_OP_DNE_INV:	opcode = JIT_OP_BR_DNE_INV;  break;
 				case JIT_OP_DLT_INV:	opcode = JIT_OP_BR_DLT_INV;  break;
 				case JIT_OP_DLE_INV:	opcode = JIT_OP_BR_DLE_INV;  break;
 				case JIT_OP_DGT_INV:	opcode = JIT_OP_BR_DGT_INV;  break;
@@ -3716,8 +3706,6 @@ int jit_insn_branch_if
 				case JIT_OP_NFLE:		opcode = JIT_OP_BR_NFLE;     break;
 				case JIT_OP_NFGT:		opcode = JIT_OP_BR_NFGT;     break;
 				case JIT_OP_NFGE:		opcode = JIT_OP_BR_NFGE;     break;
-				case JIT_OP_NFEQ_INV:	opcode = JIT_OP_BR_NFEQ_INV; break;
-				case JIT_OP_NFNE_INV:	opcode = JIT_OP_BR_NFNE_INV; break;
 				case JIT_OP_NFLT_INV:	opcode = JIT_OP_BR_NFLT_INV; break;
 				case JIT_OP_NFLE_INV:	opcode = JIT_OP_BR_NFLE_INV; break;
 				case JIT_OP_NFGT_INV:	opcode = JIT_OP_BR_NFGT_INV; break;
@@ -3904,38 +3892,32 @@ int jit_insn_branch_if_not
 				case JIT_OP_LGT_UN:		opcode = JIT_OP_BR_LLE_UN;   break;
 				case JIT_OP_LGE:		opcode = JIT_OP_BR_LLT;      break;
 				case JIT_OP_LGE_UN:		opcode = JIT_OP_BR_LLT_UN;   break;
-				case JIT_OP_FEQ:		opcode = JIT_OP_BR_FNE_INV;  break;
-				case JIT_OP_FNE:		opcode = JIT_OP_BR_FEQ_INV;  break;
+				case JIT_OP_FEQ:		opcode = JIT_OP_BR_FNE;      break;
+				case JIT_OP_FNE:		opcode = JIT_OP_BR_FEQ;      break;
 				case JIT_OP_FLT:		opcode = JIT_OP_BR_FGE_INV;  break;
 				case JIT_OP_FLE:		opcode = JIT_OP_BR_FGT_INV;  break;
 				case JIT_OP_FGT:		opcode = JIT_OP_BR_FLE_INV;  break;
 				case JIT_OP_FGE:		opcode = JIT_OP_BR_FLT_INV;  break;
-				case JIT_OP_FEQ_INV:	opcode = JIT_OP_BR_FNE;      break;
-				case JIT_OP_FNE_INV:	opcode = JIT_OP_BR_FEQ;      break;
 				case JIT_OP_FLT_INV:	opcode = JIT_OP_BR_FGE;      break;
 				case JIT_OP_FLE_INV:	opcode = JIT_OP_BR_FGT;      break;
 				case JIT_OP_FGT_INV:	opcode = JIT_OP_BR_FLE;      break;
 				case JIT_OP_FGE_INV:	opcode = JIT_OP_BR_FLT;      break;
-				case JIT_OP_DEQ:		opcode = JIT_OP_BR_DNE_INV;  break;
-				case JIT_OP_DNE:		opcode = JIT_OP_BR_DEQ_INV;  break;
+				case JIT_OP_DEQ:		opcode = JIT_OP_BR_DNE;      break;
+				case JIT_OP_DNE:		opcode = JIT_OP_BR_DEQ;      break;
 				case JIT_OP_DLT:		opcode = JIT_OP_BR_DGE_INV;  break;
 				case JIT_OP_DLE:		opcode = JIT_OP_BR_DGT_INV;  break;
 				case JIT_OP_DGT:		opcode = JIT_OP_BR_DLE_INV;  break;
 				case JIT_OP_DGE:		opcode = JIT_OP_BR_DLT_INV;  break;
-				case JIT_OP_DEQ_INV:	opcode = JIT_OP_BR_DNE;      break;
-				case JIT_OP_DNE_INV:	opcode = JIT_OP_BR_DEQ;      break;
 				case JIT_OP_DLT_INV:	opcode = JIT_OP_BR_DGE;      break;
 				case JIT_OP_DLE_INV:	opcode = JIT_OP_BR_DGT;      break;
 				case JIT_OP_DGT_INV:	opcode = JIT_OP_BR_DLE;      break;
 				case JIT_OP_DGE_INV:	opcode = JIT_OP_BR_DLT;      break;
-				case JIT_OP_NFEQ:		opcode = JIT_OP_BR_NFNE_INV; break;
-				case JIT_OP_NFNE:		opcode = JIT_OP_BR_NFEQ_INV; break;
+				case JIT_OP_NFEQ:		opcode = JIT_OP_BR_NFNE;     break;
+				case JIT_OP_NFNE:		opcode = JIT_OP_BR_NFEQ;     break;
 				case JIT_OP_NFLT:		opcode = JIT_OP_BR_NFGE_INV; break;
 				case JIT_OP_NFLE:		opcode = JIT_OP_BR_NFGT_INV; break;
 				case JIT_OP_NFGT:		opcode = JIT_OP_BR_NFLE_INV; break;
 				case JIT_OP_NFGE:		opcode = JIT_OP_BR_NFLT_INV; break;
-				case JIT_OP_NFEQ_INV:	opcode = JIT_OP_BR_NFNE;     break;
-				case JIT_OP_NFNE_INV:	opcode = JIT_OP_BR_NFEQ;     break;
 				case JIT_OP_NFLT_INV:	opcode = JIT_OP_BR_NFGE;     break;
 				case JIT_OP_NFLE_INV:	opcode = JIT_OP_BR_NFGT;     break;
 				case JIT_OP_NFGT_INV:	opcode = JIT_OP_BR_NFLE;     break;
@@ -3979,7 +3961,7 @@ int jit_insn_branch_if_not
 	}
 	else if(type == jit_type_float32)
 	{
-		opcode = JIT_OP_BR_FEQ_INV;
+		opcode = JIT_OP_BR_FEQ;
 		value2 = jit_value_create_float32_constant
 			(func, jit_type_float32, (jit_float32)0.0);
 		if(!value2)
@@ -3989,7 +3971,7 @@ int jit_insn_branch_if_not
 	}
 	else if(type == jit_type_float64)
 	{
-		opcode = JIT_OP_BR_DEQ_INV;
+		opcode = JIT_OP_BR_DEQ;
 		value2 = jit_value_create_float64_constant
 			(func, jit_type_float64, (jit_float64)0.0);
 		if(!value2)
@@ -4000,7 +3982,7 @@ int jit_insn_branch_if_not
 	else
 	{
 		type = jit_type_nfloat;
-		opcode = JIT_OP_BR_NFEQ_INV;
+		opcode = JIT_OP_BR_NFEQ;
 		value2 = jit_value_create_nfloat_constant
 			(func, jit_type_nfloat, (jit_nfloat)0.0);
 		if(!value2)
@@ -4349,7 +4331,7 @@ static jit_value_t apply_unary_conversion
  * @end deftypefun
 @*/
 jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
-						     jit_type_t type, int overflow_check)
+			     jit_type_t type, int overflow_check)
 {
 	jit_type_t vtype;
 	const jit_convert_info_t *opcode_map;
@@ -4377,7 +4359,7 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		jit_constant_t const_value;
 		const_value = jit_value_get_constant(value);
 		if(jit_constant_convert(&const_value, &const_value,
-								type, overflow_check))
+					type, overflow_check))
 		{
 			return jit_value_create_constant(func, &const_value);
 		}

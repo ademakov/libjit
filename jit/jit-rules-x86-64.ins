@@ -2188,7 +2188,7 @@ JIT_OP_BR_LGE_UN: branch
 		inst = output_branch(func, inst, 0x73 /* ge_un */, insn);
 	}
 
-JIT_OP_BR_FEQ, JIT_OP_BR_FEQ_INV: branch, commutative
+JIT_OP_BR_FEQ: branch, commutative
 	[xreg, imm] -> {
 		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_Z, $1, (void *)$2, 0, 0, insn);
 	}
@@ -2199,7 +2199,7 @@ JIT_OP_BR_FEQ, JIT_OP_BR_FEQ_INV: branch, commutative
 		inst = xmm_cmp_brcc_reg_reg(func, inst, X86_CC_Z, $1, $2, 0, 0, insn);
 	}
 
-JIT_OP_BR_FNE, JIT_OP_BR_FNE_INV: branch, commutative
+JIT_OP_BR_FNE: branch, commutative
 	[xreg, imm] -> {
 		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_NZ, $1, (void *)$2, 0, 1, insn);
 	}
@@ -2298,7 +2298,7 @@ JIT_OP_BR_FGE_INV: branch
 		inst = xmm_cmp_brcc_reg_reg(func, inst, X86_CC_NC, $1, $2, 0, 1, insn);
 	}
 
-JIT_OP_BR_DEQ, JIT_OP_BR_DEQ_INV: branch, commutative
+JIT_OP_BR_DEQ: branch, commutative
 	[xreg, imm] -> {
 		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_Z, $1, (void *)$2, 1, 0, insn);
 	}
@@ -2309,7 +2309,7 @@ JIT_OP_BR_DEQ, JIT_OP_BR_DEQ_INV: branch, commutative
 		inst = xmm_cmp_brcc_reg_reg(func, inst, X86_CC_Z, $1, $2, 1, 0, insn);
 	}
 
-JIT_OP_BR_DNE, JIT_OP_BR_DNE_INV: branch, commutative
+JIT_OP_BR_DNE: branch, commutative
 	[xreg, imm] -> {
 		inst = xmm_cmp_brcc_reg_imm(gen, func, inst, X86_CC_NZ, $1, (void *)$2, 1, 1, insn);
 	}
@@ -2708,7 +2708,7 @@ JIT_OP_LGE_UN:
 		inst = setcc_reg(inst, $1, X86_CC_GE, 0);
 	}
 
-JIT_OP_FEQ, JIT_OP_FEQ_INV: commutative
+JIT_OP_FEQ: commutative
 	[=+reg, xreg, imm, scratch reg, space("23")] -> {
 		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_Z, $2, (void *)$3, $4, 0, 0);
 	}
@@ -2716,7 +2716,7 @@ JIT_OP_FEQ, JIT_OP_FEQ_INV: commutative
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_Z, $2, $3, $4, 0, 0);
 	}
 
-JIT_OP_FNE, JIT_OP_FNE_INV: commutative
+JIT_OP_FNE: commutative
 	[=+reg, xreg, imm, scratch reg, space("23")] -> {
 		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_NZ, $2, (void *)$3, $4, 0, 1);
 	}
@@ -2788,7 +2788,7 @@ JIT_OP_FGE_INV:
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_NC, $2, $3, $4, 0, 1);
 	}
 
-JIT_OP_DEQ, JIT_OP_DEQ_INV: commutative
+JIT_OP_DEQ: commutative
 	[=+reg, xreg, imm, scratch reg, space("24")] -> {
 		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_Z, $2, (void *)$3, $4, 1, 0);
 	}
@@ -2796,7 +2796,7 @@ JIT_OP_DEQ, JIT_OP_DEQ_INV: commutative
 		inst = xmm_cmp_setcc_reg_reg(inst, $1, X86_CC_Z, $2, $3, $4, 1, 0);
 	}
 
-JIT_OP_DNE, JIT_OP_DNE_INV: commutative
+JIT_OP_DNE: commutative
 	[=+reg, xreg, imm, scratch reg, space("24")] -> {
 		inst = xmm_cmp_setcc_reg_imm(gen, inst, $1, X86_CC_NZ, $2, (void *)$3, $4, 1, 1);
 	}

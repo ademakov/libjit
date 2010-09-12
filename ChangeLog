@@ -1,3 +1,26 @@
+2010-09-12  Klaus Treichel  <ktreichel@web.de>
+
+	* config/jit-opcodes.ops: Remove the *eq_inv and *ne_inv float
+	compare a branch opcodes because they behave exactly the same as
+	the corresponding opcodes without the _INV suffix.
+	Add macros to map the removed opcodes to their counterparts without
+	the _INV suffix.
+
+	* jit/jit-insn.c (jit_insn_to_not_bool): Replace the mappings
+	to *EQ_INV and *NE_INV by mappings to *EQ and *NE.
+	Remove the mappings for *EQ_INV and *NE_INV.
+	(jit_insn_branch_if): likwise
+	(jit_insn_branch_if_not): likewise
+
+	* jit/jit-interp.c (_jit_run_function): Remove handling of
+	the *EQ_INV and *NE_INV opcodes.
+
+	* jt/jit-rules-interp.c (_jit_gen_insn): Remove the *EQ_INV
+	and *NE_INV cases.
+
+	* jit/jit-rules-x86-64.ins.c: Remove handling of the *EQ_INV and *NE_INV
+	opcodes.
+
 2010-08-10  Klaus Treichel  <ktreichel@web.de>
 
 	* config/jit-opcodes.ops: Fix arg1 for the address_of opcode.

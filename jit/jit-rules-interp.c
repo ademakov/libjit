@@ -1066,8 +1066,6 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	case JIT_OP_BR_FLE:
 	case JIT_OP_BR_FGT:
 	case JIT_OP_BR_FGE:
-	case JIT_OP_BR_FEQ_INV:
-	case JIT_OP_BR_FNE_INV:
 	case JIT_OP_BR_FLT_INV:
 	case JIT_OP_BR_FLE_INV:
 	case JIT_OP_BR_FGT_INV:
@@ -1078,8 +1076,6 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	case JIT_OP_BR_DLE:
 	case JIT_OP_BR_DGT:
 	case JIT_OP_BR_DGE:
-	case JIT_OP_BR_DEQ_INV:
-	case JIT_OP_BR_DNE_INV:
 	case JIT_OP_BR_DLT_INV:
 	case JIT_OP_BR_DLE_INV:
 	case JIT_OP_BR_DGT_INV:
@@ -1090,8 +1086,6 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	case JIT_OP_BR_NFLE:
 	case JIT_OP_BR_NFGT:
 	case JIT_OP_BR_NFGE:
-	case JIT_OP_BR_NFEQ_INV:
-	case JIT_OP_BR_NFNE_INV:
 	case JIT_OP_BR_NFLT_INV:
 	case JIT_OP_BR_NFLE_INV:
 	case JIT_OP_BR_NFGT_INV:

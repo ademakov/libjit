@@ -1801,34 +1801,6 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_BR_FEQ_INV):
-		{
-			/* Branch if 32-bit floats are equal; invert nan test */
-			if(!jit_float32_ne(VM_R1_FLOAT32, VM_R2_FLOAT32))
-			{
-				pc = VM_BR_TARGET;
-			}
-			else
-			{
-				VM_MODIFY_PC(2);
-			}
-		}
-		VMBREAK;
-
-		VMCASE(JIT_OP_BR_FNE_INV):
-		{
-			/* Branch if 32-bit floats are not equal; invert nan test */
-			if(!jit_float32_eq(VM_R1_FLOAT32, VM_R2_FLOAT32))
-			{
-				pc = VM_BR_TARGET;
-			}
-			else
-			{
-				VM_MODIFY_PC(2);
-			}
-		}
-		VMBREAK;
-
 		VMCASE(JIT_OP_BR_FLT_INV):
 		{
 			/* Branch if 32-bit floats are less than; invert nan test */
@@ -1969,34 +1941,6 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_BR_DEQ_INV):
-		{
-			/* Branch if 64-bit floats are equal; invert nan test */
-			if(!jit_float64_ne(VM_R1_FLOAT64, VM_R2_FLOAT64))
-			{
-				pc = VM_BR_TARGET;
-			}
-			else
-			{
-				VM_MODIFY_PC(2);
-			}
-		}
-		VMBREAK;
-
-		VMCASE(JIT_OP_BR_DNE_INV):
-		{
-			/* Branch if 64-bit floats are not equal; invert nan test */
-			if(!jit_float64_eq(VM_R1_FLOAT64, VM_R2_FLOAT64))
-			{
-				pc = VM_BR_TARGET;
-			}
-			else
-			{
-				VM_MODIFY_PC(2);
-			}
-		}
-		VMBREAK;
-
 		VMCASE(JIT_OP_BR_DLT_INV):
 		{
 			/* Branch if 64-bit floats are less than; invert nan test */
@@ -2127,34 +2071,6 @@ restart_tail:
 		{
 			/* Branch if native floats are greater than or equal */
 			if(jit_nfloat_ge(VM_R1_NFLOAT, VM_R2_NFLOAT))
-			{
-				pc = VM_BR_TARGET;
-			}
-			else
-			{
-				VM_MODIFY_PC(2);
-			}
-		}
-		VMBREAK;
-
-		VMCASE(JIT_OP_BR_NFEQ_INV):
-		{
-			/* Branch if native floats are equal; invert nan test */
-			if(!jit_nfloat_ne(VM_R1_NFLOAT, VM_R2_NFLOAT))
-			{
-				pc = VM_BR_TARGET;
-			}
-			else
-			{
-				VM_MODIFY_PC(2);
-			}
-		}
-		VMBREAK;
-
-		VMCASE(JIT_OP_BR_NFNE_INV):
-		{
-			/* Branch if native floats are not equal; invert nan test */
-			if(!jit_nfloat_eq(VM_R1_NFLOAT, VM_R2_NFLOAT))
 			{
 				pc = VM_BR_TARGET;
 			}
@@ -2526,22 +2442,6 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_FEQ_INV):
-		{
-			/* Compare 32-bit floats for equal; invert nan test */
-			VM_R0_INT = !jit_float32_ne(VM_R1_FLOAT32, VM_R2_FLOAT32);
-			VM_MODIFY_PC(1);
-		}
-		VMBREAK;
-
-		VMCASE(JIT_OP_FNE_INV):
-		{
-			/* Compare 32-bit floats for not equal; invert nan test */
-			VM_R0_INT = !jit_float32_eq(VM_R1_FLOAT32, VM_R2_FLOAT32);
-			VM_MODIFY_PC(1);
-		}
-		VMBREAK;
-
 		VMCASE(JIT_OP_FLT_INV):
 		{
 			/* Compare 32-bit floats for less than; invert nan test */
@@ -2622,22 +2522,6 @@ restart_tail:
 		}
 		VMBREAK;
 
-		VMCASE(JIT_OP_DEQ_INV):
-		{
-			/* Compare 64-bit floats for equal; invert nan test */
-			VM_R0_INT = !jit_float64_ne(VM_R1_FLOAT64, VM_R2_FLOAT64);
-			VM_MODIFY_PC(1);
-		}
-		VMBREAK;
-
-		VMCASE(JIT_OP_DNE_INV):
-		{
-			/* Compare 64-bit floats for equal; invert nan test */
-			VM_R0_INT = !jit_float64_eq(VM_R1_FLOAT64, VM_R2_FLOAT64);
-			VM_MODIFY_PC(1);
-		}
-		VMBREAK;
-
 		VMCASE(JIT_OP_DLT_INV):
 		{
 			/* Compare 64-bit floats for equal; invert nan test */
@@ -2714,22 +2598,6 @@ restart_tail:
 		{
 			/* Compare native floats for greater than or equal */
 			VM_R0_INT = jit_nfloat_ge(VM_R1_NFLOAT, VM_R2_NFLOAT);
-			VM_MODIFY_PC(1);
-		}
-		VMBREAK;
-
-		VMCASE(JIT_OP_NFEQ_INV):
-		{
-			/* Compare native floats for equal; invert nan test */
-			VM_R0_INT = !jit_nfloat_ne(VM_R1_NFLOAT, VM_R2_NFLOAT);
-			VM_MODIFY_PC(1);
-		}
-		VMBREAK;
-
-		VMCASE(JIT_OP_NFNE_INV):
-		{
-			/* Compare native floats for not equal; invert nan test */
-			VM_R0_INT = !jit_nfloat_eq(VM_R1_NFLOAT, VM_R2_NFLOAT);
 			VM_MODIFY_PC(1);
 		}
 		VMBREAK;
