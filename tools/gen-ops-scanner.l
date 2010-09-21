@@ -112,10 +112,45 @@ WHITE			[ \t\v\r\f]
 "call_external"		{ RETURNTOK(K_CALL_EXTERNAL); }
 "jump_table"		{ RETURNTOK(K_JUMP_TABLE); }
 "op_def"		{ RETURNTOK(K_OP_DEF); }
+"op_intrinsic"		{ RETURNTOK(K_OP_INTRINSIC); }
 "op_type"		{ RETURNTOK(K_OP_TYPE); }
 "op_values"		{ RETURNTOK(K_OP_VALUES); }
 "opcodes"		{ RETURNTOK(K_OPCODES); }
 "reg"			{ RETURNTOK(K_REG); }
+"%option"		{ RETURNTOK(K_POPTION); }
+"i_i"			{ RETURNTOK(K_i_i); }
+"i_ii"			{ RETURNTOK(K_i_ii); }
+"i_piii"		{ RETURNTOK(K_i_piii); }
+"i_iI"			{ RETURNTOK(K_i_iI); }
+"i_II"			{ RETURNTOK(K_i_II); }
+"I_I"			{ RETURNTOK(K_I_I); }
+"I_II"			{ RETURNTOK(K_I_II); }
+"i_pIII"		{ RETURNTOK(K_i_pIII); }
+"l_l"			{ RETURNTOK(K_l_l); }
+"l_ll"			{ RETURNTOK(K_l_ll); }
+"i_plll"		{ RETURNTOK(K_i_plll); }
+"i_l"			{ RETURNTOK(K_i_l); }
+"i_ll"			{ RETURNTOK(K_i_ll); }
+"l_lI"			{ RETURNTOK(K_l_lI); }
+"L_L"			{ RETURNTOK(K_L_L); }
+"L_LL"			{ RETURNTOK(K_L_LL); }
+"i_pLLL"		{ RETURNTOK(K_i_pLLL); }
+"i_LL"			{ RETURNTOK(K_i_LL); }
+"L_LI"			{ RETURNTOK(K_L_LI); }
+"f_f"			{ RETURNTOK(K_f_f); }
+"f_ff"			{ RETURNTOK(K_f_ff); }
+"i_f"			{ RETURNTOK(K_i_f); }
+"i_ff"			{ RETURNTOK(K_i_ff); }
+"d_d"			{ RETURNTOK(K_d_d); }
+"d_dd"			{ RETURNTOK(K_d_dd); }
+"i_d"			{ RETURNTOK(K_i_d); }
+"i_dd"			{ RETURNTOK(K_i_dd); }
+"D_D"			{ RETURNTOK(K_D_D); }
+"D_DD"			{ RETURNTOK(K_D_DD); }
+"i_D"			{ RETURNTOK(K_i_D); }
+"i_DD"			{ RETURNTOK(K_i_DD); }
+"conv"			{ RETURNTOK(K_CONV); }
+"conv_ovf"		{ RETURNTOK(K_CONV_OVF); }
 
 "!"?{IDALPHA}({DIGIT}|{IDALPHA})*	{
 			yylval.name = genops_strdup(yytext);

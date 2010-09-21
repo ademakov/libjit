@@ -758,6 +758,103 @@ extern struct _jit_type const _jit_type_nfloat_def;
 extern struct _jit_type const _jit_type_void_ptr_def;
 
 /*
+ * Intrinsic signatures.
+ *
+ * Naming convention is return type folowed by an underscore and the
+ * argument types.
+ *
+ * jit_int	-> i  (lower case I)
+ * jit_uint	-> I
+ * jit_long	-> l  (lower case L)
+ * jit_ulong	-> L
+ * jit_float32	-> f
+ * jit_float64	-> d
+ * jit_nflloat	-> D
+ *
+ * pointer	-> p  followed by the type
+ *
+ * Special signatures are conv and conv_ovf for type conversions without
+ * and with overflow checks.
+ */
+enum
+{
+	JIT_SIG_NONE	= 0,
+	JIT_SIG_i_i	= 1,
+	JIT_SIG_i_ii	= 2,
+	JIT_SIG_i_piii	= 3,
+	JIT_SIG_i_iI	= 4,
+	JIT_SIG_i_II	= 5,
+	JIT_SIG_I_I	= 6,
+	JIT_SIG_I_II	= 7,
+	JIT_SIG_i_pIII	= 8,
+	JIT_SIG_l_l	= 9,
+	JIT_SIG_l_ll	= 10,
+	JIT_SIG_i_plll	= 11,
+	JIT_SIG_i_l	= 12,
+	JIT_SIG_i_ll	= 13,
+	JIT_SIG_l_lI	= 14,
+	JIT_SIG_L_L	= 15,
+	JIT_SIG_L_LL	= 16,
+	JIT_SIG_i_pLLL	= 17,
+	JIT_SIG_i_LL	= 18,
+	JIT_SIG_L_LI	= 19,
+	JIT_SIG_f_f	= 20,
+	JIT_SIG_f_ff	= 21,
+	JIT_SIG_i_f	= 22,
+	JIT_SIG_i_ff	= 23,
+	JIT_SIG_d_d	= 24,
+	JIT_SIG_d_dd	= 25,
+	JIT_SIG_i_d	= 26,
+	JIT_SIG_i_dd	= 27,
+	JIT_SIG_D_D	= 28,
+	JIT_SIG_D_DD	= 29,
+	JIT_SIG_i_D	= 30,
+	JIT_SIG_i_DD	= 31,
+	JIT_SIG_conv	= 32,
+	JIT_SIG_conv_ovf= 33
+} _jit_intrinsic_signature;
+
+/*
+ * Flags for the instinsic info.
+ */
+#define _JIT_INTRINSIC_FLAG_NONE		0x0000
+#define _JIT_INTRINSIC_FLAG_BRANCH		0x8000
+#define _JIT_INTRINSIC_FLAG_BRANCH_UNARY	0xC000
+#define _JIT_INTRINSIC_FLAG_NOT			0x4000
+#define _JIT_INTRINSIC_FLAG_MASK		0xC000
+
+/*
+ * Addititional intrinsic flags for the unary branches.
+ */
+#define _JIT_INTRINSIC_FLAG_IFALSE		0x0000
+#define _JIT_INTRINSIC_FLAG_ITRUE		0x0001
+#define _JIT_INTRINSIC_FLAG_LFALSE		0x0002
+#define _JIT_INTRINSIC_FLAG_LTRUE		0x0003
+
+/*
+ * Descriprion for the implementation of an opcode by an intrinsic.
+ */
+typedef struct _jit_intrinsic_info _jit_intrinsic_info_t;
+struct _jit_intrinsic_info
+{
+	jit_short	flags;
+	jit_short	signature;
+	void 		*intrinsic;
+};
+
+extern _jit_intrinsic_info_t const _jit_intrinsics[JIT_OP_NUM_OPCODES];
+
+/*
+ * Apply an opcode to one or two constant values.
+ * Returns the constant result value on success and NULL otherwise.
+ * NOTE: dest_type MUST be either the correct destination type for the
+ * opcode or a tagged type of the correct destination type.
+ */
+jit_value_t
+_jit_opcode_apply(jit_function_t func, jit_uint opcode, jit_type_t dest_type,
+		  jit_value_t value1, jit_value_t value2);
+
+/*
  * Extra call flags for internal use.
  */
 #define	JIT_CALL_NATIVE		(1 << 14)

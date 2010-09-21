@@ -47,6 +47,7 @@ libjit_la_SOURCES = \
 	jit-memory.c \
 	jit-memory.h \
 	jit-meta.c \
+	jit-opcode-apply.c \
 	jit-objmodel.c \
 	jit-opcode.c \
 	jit-pool.c \

@@ -50,6 +50,7 @@ extern char yytext[];
 #define TASK_GEN_NONE		0
 #define TASK_GEN_HEADER		1
 #define TASK_GEN_TABLE		2
+#define TASK_GEN_CF_TABLE	3
  
 /*
  * Value Flags
@@ -100,14 +101,59 @@ extern char yytext[];
 #define	OP_ADDRESS_OF		0x15
 
 /*
+ * Intrinisc signatures
+ */
+#define SIG_NONE	0
+#define SIG_i_i		1
+#define SIG_i_ii	2
+#define SIG_i_piii	3
+#define SIG_i_iI	4
+#define SIG_i_II	5
+#define SIG_I_I		6
+#define SIG_I_II	7
+#define SIG_i_pIII	8
+#define SIG_l_l		9
+#define SIG_l_ll	10
+#define SIG_i_plll	11
+#define SIG_i_l		12
+#define SIG_i_ll	13
+#define SIG_l_lI	14
+#define SIG_L_L		15
+#define SIG_L_LL	16
+#define SIG_i_pLLL	17
+#define SIG_i_LL	18
+#define SIG_L_LI	19
+#define SIG_f_f		20
+#define SIG_f_ff	21
+#define SIG_i_f		22
+#define SIG_i_ff	23
+#define SIG_d_d		24
+#define SIG_d_dd	25
+#define SIG_i_d		26
+#define SIG_i_dd	27
+#define SIG_D_D		28
+#define SIG_D_DD	29
+#define SIG_i_D		30
+#define SIG_i_DD	31
+#define SIG_conv	32
+#define SIG_conv_ovf	33
+
+/*
  * Current file and line number.
  */
 extern char *genops_filename;
 extern long genops_linenum;
 
+struct intrinsic_info
+{
+	const char	       *flags;
+	int			signature;
+	const char	       *intrinsic;
+};
+
 struct genops_opcode
 {
-	struct genops_opcode   *next;
+	struct genops_opcode     *next;
 	const char	       *name;
 	int			type;
 	int			oper;
@@ -115,6 +161,7 @@ struct genops_opcode
 	int			input1_flags;
 	int			input2_flags;
 	const char	       *expression;
+	struct intrinsic_info	intrinsic_info;
 };
 
 /*
@@ -139,6 +186,12 @@ static int genops_task = TASK_GEN_NONE;
  */
 static FILE *genops_file = 0;
 static int genops_file_needs_close = 0;
+
+/*
+ * options
+ */
+static int genops_gen_intrinsic_table = 0;
+static const char *genops_intrinsic_decl = 0;
 
 /*
  * Blocks coppied to the resulting file.
@@ -201,7 +254,10 @@ genops_create_opcode_header(const char *define_start, const char *declaration,
  * Create an opcode entry
  */
 static struct genops_opcode *
-genops_add_opcode(const char *name, int type, int oper, int dest_flags, int input1_flags, int input2_flags, const char *expression)
+genops_add_opcode(const char *name, int type, int oper, int dest_flags,
+		  int input1_flags, int input2_flags, const char *expression,
+		  const char *intrinsic_flags, int signature,
+		  const char *intrinsic)
 {
 	struct genops_opcode *opcode;
 
@@ -229,6 +285,9 @@ genops_add_opcode(const char *name, int type, int oper, int dest_flags, int inpu
 	opcode->input1_flags= input1_flags;
 	opcode->input2_flags= input2_flags;
 	opcode->expression = expression;
+	opcode->intrinsic_info.flags = intrinsic_flags;
+	opcode->intrinsic_info.signature = signature;
+	opcode->intrinsic_info.intrinsic = intrinsic;
 
 	return opcode;
 }
@@ -510,6 +569,220 @@ genops_output_value_flags(const char *prefix, int flags, int needs_or)
 }
 
 /*
+ *
+ */
+static void
+genops_output_signature(int signature)
+{
+	switch(signature)
+	{
+		case SIG_NONE:
+		{
+			printf("JIT_SIG_NONE");
+		}
+		break;
+
+		case SIG_i_i:
+		{
+			printf("JIT_SIG_i_i");
+		}
+		break;
+
+		case SIG_i_ii:
+		{
+			printf("JIT_SIG_i_ii");
+		}
+		break;
+
+		case SIG_i_piii:
+		{
+			printf("JIT_SIG_i_piii");
+		}
+		break;
+
+		case SIG_i_iI:
+		{
+			printf("JIT_SIG_i_iI");
+		}
+		break;
+
+		case SIG_i_II:
+		{
+			printf("JIT_SIG_i_II");
+		}
+		break;
+
+		case SIG_I_I:
+		{
+			printf("JIT_SIG_I_I");
+		}
+		break;
+
+		case SIG_I_II:
+		{
+			printf("JIT_SIG_I_II");
+		}
+		break;
+
+		case SIG_i_pIII:
+		{
+			printf("JIT_SIG_i_pIII");
+		}
+		break;
+
+		case SIG_l_l:
+		{
+			printf("JIT_SIG_l_l");
+		}
+		break;
+
+		case SIG_l_ll:
+		{
+			printf("JIT_SIG_l_ll");
+		}
+		break;
+
+		case SIG_i_plll:
+		{
+			printf("JIT_SIG_i_plll");
+		}
+		break;
+
+		case SIG_i_l:
+		{
+			printf("JIT_SIG_i_l");
+		}
+		break;
+
+		case SIG_i_ll:
+		{
+			printf("JIT_SIG_i_ll");
+		}
+		break;
+
+		case SIG_l_lI:
+		{
+			printf("JIT_SIG_l_lI");
+		}
+		break;
+
+		case SIG_L_L:
+		{
+			printf("JIT_SIG_L_L");
+		}
+		break;
+
+		case SIG_L_LL:
+		{
+			printf("JIT_SIG_L_LL");
+		}
+		break;
+
+		case SIG_i_pLLL:
+		{
+			printf("JIT_SIG_i_pLLL");
+		}
+		break;
+
+		case SIG_i_LL:
+		{
+			printf("JIT_SIG_i_LL");
+		}
+		break;
+
+		case SIG_L_LI:
+		{
+			printf("JIT_SIG_L_LI");
+		}
+		break;
+
+		case SIG_f_f:
+		{
+			printf("JIT_SIG_f_f");
+		}
+		break;
+
+		case SIG_f_ff:
+		{
+			printf("JIT_SIG_f_ff");
+		}
+		break;
+
+		case SIG_i_f:
+		{
+			printf("JIT_SIG_i_f");
+		}
+		break;
+
+		case SIG_i_ff:
+		{
+			printf("JIT_SIG_i_ff");
+		}
+		break;
+
+		case SIG_d_d:
+		{
+			printf("JIT_SIG_d_d");
+		}
+		break;
+
+		case SIG_d_dd:
+		{
+			printf("JIT_SIG_d_dd");
+		}
+		break;
+
+		case SIG_i_d:
+		{
+			printf("JIT_SIG_i_d");
+		}
+		break;
+
+		case SIG_i_dd:
+		{
+			printf("JIT_SIG_i_dd");
+		}
+		break;
+
+		case SIG_D_D:
+		{
+			printf("JIT_SIG_D_D");
+		}
+		break;
+
+		case SIG_D_DD:
+		{
+			printf("JIT_SIG_D_DD");
+		}
+		break;
+
+		case SIG_i_D:
+		{
+			printf("JIT_SIG_i_D");
+		}
+		break;
+
+		case SIG_i_DD:
+		{
+			printf("JIT_SIG_i_DD");
+		}
+		break;
+
+		case SIG_conv:
+		{
+			printf("JIT_SIG_conv");
+		}
+		break;
+
+		case SIG_conv_ovf:
+		{
+			printf("JIT_SIG_conv_ovf");
+		}
+		break;
+	}
+}
+
+/*
  * Create an upper-case copy of a string.
  */
 static char *
@@ -528,6 +801,37 @@ genops_string_upper(const char *string)
 		return new_string;
 	}
 	return 0;
+}
+
+static int
+genops_set_option(const char *option, const char *value)
+{
+	if(!strcmp(option, "gen_intrinsic_table"))
+	{
+		if(!strcmp(value, "yes"))
+		{
+			genops_gen_intrinsic_table = 1;
+		}
+		else if(!strcmp(value, "no"))
+		{
+			genops_gen_intrinsic_table = 0;
+		}
+		else
+		{
+			yyerror("Invalid boolean value for the option. Allowed values: yes | no");
+			return 0;
+		}
+	}
+	else if(!strcmp(option, "intrinsic_table_decl"))
+	{
+		genops_intrinsic_decl = value;
+	}
+	else
+	{
+		yyerror("Invalid option");
+		return 0;
+	}
+	return 1;
 }
 
 %}
@@ -567,7 +871,16 @@ genops_string_upper(const char *string)
 		int		input1_flags;
 		int		input2_flags;
 		const char     *expression;
+		const char     *intrinsic_flags;
+		int		signature;
+		const char     *intrinsic;
 	} opcode_properties;
+	struct
+	{
+		const char     *intrinsic_flags;
+		int		signature;
+		const char     *intrinsic;
+	} intrinsic_info;
 	struct
 	{
 		const char     *name;
@@ -577,6 +890,9 @@ genops_string_upper(const char *string)
 		int		input1_flags;
 		int		input2_flags;
 		const char     *expression;
+		const char     *intrinsic_flags;
+		int		signature;
+		const char     *intrinsic;
 	} opcode;
 }
 
@@ -592,8 +908,8 @@ genops_string_upper(const char *string)
 %token K_INT			"int"
 %token K_LONG			"long"
 %token K_PTR			"ptr"
-%token K_FLOAT32		"float32"
-%token K_FLOAT64		"float64"
+%token K_FLOAT32			"float32"
+%token K_FLOAT64			"float64"
 %token K_NFLOAT			"nfloat"
 %token K_NEG			"neg"
 %token K_EQ			"=="
@@ -612,10 +928,45 @@ genops_string_upper(const char *string)
 %token K_CALL_EXTERNAL		"call_external"
 %token K_JUMP_TABLE		"jump_table"
 %token K_OP_DEF			"op_def"
-%token K_OP_TYPE		"op_type"
+%token K_OP_INTRINSIC		"op_intrinsic"
+%token K_OP_TYPE			"op_type"
 %token K_OP_VALUES		"op_values"
-%token K_OPCODES		"opcodes"
+%token K_OPCODES			"opcodes"
 %token K_REG			"reg"
+%token K_POPTION			"%option"
+%token K_i_i			"i_i"
+%token K_i_ii			"i_ii"
+%token K_i_piii			"i_piii"
+%token K_i_iI			"i_iI"
+%token K_i_II			"i_II"
+%token K_I_I			"I_I"
+%token K_I_II			"I_II"
+%token K_i_pIII			"i_pIII"
+%token K_l_l			"l_l"
+%token K_l_ll			"l_ll"
+%token K_i_plll			"i_plll"
+%token K_i_l			"i_l"
+%token K_i_ll			"i_ll"
+%token K_l_lI			"l_lI"
+%token K_L_L			"L_L"
+%token K_L_LL			"L_LL"
+%token K_i_pLLL			"i_pLLL"
+%token K_i_LL			"i_LL"
+%token K_L_LI			"L_LI"
+%token K_f_f			"f_f"
+%token K_f_ff			"f_ff"
+%token K_i_f			"i_f"
+%token K_i_ff			"i_ff"
+%token K_d_d			"d_d"
+%token K_d_dd			"d_dd"
+%token K_i_d			"i_d"
+%token K_i_dd			"i_dd"
+%token K_D_D			"D_D"
+%token K_D_DD			"D_DD"
+%token K_i_D			"i_D"
+%token K_i_DD			"i_DD"
+%token K_CONV			"conv"
+%token K_CONV_OVF		"conv_ovf"
 
 /*
  * Define the yylval types of the various non-terminals.
@@ -626,11 +977,13 @@ genops_string_upper(const char *string)
 %type <opcode_list_header>	OpcodeListHeader
 %type <value>			ValueFlag Op
 %type <value>			OpcodeType OpcodeTypeFlag
+%type <value>			Signature
 %type <name>			OpcodeExpression
 %type <opcode>			Opcode
 %type <opcode_header>		OpcodeHeader
 %type <opcode_properties>	OpcodeProperties
 %type <opcode_values>		OpcodeValues
+%type <intrinsic_info>		OpcodeIntrinsicInfo
 
 %expect 0
 
@@ -640,11 +993,11 @@ genops_string_upper(const char *string)
 %%
 
 Start
-	: Blocks OpcodeDeclarations Blocks	{
+	: Blocks OptOptions OpcodeDeclarations Blocks	{
 			start_code_block = ($1).code;
 			start_header_block = ($1).header;
-			end_code_block = ($3).code;;
-			end_header_block = ($3).header;
+			end_code_block = ($4).code;;
+			end_header_block = ($4).header;
 		}
 	;
 
@@ -690,14 +1043,20 @@ Opcodes
 					  ($1).oper, ($1).dest_flags,
 					  ($1).input1_flags,
 					  ($1).input2_flags,
-					  ($1).expression);
+					  ($1).expression,
+					  ($1).intrinsic_flags,
+					  ($1).signature,
+					  ($1).intrinsic);
 		}
 	| Opcodes Opcode	{
 			genops_add_opcode(($2).name, ($2).type,
 					  ($2).oper, ($2).dest_flags,
 					  ($2).input1_flags,
 					  ($2).input2_flags,
-					  ($2).expression);
+					  ($2).expression,
+					  ($2).intrinsic_flags,
+					  ($2).signature,
+					  ($2).intrinsic);
 		}
 	;
 
@@ -710,6 +1069,9 @@ Opcode
 			($$).input1_flags = VALUE_FLAG_EMPTY;
 			($$).input2_flags = VALUE_FLAG_EMPTY;
 			($$).expression = 0;
+			($$).intrinsic_flags = 0;
+			($$).signature = SIG_NONE;
+			($$).intrinsic = 0;;
 		}
 	| OpcodeHeader '{' OpcodeProperties '}'	{
 			($$).name = ($1).name;
@@ -719,6 +1081,9 @@ Opcode
 			($$).input1_flags = ($3).input1_flags;
 			($$).input2_flags = ($3).input2_flags;
 			($$).expression = ($3).expression;
+			($$).intrinsic_flags = ($3).intrinsic_flags;
+			($$).signature = ($3).signature;
+			($$).intrinsic = ($3).intrinsic;;
 		}
 	;
 
@@ -740,6 +1105,9 @@ OpcodeProperties
 			($$).input1_flags = VALUE_FLAG_EMPTY;
 			($$).input2_flags = VALUE_FLAG_EMPTY;
 			($$).expression = 0;
+			($$).intrinsic_flags = 0;
+			($$).signature = SIG_NONE;
+			($$).intrinsic = 0;;
 		}
 	| OpcodeValues			{
 			($$).type = 0;
@@ -747,6 +1115,9 @@ OpcodeProperties
 			($$).input1_flags = ($1).input1_flags;
 			($$).input2_flags = ($1).input2_flags;
 			($$).expression = 0;
+			($$).intrinsic_flags = 0;
+			($$).signature = SIG_NONE;
+			($$).intrinsic = 0;;
 		}
 	| OpcodeExpression		{
 			($$).type = 0;
@@ -754,6 +1125,19 @@ OpcodeProperties
 			($$).input1_flags = VALUE_FLAG_EMPTY;
 			($$).input2_flags = VALUE_FLAG_EMPTY;
 			($$).expression = $1;
+			($$).intrinsic_flags = 0;
+			($$).signature = SIG_NONE;
+			($$).intrinsic = 0;;
+		}
+	| OpcodeIntrinsicInfo		{
+			($$).type = 0;
+			($$).dest_flags = VALUE_FLAG_EMPTY;
+			($$).input1_flags = VALUE_FLAG_EMPTY;
+			($$).input2_flags = VALUE_FLAG_EMPTY;
+			($$).expression = 0;
+			($$).intrinsic_flags = ($1).intrinsic_flags;
+			($$).signature = ($1).signature;
+			($$).intrinsic = ($1).intrinsic;;
 		}
 	| OpcodeProperties ',' OpcodeType	{
 			($$).type = $3;
@@ -761,6 +1145,9 @@ OpcodeProperties
 			($$).input1_flags = ($1).input1_flags;
 			($$).input2_flags = ($1).input2_flags;
 			($$).expression = ($1).expression;
+			($$).intrinsic_flags = ($1).intrinsic_flags;
+			($$).signature = ($1).signature;
+			($$).intrinsic = ($1).intrinsic;;
 		}
 	| OpcodeProperties ',' OpcodeValues	{
 			($$).type = ($1).type;
@@ -768,6 +1155,9 @@ OpcodeProperties
 			($$).input1_flags = ($3).input1_flags;
 			($$).input2_flags = ($3).input2_flags;
 			($$).expression = ($1).expression;
+			($$).intrinsic_flags = ($1).intrinsic_flags;
+			($$).signature = ($1).signature;
+			($$).intrinsic = ($1).intrinsic;;
 		}
 	| OpcodeProperties ',' OpcodeExpression	{
 			($$).type = ($1).type;
@@ -775,6 +1165,19 @@ OpcodeProperties
 			($$).input1_flags = ($1).input1_flags;
 			($$).input2_flags = ($1).input2_flags;
 			($$).expression = $3;
+			($$).intrinsic_flags = ($1).intrinsic_flags;
+			($$).signature = ($1).signature;
+			($$).intrinsic = ($1).intrinsic;;
+		}
+	| OpcodeProperties ',' OpcodeIntrinsicInfo	{
+			($$).type = ($1).type;
+			($$).dest_flags = ($1).dest_flags;
+			($$).input1_flags = ($1).input1_flags;
+			($$).input2_flags = ($1).input2_flags;
+			($$).expression = ($1).expression;
+			($$).intrinsic_flags = ($3).intrinsic_flags;
+			($$).signature = ($3).signature;
+			($$).intrinsic = ($3).intrinsic;;
 		}
 	;
 
@@ -849,6 +1252,60 @@ ValueFlag
 	| K_ANY				{ $$ = VALUE_FLAG_ANY; }
 	;
 
+OpcodeIntrinsicInfo
+	: K_OP_INTRINSIC '(' Literal ')'	{
+			($$).intrinsic_flags = $3;
+			($$).signature = SIG_NONE;
+			($$).intrinsic = 0;;
+		}
+	| K_OP_INTRINSIC '(' Signature ')'	{
+			($$).intrinsic_flags = 0;
+			($$).signature = $3;
+			($$).intrinsic = 0;
+		}
+	| K_OP_INTRINSIC '(' IDENTIFIER ',' Signature ')'	{
+			($$).intrinsic_flags = 0;
+			($$).signature = $5;
+			($$).intrinsic = $3;
+		}
+	;
+
+Signature
+	: K_i_i				{ $$ = SIG_i_i; }
+	| K_i_ii			{ $$ = SIG_i_ii; }
+	| K_i_piii			{ $$ = SIG_i_piii; }
+	| K_i_iI			{ $$ = SIG_i_iI; }
+	| K_i_II			{ $$ = SIG_i_II; }
+	| K_I_I				{ $$ = SIG_I_I; }
+	| K_I_II			{ $$ = SIG_I_II; }
+	| K_i_pIII			{ $$ = SIG_i_pIII; }
+	| K_l_l				{ $$ = SIG_l_l; }
+	| K_l_ll			{ $$ = SIG_l_ll; }
+	| K_i_plll			{ $$ = SIG_i_plll; }
+	| K_i_l				{ $$ = SIG_i_l; }
+	| K_i_ll			{ $$ = SIG_i_ll; }
+	| K_l_lI			{ $$ = SIG_l_lI; }
+	| K_L_L				{ $$ = SIG_L_L; }
+	| K_L_LL			{ $$ = SIG_L_LL; }
+	| K_i_pLLL			{ $$ = SIG_i_pLLL; }
+	| K_i_LL			{ $$ = SIG_i_LL; }
+	| K_L_LI			{ $$ = SIG_L_LI; }
+	| K_f_f				{ $$ = SIG_f_f; }
+	| K_f_ff			{ $$ = SIG_f_ff; }
+	| K_i_f				{ $$ = SIG_i_f; }
+	| K_i_ff			{ $$ = SIG_i_ff; }
+	| K_d_d				{ $$ = SIG_d_d; }
+	| K_d_dd			{ $$ = SIG_d_dd; }
+	| K_i_d				{ $$ = SIG_i_d; }
+	| K_i_dd			{ $$ = SIG_i_dd; }
+	| K_D_D				{ $$ = SIG_D_D; }
+	| K_D_DD			{ $$ = SIG_D_DD; }
+	| K_i_D				{ $$ = SIG_i_D; }
+	| K_i_DD			{ $$ = SIG_i_DD; }
+	| K_CONV			{ $$ = SIG_conv; }
+	| K_CONV_OVF			{ $$ = SIG_conv_ovf; }
+	;
+
 Literal
 	: LITERAL			{ $$ = $1; }
 	| Literal LITERAL		{
@@ -862,6 +1319,25 @@ Literal
 			free($1);
 			free($2);
 			$$ = cp;
+		}
+	;
+
+OptOptions
+	: /* None */			{ }
+	| Options
+	;
+
+Options
+	: Option
+	| Options Option
+	;
+
+Option
+	: K_POPTION IDENTIFIER '=' IDENTIFIER	{
+			genops_set_option($2, $4);
+		}
+	| K_POPTION IDENTIFIER '=' Literal	{
+			genops_set_option($2, $4);
 		}
 	;
 
@@ -1053,6 +1529,49 @@ genops_output_ops(void)
 }
 
 static void
+genops_output_intrinsic_table(const char *define_start)
+{
+	struct genops_opcode *current;
+
+	printf("%s = {\n", genops_intrinsic_decl);
+	current = opcode_header->first_opcode;
+	while(current)
+	{
+		printf("\t{");
+		if(current->intrinsic_info.flags)
+		{
+			printf("%s", current->intrinsic_info.flags);
+		}
+		else
+		{
+			printf("%i", 0);
+		}
+		printf(", ");
+		genops_output_signature(current->intrinsic_info.signature);
+		printf(", ");
+		if(current->intrinsic_info.intrinsic)
+		{
+			printf("%s", current->intrinsic_info.intrinsic);
+		}
+		else
+		{
+			printf("0");
+		}
+		printf("}");
+		current = current->next;
+		if(current)
+		{
+			printf(",\n");
+		}
+		else
+		{
+			printf("\n");
+		}
+	}
+	printf("};\n");
+}
+
+static void
 genops_output_opcode_table(const char *filename)
 {
 	printf("/%c Automatically generated from %s - DO NOT EDIT %c/\n",
@@ -1062,6 +1581,11 @@ genops_output_opcode_table(const char *filename)
 		printf("%s", start_code_block);
 	}
 	genops_output_ops();
+	if(genops_gen_intrinsic_table)
+	{
+		printf("\n");
+		genops_output_intrinsic_table(opcode_header->define_start);
+	}
 	if(end_code_block)
 	{
 		printf("%s", end_code_block);

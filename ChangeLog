@@ -1,3 +1,20 @@
+2010-09-21  Klaus Treichel  <ktreichel@web.de>
+
+	* config/jit-opcodes.ops: Add definitions for the opcode's
+	intrinsics.
+
+	* jit/Makefile.am: Add jit-opcode-apply.c to the sources.
+
+	* jit/jit-internal.h (enum _jit_intrinsic_signature): Declare the
+	various intrinsic signatures.
+	(struct _jit_intrinsic_info): Declare structure to hold the intrinsic
+	information for an opcode.
+
+	* jit/jit-opcode-apply.c: Add support for constant folding.
+
+	* tools/gen-ops-parset.y, tools/gen-ops-scanner.l: Add support for
+	generating the opcode intrinsic table.
+
 2010-09-12  Klaus Treichel  <ktreichel@web.de>
 
 	* config/jit-opcodes.ops: Remove the *eq_inv and *ne_inv float
