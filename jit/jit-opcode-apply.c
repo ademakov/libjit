@@ -287,7 +287,7 @@ apply_i_plll(jit_constant_t *const_result,
 #else
 		return (*intrinsic)(&(const_result->un.long_value),
 				    *(jit_long *)(value1->address),
-				    *(jit_long *)(value2->address)))
+				    *(jit_long *)(value2->address));
 #endif
 	}
 	return 0;
