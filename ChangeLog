@@ -1,3 +1,8 @@
+2010-10-04  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-internal.h: Add missing typedef in the declaration of the
+	_jit_intrinsic_signature enumaeration. (Really Noah Lavine)
+
 2010-09-21  Klaus Treichel  <ktreichel@web.de>
 
 	* config/jit-opcodes.ops: Add definitions for the opcode's

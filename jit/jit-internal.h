@@ -776,7 +776,7 @@ extern struct _jit_type const _jit_type_void_ptr_def;
  * Special signatures are conv and conv_ovf for type conversions without
  * and with overflow checks.
  */
-enum
+typedef enum
 {
 	JIT_SIG_NONE	= 0,
 	JIT_SIG_i_i	= 1,
