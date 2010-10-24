@@ -2746,6 +2746,7 @@ void _jit_regs_alloc_global(jit_gencode_t gen, jit_function_t func)
 			--reg;
 		}
 		candidates[index]->has_global_register = 1;
+		candidates[index]->in_global_register = 1;
 		candidates[index]->global_reg = (short)reg;
 		jit_reg_set_used(gen->touched, reg);
 		jit_reg_set_used(gen->permanent, reg);

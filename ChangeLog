@@ -1,3 +1,8 @@
+2010-10-24  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-reg-alloc.c (_jit_regs_alloc_global): Set in_global_register
+	on global register assignment.
+
 2010-10-04  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-internal.h: Add missing typedef in the declaration of the
