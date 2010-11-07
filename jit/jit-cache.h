@@ -169,7 +169,7 @@ void *_jit_cache_get_end_method(jit_cache_t cache, void *pc);
 /*
  * Get a list of all method that are presently in the cache.
  * The list is terminated by a NULL, and must be free'd with
- * "ILFree".  Returns NULL if out of memory.
+ * "jit_free".  Returns NULL if out of memory.
  */
 void **_jit_cache_get_method_list(jit_cache_t cache);
 

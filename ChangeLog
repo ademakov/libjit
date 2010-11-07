@@ -1,3 +1,7 @@
+2010-11-07  Klaus Treichel  <ktreichel@web.de>
+
+	* jit/jit-cache.h: Fix comment for _jit_cache_get_end_method.
+
 2010-10-24  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-reg-alloc.c (_jit_regs_alloc_global): Set in_global_register
