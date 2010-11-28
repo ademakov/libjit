@@ -422,6 +422,8 @@ void jit_dump_insn(FILE *stream, jit_function_t func, jit_insn_t insn)
 	}
 	else if((flags & JIT_OPCODE_IS_ADDROF_LABEL) != 0)
 	{
+		dump_value(stream, func, jit_insn_get_dest(insn), flags & JIT_OPCODE_DEST_MASK);
+		fprintf(stream, " = ");
 		fprintf(stream, "address_of_label .L%ld",
 				(long)(jit_insn_get_label(insn)));
 		return;

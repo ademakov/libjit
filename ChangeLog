@@ -1,3 +1,11 @@
+2010-11-28  Klaus Treichel  <ktreichel@web.de>
+
+	* config/jit-opcodes.ops: Set the destination value type for the
+	address_of_label opcode.
+
+	* jit/jit-dump.c (jit_dump_insn): Print the destination value for
+	the address_of_label opcode.
+
 2010-11-07  Klaus Treichel  <ktreichel@web.de>
 
 	* jit/jit-cache.h: Fix comment for _jit_cache_get_end_method.

@@ -775,7 +775,7 @@ opcodes(JIT_OP_, "jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES]")
 	op_def("leave_filter") { op_values(empty, any) }
 	op_def("call_filter") { op_type(branch), op_values(empty, any) }
 	op_def("call_filter_return") { op_values(any) }
-	op_def("address_of_label") { op_type(address_of_label) }
+	op_def("address_of_label") { op_type(address_of_label), op_values(ptr) }
 	/*
 	 * Data manipulation.
 	 */
