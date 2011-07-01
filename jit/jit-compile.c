@@ -26,6 +26,7 @@
 #include "jit-reg-alloc.h"
 #include "jit-setjmp.h"
 #ifdef _JIT_COMPILE_DEBUG
+# include <jit/jit-dump.h>
 # include <stdio.h>
 #endif
 
@@ -161,7 +162,7 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 	jit_insn_t insn;
 
 #ifdef _JIT_COMPILE_DEBUG
-	printf("Block #%d: %d\n", func->builder->block_count++, block->label);
+	printf("Block #%d: %d\n\n", func->builder->block_count++, block->label);
 #endif
 
 	/* Iterate over all blocks in the function */
@@ -171,8 +172,9 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 #ifdef _JIT_COMPILE_DEBUG
 		unsigned char *p1, *p2;
 		p1 = gen->posn.ptr;
-		printf("Insn: %5d, Opcode: 0x%04x\n", func->builder->insn_count++, insn->opcode);
-		printf("Start of binary code: 0x%08x\n", p1);
+		printf("Insn #%d: ", func->builder->insn_count++);
+		jit_dump_insn(stdout, func, insn);
+		printf("\nStart of binary code: 0x%08x\n", p1);
 #endif
 
 		switch(insn->opcode)
