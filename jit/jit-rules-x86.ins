@@ -1077,24 +1077,24 @@ JIT_OP_ISHL:
 	[reg, imm] -> {
 		x86_shift_reg_imm(inst, X86_SHL, $1, ($2 & 0x1F));
 	}
-	[reg, reg] -> {
-		inst = shift_reg(inst, X86_SHL, $1, $2);
+	[reg, reg("ecx")] -> {
+		x86_shift_reg(inst, X86_SHL, $1);
 	}
 
 JIT_OP_ISHR:
 	[reg, imm] -> {
 		x86_shift_reg_imm(inst, X86_SAR, $1, ($2 & 0x1F));
 	}
-	[reg, reg] -> {
-		inst = shift_reg(inst, X86_SAR, $1, $2);
+	[reg, reg("ecx")] -> {
+		x86_shift_reg(inst, X86_SAR, $1);
 	}
 
 JIT_OP_ISHR_UN:
 	[reg, imm] -> {
 		x86_shift_reg_imm(inst, X86_SHR, $1, ($2 & 0x1F));
 	}
-	[reg, reg] -> {
-		inst = shift_reg(inst, X86_SHR, $1, $2);
+	[reg, reg("ecx")] -> {
+		x86_shift_reg(inst, X86_SHR, $1);
 	}
 
 JIT_OP_LAND: commutative

@@ -1153,34 +1153,6 @@ void _jit_gen_fix_value(jit_value_t value)
 }
 
 /*
- * Shift the contents of a register.
- */
-static unsigned char *shift_reg(unsigned char *inst, int opc, int reg, int reg2)
-{
-	if(reg2 == X86_ECX)
-	{
-		/* The shift value is already in ECX */
-		x86_shift_reg(inst, opc, reg);
-	}
-	else if(reg == X86_ECX)
-	{
-		/* The value to be shifted is in ECX, so swap the order */
-		x86_xchg_reg_reg(inst, reg, reg2, 4);
-		x86_shift_reg(inst, opc, reg2);
-		x86_mov_reg_reg(inst, reg, reg2, 4);
-	}
-	else
-	{
-		/* Save ECX, perform the shift, and then restore ECX */
-		x86_push_reg(inst, X86_ECX);
-		x86_mov_reg_reg(inst, X86_ECX, reg2, 4);
-		x86_shift_reg(inst, opc, reg);
-		x86_pop_reg(inst, X86_ECX);
-	}
-	return inst;
-}
-
-/*
  * Set a register value based on a condition code.
  */
 static unsigned char *setcc_reg

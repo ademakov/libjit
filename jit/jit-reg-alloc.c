@@ -1135,6 +1135,8 @@ static void
 choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 {
 	_jit_regclass_t *regclass;
+	int assigned_inreg1, assigned_inreg2;
+	int suitable_inreg1, suitable_inreg2;
 	int reg_index, reg, other_reg;
 	int use_cost;
 	int suitable_reg, suitable_other_reg;
@@ -1146,6 +1148,32 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 #endif
 
 	regclass = regs->descs[0].regclass;
+
+	assigned_inreg1 = suitable_inreg1 = -1;
+	if(regs->descs[1].value)
+	{
+		if(regs->descs[1].reg >= 0)
+		{
+			assigned_inreg1 = suitable_inreg1 = regs->descs[1].reg;
+		}
+		else if (regs->descs[1].value->in_register)
+		{
+			suitable_inreg1 = regs->descs[1].value->reg;
+		}
+	}
+
+	assigned_inreg2 = suitable_inreg2 = -1;
+	if(regs->descs[2].value)
+	{
+		if(regs->descs[2].reg >= 0)
+		{
+			assigned_inreg2 = suitable_inreg2 = regs->descs[2].reg;
+		}
+		else if (regs->descs[2].value->in_register)
+		{
+			suitable_inreg2 = regs->descs[2].value->reg;
+		}
+	}
 
 	suitable_reg = -1;
 	suitable_other_reg = -1;
@@ -1228,32 +1256,26 @@ choose_output_register(jit_gencode_t gen, _jit_regs_t *regs)
 			}
 			if(regs->free_dest)
 			{
-				if(regs->descs[0].early_clobber)
+				if(regs->descs[0].early_clobber
+				   && (reg == suitable_inreg1 || reg == suitable_inreg2))
 				{
-					if(regs->descs[1].value
-					   && regs->descs[1].value->in_register
-					   && regs->descs[1].value->reg == reg)
-					{
-						continue;
-					}
-					if(regs->descs[2].value
-					   && regs->descs[2].value->in_register
-					   && regs->descs[2].value->reg == reg)
-					{
-						continue;
-					}
+					continue;
 				}
 				use_cost = 0;
 			}
-			else if(regs->descs[1].value
-				&& regs->descs[1].value->in_register
-				&& regs->descs[1].value->reg == reg)
+			else if(reg == assigned_inreg1)
 			{
 				use_cost = 0;
 			}
-			else if(regs->descs[2].value
-				&& regs->descs[2].value->in_register
-				&& regs->descs[2].value->reg == reg)
+			else if(reg == assigned_inreg2)
+			{
+				continue;
+			}
+			else if(reg == suitable_inreg1)
+			{
+				use_cost = 0;
+			}
+			else if(reg == suitable_inreg2)
 			{
 				if(regs->commutative)
 				{
@@ -2831,7 +2853,7 @@ _jit_regs_spill_all(jit_gencode_t gen)
 	}
 
 #ifdef JIT_REG_DEBUG
-	printf("leave _jit_regs_spill_all\n");
+	printf("leave _jit_regs_spill_all\n\n");
 #endif
 }
 
@@ -3343,16 +3365,30 @@ _jit_regs_assign(jit_gencode_t gen, _jit_regs_t *regs)
 	printf("_jit_regs_assign()\n");
 #endif
 
-	/* For binary or unary ops with explicitely assigned registers
-	   the output always goes to the same register as the first input
-	   value unless this is a three-address instruction. */
-	if(!regs->ternary && !regs->free_dest
-	   && regs->descs[0].value && regs->descs[0].reg < 0
-	   && regs->descs[1].value && regs->descs[1].reg >= 0)
+	/* Check explicitely assigned registers */
+	if(regs->descs[2].value && regs->descs[2].reg >= 0)
 	{
-		set_regdesc_register(gen, regs, 0,
-				     regs->descs[1].reg,
-				     regs->descs[1].other_reg);
+		check_duplicate_value(regs, &regs->descs[2], &regs->descs[1]);
+		if(regs->ternary)
+		{
+			check_duplicate_value(regs, &regs->descs[2], &regs->descs[0]);
+		}
+	}
+	if(regs->descs[1].value && regs->descs[1].reg >= 0)
+	{
+		if(regs->ternary)
+		{
+			check_duplicate_value(regs, &regs->descs[1], &regs->descs[0]);
+		}
+		else if(!regs->free_dest && regs->descs[0].value && regs->descs[0].reg < 0)
+		{
+			/* For binary or unary ops with explicitely assigned registers
+			   the output always goes to the same register as the first input
+			   value unless this is a three-address instruction. */
+			set_regdesc_register(gen, regs, 0,
+					     regs->descs[1].reg,
+					     regs->descs[1].other_reg);
+		}
 	}
 
 #if JIT_REG_STACK
