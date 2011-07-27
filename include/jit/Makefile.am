@@ -28,6 +28,7 @@ dist_libjitinclude_HEADERS = \
 	jit-unwind.h \
 	jit-util.h \
 	jit-value.h \
+	jit-vmem.h \
 	jit-walk.h
 
 nodist_libjitinclude_HEADERS = \

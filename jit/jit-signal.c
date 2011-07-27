@@ -21,11 +21,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h> 
+#include "jit-internal.h"
 
 #ifdef JIT_USE_SIGNALS
 
-#include "jit-internal.h"
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>

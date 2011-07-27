@@ -23,7 +23,6 @@
 #include "jit-internal.h"
 #include "jit-rules.h"
 #include <jit/jit-dump.h>
-#include <config.h>
 #ifdef HAVE_STDLIB_H
 # include <stdlib.h>
 #endif

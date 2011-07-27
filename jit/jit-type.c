@@ -23,7 +23,6 @@
 #include "jit-internal.h"
 #include "jit-apply-rules.h"
 #include "jit-rules.h"
-#include <config.h>
 
 /*@
 

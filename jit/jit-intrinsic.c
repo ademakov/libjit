@@ -21,7 +21,6 @@
  */
 
 #include "jit-internal.h"
-#include <config.h>
 #if defined(HAVE_TGMATH_H) && !defined(JIT_NFLOAT_IS_DOUBLE)
 	#include <tgmath.h>
 #elif defined(HAVE_MATH_H)

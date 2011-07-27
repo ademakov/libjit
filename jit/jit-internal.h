@@ -24,25 +24,10 @@
 #define	_JIT_INTERNAL_H
 
 #include <jit/jit.h>
+#include "jit-config.h"
 
 #ifdef	__cplusplus
 extern	"C" {
-#endif
-
-/*
-#define _JIT_COMPILE_DEBUG	1
-#define _JIT_BLOCK_DEBUG	1
-*/
-
-/*
- * Determine what kind of Win32 system we are running on.
- */
-#if defined(__CYGWIN__) || defined(__CYGWIN32__)
-#define	JIT_WIN32_CYGWIN	1
-#define	JIT_WIN32_PLATFORM	1
-#elif defined(_WIN32) || defined(WIN32)
-#define	JIT_WIN32_NATIVE	1
-#define	JIT_WIN32_PLATFORM	1
 #endif
 
 /*

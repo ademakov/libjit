@@ -126,16 +126,6 @@ void jit_context_destroy(jit_context_t context)
 }
 
 /*@
- * @deftypefun int jit_context_supports_threads (jit_context_t @var{context})
- * Determine if the JIT supports threads.
- * @end deftypefun
-@*/
-int jit_context_supports_threads(jit_context_t context)
-{
-	return JIT_THREADS_SUPPORTED;
-}
-
-/*@
  * @deftypefun void jit_context_build_start (jit_context_t @var{context})
  * This routine should be called before you start building a function
  * to be JIT'ed.  It acquires a lock on the context to prevent other

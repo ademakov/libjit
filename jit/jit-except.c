@@ -22,7 +22,6 @@
 
 #include "jit-internal.h"
 #include "jit-rules.h"
-#include <config.h>
 #ifdef HAVE_STDLIB_H
 # include <stdlib.h>
 #endif

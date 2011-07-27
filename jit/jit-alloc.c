@@ -20,8 +20,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "jit-internal.h"
-#include <config.h>
+#include "jit-config.h"
+
 #ifdef HAVE_STDLIB_H
 	#include <stdlib.h>
 #endif

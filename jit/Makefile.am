@@ -20,6 +20,7 @@ libjit_la_SOURCES = \
 	jit-cache.h \
 	jit-cache.c \
 	jit-compile.c \
+	jit-config.h \
 	jit-context.c \
 	jit-cpuid-x86.h \
 	jit-cpuid-x86.c \
@@ -76,6 +77,7 @@ libjit_la_SOURCES = \
 	jit-type.c \
 	jit-unwind.c \
 	jit-value.c \
+	jit-vmem.c \
 	jit-walk.c
 
 EXTRA_DIST = \

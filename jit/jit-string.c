@@ -20,8 +20,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "jit-internal.h"
-#include <config.h>
+#include <jit/jit-util.h>
+#include "jit-config.h"
 #ifdef HAVE_STRING_H
 	#include <string.h>
 #elif defined(HAVE_STRINGS_H)

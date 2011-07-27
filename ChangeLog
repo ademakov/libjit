@@ -1,3 +1,28 @@
+2011-07-27  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-config.h: added new file as central location for all
+	platform config macros deduced from ./configure and cpp.
+	* jit/Makefile.am: add jit-config.h.
+
+	* include/jit/jit-context.h, jit/jit-context.c
+	(jit_context_supports_threads): removed.
+	* include/jit/jit-init.h, jit/jit-init.c (jit_supports_threads):
+	added function to replace jit_context_supports_threads.
+
+	* include/jit/jit-init.h, jit/jit-init.c
+	(jit_supports_virtual_memory): added new function to check if
+	the jit supports virtual memory routines.
+
+	* include/jit/jit-vmem.h, jit/jit-vmem.c (jit_vmem_init)
+	(jit_vmem_page_size, jit_vmem_round_up, jit_vmem_round_down)
+	(jit_vmem_reserve, jit_vmem_reserve_committed, jit_vmem_release)
+	(jit_vmem_commit, jit_vmem_decommit, jit_vmem_protect): added new
+	files with virtual memory routines.
+	* include/jit/Makefile.am, include/jit/jit.h: add jit-vmem.h
+	* jit/Makefile.am: add jit-vmem.c
+
+	* jit/jit-init.c (jit_init): call jit_vmem_init().
+
 2011-07-10  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c (choose_output_register, _jit_regs_assign):

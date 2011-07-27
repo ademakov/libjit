@@ -23,38 +23,11 @@
 #ifndef	_JIT_RULES_H
 #define	_JIT_RULES_H
 
+#include "jit-config.h"
 #include "jit-cache.h"
-#include <config.h>
 
 #ifdef	__cplusplus
 extern	"C" {
-#endif
-
-/*
- * Determine which backend to use.
- */
-#if defined(USE_LIBJIT_INTERPRETER)
-# define JIT_BACKEND_INTERP		1
-# define JIT_HAVE_BACKEND		1
-#elif defined(__alpha) || defined(__alpha__)
-# define JIT_BACKEND_ALPHA		1
-# define JIT_HAVE_BACKEND		1
-#elif defined(__arm) || defined(__arm__)
-# define JIT_BACKEND_ARM		1
-# define JIT_HAVE_BACKEND		1
-#elif defined(__i386) || defined(__i386__) || defined(_M_IX86)
-# define JIT_BACKEND_X86		1
-# define JIT_HAVE_BACKEND		1
-#elif defined(__amd64) || defined(__amd64__) || defined(_x86_64) || defined(_x86_64__)
-# define JIT_BACKEND_X86_64		1
-# define JIT_HAVE_BACKEND		1
-#endif
-
-/*
- * Fallback  to interpreter if there is no appropriate native backend.
- */
-#if !defined(JIT_HAVE_BACKEND)
-# define JIT_BACKEND_INTERP		1
 #endif
 
 /*

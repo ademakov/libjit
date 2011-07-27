@@ -21,7 +21,6 @@
  */
 
 #include "jit-internal.h"
-#include "jit-rules.h"
 
 /*@
  * @deftypefun void jit_init (void)
@@ -37,7 +36,8 @@
  * initializations are quietly ignored.
  * @end deftypefun
 @*/
-void jit_init(void)
+void
+jit_init(void)
 {
 	static int init_done = 0;
 
@@ -58,6 +58,9 @@ void jit_init(void)
 	_jit_signal_init();
 #endif
 
+	/* Initialize the virtual memory system */
+	jit_vmem_init();
+
 	/* Initialize the backend */
 	_jit_init_backend();
 
@@ -72,11 +75,34 @@ done:
  * called prior to @code{jit_init}.
  * @end deftypefun
 @*/
-int jit_uses_interpreter(void)
+int
+jit_uses_interpreter(void)
 {
 #if defined(JIT_BACKEND_INTERP)
 	return 1;
 #else
 	return 0;
 #endif
+}
+
+/*@
+ * @deftypefun int jit_supports_threads (void)
+ * Determine if the JIT supports threads.
+ * @end deftypefun
+@*/
+int
+jit_supports_threads(void)
+{
+	return JIT_THREADS_SUPPORTED;
+}
+
+/*@
+ * @deftypefun int jit_supports_virtual_memory (void)
+ * Determine if the JIT supports virtual memory.
+ * @end deftypefun
+@*/
+int
+jit_supports_virtual_memory(void)
+{
+	return JIT_VMEM_SUPPORTED;
 }

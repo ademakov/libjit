@@ -44,6 +44,7 @@ extern	"C" {
 #include <jit/jit-unwind.h>
 #include <jit/jit-util.h>
 #include <jit/jit-value.h>
+#include <jit/jit-vmem.h>
 #include <jit/jit-walk.h>
 
 #ifdef	__cplusplus

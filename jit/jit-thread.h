@@ -23,28 +23,17 @@
 #ifndef	_JIT_THREAD_H
 #define	_JIT_THREAD_H
 
-#include <config.h>
-#if defined(HAVE_PTHREAD_H) && defined(HAVE_LIBPTHREAD)
-	#include <pthread.h>
-#elif defined(JIT_WIN32_PLATFORM)
-	#include <windows.h>
+#include <jit/jit-defs.h>
+#include "jit-config.h"
+
+#if defined(JIT_THREADS_PTHREAD)
+# include <pthread.h>
+#elif defined(JIT_THREADS_WIN32)
+# include <windows.h>
 #endif
 
 #ifdef	__cplusplus
 extern	"C" {
-#endif
-
-/*
- * Determine the type of threading library that we are using.
- */
-#if defined(HAVE_PTHREAD_H) && defined(HAVE_LIBPTHREAD)
-	#define	JIT_THREADS_SUPPORTED	1
-	#define	JIT_THREADS_PTHREAD		1
-#elif defined(JIT_WIN32_PLATFORM)
-	#define	JIT_THREADS_SUPPORTED	1
-	#define	JIT_THREADS_WIN32		1
-#else
-	#define	JIT_THREADS_SUPPORTED	0
 #endif
 
 /*

@@ -29,7 +29,6 @@ extern	"C" {
 
 jit_context_t jit_context_create(void) JIT_NOTHROW;
 void jit_context_destroy(jit_context_t context) JIT_NOTHROW;
-int jit_context_supports_threads(jit_context_t context) JIT_NOTHROW;
 void jit_context_build_start(jit_context_t context) JIT_NOTHROW;
 void jit_context_build_end(jit_context_t context) JIT_NOTHROW;
 void jit_context_set_on_demand_driver(

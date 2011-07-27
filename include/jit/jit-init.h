@@ -28,7 +28,12 @@ extern	"C" {
 #endif
 
 void jit_init(void) JIT_NOTHROW;
+
 int jit_uses_interpreter(void) JIT_NOTHROW;
+
+int jit_supports_threads(void) JIT_NOTHROW;
+
+int jit_supports_virtual_memory(void) JIT_NOTHROW;
 
 #ifdef	__cplusplus
 };
