@@ -1272,30 +1272,6 @@ static unsigned long FillMethodList(void **list,
 	return num + FillMethodList(list + num, GetRight(node), nil, prev);
 }
 
-void **_jit_cache_get_method_list(jit_cache_t cache)
-{
-	void *prev;
-	unsigned long num;
-	void **list;
-
-	/* Count the number of distinct methods in the tree */
-	prev = 0;
-	num = CountMethods(cache->head.right, &(cache->nil), &prev);
-
-	/* Allocate a list to hold all of the method descriptors */
-	list = (void **)jit_malloc((num + 1) * sizeof(void *));
-	if(!list)
-	{
-		return 0;
-	}
-
-	/* Fill the list with methods and then return it */
-	prev = 0;
-	FillMethodList(list, cache->head.right, &(cache->nil), &prev);
-	list[num] = 0;
-	return list;
-}
-
 /*
  * Temporary structure for iterating over a method's debug list.
  */
