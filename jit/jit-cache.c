@@ -1173,66 +1173,6 @@ failed:
 }
 
 /*
- * Count the number of methods in a sub-tree.
- */
-static unsigned long CountMethods(jit_cache_method_t node,
-								  jit_cache_method_t nil,
-								  void **prev)
-{
-	unsigned long num;
-
-	/* Bail out if we've reached a leaf */
-	if(node == nil)
-	{
-		return 0;
-	}
-
-	/* Count the number of methods in the left sub-tree */
-	num = CountMethods(GetLeft(node), nil, prev);
-
-	/* Process the current node */
-	if(node->method != 0 && node->method != *prev)
-	{
-		++num;
-		*prev = node->method;
-	}
-
-	/* Count the number of methods in the right sub-tree */
-	return num + CountMethods(GetRight(node), nil, prev);
-}
-
-/*
- * Fill a list with methods.
- */
-static unsigned long FillMethodList(void **list,
-									jit_cache_method_t node,
-								    jit_cache_method_t nil,
-								    void **prev)
-{
-	unsigned long num;
-
-	/* Bail out if we've reached a leaf */
-	if(node == nil)
-	{
-		return 0;
-	}
-
-	/* Process the methods in the left sub-tree */
-	num = FillMethodList(list, GetLeft(node), nil, prev);
-
-	/* Process the current node */
-	if(node->method != 0 && node->method != *prev)
-	{
-		list[num] = node->method;
-		++num;
-		*prev = node->method;
-	}
-
-	/* Process the methods in the right sub-tree */
-	return num + FillMethodList(list + num, GetRight(node), nil, prev);
-}
-
-/*
  * Temporary structure for iterating over a method's debug list.
  */
 typedef struct
