@@ -1,3 +1,8 @@
+2011-09-30  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_new_region):
+	function removed.
+
 2011-09-03  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_get_method_list):

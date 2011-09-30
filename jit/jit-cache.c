@@ -974,46 +974,6 @@ void _jit_cache_mark_bytecode(jit_cache_posn *posn, unsigned long offset)
 				    (long)(posn->ptr - posn->cache->start));
 }
 
-void _jit_cache_new_region(jit_cache_posn *posn, void *cookie)
-{
-	jit_cache_method_t method;
-	jit_cache_method_t newMethod;
-
-	/* Fetch the current method information block */
-	method = posn->cache->method;
-	if(!method)
-	{
-		return;
-	}
-
-	/* If the current region starts here, then simply update it */
-	if(method->start == posn->ptr)
-	{
-		method->cookie = cookie;
-		return;
-	}
-
-	/* Close off the current method region */
-	method->end = posn->ptr;
-
-	/* Allocate a new method region block and initialise it */
-	newMethod = (jit_cache_method_t)
-		_jit_cache_alloc(posn, sizeof(struct jit_cache_method));
-	if(!newMethod)
-	{
-		return;
-	}
-	newMethod->method = method->method;
-	newMethod->cookie = cookie;
-	newMethod->start = posn->ptr;
-	newMethod->end = posn->ptr;
-
-	/* Attach the new region to the cache */
-	newMethod->left = 0;
-	newMethod->right = method;
-	posn->cache->method = newMethod;
-}
-
 void _jit_cache_set_cookie(jit_cache_posn *posn, void *cookie)
 {
 	if(posn->cache->method)

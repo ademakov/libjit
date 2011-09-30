@@ -132,12 +132,6 @@ void _jit_cache_align(jit_cache_posn *posn, int align, int diff, int nop);
 void _jit_cache_mark_bytecode(jit_cache_posn *posn, unsigned long offset);
 
 /*
- * Change to a new exception region within the current method.
- * The cookie will typically be NULL if no exception region.
- */
-void _jit_cache_new_region(jit_cache_posn *posn, void *cookie);
-
-/*
  * Set the exception region cookie for the current region.
  */
 void _jit_cache_set_cookie(jit_cache_posn *posn, void *cookie);
