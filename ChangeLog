@@ -1,3 +1,11 @@
+2011-12-18  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/Makefile.am:
+	* jit/jit-varint.h, jit/jit-varint.c: add new files for varaible
+	length int encoding with algorithm similar but not identical to one
+	currently used in jit-cache.c.  The new algorithm in certain cases
+	better compresses unsigned ints.
+
 2011-09-30  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_new_region):

@@ -77,6 +77,8 @@ libjit_la_SOURCES = \
 	jit-type.c \
 	jit-unwind.c \
 	jit-value.c \
+	jit-varint.h \
+	jit-varint.c \
 	jit-vmem.c \
 	jit-walk.c
 
