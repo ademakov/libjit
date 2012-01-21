@@ -169,8 +169,7 @@ jit_unwind_get_function(jit_unwind_context_t *unwind)
 	{
 		jit_cache_t cache = _jit_context_get_cache(unwind->context);
 		void *pc = jit_unwind_get_pc(unwind);
-		unwind->cache = (jit_function_t)
-			_jit_cache_get_method(cache, pc, NULL);
+		unwind->cache = _jit_cache_get_method(cache, pc);
 	}
 
 	return (jit_function_t) unwind->cache;
@@ -180,8 +179,7 @@ unsigned int
 jit_unwind_get_offset(jit_unwind_context_t *unwind)
 {
 	jit_function_t func;
-	jit_cache_t cache;
-	void *pc, *start;
+	void *pc;
 
 	if(!unwind || !unwind->frame || !unwind->context)
 	{
@@ -200,13 +198,5 @@ jit_unwind_get_offset(jit_unwind_context_t *unwind)
 		return JIT_NO_OFFSET;
 	}
 
-	cache = _jit_context_get_cache(unwind->context);
-
-#ifdef JIT_PROLOG_SIZE
-	start = _jit_cache_get_start_method(cache, func->entry_point);
-#else
-	start = func->entry_point;
-#endif
-
-	return _jit_cache_get_bytecode(cache, start, pc - start, 0);
+	return _jit_function_get_bytecode(func, pc, 0);
 }

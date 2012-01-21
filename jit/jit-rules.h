@@ -173,6 +173,7 @@ struct jit_gencode
 #endif
 	void			*epilog_fixup;	/* Fixup list for function epilogs */
 	int			stack_changed;	/* Stack top changed since entry */
+	jit_varint_encoder_t	offset_encoder;	/* Bytecode offset encoder */
 };
 
 /*

@@ -400,8 +400,7 @@ jit_function_t jit_stack_trace_get_function
 		jit_cache_t cache = _jit_context_get_cache(context);
 		if(cache)
 		{
-			return (jit_function_t)_jit_cache_get_method
-				(cache, trace->items[posn], 0);
+			return _jit_cache_get_method(cache, trace->items[posn]);
 		}
 	}
 	return 0;
@@ -442,18 +441,10 @@ unsigned int jit_stack_trace_get_offset
 		jit_cache_t cache = _jit_context_get_cache(context);
 		if(cache)
 		{
-			jit_function_t func = (jit_function_t) _jit_cache_get_method
-				(cache, trace->items[posn], 0);
+			jit_function_t func = _jit_cache_get_method(cache, trace->items[posn]);
 			if (func)
 			{
-#ifdef JIT_PROLOG_SIZE
-				void *start = _jit_cache_get_start_method
-					(cache, func->entry_point);
-#else
-				void *start = func->entry_point;
-#endif
-				unsigned long offset = trace->items[posn] - start;
-				return _jit_cache_get_bytecode(cache, start, offset, 0);
+				return _jit_function_get_bytecode(func, trace->items[posn], 0);
 			}
 		}
 	}

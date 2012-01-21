@@ -41,6 +41,11 @@ extern	"C" {
 #include "jit-thread.h"
 
 /*
+ * Include varint encoding for bytecode offset data.
+ */
+#include "jit-varint.h"
+
+/*
  * The following is some macro magic that attempts to detect
  * the best alignment to use on the target platform.  The final
  * value, "JIT_BEST_ALIGNMENT", will be a compile-time constant.
@@ -432,6 +437,12 @@ struct _jit_function
 	/* The builder information for this function */
 	jit_builder_t		builder;
 
+	/* Debug information for this function */
+	jit_varint_data_t	bytecode_offset;
+
+	/* Cookie value for this function */
+	void			*cookie;
+
 	/* Flag bits for this function */
 	unsigned		is_recompilable : 1;
 	unsigned		is_optimized : 1;
@@ -442,6 +453,11 @@ struct _jit_function
 
 	/* Flag set once the function is compiled */
 	int volatile		is_compiled;
+
+	/* Start of the cache region */
+	unsigned char		*start;
+	/* End of the cache region */
+	unsigned char		*end;
 
 	/* The entry point for the function's compiled code */
 	void * volatile		entry_point;
@@ -488,6 +504,13 @@ void _jit_function_compute_liveness(jit_function_t func);
  * Compile a function on-demand.  Returns the entry point.
  */
 void *_jit_function_compile_on_demand(jit_function_t func);
+
+/*
+ * Get the bytecode offset that is associated with a native
+ * offset within a method.  Returns JIT_CACHE_NO_OFFSET
+ * if the bytecode offset could not be determined.
+ */
+unsigned long _jit_function_get_bytecode(jit_function_t func, void *pc, int exact);
 
 /*
  * Information about a registered external symbol.

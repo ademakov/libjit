@@ -1,3 +1,28 @@
+2012-01-21  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules.h (struct jit_gencode): add offset_encoder field
+	to encode bytecode offsets with jit_varints.
+
+	* jit/jit-internal.h (struct _jit_function): move fields cookie,
+	start, end here from jit_cache_method; add bytecode_offset field
+	to encode bytecode offsets with jit_varints.
+
+	* jit/jit-compile.c (mark_offset, _jit_function_get_bytecode): add
+	functions that use jit_varints for bytecode offset compression.
+
+	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_get_method):
+	remove cookie argument.
+
+	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_mark_bytecode)
+	(_jit_cache_set_cookie, _jit_cache_get_start_method)
+	(_jit_cache_get_end_method, _jit_cache_get_native)
+	(_jit_cache_get_bytecode, _jit_cache_get_size): remove functions,
+	get rid of bytecode offset compression and method region machinary.
+
+	* jit/jit-dump.c, jit/jit-function.c, jit/jit-rules-interp.c
+	* jit/jit-except.c, jit/jit-unwind.c: adjust where appropriate for
+	cache API change.
+
 2011-12-18  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/Makefile.am:

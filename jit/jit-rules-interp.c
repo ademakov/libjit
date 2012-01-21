@@ -1603,7 +1603,7 @@ void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block)
 	if(block->label == block->func->builder->catcher_label &&
 	   block->func->has_try)
 	{
-		_jit_cache_set_cookie(&(gen->posn), block->address);
+		block->func->cookie = block->address;
 	}
 }
 

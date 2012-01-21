@@ -153,6 +153,24 @@ jit_optimize(jit_function_t func)
 }
 
 /*
+ * Mark the current position with a bytecode offset value.
+ */
+void
+mark_offset(jit_gencode_t gen, jit_function_t func, unsigned long offset)
+{
+	unsigned char *ptr = jit_cache_get_posn(&gen->posn);
+	unsigned long native_offset = ptr - func->start;
+	if(!_jit_varint_encode_uint(&gen->offset_encoder, (jit_uint) offset))
+	{
+		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
+	}
+	if(!_jit_varint_encode_uint(&gen->offset_encoder, (jit_uint) native_offset))
+	{
+		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
+	}
+}
+
+/*
  * Compile a single basic block within a function.
  */
 static void
@@ -269,9 +287,7 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 		case JIT_OP_MARK_OFFSET:
 			/* Mark the current code position as corresponding
 			   to a particular bytecode offset */
-			_jit_cache_mark_bytecode(&gen->posn,
-						 (unsigned long)(long)
-						 jit_value_get_nint_constant(insn->value1));
+			mark_offset(gen, func, (unsigned long)(long)jit_value_get_nint_constant(insn->value1));
 			break;
 
 		default:
@@ -429,6 +445,9 @@ cache_alloc(_jit_compile_t *state)
 		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 	}
 
+	/* Prepare the bytecode offset encoder */
+	_jit_varint_init_encoder(&state->gen.offset_encoder);
+
 	/* On success remember the cache state */
 	state->cache_started = 1;
 }
@@ -469,6 +488,13 @@ cache_flush(_jit_compile_t *state)
 		jit_flush_exec(state->code_start,
 			       (unsigned int)(state->code_end - state->code_start));
 #endif
+
+		/* Terminate the debug information and flush it */
+		if(!_jit_varint_encode_end(&state->gen.offset_encoder))
+		{
+			jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
+		}
+		state->func->bytecode_offset = _jit_varint_get_data(&state->gen.offset_encoder);
 	}
 }
 
@@ -489,6 +515,9 @@ cache_abort(_jit_compile_t *state)
 
 		/* Actually release the cache space */
 		_jit_cache_end_method(&state->gen.posn);
+
+		/* Free encoded bytecode offset data */
+		_jit_varint_free_data(_jit_varint_get_data(&state->gen.offset_encoder));
 	}
 }
 
@@ -517,6 +546,9 @@ cache_realloc(_jit_compile_t *state)
 	}
 
 	state->page_factor *= 2;
+
+	/* Prepare the bytecode offset encoder */
+	_jit_varint_init_encoder(&state->gen.offset_encoder);
 
 	/* On success remember the cache state */
 	state->cache_started = 1;
@@ -949,4 +981,57 @@ _jit_function_compile_on_demand(jit_function_t func)
 	}
 
 	return func->entry_point;
+}
+
+#define	JIT_CACHE_NO_OFFSET		(~((unsigned long)0))
+
+unsigned long
+_jit_function_get_bytecode(jit_function_t func, void *pc, int exact)
+{
+	unsigned long offset = JIT_CACHE_NO_OFFSET;
+	jit_cache_t cache;
+	void *start;
+	unsigned long native_offset;
+	jit_varint_decoder_t decoder;
+	jit_uint off, noff;
+
+	cache = _jit_context_get_cache(func->context);
+
+#ifdef JIT_PROLOG_SIZE
+	start = func->start;
+#else
+	start = func->entry_point;
+#endif
+
+	native_offset = pc - start;
+
+	_jit_varint_init_decoder(&decoder, func->bytecode_offset);
+	for(;;)
+	{
+		off = _jit_varint_decode_uint(&decoder);
+		noff = _jit_varint_decode_uint(&decoder);
+		if(_jit_varint_decode_end(&decoder))
+		{
+			if(exact)
+			{
+				offset = JIT_CACHE_NO_OFFSET;
+			}
+			break;
+		}
+		if(noff >= native_offset)
+		{
+			if(noff == native_offset)
+			{
+				offset = off;
+			}
+			else if (exact)
+			{
+				offset = JIT_CACHE_NO_OFFSET;
+			}
+			break;
+		}
+		offset = off;
+	}
+
+	return offset;
 }

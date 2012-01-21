@@ -21,6 +21,7 @@
  */
 
 #include "jit-internal.h"
+#include "jit-rules.h"
 
 /*@
  * @deftypefun void jit_init (void)

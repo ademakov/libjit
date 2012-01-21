@@ -96,7 +96,7 @@ int _jit_cache_start_method(jit_cache_t cache,
 			    jit_cache_posn *posn,
 			    int page_factor,
 			    int align,
-			    void *cookie);
+			    jit_function_t func);
 
 /*
  * End output of a method.  Returns zero if a restart.
@@ -127,60 +127,11 @@ void *_jit_cache_alloc_no_method
 void _jit_cache_align(jit_cache_posn *posn, int align, int diff, int nop);
 
 /*
- * Mark the current position with a bytecode offset value.
- */
-void _jit_cache_mark_bytecode(jit_cache_posn *posn, unsigned long offset);
-
-/*
- * Set the exception region cookie for the current region.
- */
-void _jit_cache_set_cookie(jit_cache_posn *posn, void *cookie);
-
-/*
  * Find the method that is associated with a particular
  * program counter.  Returns NULL if the PC is not associated
- * with a method within the cache.  The exception region
- * cookie is returned in "*cookie", if "cookie" is not NULL.
+ * with a method within the cache.
  */
-void *_jit_cache_get_method(jit_cache_t cache, void *pc, void **cookie);
-
-/*
- * Get the start of a method with a particular starting PC.
- * Returns NULL if the PC could not be located.
- * NOTE: This function is not currently aware of the
- * possibility of multiple regions per function. To ensure
- * correct results the ``pc'' argument has to be in the
- * first region.
- */
-void *_jit_cache_get_start_method(jit_cache_t cache, void *pc);
-
-/*
- * Get the end of a method with a particular starting PC.
- * Returns NULL if the PC could not be located.
- */
-void *_jit_cache_get_end_method(jit_cache_t cache, void *pc);
-
-/*
- * Get the native offset that is associated with a bytecode
- * offset within a method.  The value "start" indicates the
- * entry point for the method.  Returns JIT_CACHE_NO_OFFSET
- * if the native offset could not be determined.
- */
-#define	JIT_CACHE_NO_OFFSET		(~((unsigned long)0))
-unsigned long _jit_cache_get_native(jit_cache_t cache, void *start, unsigned long offset, int exact);
-
-/*
- * Get the bytecode offset that is associated with a native
- * offset within a method.  The value "start" indicates the
- * entry point for the method.  Returns JIT_CACHE_NO_OFFSET
- * if the bytecode offset could not be determined.
- */
-unsigned long _jit_cache_get_bytecode(jit_cache_t cache, void *start, unsigned long offset, int exact);
-
-/*
- * Get the number of bytes currently in use in the method cache.
- */
-unsigned long _jit_cache_get_size(jit_cache_t cache);
+jit_function_t _jit_cache_get_method(jit_cache_t cache, void *pc);
 
 /*
  * Convert a return address into a program counter value

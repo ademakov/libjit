@@ -258,6 +258,7 @@ void _jit_function_destroy(jit_function_t func)
 		func->context->functions = func->next;
 	}
 	_jit_function_free_builder(func);
+	_jit_varint_free_data(func->bytecode_offset);
 	jit_meta_destroy(&(func->meta));
 	jit_type_free(func->signature);
 	jit_free(func);
@@ -639,13 +640,11 @@ void *jit_function_to_closure(jit_function_t func)
 @*/
 jit_function_t jit_function_from_closure(jit_context_t context, void *closure)
 {
-	void *cookie;
 	if(!context || !(context->cache))
 	{
 		return 0;
 	}
-	return (jit_function_t)_jit_cache_get_method
-		(context->cache, closure, &cookie);
+	return _jit_cache_get_method(context->cache, closure);
 }
 
 /*@
@@ -669,11 +668,12 @@ jit_function_t jit_function_from_pc
 	}
 
 	/* Get the function and the exception handler cookie */
-	func = (jit_function_t)_jit_cache_get_method(context->cache, pc, &cookie);
+	func = _jit_cache_get_method(context->cache, pc);
 	if(!func)
 	{
 		return 0;
 	}
+	cookie = func->cookie;
 
 	/* Convert the cookie into a handler address */
 	if(handler)
@@ -744,13 +744,11 @@ jit_function_t jit_function_from_vtable_pointer(jit_context_t context, void *vta
 	}
 	return 0;
 #else
-	void *cookie;
 	if(!context || !(context->cache))
 	{
 		return 0;
 	}
-	return (jit_function_t)_jit_cache_get_method
-		(context->cache, vtable_pointer, &cookie);
+	return _jit_cache_get_method(context->cache, vtable_pointer);
 #endif
 }
 
