@@ -1,3 +1,15 @@
+2012-01-22  Klaus Treichel  <ktreichel@web.de>
+
+	* config/jit-opcodes.ops: Move declaration of obsolete opcodes to
+	the separate include file jit-opcode-compat.h and include this new
+	file instead.
+
+	* include/jit/jit-opcode-compat.h: add new include file for
+	obsolete opcodes.
+
+	* include/jit/Makefile.am: add jit-opcode-compat.h to the include
+	sources.
+
 2011-12-18  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/Makefile.am:

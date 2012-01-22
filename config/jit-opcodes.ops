@@ -951,22 +951,7 @@ struct jit_opcode_info
 #endif
 JIT_EXPORT_DATA jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES];
 
-/*
- * Some obsolete opcodes that have been removed because they are duplicates
- * of other opcodes.
- */
-#define JIT_OP_FEQ_INV		JIT_OP_FEQ
-#define JIT_OP_FNE_INV		JIT_OP_FNE
-#define JIT_OP_DEQ_INV		JIT_OP_DEQ
-#define JIT_OP_DNE_INV		JIT_OP_DNE
-#define JIT_OP_NFEQ_INV		JIT_OP_NFEQ
-#define JIT_OP_NFNE_INV		JIT_OP_NFNE
-#define JIT_OP_BR_FEQ_INV	JIT_OP_BR_FEQ
-#define JIT_OP_BR_FNE_INV	JIT_OP_BR_FNE
-#define JIT_OP_BR_DEQ_INV	JIT_OP_BR_DEQ
-#define JIT_OP_BR_DNE_INV	JIT_OP_BR_DNE
-#define JIT_OP_BR_NFEQ_INV	JIT_OP_BR_NFEQ
-#define JIT_OP_BR_NFNE_INV	JIT_OP_BR_NFNE
+#include "jit-opcode-compat.h"
 
 #ifdef	__cplusplus
 };
