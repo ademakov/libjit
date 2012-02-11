@@ -185,6 +185,16 @@ generation is complete.
 @*/
 
 /*
+ * Output a native word to the current method.
+ */
+#define jit_cache_native(posn,value)					\
+	do {								\
+		_jit_cache_check_space((posn), sizeof(jit_nuint));	\
+		*((jit_nuint *)((posn)->ptr)) = (jit_nuint)(value); 	\
+		(posn)->ptr += sizeof(jit_nuint);			\
+	} while (0)
+
+/*
  * Write an interpreter opcode to the cache.
  */
 #define	jit_cache_opcode(posn,opcode)	\

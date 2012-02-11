@@ -454,10 +454,10 @@ int _jit_cache_is_full(jit_cache_t cache, jit_cache_posn *posn)
 void
 _jit_cache_check_space(jit_cache_posn *posn, int space)
 {
-	if(!jit_cache_check_for_n(posn, space))
+	if((posn->ptr + space) >= posn->limit)
 	{
 		/* No space left on the current cache page. */
-		jit_cache_mark_full(posn);
+		posn->ptr = posn->limit;
 		jit_exception_builtin(JIT_RESULT_CACHE_FULL);
 	}
 }
@@ -526,11 +526,18 @@ int _jit_cache_start_method(jit_cache_t cache,
 	return JIT_CACHE_OK;
 }
 
-int _jit_cache_end_method(jit_cache_posn *posn)
+int
+_jit_cache_end_method(jit_cache_posn *posn, int result)
 {
 	jit_cache_t cache = posn->cache;
 	jit_cache_method_t method;
 	jit_cache_method_t next;
+
+	if (result != JIT_CACHE_OK)
+	{
+		/* mark cache page full */
+		posn->ptr = posn->limit;
+	}
 
 	/* Determine if we ran out of space while writing the method */
 	if(posn->ptr >= posn->limit)
@@ -637,44 +644,6 @@ void *_jit_cache_alloc_no_method
 	return (void *)ptr;
 }
 
-void _jit_cache_align(jit_cache_posn *posn, int align, int diff, int nop)
-{
-	jit_nuint current;
-	jit_nuint next;
-
-	/* Determine the location of the next alignment boundary */
-	if(align <= 1)
-	{
-		align = 1;
-	}
-	current = (jit_nuint)(posn->ptr);
-	next = (current + ((jit_nuint)align) - 1) &
-		   ~(((jit_nuint)align) - 1);
-	if(current == next || (next - current) >= (jit_nuint)diff)
-	{
-		return;
-	}
-
-	/* Detect overflow of the free memory region */
-	if(next > ((jit_nuint)(posn->limit)))
-	{
-		posn->ptr = posn->limit;
-		return;
-	}
-
-#ifndef jit_should_pad
-	/* Fill from "current" to "next" with nop bytes */
-	while(current < next)
-	{
-		*((posn->ptr)++) = (unsigned char)nop;
-		++current;
-	}
-#else
-	/* Use CPU-specific padding, because it may be more efficient */
-	_jit_pad_buffer((unsigned char *)current, (int)(next - current));
-#endif
-}
-
 jit_function_t
 _jit_cache_get_method(jit_cache_t cache, void *pc)
 {
@@ -740,20 +709,6 @@ returns one of three result codes:
 	JIT_CACHE_TOO_BIG  The cache does not have any space left
 	                   for allocation.  In this case a restart
 			   won't help.
-
-To write code to the method, use the following:
-
-	jit_cache_byte(&posn, value);
-	jit_cache_word16(&posn, value);
-	jit_cache_word32(&posn, value);
-	jit_cache_native(&posn, value);
-	jit_cache_word64(&posn, value);
-
-These macros write the value to cache and then update the current
-position.  If the macros detect the end of the avaialable space,
-they will flag overflow, but otherwise do nothing (overflow is
-flagged when posn->ptr == posn->limit).  The current position
-in the method can be obtained using "jit_cache_get_posn".
 
 Some CPU optimization guides recommend that labels should be aligned.
 This can be achieved using _jit_cache_align.

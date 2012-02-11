@@ -1,3 +1,16 @@
+2012-02-11  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_end_method): add
+	result argument that indicates if the code genration will need
+	to be restarted.
+	* jit/jit-cache.h, jit/jit-cache.c (jit_cache_mark_full): remove
+	macro and replace it with direct jit_cache_posn access where
+	appropriate.
+	* jit/jit-cache.h, jit/jit-cache.c (jit_cache_get_posn): likewise.
+	* jit/jit-cache.h, jit/jit-rules-interp.c (jit_cache_native): move
+	macro to where it only used.
+	* jit/jit-cache.h, jit/jit-cache.c: remove other unused stuff.
+
 2012-01-21  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules.h (struct jit_gencode): add offset_encoder field

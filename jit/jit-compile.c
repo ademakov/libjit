@@ -158,8 +158,7 @@ jit_optimize(jit_function_t func)
 void
 mark_offset(jit_gencode_t gen, jit_function_t func, unsigned long offset)
 {
-	unsigned char *ptr = jit_cache_get_posn(&gen->posn);
-	unsigned long native_offset = ptr - func->start;
+	unsigned long native_offset = gen->posn.ptr - func->start;
 	if(!_jit_varint_encode_uint(&gen->offset_encoder, (jit_uint) offset))
 	{
 		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
@@ -452,6 +451,54 @@ cache_alloc(_jit_compile_t *state)
 	state->cache_started = 1;
 }
 
+#if NOT_USED
+/*
+ * Align the method code on a particular boundary if the
+ * difference between the current position and the aligned
+ * boundary is less than "diff".  The "nop" value is used
+ * to pad unused bytes.
+ */
+static void
+cache_align(jit_cache_posn *posn, int align, int diff, int nop)
+{
+	jit_nuint current;
+	jit_nuint next;
+
+	/* Determine the location of the next alignment boundary */
+	if(align <= 1)
+	{
+		align = 1;
+	}
+	current = (jit_nuint)(posn->ptr);
+	next = (current + ((jit_nuint)align) - 1) &
+		   ~(((jit_nuint)align) - 1);
+	if(current == next || (next - current) >= (jit_nuint)diff)
+	{
+		return;
+	}
+
+	/* Detect overflow of the free memory region */
+	if(next > ((jit_nuint)(posn->limit)))
+	{
+		posn->ptr = posn->limit;
+		return;
+	}
+
+#ifndef jit_should_pad
+	/* Fill from "current" to "next" with nop bytes */
+	while(current < next)
+	{
+		*((posn->ptr)++) = (unsigned char)nop;
+		++current;
+	}
+#else
+	/* Use CPU-specific padding, because it may be more efficient */
+	_jit_pad_buffer((unsigned char *)current, (int)(next - current));
+#endif
+}
+#endif
+
+
 /*
  * End function output to the cache.
  */
@@ -465,7 +512,7 @@ cache_flush(_jit_compile_t *state)
 		state->cache_started = 0;
 
 		/* End the function's output process */
-		result = _jit_cache_end_method(&state->gen.posn);
+		result = _jit_cache_end_method(&state->gen.posn, JIT_CACHE_OK);
 		if(result != JIT_CACHE_OK)
 		{
 			if(result == JIT_CACHE_RESTART)
@@ -508,13 +555,8 @@ cache_abort(_jit_compile_t *state)
 	{
 		state->cache_started = 0;
 
-		/* Make sure that the _jit_cache_end_method() call below will
-		   release the currently held cache space rather than make it
-		   allocated permanently */
-		jit_cache_mark_full(&state->gen.posn);
-
-		/* Actually release the cache space */
-		_jit_cache_end_method(&state->gen.posn);
+		/* Release the cache space */
+		_jit_cache_end_method(&state->gen.posn, JIT_CACHE_RESTART);
 
 		/* Free encoded bytecode offset data */
 		_jit_varint_free_data(_jit_varint_get_data(&state->gen.offset_encoder));
