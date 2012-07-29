@@ -644,7 +644,7 @@ jit_function_t jit_function_from_closure(jit_context_t context, void *closure)
 	{
 		return 0;
 	}
-	return _jit_cache_get_method(context->cache, closure);
+	return _jit_cache_get_function(context->cache, closure);
 }
 
 /*@
@@ -668,7 +668,7 @@ jit_function_t jit_function_from_pc
 	}
 
 	/* Get the function and the exception handler cookie */
-	func = _jit_cache_get_method(context->cache, pc);
+	func = _jit_cache_get_function(context->cache, pc);
 	if(!func)
 	{
 		return 0;
@@ -748,7 +748,7 @@ jit_function_t jit_function_from_vtable_pointer(jit_context_t context, void *vta
 	{
 		return 0;
 	}
-	return _jit_cache_get_method(context->cache, vtable_pointer);
+	return _jit_cache_get_function(context->cache, vtable_pointer);
 #endif
 }
 

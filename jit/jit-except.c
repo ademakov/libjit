@@ -400,7 +400,7 @@ jit_function_t jit_stack_trace_get_function
 		jit_cache_t cache = _jit_context_get_cache(context);
 		if(cache)
 		{
-			return _jit_cache_get_method(cache, trace->items[posn]);
+			return _jit_cache_get_function(cache, trace->items[posn]);
 		}
 	}
 	return 0;
@@ -441,7 +441,7 @@ unsigned int jit_stack_trace_get_offset
 		jit_cache_t cache = _jit_context_get_cache(context);
 		if(cache)
 		{
-			jit_function_t func = _jit_cache_get_method(cache, trace->items[posn]);
+			jit_function_t func = _jit_cache_get_function(cache, trace->items[posn]);
 			if (func)
 			{
 				return _jit_function_get_bytecode(func, trace->items[posn], 0);

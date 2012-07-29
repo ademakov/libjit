@@ -11,6 +11,8 @@
 	Store the cache position data in jit_gencode struct.
 	* jit/jit-rules.h, jit/jit-rules.c: (_jit_gen_check_space)
 	(_jit_gen_alloc): add.
+	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_get_function):
+	rename from _jit_cache_get_method. 
 
 2012-02-11  Aleksey Demakov  <ademakov@gmail.com>
 

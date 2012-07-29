@@ -681,7 +681,7 @@ _jit_cache_alloc_no_method(jit_cache_t cache, unsigned long size, unsigned long 
 }
 
 jit_function_t
-_jit_cache_get_method(jit_cache_t cache, void *pc)
+_jit_cache_get_function(jit_cache_t cache, void *pc)
 {
 	jit_cache_method_t node = cache->head.right;
 	while(node != &(cache->nil))

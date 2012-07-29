@@ -169,7 +169,7 @@ jit_unwind_get_function(jit_unwind_context_t *unwind)
 	{
 		jit_cache_t cache = _jit_context_get_cache(unwind->context);
 		void *pc = jit_unwind_get_pc(unwind);
-		unwind->cache = _jit_cache_get_method(cache, pc);
+		unwind->cache = _jit_cache_get_function(cache, pc);
 	}
 
 	return (jit_function_t) unwind->cache;

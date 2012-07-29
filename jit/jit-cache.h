@@ -106,7 +106,7 @@ void *_jit_cache_alloc_no_method
  * program counter.  Returns NULL if the PC is not associated
  * with a method within the cache.
  */
-jit_function_t _jit_cache_get_method(jit_cache_t cache, void *pc);
+jit_function_t _jit_cache_get_function(jit_cache_t cache, void *pc);
 
 
 #ifdef	__cplusplus
