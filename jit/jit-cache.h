@@ -28,20 +28,12 @@ extern	"C" {
 #endif
 
 /*
- * Opaque method cache type.
+ * Result values for "_jit_cache_start_function" and "_jit_cache_end_function".
  */
-typedef struct jit_cache *jit_cache_t;
-
-/*
- * Writing position within a cache.
- */
-typedef struct
-{
-	jit_cache_t    cache;			/* Cache this position is attached to */
-	unsigned char  *ptr;			/* Current code pointer */
-	unsigned char  *limit;			/* Limit of the current page */
-
-} jit_cache_posn;
+#define	JIT_CACHE_OK		0	/* Function is OK */
+#define	JIT_CACHE_RESTART	1	/* Restart is required */
+#define	JIT_CACHE_TOO_BIG	2	/* Function is too big for the cache */
+#define JIT_CACHE_ERROR		3	/* Other error */
 
 /*
  * Create a method cache.  Returns NULL if out of memory.
@@ -62,54 +54,45 @@ jit_cache_t _jit_cache_create(long limit,
 void _jit_cache_destroy(jit_cache_t cache);
 
 /*
- * Determine if the cache is full.  The "posn" value should
- * be supplied while translating a method, or be NULL otherwise.
+ * Start output of a function.  The "restart_count" value should be
+ * equal to zero unless the method is being recompiled because it did
+ * not fit last time into the memory. In the later case the value
+ * should gradually increase until either the methods fits or the
+ * maximum restart_count value is exceeded.
  */
-int _jit_cache_is_full(jit_cache_t cache, jit_cache_posn *posn);
+int _jit_cache_start_function(jit_cache_t cache,
+			      jit_function_t func,
+			      int restart_count);
 
 /*
- * Determine if there is sufficient space in the code cache.
- * If not throws JIT_RESULT_CACHE_FULL exception.
+ * End output of a function.   Returns zero if a restart is needed.
  */
-void _jit_cache_check_space(jit_cache_posn *posn, int space);
+int _jit_cache_end_function(jit_cache_t cache, int result);
 
 /*
- * Return values for "_jit_cache_start_method" and "_jit_cache_end_method".
+ * Get the boundary between used and free code space.
  */
-#define	JIT_CACHE_OK		0		/* Function is OK */
-#define	JIT_CACHE_RESTART	1		/* Restart is required */
-#define	JIT_CACHE_TOO_BIG	2		/* Function is too big for the cache */
+void *_jit_cache_get_code_break(jit_cache_t cache);
 
 /*
- * Start output of a method, returning a cache position.
- * The "page_factor" value should be equal to zero unless
- * the method is being recompiled because it did not fit
- * into the current page. In the later case the value
- * should gradually increase until either the methods fits
- * or the maximum page factor value is exceeded.
- * The "align" value indicates the default alignment for
- * the start of the method.  The "cookie" value is a
- * cookie for referring to the method.  Returns the
- * method entry point, or NULL if the cache is full.
+ * Set the boundary between used and free code space.
  */
-int _jit_cache_start_method(jit_cache_t cache,
-			    jit_cache_posn *posn,
-			    int page_factor,
-			    int align,
-			    jit_function_t func);
+void _jit_cache_set_code_break(jit_cache_t cache, void *ptr);
 
 /*
- * End output of a method.  Returns zero if a restart.
+ * Get the end address of the free code space.
  */
-int _jit_cache_end_method(jit_cache_posn *posn, int result);
+void *_jit_cache_get_code_limit(jit_cache_t cache);
 
 /*
- * Allocate "size" bytes of storage in the method cache's
- * auxillary data area.  Returns NULL if insufficient space
+ * Allocate "size" bytes of storage in the function cache's
+ * auxiliary data area.  Returns NULL if insufficient space
  * to satisfy the request.  It may be possible to satisfy
  * the request after a restart.
  */
-void *_jit_cache_alloc(jit_cache_posn *posn, unsigned long size);
+void *_jit_cache_alloc_data(jit_cache_t cache,
+			    unsigned long size,
+			    unsigned long align);
 
 /*
  * Allocate "size" bytes of storage when we aren't currently

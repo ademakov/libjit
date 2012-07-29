@@ -1,3 +1,17 @@
+2012-07-29  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_start_function)
+	(_jit_cache_end_function, _jit_cache_get_code_break)
+	(_jit_cache_set_code_break, _jit_cache_get_code_limit)
+	(_jit_cache_alloc_data): new API for function allocation.
+	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_is_full)
+	(_jit_cache_start_method, _jit_cache_end_method)
+	(_jit_cache_alloc, _jit_cache_check_space): remove.
+	* jit/jit-cache.h, jit/jit-rules.h: remove jit_cache_posn struct.
+	Store the cache position data in jit_gencode struct.
+	* jit/jit-rules.h, jit/jit-rules.c: (_jit_gen_check_space)
+	(_jit_gen_alloc): add.
+
 2012-02-11  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_end_method): add
@@ -10,6 +24,18 @@
 	* jit/jit-cache.h, jit/jit-rules-interp.c (jit_cache_native): move
 	macro to where it only used.
 	* jit/jit-cache.h, jit/jit-cache.c: remove other unused stuff.
+
+2012-01-22  Klaus Treichel  <ktreichel@web.de>
+
+	* config/jit-opcodes.ops: Move declaration of obsolete opcodes to
+	the separate include file jit-opcode-compat.h and include this new
+	file instead.
+
+	* include/jit/jit-opcode-compat.h: add new include file for
+	obsolete opcodes.
+
+	* include/jit/Makefile.am: add jit-opcode-compat.h to the include
+	sources.
 
 2012-01-21  Aleksey Demakov  <ademakov@gmail.com>
 

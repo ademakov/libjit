@@ -109,6 +109,11 @@ _JIT_ALIGN_CHECK_TYPE(jit_nfloat, nfloat);
 #define	JIT_ALIGN_PTR			_JIT_ALIGN_FOR_TYPE(ptr)
 
 /*
+ * Opaque function cache type.
+ */
+typedef struct jit_cache *jit_cache_t;
+
+/*
  * Structure of a memory pool.
  */
 typedef struct jit_pool_block *jit_pool_block_t;
@@ -455,9 +460,9 @@ struct _jit_function
 	int volatile		is_compiled;
 
 	/* Start of the cache region */
-	unsigned char		*start;
+	unsigned char		*code_start;
 	/* End of the cache region */
-	unsigned char		*end;
+	unsigned char		*code_end;
 
 	/* The entry point for the function's compiled code */
 	void * volatile		entry_point;

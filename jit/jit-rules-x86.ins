@@ -1849,8 +1849,8 @@ JIT_OP_SETUP_FOR_SIBLING: branch
 		}
 		while(level > 0)
 		{
-			gen->posn.ptr = inst;
-			_jit_cache_check_space(&gen->posn, 16);
+			gen->ptr = inst;
+			_jit_gen_check_space(gen, 16);
 			x86_mov_reg_membase(inst, cpu_reg, cpu_reg, 0, sizeof(void *));
 			--level;
 		}
@@ -1868,8 +1868,8 @@ JIT_OP_IMPORT: manual
 		_jit_gen_fix_value(insn->value1);
 		reg = _jit_regs_load_value
 			(gen, func->builder->parent_frame, 1, 0);
-		inst = gen->posn.ptr;
-		_jit_cache_check_space(&gen->posn, 32 + level * 8);
+		inst = gen->ptr;
+		_jit_gen_check_space(gen, 32 + level * 8);
 		reg = _jit_reg_info[reg].cpu_reg;
 		while(level > 0)
 		{
@@ -1880,7 +1880,7 @@ JIT_OP_IMPORT: manual
 		{
 			x86_alu_reg_imm(inst, X86_ADD, reg, insn->value1->frame_offset);
 		}
-		gen->posn.ptr = inst;
+		gen->ptr = inst;
 	}
 
 /*
@@ -2385,13 +2385,13 @@ JIT_OP_STORE_RELATIVE_STRUCT: manual
 			 				 JIT_INSN_DEST_LIVE)));
 		_jit_regs_spill_all(gen);
 		_jit_gen_fix_value(insn->value1);
-		inst = gen->posn.ptr;
-		_jit_cache_check_space(&gen->posn, 128);
+		inst = gen->ptr;
+		_jit_gen_check_space(gen, 128);
 		reg = _jit_reg_info[reg].cpu_reg;
 		inst = memory_copy(gen, inst, reg, (int)(insn->value2->address),
 						   X86_EBP, insn->value1->frame_offset,
 						   jit_type_get_size(jit_value_get_type(insn->value1)));
-		gen->posn.ptr = inst;
+		gen->ptr = inst;
 	}
 
 JIT_OP_ADD_RELATIVE:

@@ -37,7 +37,6 @@ typedef struct
 {
 	jit_function_t		func;
 
-	jit_cache_t		cache;
 	int			cache_locked;
 	int 			cache_started;
 
@@ -158,7 +157,7 @@ jit_optimize(jit_function_t func)
 void
 mark_offset(jit_gencode_t gen, jit_function_t func, unsigned long offset)
 {
-	unsigned long native_offset = gen->posn.ptr - func->start;
+	unsigned long native_offset = gen->ptr - func->code_start;
 	if(!_jit_varint_encode_uint(&gen->offset_encoder, (jit_uint) offset))
 	{
 		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
@@ -188,7 +187,7 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 	{
 #ifdef _JIT_COMPILE_DEBUG
 		unsigned char *p1, *p2;
-		p1 = gen->posn.ptr;
+		p1 = gen->ptr;
 		printf("Insn #%d: ", func->builder->insn_count++);
 		jit_dump_insn(stdout, func, insn);
 		printf("\nStart of binary code: 0x%08x\n", p1);
@@ -296,7 +295,7 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 		}
 
 #ifdef _JIT_COMPILE_DEBUG
-		p2 = gen->posn.ptr;
+		p2 = gen->ptr;
 		printf("Length of binary code: %d\n\n", p2 - p1);
 		fflush(stdout);
 #endif
@@ -394,8 +393,8 @@ cache_acquire(_jit_compile_t *state)
 	state->cache_locked = 1;
 
 	/* Get the method cache */
-	state->cache = _jit_context_get_cache(state->func->context);
-	if(!state->cache)
+	state->gen.cache = _jit_context_get_cache(state->func->context);
+	if(!state->gen.cache)
 	{
 		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 	}
@@ -416,6 +415,46 @@ cache_release(_jit_compile_t *state)
 }
 
 /*
+ * Align the method code on a particular boundary if the
+ * difference between the current position and the aligned
+ * boundary is less than "diff".  The "nop" value is used
+ * to pad unused bytes.
+ */
+static void
+cache_align(_jit_compile_t *state, int align, int diff, int nop)
+{
+	jit_nuint p, n;
+
+	/* Adjust the required alignment */
+	if(align < 1)
+	{
+		align = 1;
+	}
+
+	/* Determine the location of the next alignment boundary */
+	p = (jit_nuint) state->gen.ptr;
+	n = (p + (jit_nuint) align - 1) & ~((jit_nuint) align - 1);
+	if(p == n || (p - n) >= (jit_nuint) diff)
+	{
+		return;
+	}
+
+	/* Determine the actual alignment */
+	align = (int) (n - p);
+
+	/* Detect overflow of the free memory region */
+	_jit_gen_check_space(&state->gen, align);
+
+#ifdef jit_should_pad
+	/* Use CPU-specific padding, because it may be more efficient */
+	_jit_pad_buffer(state->gen.ptr, align);
+#else
+	jit_memset(state->gen.ptr, nop, align);
+	state->gen.ptr += align;
+#endif
+}
+
+/*
  * Allocate some space in the code cache.
  */
 static void
@@ -424,25 +463,26 @@ cache_alloc(_jit_compile_t *state)
 	int result;
 
 	/* First try with the current cache page */
-	result = _jit_cache_start_method(state->cache,
-					 &state->gen.posn,
-					 state->page_factor++,
-					 JIT_FUNCTION_ALIGNMENT,
-					 state->func);
+	result = _jit_cache_start_function(state->gen.cache,
+					   state->func,
+					   state->page_factor++);
 	if(result == JIT_CACHE_RESTART)
 	{
 		/* No space left on the current cache page.  Allocate a new one. */
-		result = _jit_cache_start_method(state->cache,
-						 &state->gen.posn,
-						 state->page_factor++,
-						 JIT_FUNCTION_ALIGNMENT,
-						 state->func);
+		result = _jit_cache_start_function(state->gen.cache,
+						   state->func,
+						   state->page_factor++);
 	}
 	if(result != JIT_CACHE_OK)
 	{
 		/* Failed to allocate any cache space */
 		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 	}
+	state->gen.ptr = _jit_cache_get_code_break(state->gen.cache);
+	state->gen.limit = _jit_cache_get_code_limit(state->gen.cache); 
+
+	/* Align the function code. */
+	cache_align(state, JIT_FUNCTION_ALIGNMENT, JIT_FUNCTION_ALIGNMENT, 0);
 
 	/* Prepare the bytecode offset encoder */
 	_jit_varint_init_encoder(&state->gen.offset_encoder);
@@ -450,54 +490,6 @@ cache_alloc(_jit_compile_t *state)
 	/* On success remember the cache state */
 	state->cache_started = 1;
 }
-
-#if NOT_USED
-/*
- * Align the method code on a particular boundary if the
- * difference between the current position and the aligned
- * boundary is less than "diff".  The "nop" value is used
- * to pad unused bytes.
- */
-static void
-cache_align(jit_cache_posn *posn, int align, int diff, int nop)
-{
-	jit_nuint current;
-	jit_nuint next;
-
-	/* Determine the location of the next alignment boundary */
-	if(align <= 1)
-	{
-		align = 1;
-	}
-	current = (jit_nuint)(posn->ptr);
-	next = (current + ((jit_nuint)align) - 1) &
-		   ~(((jit_nuint)align) - 1);
-	if(current == next || (next - current) >= (jit_nuint)diff)
-	{
-		return;
-	}
-
-	/* Detect overflow of the free memory region */
-	if(next > ((jit_nuint)(posn->limit)))
-	{
-		posn->ptr = posn->limit;
-		return;
-	}
-
-#ifndef jit_should_pad
-	/* Fill from "current" to "next" with nop bytes */
-	while(current < next)
-	{
-		*((posn->ptr)++) = (unsigned char)nop;
-		++current;
-	}
-#else
-	/* Use CPU-specific padding, because it may be more efficient */
-	_jit_pad_buffer((unsigned char *)current, (int)(next - current));
-#endif
-}
-#endif
-
 
 /*
  * End function output to the cache.
@@ -511,8 +503,11 @@ cache_flush(_jit_compile_t *state)
 	{
 		state->cache_started = 0;
 
+		/* Let the cache know where we are */
+		_jit_cache_set_code_break(state->gen.cache, state->gen.ptr);
+
 		/* End the function's output process */
-		result = _jit_cache_end_method(&state->gen.posn, JIT_CACHE_OK);
+		result = _jit_cache_end_function(state->gen.cache, JIT_CACHE_OK);
 		if(result != JIT_CACHE_OK)
 		{
 			if(result == JIT_CACHE_RESTART)
@@ -556,7 +551,7 @@ cache_abort(_jit_compile_t *state)
 		state->cache_started = 0;
 
 		/* Release the cache space */
-		_jit_cache_end_method(&state->gen.posn, JIT_CACHE_RESTART);
+		_jit_cache_end_function(state->gen.cache, JIT_CACHE_RESTART);
 
 		/* Free encoded bytecode offset data */
 		_jit_varint_free_data(_jit_varint_get_data(&state->gen.offset_encoder));
@@ -576,18 +571,19 @@ cache_realloc(_jit_compile_t *state)
 
 	/* Allocate a new cache page with the size that grows
 	   by factor of 2 on each reallocation */
-	result = _jit_cache_start_method(state->cache,
-					 &state->gen.posn,
-					 state->page_factor,
-					 JIT_FUNCTION_ALIGNMENT,
-					 state->func);
+	result = _jit_cache_start_function(state->gen.cache,
+					   state->func,
+					   state->page_factor++);
 	if(result != JIT_CACHE_OK)
 	{
 		/* Failed to allocate enough cache space */
 		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 	}
+	state->gen.ptr = _jit_cache_get_code_break(state->gen.cache);
+	state->gen.limit = _jit_cache_get_code_limit(state->gen.cache);
 
-	state->page_factor *= 2;
+	/* Align the function code. */
+	cache_align(state, JIT_FUNCTION_ALIGNMENT, JIT_FUNCTION_ALIGNMENT, 0);
 
 	/* Prepare the bytecode offset encoder */
 	_jit_varint_init_encoder(&state->gen.offset_encoder);
@@ -631,12 +627,12 @@ codegen(_jit_compile_t *state)
 	struct jit_gencode *gen = &state->gen;
 	jit_block_t block;
 
-	state->code_start = gen->posn.ptr;
+	state->code_start = gen->ptr;
 
 #ifdef JIT_PROLOG_SIZE
 	/* Output space for the function prolog */
-	_jit_cache_check_space(&gen->posn, JIT_PROLOG_SIZE);
-	gen->posn.ptr += JIT_PROLOG_SIZE;
+	_jit_gen_check_space(gen, JIT_PROLOG_SIZE);
+	gen->ptr += JIT_PROLOG_SIZE;
 #endif
 
 	/* Generate code for the blocks in the function */
@@ -661,18 +657,11 @@ codegen(_jit_compile_t *state)
 
 		/* Notify the back end that the block is finished */
 		_jit_gen_end_block(gen, block);
-
-		/* Stop code generation if the cache page is full */
-		if(_jit_cache_is_full(state->cache, &gen->posn))
-		{
-			/* No space left on the current cache page.  Restart. */
-			jit_exception_builtin(JIT_RESULT_CACHE_FULL);
-		}
 	}
 
 	/* Output the function epilog.  All return paths will jump to here */
 	_jit_gen_epilog(gen, func);
-	state->code_end = gen->posn.ptr;
+	state->code_end = gen->ptr;
 
 #ifdef JIT_PROLOG_SIZE
 	/* Back-patch the function prolog and get the real entry point */
@@ -1040,7 +1029,7 @@ _jit_function_get_bytecode(jit_function_t func, void *pc, int exact)
 	cache = _jit_context_get_cache(func->context);
 
 #ifdef JIT_PROLOG_SIZE
-	start = func->start;
+	start = func->code_start;
 #else
 	start = func->entry_point;
 #endif

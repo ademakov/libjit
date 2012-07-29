@@ -187,29 +187,29 @@ generation is complete.
 /*
  * Output a native word to the current method.
  */
-#define jit_cache_native(posn,value)					\
+#define jit_cache_native(gen,value)					\
 	do {								\
-		_jit_cache_check_space((posn), sizeof(jit_nuint));	\
-		*((jit_nuint *)((posn)->ptr)) = (jit_nuint)(value); 	\
-		(posn)->ptr += sizeof(jit_nuint);			\
+		_jit_gen_check_space((gen), sizeof(jit_nuint));		\
+		*((jit_nuint *)((gen)->ptr)) = (jit_nuint)(value); 	\
+		(gen)->ptr += sizeof(jit_nuint);			\
 	} while (0)
 
 /*
  * Write an interpreter opcode to the cache.
  */
-#define	jit_cache_opcode(posn,opcode)	\
-			jit_cache_native((posn), (jit_nint)(opcode))
+#define	jit_cache_opcode(gen,opcode)	\
+			jit_cache_native((gen), (jit_nint)(opcode))
 
 /*
  * Write "n" bytes to the cache, rounded up to a multiple of "void *".
  */
-#define	jit_cache_add_n(posn,buf,size)					\
+#define	jit_cache_add_n(gen,buf,size)					\
 		do {							\
 			unsigned int __size = 				\
 				((size) + sizeof(void *) - 1) & ~(sizeof(void *) - 1); \
-			_jit_cache_check_space((posn), __size);		\
-			jit_memcpy((posn)->ptr, (buf), (size));		\
-			(posn)->ptr += __size;				\
+			_jit_gen_check_space((gen), __size);		\
+			jit_memcpy((gen)->ptr, (buf), (size));		\
+			(gen)->ptr += __size;				\
 		} while (0)
 
 /*
@@ -910,8 +910,8 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 		case JIT_TYPE_USHORT:
 		case JIT_TYPE_INT:
 		case JIT_TYPE_UINT:
-			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDC_0_INT + index);
-			jit_cache_native(&(gen->posn), (jit_nint)(value->address));
+			jit_cache_opcode(gen, JIT_INTERP_OP_LDC_0_INT + index);
+			jit_cache_native(gen, (jit_nint)(value->address));
 			break;
 
 		case JIT_TYPE_LONG:
@@ -919,11 +919,11 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			{
 				jit_long long_value;
 				long_value = jit_value_get_long_constant(value);
-				jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDC_0_LONG + index);
+				jit_cache_opcode(gen, JIT_INTERP_OP_LDC_0_LONG + index);
 #ifdef JIT_NATIVE_INT64
-				jit_cache_native(&(gen->posn), long_value);
+				jit_cache_native(gen, long_value);
 #else
-				jit_cache_add_n(&(gen->posn), &long_value, sizeof(long_value));
+				jit_cache_add_n(gen, &long_value, sizeof(long_value));
 #endif
 				break;
 			}
@@ -932,8 +932,8 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			{
 				jit_float32 float32_value;
 				float32_value = jit_value_get_float32_constant(value);
-				jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDC_0_FLOAT32 + index);
-				jit_cache_add_n(&(gen->posn), &float32_value, sizeof(float32_value));
+				jit_cache_opcode(gen, JIT_INTERP_OP_LDC_0_FLOAT32 + index);
+				jit_cache_add_n(gen, &float32_value, sizeof(float32_value));
 				break;
 			}
 
@@ -941,8 +941,8 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			{
 				jit_float64 float64_value;
 				float64_value = jit_value_get_float64_constant(value);
-				jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDC_0_FLOAT64 + index);
-				jit_cache_add_n	(&(gen->posn), &float64_value, sizeof(float64_value));
+				jit_cache_opcode(gen, JIT_INTERP_OP_LDC_0_FLOAT64 + index);
+				jit_cache_add_n	(gen, &float64_value, sizeof(float64_value));
 				break;
 			}
 
@@ -950,8 +950,8 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			{
 				jit_nfloat nfloat_value;
 				nfloat_value = jit_value_get_nfloat_constant(value);
-				jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDC_0_NFLOAT + index);
-				jit_cache_add_n	(&(gen->posn), &nfloat_value, sizeof(nfloat_value));
+				jit_cache_opcode(gen, JIT_INTERP_OP_LDC_0_NFLOAT + index);
+				jit_cache_add_n	(gen, &nfloat_value, sizeof(nfloat_value));
 				break;
 			}
 		}
@@ -1003,8 +1003,8 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			offset = -(value->frame_offset + 1);
 		}
 
-		jit_cache_opcode(&(gen->posn), opcode);
-		jit_cache_native(&(gen->posn), offset);
+		jit_cache_opcode(gen, opcode);
+		jit_cache_native(gen, offset);
 	}
 }
 
@@ -1028,8 +1028,8 @@ store_value(jit_gencode_t gen, jit_value_t value)
 		opcode = _jit_store_opcode(JIT_INTERP_OP_STA_0_BYTE, 0, value->type);
 		offset = -(offset + 1);
 	}
-	jit_cache_opcode(&(gen->posn), opcode);
-	jit_cache_native(&(gen->posn), offset);
+	jit_cache_opcode(gen, opcode);
+	jit_cache_native(gen, offset);
 }
 
 /*@
@@ -1117,8 +1117,8 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		/* Unconditional branch */
 	branch:
 		label = (jit_label_t)(insn->dest);
-		pc = (void **)(gen->posn.ptr);
-		jit_cache_opcode(&(gen->posn), insn->opcode);
+		pc = (void **)(gen->ptr);
+		jit_cache_opcode(gen, insn->opcode);
 		block = jit_block_from_label(func, label);
 		if(!block)
 		{
@@ -1127,12 +1127,12 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		if(block->address)
 		{
 			/* We already know the address of the block */
-			jit_cache_native(&(gen->posn), ((void **)(block->address)) - pc);
+			jit_cache_native(gen, ((void **)(block->address)) - pc);
 		}
 		else
 		{
 			/* Record this position on the block's fixup list */
-			jit_cache_native(&(gen->posn), block->fixup_list);
+			jit_cache_native(gen, block->fixup_list);
 			block->fixup_list = (void *)pc;
 		}
 		break;
@@ -1154,8 +1154,8 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		labels = (jit_label_t *) insn->value1->address;
 		num_labels = insn->value2->address;
 
-		jit_cache_opcode(&(gen->posn), insn->opcode);
-		jit_cache_native(&(gen->posn), num_labels);
+		jit_cache_opcode(gen, insn->opcode);
+		jit_cache_native(gen, num_labels);
 		for(index = 0; index < num_labels; index++)
 		{
 			block = jit_block_from_label(func, labels[index]);
@@ -1166,13 +1166,13 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 			if(block->address)
 			{
 				/* We already know the address of the block */
-				jit_cache_native(&(gen->posn), block->address);
+				jit_cache_native(gen, block->address);
 			}
 			else
 			{
 				/* Record this position on the block's fixup list */
-				pc = (void **)(gen->posn.ptr);
-				jit_cache_native(&(gen->posn), block->fixup_absolute_list);
+				pc = (void **)(gen->ptr);
+				jit_cache_native(gen, block->fixup_absolute_list);
 				block->fixup_absolute_list = pc;
 			}
 		}
@@ -1187,17 +1187,17 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		{
 			break;
 		}
-		pc = (void **)(gen->posn.ptr);
-		jit_cache_opcode(&(gen->posn), insn->opcode);
+		pc = (void **)(gen->ptr);
+		jit_cache_opcode(gen, insn->opcode);
 		if(block->address)
 		{
 			/* We already know the address of the block */
-			jit_cache_native(&(gen->posn), ((void **)(block->address)) - pc);
+			jit_cache_native(gen, ((void **)(block->address)) - pc);
 		}
 		else
 		{
 			/* Record this position on the block's fixup list */
-			jit_cache_native(&(gen->posn), block->fixup_list);
+			jit_cache_native(gen, block->fixup_list);
 			block->fixup_list = (void *)pc;
 		}
 		store_value(gen, insn->dest);
@@ -1206,17 +1206,17 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	case JIT_OP_CALL:
 	case JIT_OP_CALL_TAIL:
 		/* Call a function, whose pointer is supplied explicitly */
-		jit_cache_opcode(&(gen->posn), insn->opcode);
-		jit_cache_native(&(gen->posn), (jit_nint)(insn->dest));
+		jit_cache_opcode(gen, insn->opcode);
+		jit_cache_native(gen, (jit_nint)(insn->dest));
 		break;
 
 	case JIT_OP_CALL_INDIRECT:
 	case JIT_OP_CALL_INDIRECT_TAIL:
 		/* Call a function, whose pointer is supplied in the register */
 		load_value(gen, insn->value1, 1);
-		jit_cache_opcode(&(gen->posn), insn->opcode);
-		jit_cache_native(&(gen->posn), (jit_nint)(insn->value2));
-		jit_cache_native(&(gen->posn), (jit_nint)
+		jit_cache_opcode(gen, insn->opcode);
+		jit_cache_native(gen, (jit_nint)(insn->value2));
+		jit_cache_native(gen, (jit_nint)
 				 (jit_type_num_params((jit_type_t)(insn->value2))));
 		break;
 
@@ -1224,22 +1224,22 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	case JIT_OP_CALL_VTABLE_PTR_TAIL:
 		/* Call a function, whose vtable pointer is supplied in the register */
 		load_value(gen, insn->value1, 1);
-		jit_cache_opcode(&(gen->posn), insn->opcode);
+		jit_cache_opcode(gen, insn->opcode);
 		break;
 
 	case JIT_OP_CALL_EXTERNAL:
 	case JIT_OP_CALL_EXTERNAL_TAIL:
 		/* Call a native function, whose pointer is supplied explicitly */
-		jit_cache_opcode(&(gen->posn), insn->opcode);
-		jit_cache_native(&(gen->posn), (jit_nint)(insn->value2));
-		jit_cache_native(&(gen->posn), (jit_nint)(insn->dest));
-		jit_cache_native(&(gen->posn), (jit_nint)
+		jit_cache_opcode(gen, insn->opcode);
+		jit_cache_native(gen, (jit_nint)(insn->value2));
+		jit_cache_native(gen, (jit_nint)(insn->dest));
+		jit_cache_native(gen, (jit_nint)
 				 (jit_type_num_params((jit_type_t)(insn->value2))));
 		break;
 
 	case JIT_OP_RETURN:
 		/* Return from the current function with no result */
-		jit_cache_opcode(&(gen->posn), JIT_OP_RETURN);
+		jit_cache_opcode(gen, JIT_OP_RETURN);
 		break;
 
 	case JIT_OP_RETURN_INT:
@@ -1249,29 +1249,28 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	case JIT_OP_RETURN_NFLOAT:
 		/* Return from the current function with a specific result */
 		load_value(gen, insn->value1, 1);
-		jit_cache_opcode(&(gen->posn), insn->opcode);
+		jit_cache_opcode(gen, insn->opcode);
 		break;
 
 	case JIT_OP_RETURN_SMALL_STRUCT:
 		/* Return from current function with a small structure result */
 		load_value(gen, insn->value1, 1);
-		jit_cache_opcode(&(gen->posn), insn->opcode);
-		jit_cache_native(&(gen->posn), jit_value_get_nint_constant(insn->value2));
+		jit_cache_opcode(gen, insn->opcode);
+		jit_cache_native(gen, jit_value_get_nint_constant(insn->value2));
 		break;
 
 	case JIT_OP_SETUP_FOR_NESTED:
 		/* TODO!!! */
 		/* Set up to call a nested child */
-		jit_cache_opcode(&(gen->posn), insn->opcode);
+		jit_cache_opcode(gen, insn->opcode);
 		adjust_working(gen, 2);
 		break;
 
 	case JIT_OP_SETUP_FOR_SIBLING:
 		/* TODO!!! */
 		/* Set up to call a nested sibling */
-		jit_cache_opcode(&(gen->posn), insn->opcode);
-		jit_cache_native(&(gen->posn),
-				 jit_value_get_nint_constant(insn->value1));
+		jit_cache_opcode(gen, insn->opcode);
+		jit_cache_native(gen, jit_value_get_nint_constant(insn->value1));
 		adjust_working(gen, 2);
 		break;
 
@@ -1280,15 +1279,15 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		_jit_gen_fix_value(insn->value1);
 		if(insn->value1->frame_offset >= 0)
 		{
-			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_IMPORT_LOCAL);
-			jit_cache_native(&(gen->posn), insn->value1->frame_offset);
-			jit_cache_native(&(gen->posn), jit_value_get_nint_constant(insn->value2));
+			jit_cache_opcode(gen, JIT_INTERP_OP_IMPORT_LOCAL);
+			jit_cache_native(gen, insn->value1->frame_offset);
+			jit_cache_native(gen, jit_value_get_nint_constant(insn->value2));
 		}
 		else
 		{
-			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_IMPORT_ARG);
-			jit_cache_native(&(gen->posn), -(insn->value1->frame_offset + 1));
-			jit_cache_native(&(gen->posn), jit_value_get_nint_constant(insn->value2));
+			jit_cache_opcode(gen, JIT_INTERP_OP_IMPORT_ARG);
+			jit_cache_native(gen, -(insn->value1->frame_offset + 1));
+			jit_cache_native(gen, jit_value_get_nint_constant(insn->value2));
 		}
 		store_value(gen, insn->dest);
 		break;
@@ -1296,13 +1295,13 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	case JIT_OP_THROW:
 		/* Throw an exception */
 		load_value(gen, insn->value1, 1);
-		jit_cache_opcode(&(gen->posn), insn->opcode);
+		jit_cache_opcode(gen, insn->opcode);
 		break;
 
 	case JIT_OP_LOAD_PC:
 	case JIT_OP_LOAD_EXCEPTION_PC:
 		/* Load the current program counter onto the stack */
-		jit_cache_opcode(&(gen->posn), insn->opcode);
+		jit_cache_opcode(gen, insn->opcode);
 		store_value(gen, insn->dest);
 		break;
 
@@ -1318,7 +1317,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 
 	case JIT_OP_LEAVE_FINALLY:
 		/* Leave a finally clause */
-		jit_cache_opcode(&(gen->posn), insn->opcode);
+		jit_cache_opcode(gen, insn->opcode);
 		break;
 
 	case JIT_OP_ENTER_FILTER:
@@ -1331,7 +1330,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	case JIT_OP_LEAVE_FILTER:
 		/* Leave a filter clause, returning a particular value */
 		load_value(gen, insn->value1, 0);
-		jit_cache_opcode(&(gen->posn), insn->opcode);
+		jit_cache_opcode(gen, insn->opcode);
 		break;
 
 	case JIT_OP_INCOMING_REG:
@@ -1350,28 +1349,28 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		case JIT_TYPE_USHORT:
 		case JIT_TYPE_INT:
 		case JIT_TYPE_UINT:
-			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDR_0_INT);
+			jit_cache_opcode(gen, JIT_INTERP_OP_LDR_0_INT);
 			store_value(gen, insn->value1);
 			break;
 
 		case JIT_TYPE_LONG:
 		case JIT_TYPE_ULONG:
-			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDR_0_LONG);
+			jit_cache_opcode(gen, JIT_INTERP_OP_LDR_0_LONG);
 			store_value(gen, insn->value1);
 			break;
 
 		case JIT_TYPE_FLOAT32:
-			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDR_0_FLOAT32);
+			jit_cache_opcode(gen, JIT_INTERP_OP_LDR_0_FLOAT32);
 			store_value(gen, insn->value1);
 			break;
 
 		case JIT_TYPE_FLOAT64:
-			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDR_0_FLOAT64);
+			jit_cache_opcode(gen, JIT_INTERP_OP_LDR_0_FLOAT64);
 			store_value(gen, insn->value1);
 			break;
 
 		case JIT_TYPE_NFLOAT:
-			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDR_0_NFLOAT);
+			jit_cache_opcode(gen, JIT_INTERP_OP_LDR_0_NFLOAT);
 			store_value(gen, insn->value1);
 			break;
 		}
@@ -1398,8 +1397,8 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		load_value(gen, insn->dest, 0);
 		load_value(gen, insn->value1, 1);
 		size = (jit_nint)jit_type_get_size(jit_value_get_type(insn->dest));
-		jit_cache_opcode(&(gen->posn), insn->opcode);
-		jit_cache_native(&(gen->posn), size);
+		jit_cache_opcode(gen, insn->opcode);
+		jit_cache_native(gen, size);
 		break;
 
 	case JIT_OP_ADDRESS_OF:
@@ -1407,13 +1406,13 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		_jit_gen_fix_value(insn->value1);
 		if(insn->value1->frame_offset >= 0)
 		{
-			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDLA_0);
-			jit_cache_native(&(gen->posn), insn->value1->frame_offset);
+			jit_cache_opcode(gen, JIT_INTERP_OP_LDLA_0);
+			jit_cache_native(gen, insn->value1->frame_offset);
 		}
 		else
 		{
-			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_LDAA_0);
-			jit_cache_native(&(gen->posn), -(insn->value1->frame_offset + 1));
+			jit_cache_opcode(gen, JIT_INTERP_OP_LDAA_0);
+			jit_cache_native(gen, -(insn->value1->frame_offset + 1));
 		}
 		store_value(gen, insn->dest);
 		break;
@@ -1425,7 +1424,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 	case JIT_OP_PUSH_NFLOAT:
 		/* Push an item onto the stack, ready for a function call */
 		load_value(gen, insn->value1, 1);
-		jit_cache_opcode(&(gen->posn), insn->opcode);
+		jit_cache_opcode(gen, insn->opcode);
 		adjust_working(gen, 1);
 		break;
 
@@ -1434,14 +1433,14 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		load_value(gen, insn->value1, 1);
 		/* Push the structure at the designated pointer */
 		size = jit_value_get_nint_constant(insn->value2);
-		jit_cache_opcode(&(gen->posn), insn->opcode);
-		jit_cache_native(&(gen->posn), size);
+		jit_cache_opcode(gen, insn->opcode);
+		jit_cache_native(gen, size);
 		adjust_working(gen, JIT_NUM_ITEMS_IN_STRUCT(size));
 		break;
 
 	case JIT_OP_PUSH_RETURN_AREA_PTR:
 		/* Push the address of the interpreter's return area */
-		jit_cache_opcode(&(gen->posn), insn->opcode);
+		jit_cache_opcode(gen, insn->opcode);
 		adjust_working(gen, 1);
 		break;
 
@@ -1450,20 +1449,20 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		size = jit_value_get_nint_constant(insn->value1);
 		if(size == 1)
 		{
-			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_POP);
+			jit_cache_opcode(gen, JIT_INTERP_OP_POP);
 		}
 		else if(size == 2)
 		{
-			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_POP_2);
+			jit_cache_opcode(gen, JIT_INTERP_OP_POP_2);
 		}
 		else if(size == 3)
 		{
-			jit_cache_opcode(&(gen->posn), JIT_INTERP_OP_POP_3);
+			jit_cache_opcode(gen, JIT_INTERP_OP_POP_3);
 		}
 		else if(size != 0)
 		{
-			jit_cache_opcode(&(gen->posn), JIT_OP_POP_STACK);
-			jit_cache_native(&(gen->posn), size);
+			jit_cache_opcode(gen, JIT_OP_POP_STACK);
+			jit_cache_native(gen, size);
 		}
 		break;
 
@@ -1471,8 +1470,8 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		/* Flush a small structure return value back into the frame */
 		load_value(gen, insn->value1, 0);
 		size = (jit_nint)jit_type_get_size(jit_value_get_type(insn->value1));
-		jit_cache_opcode(&(gen->posn), insn->opcode);
-		jit_cache_native(&(gen->posn), size);
+		jit_cache_opcode(gen, insn->opcode);
+		jit_cache_native(gen, size);
 		break;
 
 	case JIT_OP_LOAD_RELATIVE_SBYTE:
@@ -1487,8 +1486,8 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		/* Load a value from a relative pointer */
 		load_value(gen, insn->value1, 1);
 		offset = jit_value_get_nint_constant(insn->value2);
-		jit_cache_opcode(&(gen->posn), insn->opcode);
-		jit_cache_native(&(gen->posn), offset);
+		jit_cache_opcode(gen, insn->opcode);
+		jit_cache_native(gen, offset);
 		store_value(gen, insn->dest);
 		break;
 
@@ -1498,9 +1497,9 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		load_value(gen, insn->value1, 1);
 		offset = jit_value_get_nint_constant(insn->value2);
 		size = (jit_nint)jit_type_get_size(jit_value_get_type(insn->dest));
-		jit_cache_opcode(&(gen->posn), insn->opcode);
-		jit_cache_native(&(gen->posn), offset);
-		jit_cache_native(&(gen->posn), size);
+		jit_cache_opcode(gen, insn->opcode);
+		jit_cache_native(gen, offset);
+		jit_cache_native(gen, size);
 		break;
 
 	case JIT_OP_STORE_RELATIVE_BYTE:
@@ -1514,8 +1513,8 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		load_value(gen, insn->dest, 0);
 		load_value(gen, insn->value1, 1);
 		offset = jit_value_get_nint_constant(insn->value2);
-		jit_cache_opcode(&(gen->posn), insn->opcode);
-		jit_cache_native(&(gen->posn), offset);
+		jit_cache_opcode(gen, insn->opcode);
+		jit_cache_native(gen, offset);
 		break;
 
 	case JIT_OP_STORE_RELATIVE_STRUCT:
@@ -1524,9 +1523,9 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		load_value(gen, insn->value1, 1);
 		offset = jit_value_get_nint_constant(insn->value2);
 		size = (jit_nint)jit_type_get_size(jit_value_get_type(insn->value1));
-		jit_cache_opcode(&(gen->posn), insn->opcode);
-		jit_cache_native(&(gen->posn), offset);
-		jit_cache_native(&(gen->posn), size);
+		jit_cache_opcode(gen, insn->opcode);
+		jit_cache_native(gen, offset);
+		jit_cache_native(gen, size);
 		break;
 
 	case JIT_OP_ADD_RELATIVE:
@@ -1535,8 +1534,8 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		if(offset != 0)
 		{
 			load_value(gen, insn->value1, 1);
-			jit_cache_opcode(&(gen->posn), insn->opcode);
-			jit_cache_native(&(gen->posn), offset);
+			jit_cache_opcode(gen, insn->opcode);
+			jit_cache_native(gen, offset);
 			store_value(gen, insn->dest);
 		}
 		else
@@ -1548,9 +1547,9 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 
 	case JIT_OP_MARK_BREAKPOINT:
 		/* Mark the current location as a potential breakpoint */
-		jit_cache_opcode(&(gen->posn), insn->opcode);
-		jit_cache_native(&(gen->posn), insn->value1->address);
-		jit_cache_native(&(gen->posn), insn->value2->address);
+		jit_cache_opcode(gen, insn->opcode);
+		jit_cache_native(gen, insn->value1->address);
+		jit_cache_native(gen, insn->value2->address);
 		break;
 
 	default:
@@ -1566,7 +1565,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		{
 			load_value(gen, insn->value2, 2);
 		}
-		jit_cache_opcode(&(gen->posn), insn->opcode);
+		jit_cache_opcode(gen, insn->opcode);
 		if(insn->dest && (insn->flags & JIT_INSN_DEST_IS_VALUE) == 0)
 		{
 			store_value(gen, insn->dest);
@@ -1587,7 +1586,7 @@ void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block)
 	void **next;
 
 	/* Set the address of this block */
-	block->address = (void *)(gen->posn.ptr);
+	block->address = (void *)(gen->ptr);
 
 	/* If this block has pending fixups, then apply them now */
 	fixup = (void **)(block->fixup_list);

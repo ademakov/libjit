@@ -1445,7 +1445,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			}
 			else
 			{
-				printf("\t\t_jit_cache_check_space(&gen->posn, ");
+				printf("\t\t_jit_gen_check_space(gen, ");
 			}
 			if(space && space->values && space->values->value)
 			{
@@ -1468,7 +1468,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 			printf(");\n");
 		}
 
-		printf("\t\tinst = (%s)(gen->posn.ptr);\n", gensel_inst_type);
+		printf("\t\tinst = (%s)(gen->ptr);\n", gensel_inst_type);
 
 		regs = 0;
 		imms = 0;
@@ -1547,7 +1547,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 		}
 		else
 		{
-			printf("\t\tgen->posn.ptr = (unsigned char *)inst;\n");
+			printf("\t\tgen->ptr = (unsigned char *)inst;\n");
 		}
 		if(contains_registers)
 		{

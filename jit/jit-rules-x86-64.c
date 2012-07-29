@@ -122,12 +122,12 @@ do { \
 /*
  * Setup or teardown the x86 code output process.
  */
-#define	jit_cache_setup_output(needed)			\
-	unsigned char *inst = gen->posn.ptr;		\
-	_jit_cache_check_space(&gen->posn, (needed))
+#define	jit_cache_setup_output(needed)		\
+	unsigned char *inst = gen->ptr;		\
+	_jit_gen_check_space(gen, (needed))
 
 #define	jit_cache_end_output()	\
-	gen->posn.ptr = inst
+	gen->ptr = inst
 
 /*
  * Set this to 1 for debugging fixups
@@ -293,7 +293,7 @@ _jit_xmm1_reg_imm_size_float32(jit_gencode_t gen, unsigned char **inst_ptr,
 	unsigned char *inst;
 
 	inst = *inst_ptr;
-	ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float32));
+	ptr = _jit_gen_alloc(gen, sizeof(jit_float32));
 	if(!ptr)
 	{
 		return 0;
@@ -336,7 +336,7 @@ _jit_xmm1_reg_imm_size_float64(jit_gencode_t gen, unsigned char **inst_ptr,
 	unsigned char *inst;
 
 	inst = *inst_ptr;
-	ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float64));
+	ptr = _jit_gen_alloc(gen, sizeof(jit_float64));
 	if(!ptr)
 	{
 		return 0;
@@ -378,7 +378,7 @@ _jit_plops_reg_imm(jit_gencode_t gen, unsigned char **inst_ptr,
 	unsigned char *inst;
 
 	inst = *inst_ptr;
-	ptr = _jit_cache_alloc(&(gen->posn), 16);
+	ptr = _jit_gen_alloc(gen, 16);
 	if(!ptr)
 	{
 		return 0;
@@ -420,7 +420,7 @@ _jit_plopd_reg_imm(jit_gencode_t gen, unsigned char **inst_ptr,
 	unsigned char *inst;
 
 	inst = *inst_ptr;
-	ptr = _jit_cache_alloc(&(gen->posn), 16);
+	ptr = _jit_gen_alloc(gen, 16);
 	if(!ptr)
 	{
 		return 0;
@@ -1152,8 +1152,8 @@ _jit_gen_free_reg(jit_gencode_t gen, int reg,
 	   floating-point register whose value hasn't been used yet */
 	if(!value_used && IS_FPU_REG(reg))
 	{
-		_jit_cache_check_space(&gen->posn, 2);
-		x86_fstp(gen->posn.ptr, reg - X86_64_REG_ST0);
+		_jit_gen_check_space(gen, 2);
+		x86_fstp(gen->ptr, reg - X86_64_REG_ST0);
 	}
 }
 
@@ -1381,7 +1381,7 @@ xmm_cmp_reg_imm(jit_gencode_t gen, unsigned char *inst, int xreg, void *imm,
 
 	if(is_double)
 	{
-		ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float64));
+		ptr = _jit_gen_alloc(gen, sizeof(jit_float64));
 		if(!ptr)
 		{
 			return 0;
@@ -1390,7 +1390,7 @@ xmm_cmp_reg_imm(jit_gencode_t gen, unsigned char *inst, int xreg, void *imm,
 	}
 	else
 	{
-		ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float32));
+		ptr = _jit_gen_alloc(gen, sizeof(jit_float32));
 		if(!ptr)
 		{
 			return 0;
@@ -1803,7 +1803,7 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 					{
 						jit_nint offset;
 
-						ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float32));
+						ptr = _jit_gen_alloc(gen, sizeof(jit_float32));
 						jit_memcpy(ptr, &float32_value, sizeof(float32_value));
 
 						offset = (jit_nint)ptr - ((jit_nint)inst + 6);
@@ -1872,7 +1872,7 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 					{
 						jit_nint offset;
 
-						ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_float64));
+						ptr = _jit_gen_alloc(gen, sizeof(jit_float64));
 						jit_memcpy(ptr, &float64_value, sizeof(float64_value));
 
 						offset = (jit_nint)ptr - ((jit_nint)inst + 6);
@@ -1918,7 +1918,7 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 					jit_nint offset;
 					int xmm_reg = _jit_reg_info[reg].cpu_reg;
 
-					ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_nfloat));
+					ptr = _jit_gen_alloc(gen, sizeof(jit_nfloat));
 					jit_memcpy(ptr, &nfloat_value, sizeof(nfloat_value));
 					offset = (jit_nint)ptr - 
 								((jit_nint)inst + (xmm_reg > 7 ? 9 : 8));
@@ -1953,7 +1953,7 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 					{
 						jit_nint offset;
 
-						ptr = _jit_cache_alloc(&(gen->posn), sizeof(jit_nfloat));
+						ptr = _jit_gen_alloc(gen, sizeof(jit_nfloat));
 						jit_memcpy(ptr, &nfloat_value, sizeof(nfloat_value));
 
 						offset = (jit_nint)ptr - ((jit_nint)inst + 6);
@@ -2491,9 +2491,9 @@ _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	jit_int *next;
 
 	/* Bail out if there is insufficient space for the epilog */
-	_jit_cache_check_space(&gen->posn, 48);
+	_jit_gen_check_space(gen, 48);
 
-	inst = gen->posn.ptr;
+	inst = gen->ptr;
 
 	/* Perform fixups on any blocks that jump to the epilog */
 	fixup = (jit_int *)(gen->epilog_fixup);
@@ -2594,7 +2594,7 @@ _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	/* and return */
 	x86_64_ret(inst);
 
-	gen->posn.ptr = inst;
+	gen->ptr = inst;
 }
 
 /*
@@ -2758,7 +2758,7 @@ _jit_gen_start_block(jit_gencode_t gen, jit_block_t block)
 	void **absolute_next;
 
 	/* Set the address of this block */
-	block->address = (void *)(gen->posn.ptr);
+	block->address = (void *)(gen->ptr);
 
 	/* If this block has pending fixups, then apply them now */
 	fixup = (jit_int *)(block->fixup_list);

@@ -1758,7 +1758,7 @@ JIT_OP_STORE_RELATIVE_STRUCT: manual
 	_jit_regs_spill_all(gen);
 	_jit_gen_fix_value(insn->value1);
 	jit_gen_load_inst_ptr(gen, inst);
-	_jit_cache_check_space(&gen->posn, 128);
+	_jit_gen_check_space(gen, 128);
 	reg = _jit_reg_info[reg].cpu_reg;
 	inst = memory_copy(gen, inst, reg, (int)(insn->value2->address),
 			ARM_FP, insn->value1->frame_offset,

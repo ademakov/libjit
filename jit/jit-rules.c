@@ -737,6 +737,31 @@ int _jit_create_call_setup_insns
 
 #endif /* JIT_CDECL_WORD_REG_PARAMS */
 
+void
+_jit_gen_check_space(jit_gencode_t gen, int space)
+{
+	if((gen->ptr + space) >= gen->limit)
+	{
+		/* No space left on the current cache page. */
+		gen->ptr = gen->limit;
+		jit_exception_builtin(JIT_RESULT_CACHE_FULL);
+	}
+}
+
+void *
+_jit_gen_alloc(jit_gencode_t gen, unsigned long size)
+{
+	void *ptr;
+	_jit_cache_set_code_break(gen->cache, gen->ptr);
+	ptr = _jit_cache_alloc_data(gen->cache, size, JIT_BEST_ALIGNMENT);
+	if(!ptr)
+	{
+		jit_exception_builtin(JIT_RESULT_CACHE_FULL);
+	}
+	gen->limit = _jit_cache_get_code_limit(gen->cache);
+	return ptr;
+}
+
 int _jit_int_lowest_byte(void)
 {
 	union

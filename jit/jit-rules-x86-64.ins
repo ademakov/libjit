@@ -3297,8 +3297,7 @@ JIT_OP_JUMP_TABLE: ternary, branch
 		labels = (jit_label_t *) $2;
 		num_labels = $3;
 
-		patch_jump_table = (unsigned char *)_jit_cache_alloc(&(gen->posn),
-														 sizeof(void *) * $3);
+		patch_jump_table = (unsigned char *)_jit_gen_alloc(gen, sizeof(void *) * $3);
 		if(!patch_jump_table)
 		{
 			/* The cache is full */

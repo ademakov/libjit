@@ -82,14 +82,38 @@ struct jit_cache
 	unsigned long		maxNumPages;	/* Maximum number of pages that could be in the list */
 	unsigned long		pageSize;	/* Default size of a page for allocation */
 	unsigned int		maxPageFactor;	/* Maximum page size factor */
-	unsigned char		*freeStart;	/* Start of the current free region */
-	unsigned char		*freeEnd;	/* End of the current free region */
 	long			pagesLeft;	/* Number of pages left to allocate */
+	unsigned char		*free_start;	/* Current start of the free region */
+	unsigned char		*free_end;	/* Current end of the free region */
+	unsigned char		*prev_start;	/* Previous start of the free region */
+	unsigned char		*prev_end;	/* Previous end of the free region */
 	jit_cache_method_t	method;		/* Information for the current method */
 	struct jit_cache_method	head;		/* Head of the lookup tree */
 	struct jit_cache_method	nil;		/* Nil pointer for the lookup tree */
-	unsigned char		*start;		/* Start of the current method */
 };
+
+/*
+ * Get or set the sub-trees of a node.
+ */
+#define	GetLeft(node)	\
+	((jit_cache_method_t)(((jit_nuint)(node)->left) & ~((jit_nuint)1)))
+#define	GetRight(node)	\
+	((node)->right)
+#define	SetLeft(node,value)	\
+	((node)->left = (jit_cache_method_t)(((jit_nuint)value) | \
+						(((jit_nuint)(node)->left) & ((jit_nuint)1))))
+#define	SetRight(node,value)	\
+	((node)->right = (value))
+
+/*
+ * Get or set the red/black state of a node.
+ */
+#define	GetRed(node)	\
+	((((jit_nuint)((node)->left)) & ((jit_nuint)1)) != 0)
+#define	SetRed(node)	\
+	((node)->left = (jit_cache_method_t)(((jit_nuint)(node)->left) | ((jit_nuint)1)))
+#define	SetBlack(node)	\
+	((node)->left = (jit_cache_method_t)(((jit_nuint)(node)->left) & ~((jit_nuint)1)))
 
 /*
  * Allocate a cache page and add it to the cache.
@@ -151,8 +175,8 @@ static void AllocCachePage(jit_cache_t cache, int factor)
 		{
 			jit_free_exec(ptr, cache->pageSize * factor);
 		failAlloc:
-			cache->freeStart = 0;
-			cache->freeEnd = 0;
+			cache->free_start = 0;
+			cache->free_end = 0;
 			return;
 		}
 
@@ -170,39 +194,15 @@ static void AllocCachePage(jit_cache_t cache, int factor)
 	}
 
 	/* Set up the working region within the new page */
-	cache->freeStart = ptr;
-	cache->freeEnd = ptr + (int) cache->pageSize * factor;
+	cache->free_start = ptr;
+	cache->free_end = ptr + (int) cache->pageSize * factor;
 }
-
-/*
- * Get or set the sub-trees of a node.
- */
-#define	GetLeft(node)	\
-	((jit_cache_method_t)(((jit_nuint)((node)->left)) & ~((jit_nuint)1)))
-#define	GetRight(node)	((node)->right)
-#define	SetLeft(node,value)	\
-	((node)->left = (jit_cache_method_t)(((jit_nuint)(value)) | \
-						(((jit_nuint)((node)->left)) & ((jit_nuint)1))))
-#define	SetRight(node,value)	\
-			((node)->right = (value))
-
-/*
- * Get or set the red/black state of a node.
- */
-#define	GetRed(node)	\
-	((((jit_nuint)((node)->left)) & ((jit_nuint)1)) != 0)
-#define	SetRed(node)	\
-	((node)->left = (jit_cache_method_t)(((jit_nuint)((node)->left)) | \
-									     ((jit_nuint)1)))
-#define	SetBlack(node)	\
-	((node)->left = (jit_cache_method_t)(((jit_nuint)((node)->left)) & \
-									    ~((jit_nuint)1)))
 
 /*
  * Compare a key against a node, being careful of sentinel nodes.
  */
-static int CacheCompare(jit_cache_t cache, unsigned char *key,
-						jit_cache_method_t node)
+static int
+CacheCompare(jit_cache_t cache, unsigned char *key, jit_cache_method_t node)
 {
 	if(node == &(cache->nil) || node == &(cache->head))
 	{
@@ -212,11 +212,11 @@ static int CacheCompare(jit_cache_t cache, unsigned char *key,
 	else
 	{
 		/* Compare a regular node */
-		if(key < node->func->start)
+		if(key < node->func->code_start)
 		{
 			return -1;
 		}
-		else if(key > node->func->start)
+		else if(key > node->func->code_start)
 		{
 			return 1;
 		}
@@ -295,7 +295,7 @@ static jit_cache_method_t CacheRotate(jit_cache_t cache, unsigned char *key,
  */
 static void AddToLookupTree(jit_cache_t cache, jit_cache_method_t method)
 {
-	unsigned char *key = method->func->start;
+	unsigned char *key = method->func->code_start;
 	jit_cache_method_t temp;
 	jit_cache_method_t greatGrandParent;
 	jit_cache_method_t grandParent;
@@ -354,7 +354,29 @@ static void AddToLookupTree(jit_cache_t cache, jit_cache_method_t method)
 	SetBlack(cache->head.right);
 }
 
-jit_cache_t _jit_cache_create(long limit, long cache_page_size, int max_page_factor)
+static unsigned char *
+cache_alloc_data(jit_cache_t cache, unsigned long size, unsigned long align)
+{
+	unsigned char *ptr;
+
+	/* Allocate memory from the top of the free region, so that it
+	   does not overlap with the method code being written at the
+	   bottom of the free region */
+	ptr = cache->free_end - size;
+	ptr = (unsigned char *) (((jit_nuint) ptr) & ~((jit_nuint) align - 1));
+	if(ptr < cache->free_start)
+	{
+		/* When we aligned the block, it caused an overflow */
+		return 0;
+	}
+	
+	/* Allocate the block and return it */
+	cache->free_end = ptr;
+	return ptr;
+}
+
+jit_cache_t
+_jit_cache_create(long limit, long cache_page_size, int max_page_factor)
 {
 	jit_cache_t cache;
 	unsigned long exec_page_size;
@@ -392,8 +414,8 @@ jit_cache_t _jit_cache_create(long limit, long cache_page_size, int max_page_fac
 	cache->maxNumPages = 0;
 	cache->pageSize = cache_page_size;
 	cache->maxPageFactor = max_page_factor;
-	cache->freeStart = 0;
-	cache->freeEnd = 0;
+	cache->free_start = 0;
+	cache->free_end = 0;
 	if(limit > 0)
 	{
 		cache->pagesLeft = limit / cache_page_size;
@@ -413,11 +435,10 @@ jit_cache_t _jit_cache_create(long limit, long cache_page_size, int max_page_fac
 	cache->head.func = 0;
 	cache->head.left = 0;
 	cache->head.right = &(cache->nil);
-	cache->start = 0;
 
 	/* Allocate the initial cache page */
 	AllocCachePage(cache, 0);
-	if(!cache->freeStart)
+	if(!cache->free_start)
 	{
 		_jit_cache_destroy(cache);
 		return 0;
@@ -427,7 +448,8 @@ jit_cache_t _jit_cache_create(long limit, long cache_page_size, int max_page_fac
 	return cache;
 }
 
-void _jit_cache_destroy(jit_cache_t cache)
+void
+_jit_cache_destroy(jit_cache_t cache)
 {
 	unsigned long page;
 
@@ -446,201 +468,215 @@ void _jit_cache_destroy(jit_cache_t cache)
 	jit_free(cache);
 }
 
-int _jit_cache_is_full(jit_cache_t cache, jit_cache_posn *posn)
+int
+_jit_cache_start_function(jit_cache_t cache, jit_function_t func, int restart_count)
 {
-	return (!cache->freeStart || (posn && posn->ptr >= posn->limit));
-}
-
-void
-_jit_cache_check_space(jit_cache_posn *posn, int space)
-{
-	if((posn->ptr + space) >= posn->limit)
+	/* Bail out if there is a started function already */
+	if(cache->method)
 	{
-		/* No space left on the current cache page. */
-		posn->ptr = posn->limit;
-		jit_exception_builtin(JIT_RESULT_CACHE_FULL);
+		return JIT_CACHE_ERROR;
 	}
-}
-
-int _jit_cache_start_method(jit_cache_t cache,
-			    jit_cache_posn *posn,
-			    int page_factor,
-			    int align,
-			    jit_function_t func)
-{
-	unsigned char *ptr;
 
 	/* Do we need to allocate a new cache page? */
-	if(page_factor > 0)
+	if(restart_count > 0)
 	{
-		AllocCachePage(cache, page_factor);
+		/* Compute the page size factor */
+		int factor = 1 << (restart_count - 1);
+
+		/* If we had a newly allocated page then it has to be freed
+		   to let allocate another new page of appropriate size. */
+		struct jit_cache_page *p = &cache->pages[cache->numPages - 1];
+		if((cache->free_start == ((unsigned char *)p->page))
+		    && (cache->free_end == (cache->free_start + cache->pageSize * p->factor)))
+		{
+			jit_free_exec(p->page, cache->pageSize * p->factor);
+
+			--(cache->numPages);
+			if(cache->pagesLeft >= 0)
+			{
+				cache->pagesLeft += p->factor;
+			}
+			cache->free_start = 0;
+			cache->free_end = 0;
+
+			if(factor <= p->factor)
+			{
+				factor = p->factor << 1;
+			}
+		}
+
+		/* Allocate a new page now */
+		AllocCachePage(cache, factor);
 	}
 
 	/* Bail out if the cache is already full */
-	if(!cache->freeStart)
+	if(!cache->free_start)
 	{
 		return JIT_CACHE_TOO_BIG;
 	}
 
-	/* Set up the initial cache position */
-	posn->cache = cache;
-	posn->ptr = cache->freeStart;
-	posn->limit = cache->freeEnd;
-
-	/* Align the method start */
-	ptr = posn->ptr;
-	if(align > 1)
-	{
-		ptr = (unsigned char *)(((jit_nuint) (ptr + align - 1)) & ~((jit_nuint) (align - 1)));
-	}
-	if(ptr >= posn->limit)
-	{
-		/* There is insufficient space in this page */
-		posn->ptr = posn->limit;
-		return JIT_CACHE_RESTART;
-	}
-#ifdef jit_should_pad
-	if(ptr > posn->ptr)
-	{
-		_jit_pad_buffer(posn->ptr, ptr - posn->ptr);
-	}
-#endif
-	posn->ptr = ptr;
+	/* Save the cache position */
+	cache->prev_start = cache->free_start;
+	cache->prev_end = cache->free_end;
 
 	/* Allocate memory for the method information block */
-	cache->method = (jit_cache_method_t) _jit_cache_alloc(posn, sizeof(struct jit_cache_method));
+	cache->method = (jit_cache_method_t) cache_alloc_data(cache,
+							      sizeof(struct jit_cache_method),
+							      JIT_BEST_ALIGNMENT);
 	if(!cache->method)
 	{
 		/* There is insufficient space in this page */
 		return JIT_CACHE_RESTART;
 	}
 	cache->method->func = func;
-	cache->method->func->start = posn->ptr;
-	cache->method->func->end = posn->ptr;
+	cache->method->func->code_start = cache->free_start;
+	cache->method->func->code_end = cache->free_start;
 	cache->method->left = 0;
 	cache->method->right = 0;
-
-	/* Store the method start address */
-	cache->start = posn->ptr;
 
 	return JIT_CACHE_OK;
 }
 
 int
-_jit_cache_end_method(jit_cache_posn *posn, int result)
+_jit_cache_end_function(jit_cache_t cache, int result)
 {
-	jit_cache_t cache = posn->cache;
-	jit_cache_method_t method;
-	jit_cache_method_t next;
-
-	if (result != JIT_CACHE_OK)
+	/* Bail out if there is no started function */
+	if(!cache->method)
 	{
-		/* mark cache page full */
-		posn->ptr = posn->limit;
+		return JIT_CACHE_ERROR;
 	}
 
-	/* Determine if we ran out of space while writing the method */
-	if(posn->ptr >= posn->limit)
+	/* Determine if we ran out of space while writing the function */
+	if(result != JIT_CACHE_OK || cache->free_start >= cache->free_end)
 	{
-		/* If we had a newly allocated page then it has to be freed
-		   to let allocate another new page of appropriate size. */
-		if((cache->freeStart == ((unsigned char *)(cache->pages[cache->numPages - 1].page)))
-		    && (cache->freeEnd
-			== (cache->freeStart + (cache->pageSize * cache->pages[cache->numPages - 1].factor))))
-		{
-			--(cache->numPages);
-			jit_free_exec(cache->pages[cache->numPages].page,
-				      cache->pageSize * cache->pages[cache->numPages].factor);
-			if (cache->pagesLeft >= 0)
-			{
-				cache->pagesLeft += cache->pages[cache->numPages].factor;
-			}
-			cache->freeStart = 0;
-			cache->freeEnd = 0;
-		}
+		/* Restore the saved cache position */
+		cache->free_start = cache->prev_start;
+		cache->free_end = cache->prev_end;
+		cache->method = 0;
 		return JIT_CACHE_RESTART;
 	}
 
-	/* Flush the position information back to the cache */
-	cache->freeStart = posn->ptr;
-	cache->freeEnd = posn->limit;
-
-	/* Update the last method region block and then
-	   add all method regions to the lookup tree */
-	method = cache->method;
-	if(method)
-	{
-		method->func->end = posn->ptr;
-		do
-		{
-			next = method->right;
-			AddToLookupTree(cache, method);
-			method = next;
-		}
-		while(method != 0);
-		cache->method = 0;
-	}
+	/* Update the method region block and then add it to the lookup tree */
+	cache->method->func->code_end = cache->free_start;
+	AddToLookupTree(cache, cache->method);
+	cache->method = 0;
 
 	/* The method is ready to go */
 	return JIT_CACHE_OK;
 }
 
-void *_jit_cache_alloc(jit_cache_posn *posn, unsigned long size)
+void *
+_jit_cache_get_code_break(jit_cache_t cache)
 {
-	unsigned char *ptr;
-
-	/* Bail out if the request is too big to ever be satisfiable */
-	if(size > (unsigned long)(posn->limit - posn->ptr))
+	/* Bail out if there is no started function */
+	if(!cache->method)
 	{
-		posn->ptr = posn->limit;
 		return 0;
 	}
 
-	/* Allocate memory from the top of the free region, so that it
-	   does not overlap with the method code being written at the
-	   bottom of the free region */
-	ptr = (unsigned char *)(((jit_nuint)(posn->limit - size)) &
-		                    ~(((jit_nuint)JIT_BEST_ALIGNMENT) - 1));
-	if(ptr < posn->ptr)
+	/* Return the address of the available code area */
+	return cache->free_start;
+}
+
+void
+_jit_cache_set_code_break(jit_cache_t cache, void *ptr)
+{
+	/* Bail out if there is no started function */
+	if(!cache->method)
 	{
-		/* When we aligned the block, it caused an overflow */
-		posn->ptr = posn->limit;
+		return;
+	}
+	/* Sanity checks */
+	if ((unsigned char *) ptr < cache->free_start)
+	{
+		return;
+	}
+	if ((unsigned char *) ptr > cache->free_end) {
+		return;
+	}
+
+	/* Update the address of the available code area */
+	cache->free_start = ptr;
+}
+
+void *
+_jit_cache_get_code_limit(jit_cache_t cache)
+{
+	/* Bail out if there is no started function */
+	if(!cache->method)
+	{
+		return 0;
+	}
+
+	/* Return the end address of the available code area */
+	return cache->free_end;
+}
+
+void *
+_jit_cache_alloc_data(jit_cache_t cache, unsigned long size, unsigned long align)
+{
+	/* Bail out if there is no started function */
+	if(!cache->method)
+	{
 		return 0;
 	}
 
 	/* Allocate the block and return it */
-	posn->limit = ptr;
-	return (void *)ptr;
+	return cache_alloc_data(cache, size, align);
 }
 
-void *_jit_cache_alloc_no_method
-	(jit_cache_t cache, unsigned long size, unsigned long align)
+void *
+_jit_cache_alloc_no_method(jit_cache_t cache, unsigned long size, unsigned long align)
 {
 	unsigned char *ptr;
 
-	/* Bail out if the request is too big to ever be satisfiable */
-	if(size > (unsigned long)(cache->freeEnd - cache->freeStart))
+	/* Bail out if there is a started function */
+	if(cache->method)
 	{
-		AllocCachePage(cache, 0);
-		if(size > (unsigned long)(cache->freeEnd - cache->freeStart))
+		return 0;
+	}
+	/* Bail out if there is no cache available */
+	if(!cache->free_start)
+	{
+		return 0;
+	}
+	/* Bail out if the request is too big to ever be satisfiable */
+	if ((size + align - 1) > (cache->pageSize * cache->maxPageFactor))
+	{
+		return 0;
+	}
+
+	/* Allocate memory from the top of the current free region, so
+	 * that it does not overlap with the method code being written
+	 * at the bottom of the free region */
+	ptr = cache->free_end - size;
+	ptr = (unsigned char *) (((jit_nuint) ptr) & ~((jit_nuint) align - 1));
+
+	/* Do we need to allocate a new cache page? */
+	if(ptr < cache->free_start)
+	{
+		/* Find the appropriate page size */
+		int factor = 1;
+		while((size + align - 1) > (factor * cache->pageSize)) {
+			factor <<= 1;
+		}
+
+		/* Try to allocate it */
+		AllocCachePage(cache, factor);
+
+		/* Bail out if the cache is full */
+		if(!cache->free_start)
 		{
 			return 0;
 		}
-	}
 
-	/* Allocate memory from the top of the free region, so that it
-	   does not overlap with the method code being written at the
-	   bottom of the free region */
-	ptr = (unsigned char *)(((jit_nuint)(cache->freeEnd - size)) &
-		                    ~(((jit_nuint)align) - 1));
-	if(ptr < cache->freeStart)
-	{
-		/* When we aligned the block, it caused an overflow */
-		return 0;
+		/* Allocate memory from the new page */
+		ptr = cache->free_end - size;
+		ptr = (unsigned char *) (((jit_nuint) ptr) & ~((jit_nuint) align - 1));
 	}
-
+	
 	/* Allocate the block and return it */
-	cache->freeEnd = ptr;
+	cache->free_end = ptr;
 	return (void *)ptr;
 }
 
@@ -650,11 +686,11 @@ _jit_cache_get_method(jit_cache_t cache, void *pc)
 	jit_cache_method_t node = cache->head.right;
 	while(node != &(cache->nil))
 	{
-		if(((unsigned char *)pc) < node->func->start)
+		if(((unsigned char *)pc) < node->func->code_start)
 		{
 			node = GetLeft(node);
 		}
-		else if(((unsigned char *)pc) >= node->func->end)
+		else if(((unsigned char *)pc) >= node->func->code_end)
 		{
 			node = GetRight(node);
 		}

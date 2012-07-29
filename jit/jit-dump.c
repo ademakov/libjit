@@ -895,9 +895,9 @@ void jit_dump_function(FILE *stream, jit_function_t func, const char *name)
 				(long)(jit_nint)interp, (long)(jit_nint)func,
 				(int)(interp->args_size), (int)(interp->frame_size),
 				(int)(interp->working_area));
-		dump_interp_code(stream, (void **)(interp + 1), (void **)func->end);
+		dump_interp_code(stream, (void **)(interp + 1), (void **)func->code_end);
 #else
-		dump_object_code(stream, func->entry_point, func->end);
+		dump_object_code(stream, func->entry_point, func->code_end);
 #endif
 	}
 

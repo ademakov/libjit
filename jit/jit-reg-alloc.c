@@ -3776,5 +3776,5 @@ _jit_regs_begin(jit_gencode_t gen, _jit_regs_t *regs, int space)
 {
 	_jit_regs_assign(gen, regs);
 	_jit_regs_gen(gen, regs);
-	_jit_cache_check_space(&gen->posn, space);
+	_jit_gen_check_space(gen, space);
 }

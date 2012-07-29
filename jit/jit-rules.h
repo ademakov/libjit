@@ -159,10 +159,12 @@ struct jit_regcontents
 typedef struct jit_gencode *jit_gencode_t;
 struct jit_gencode
 {
+	jit_cache_t		cache;		/* Cache this position is attached to */
+	unsigned char		*ptr;		/* Current code pointer */
+	unsigned char		*limit;		/* Current code space limit */
 	jit_regused_t		permanent;	/* Permanently allocated global regs */
 	jit_regused_t		touched;	/* All registers that were touched */
 	jit_regused_t		inhibit;	/* Temporarily inhibited registers */
-	jit_cache_posn		posn;		/* Current cache output position */
 	jit_regcontents_t	contents[JIT_NUM_REGS]; /* Contents of each register */
 	int			current_age;	/* Current age value for registers */
 #ifdef JIT_REG_STACK
@@ -190,6 +192,17 @@ struct jit_elf_info
 /*
  * External function defintions.
  */
+
+/*
+ * Determine if there is sufficient space in the code cache.
+ * If not throws JIT_RESULT_CACHE_FULL exception.
+ */
+void _jit_gen_check_space(jit_gencode_t gen, int space);
+
+/*
+ * Allocate a memory chunk for data.
+ */
+void *_jit_gen_alloc(jit_gencode_t gen, unsigned long size);
 
 void _jit_init_backend(void);
 void _jit_gen_get_elf_info(jit_elf_info_t *info);

@@ -130,7 +130,7 @@ static _jit_regclass_t *arm_lreg;
  */
 #define	jit_gen_load_inst_ptr(gen,inst)	\
 	do { \
-		arm_inst_buf_init((inst), (gen)->posn.ptr, (gen)->posn.limit); \
+		arm_inst_buf_init((inst), (gen)->ptr, (gen)->limit); \
 	} while (0)
 
 /*
@@ -138,7 +138,7 @@ static _jit_regclass_t *arm_lreg;
  */
 #define	jit_gen_save_inst_ptr(gen,inst)	\
 	do { \
-		(gen)->posn.ptr = (unsigned char *)arm_inst_get_posn(inst); \
+		(gen)->ptr = (unsigned char *)arm_inst_get_posn(inst); \
 	} while (0)
 
 /*
@@ -341,7 +341,7 @@ static void flush_constants(jit_gencode_t gen, int after_epilog)
 static int flush_if_too_far(jit_gencode_t gen)
 {
 	if(gen->first_constant_use &&
-		  (((arm_inst_word *)(gen->posn.ptr)) -
+		  (((arm_inst_word *)(gen->ptr)) -
 		  ((arm_inst_word *)(gen->first_constant_use))) >= 100)
 	{
 		flush_constants(gen, 0);
@@ -361,7 +361,7 @@ static void add_constant_fixup
 {
 	arm_inst_word *prev;
 	int value;
-	if(((unsigned char *)fixup) >= gen->posn.limit)
+	if(((unsigned char *)fixup) >= gen->limit)
 	{
 		/* The instruction buffer is full, so don't record this fixup */
 		return;
@@ -902,7 +902,7 @@ void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func)
 	arm_inst_buf inst;
 	jit_gen_load_inst_ptr(gen, inst);
 	ptr = (void *)&(func->entry_point);
-	entry = gen->posn.ptr;
+	entry = gen->ptr;
 	arm_load_membase(inst, ARM_WORK, ARM_PC, 0);
 	arm_load_membase(inst, ARM_PC, ARM_WORK, 0);
 	arm_inst_add(inst, (unsigned int)ptr);
@@ -1455,7 +1455,7 @@ void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block)
 	arm_inst_buf inst;
 
 	/* Set the address of this block */
-	block->address = (void *)(gen->posn.ptr);
+	block->address = (void *)(gen->ptr);
 
 	/* If this block has pending fixups, then apply them now */
 	fixup = (void **)(block->fixup_list);

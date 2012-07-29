@@ -79,23 +79,23 @@ int _alpha_has_ieeefp() {
  * Setup or teardown the alpha code output process.
  */
 #define jit_cache_setup_output(needed)			\
-	alpha_inst inst = (alpha_inst) gen->posn.ptr;	\
-	_jit_cache_check_space(&gen->posn, (needed))
+	alpha_inst inst = (alpha_inst) gen->ptr;	\
+	_jit_gen_check_space(gen, (needed))
 
 #define jit_cache_end_output()  \
-	gen->posn.ptr = (unsigned char*) inst
+	gen->ptr = (unsigned char*) inst
 
 /*
  * Load the instruction pointer from the generation context.
  */
 #define jit_gen_load_inst_ptr(gen,inst) \
-	inst = (alpha_inst) (gen)->posn.ptr;
+	inst = (alpha_inst) (gen)->ptr;
 
 /*
  * Save the instruction pointer back to the generation context.
  */
 #define jit_gen_save_inst_ptr(gen,inst) \
-	(gen)->posn.ptr = (unsigned char *) inst;
+	(gen)->ptr = (unsigned char *) inst;
 
 static _jit_regclass_t *alpha_reg;
 static _jit_regclass_t *alpha_freg;
@@ -401,7 +401,7 @@ void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block) {
 	void **fixup, **next;
 
 	/* Set the address of this block */
-	block->address = (void *)(gen->posn.ptr);
+	block->address = (void *)(gen->ptr);
 
 	/* If this block has pending fixups, then apply them now */
 	fixup = (void **)(block->fixup_list);
@@ -410,7 +410,7 @@ void _jit_gen_start_block(jit_gencode_t gen, jit_block_t block) {
 		alpha_inst code = (alpha_inst) fixup;
 		next     = (void **)(fixup[0]);
 
-		_alpha_li64(code,ALPHA_AT,(long int)(gen->posn.ptr));
+		_alpha_li64(code,ALPHA_AT,(long int)(gen->ptr));
 		alpha_jmp(code,ALPHA_ZERO,ALPHA_AT,1);
 
 		fixup    = next;
@@ -528,12 +528,12 @@ void _jit_gen_load_global(jit_gencode_t gen, int reg, jit_value_t value) {
  */
 void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func) {
 	void *ptr, *entry;
-	alpha_inst inst = (alpha_inst) gen->posn.ptr;
+	alpha_inst inst = (alpha_inst) gen->ptr;
 
-	_jit_cache_check_space(&gen->posn, 8*6);
+	_jit_gen_check_space(gen, 8*6);
 
 	ptr = (void *)&(func->entry_point);
-	entry = gen->posn.ptr;
+	entry = gen->ptr;
 
 	alpha_call(inst, ptr);
 
@@ -626,7 +626,7 @@ void jump_to_epilog(jit_gencode_t gen, alpha_inst inst, jit_block_t block) {
 
 	_jit_pad_buffer((unsigned char*)inst,6); /* to be overwritten later with jmp */
 
-	(gen)->posn.ptr = (unsigned char*) inst;
+	(gen)->ptr = (unsigned char*) inst;
 }
 
 #endif /* JIT_BACKEND_ALPHA */

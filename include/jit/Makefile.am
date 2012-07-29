@@ -22,6 +22,7 @@ dist_libjitinclude_HEADERS = \
 	jit-meta.h \
 	jit-objmodel.h \
 	jit-objmodel-private.h \
+	jit-opcode-compat.h \
 	jit-opcode.h \
 	jit-plus.h \
 	jit-type.h \
