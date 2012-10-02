@@ -49,9 +49,12 @@ void jit_apply(jit_type_t signature, void *func,
 void jit_apply_raw(jit_type_t signature, void *func,
                    void *args, void *return_value);
 int jit_raw_supported(jit_type_t signature);
+
 void *jit_closure_create(jit_context_t context, jit_type_t signature,
-						 jit_closure_func func, void *user_data);
+			 jit_closure_func func, void *user_data);
+
 int jit_closures_supported(void);
+
 jit_nint jit_closure_va_get_nint(jit_closure_va_list_t va);
 jit_nuint jit_closure_va_get_nuint(jit_closure_va_list_t va);
 jit_long jit_closure_va_get_long(jit_closure_va_list_t va);
@@ -60,8 +63,7 @@ jit_float32 jit_closure_va_get_float32(jit_closure_va_list_t va);
 jit_float64 jit_closure_va_get_float64(jit_closure_va_list_t va);
 jit_nfloat jit_closure_va_get_nfloat(jit_closure_va_list_t va);
 void *jit_closure_va_get_ptr(jit_closure_va_list_t va);
-void jit_closure_va_get_struct
-	(jit_closure_va_list_t va, void *buf, jit_type_t type);
+void jit_closure_va_get_struct(jit_closure_va_list_t va, void *buf, jit_type_t type);
 
 #ifdef	__cplusplus
 };

@@ -857,8 +857,7 @@ static void closure_handler(jit_closure_t closure, void *apply_args)
  * prototype:
  *
  * @example
- * void func (jit_type_t signature, void *result,
- *            void **args, void *user_data);
+ * void func(jit_type_t signature, void *result, void **args, void *user_data);
  * @end example
  *
  * If the closure signature includes variable arguments, then @code{args}
@@ -870,8 +869,8 @@ static void closure_handler(jit_closure_t closure, void *apply_args)
  * is destroyed.
  * @end deftypefun
 @*/
-void *jit_closure_create(jit_context_t context, jit_type_t signature,
-						 jit_closure_func func, void *user_data)
+void *
+jit_closure_create(jit_context_t context, jit_type_t signature, jit_closure_func func, void *user_data)
 {
 #ifdef jit_closure_size
 	jit_cache_t cache;
@@ -902,8 +901,7 @@ void *jit_closure_create(jit_context_t context, jit_type_t signature,
 	}
 
 	/* Fill in the closure fields */
-	_jit_create_closure
-		(closure->buf, (void *)closure_handler, closure, signature);
+	_jit_create_closure(closure->buf, (void *)closure_handler, closure, signature);
 	closure->signature = signature;
 	closure->func = func;
 	closure->user_data = user_data;
