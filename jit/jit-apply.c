@@ -883,20 +883,20 @@ jit_closure_create(jit_context_t context, jit_type_t signature, jit_closure_func
 	}
 
 	/* Acquire the cache lock while we do this */
-	jit_mutex_lock(&(context->cache_lock));
-	
+	jit_mutex_lock(&context->cache_lock);
+
 	/* Allocate space for the closure within the context's function cache */
 	cache = _jit_context_get_cache(context);
 	if(!cache)
 	{
-		jit_mutex_unlock(&(context->cache_lock));
+		jit_mutex_unlock(&context->cache_lock);
 		return 0;
 	}
-	closure = (jit_closure_t)_jit_cache_alloc_no_method
-		(cache, sizeof(struct jit_closure), jit_closure_align);
+
+	closure = (jit_closure_t)_jit_cache_alloc_no_method(cache, sizeof(struct jit_closure), jit_closure_align);
 	if(!closure)
 	{
-		jit_mutex_unlock(&(context->cache_lock));
+		jit_mutex_unlock(&context->cache_lock);
 		return 0;
 	}
 
@@ -910,7 +910,7 @@ jit_closure_create(jit_context_t context, jit_type_t signature, jit_closure_func
 	jit_flush_exec(closure->buf, sizeof(closure->buf));
 
 	/* Unlock the cache, as we are finished with it */
-	jit_mutex_unlock(&(context->cache_lock));
+	jit_mutex_unlock(&context->cache_lock);
 
 	/* Return the completed closure to the caller */
 	return closure;
