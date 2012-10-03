@@ -463,15 +463,12 @@ cache_alloc(_jit_compile_t *state)
 	int result;
 
 	/* First try with the current cache page */
-	result = _jit_cache_start_function(state->gen.cache,
-					   state->func,
-					   state->page_factor++);
+	result = _jit_cache_start_function(state->gen.cache, state->func);
 	if(result == JIT_CACHE_RESTART)
 	{
 		/* No space left on the current cache page.  Allocate a new one. */
-		result = _jit_cache_start_function(state->gen.cache,
-						   state->func,
-						   state->page_factor++);
+		_jit_cache_extend(state->gen.cache, state->page_factor++);
+		result = _jit_cache_start_function(state->gen.cache, state->func);
 	}
 	if(result != JIT_CACHE_OK)
 	{
@@ -571,9 +568,8 @@ cache_realloc(_jit_compile_t *state)
 
 	/* Allocate a new cache page with the size that grows
 	   by factor of 2 on each reallocation */
-	result = _jit_cache_start_function(state->gen.cache,
-					   state->func,
-					   state->page_factor++);
+	_jit_cache_extend(state->gen.cache, state->page_factor++);
+	result = _jit_cache_start_function(state->gen.cache, state->func);
 	if(result != JIT_CACHE_OK)
 	{
 		/* Failed to allocate enough cache space */

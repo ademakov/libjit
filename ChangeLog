@@ -1,3 +1,12 @@
+2012-10-04  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_start_function):
+	remove the restart_count argument.
+	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_extend): add
+	function to allocate more cache space.
+	* jit/jit-cache.c (_jit_cache_alloc_data): let be called outside
+	function generation context.
+
 2012-07-29  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_start_function)
