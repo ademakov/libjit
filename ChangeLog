@@ -1,3 +1,10 @@
+2012-10-07  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-function.c (jit_function_create, _jit_function_destroy):
+	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_alloc_function)
+	(_jit_cache_free_function): allocate and free jit_function structs
+	within cache.
+
 2012-10-04  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_start_function):

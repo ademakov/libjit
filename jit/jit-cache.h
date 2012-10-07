@@ -64,6 +64,16 @@ void _jit_cache_destroy(jit_cache_t cache);
 void _jit_cache_extend(jit_cache_t cache, int count);
 
 /*
+ * Allocate a function description structure.
+ */
+jit_function_t _jit_cache_alloc_function(jit_cache_t cache);
+
+/*
+ * Release a function description structure.
+ */
+void _jit_cache_free_function(jit_cache_t cache, jit_function_t func);
+
+/*
  * Start output of a function.
  */
 int _jit_cache_start_function(jit_cache_t cache, jit_function_t func);

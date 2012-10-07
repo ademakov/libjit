@@ -28,6 +28,8 @@ See the bottom of this file for documentation on the cache system.
 #include "jit-cache.h"
 #include "jit-apply-func.h"
 
+#include <stddef.h> /* for offsetof */
+
 #ifdef	__cplusplus
 extern	"C" {
 #endif
@@ -57,9 +59,9 @@ extern	"C" {
 typedef struct jit_cache_method *jit_cache_method_t;
 struct jit_cache_method
 {
-	jit_function_t		func;		/* Function */
 	jit_cache_method_t	left;		/* Left sub-tree and red/black bit */
 	jit_cache_method_t	right;		/* Right sub-tree */
+	struct _jit_function	func;		/* Function */
 };
 
 /*
@@ -213,11 +215,11 @@ CacheCompare(jit_cache_t cache, unsigned char *key, jit_cache_method_t node)
 	else
 	{
 		/* Compare a regular node */
-		if(key < node->func->code_start)
+		if(key < node->func.code_start)
 		{
 			return -1;
 		}
-		else if(key > node->func->code_start)
+		else if(key > node->func.code_start)
 		{
 			return 1;
 		}
@@ -297,7 +299,7 @@ CacheRotate(jit_cache_t cache, unsigned char *key, jit_cache_method_t around)
 static void
 AddToLookupTree(jit_cache_t cache, jit_cache_method_t method)
 {
-	unsigned char *key = method->func->code_start;
+	unsigned char *key = method->func.code_start;
 	jit_cache_method_t temp;
 	jit_cache_method_t greatGrandParent;
 	jit_cache_method_t grandParent;
@@ -410,10 +412,8 @@ _jit_cache_create(long limit, long cache_page_size, int max_page_factor)
 		cache->pagesLeft = -1;
 	}
 	cache->method = 0;
-	cache->nil.func = 0;
 	cache->nil.left = &(cache->nil);
 	cache->nil.right = &(cache->nil);
-	cache->head.func = 0;
 	cache->head.left = 0;
 	cache->head.right = &(cache->nil);
 
@@ -487,6 +487,21 @@ _jit_cache_extend(jit_cache_t cache, int count)
 	AllocCachePage(cache, factor);
 }
 
+jit_function_t
+_jit_cache_alloc_function(jit_cache_t cache)
+{
+	jit_cache_method_t method = jit_cnew(struct jit_cache_method);
+	return &method->func;
+}
+
+void
+_jit_cache_free_function(jit_cache_t cache, jit_function_t func)
+{
+	jit_cache_method_t method = (jit_cache_method_t)
+		(((char *) func) - offsetof(struct jit_cache_method, func));
+	jit_free(method);
+}
+
 int
 _jit_cache_start_function(jit_cache_t cache, jit_function_t func)
 {
@@ -508,19 +523,11 @@ _jit_cache_start_function(jit_cache_t cache, jit_function_t func)
 
 	/* Allocate memory for the function information block */
 	cache->method = (jit_cache_method_t)
-		_jit_cache_alloc_data(cache,
-				      sizeof(struct jit_cache_method),
-				      JIT_BEST_ALIGNMENT);
-	if(!cache->method)
-	{
-		/* There is insufficient space in this page */
-		return JIT_CACHE_RESTART;
-	}
+		(((char *) func) - offsetof(struct jit_cache_method, func));
 
 	/* Initialize the function information */
-	cache->method->func = func;
-	cache->method->func->code_start = cache->free_start;
-	cache->method->func->code_end = cache->free_start;
+	cache->method->func.code_start = cache->free_start;
+	cache->method->func.code_end = cache->free_start;
 	cache->method->left = 0;
 	cache->method->right = 0;
 
@@ -547,7 +554,7 @@ _jit_cache_end_function(jit_cache_t cache, int result)
 	}
 
 	/* Update the method region block and then add it to the lookup tree */
-	cache->method->func->code_end = cache->free_start;
+	cache->method->func.code_end = cache->free_start;
 	AddToLookupTree(cache, cache->method);
 	cache->method = 0;
 
@@ -685,17 +692,17 @@ _jit_cache_get_function(jit_cache_t cache, void *pc)
 	jit_cache_method_t node = cache->head.right;
 	while(node != &(cache->nil))
 	{
-		if(((unsigned char *)pc) < node->func->code_start)
+		if(((unsigned char *)pc) < node->func.code_start)
 		{
 			node = GetLeft(node);
 		}
-		else if(((unsigned char *)pc) >= node->func->code_end)
+		else if(((unsigned char *)pc) >= node->func.code_end)
 		{
 			node = GetRight(node);
 		}
 		else
 		{
-			return node->func;
+			return &node->func;
 		}
 	}
 	return 0;

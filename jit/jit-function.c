@@ -44,43 +44,41 @@
  * data structures within a multi-threaded environment.
  * @end deftypefun
 @*/
-jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
+jit_function_t
+jit_function_create(jit_context_t context, jit_type_t signature)
 {
 	jit_function_t func;
-#if !defined(JIT_BACKEND_INTERP) && (defined(jit_redirector_size) || defined(jit_indirector_size))
 	jit_cache_t cache;
-#endif
+
+	/* We need the cache lock. */
+	jit_mutex_lock(&context->cache_lock);
+
+	/* Get the method cache */
+	cache = _jit_context_get_cache(context);
+	if(!cache)
+	{
+		jit_mutex_unlock(&context->cache_lock);
+		return 0;
+	}
 
 	/* Allocate memory for the function and clear it */
-	func = jit_cnew(struct _jit_function);
+	func = _jit_cache_alloc_function(cache);
 	if(!func)
 	{
+		jit_mutex_unlock(&context->cache_lock);
 		return 0;
 	}
 
 #if !defined(JIT_BACKEND_INTERP) && (defined(jit_redirector_size) || defined(jit_indirector_size))
 	/* TODO: if the function is destroyed the redirector and indirector memory
 	   is leaked */
-
-	/* We need the cache lock while we are allocating redirector and indirector */
-	jit_mutex_lock(&(context->cache_lock));
-
-	/* Get the method cache */
-	cache = _jit_context_get_cache(context);
-	if(!cache)
-	{
-		jit_mutex_unlock(&(context->cache_lock));
-		jit_free(func);
-		return 0;
-	}
-
 # if defined(jit_redirector_size)
 	/* Allocate redirector buffer */
 	func->redirector = _jit_cache_alloc_no_method(cache, jit_redirector_size, 1);
 	if(!func->redirector)
 	{
-		jit_mutex_unlock(&(context->cache_lock));
-		jit_free(func);
+		_jit_cache_free_function(cache, func);
+		jit_mutex_unlock(&context->cache_lock);
 		return 0;
 	}
 # endif
@@ -89,14 +87,14 @@ jit_function_t jit_function_create(jit_context_t context, jit_type_t signature)
 	func->indirector = _jit_cache_alloc_no_method(cache, jit_indirector_size, 1);
 	if(!func->indirector)
 	{
-		jit_mutex_unlock(&(context->cache_lock));
-		jit_free(func);
+		_jit_cache_free_function(cache, func);
+		jit_mutex_unlock(&context->cache_lock);
 		return 0;
 	}
 # endif
-
-	jit_mutex_unlock(&(context->cache_lock));
 #endif /* !defined(JIT_BACKEND_INTERP) && (defined(jit_redirector_size) || defined(jit_indirector_size)) */
+
+	jit_mutex_unlock(&context->cache_lock);
 
 	/* Initialize the function block */
 	func->context = context;
@@ -235,19 +233,24 @@ void _jit_function_free_builder(jit_function_t func)
 	}
 }
 
-void _jit_function_destroy(jit_function_t func)
+void
+_jit_function_destroy(jit_function_t func)
 {
+	jit_context_t context;
+
 	if(!func)
 	{
 		return;
 	}
+
+	context = func->context;
 	if(func->next)
 	{
 		func->next->prev = func->prev;
 	}
 	else
 	{
-		func->context->last_function = func->prev;
+		context->last_function = func->prev;
 	}
 	if(func->prev)
 	{
@@ -255,13 +258,17 @@ void _jit_function_destroy(jit_function_t func)
 	}
 	else
 	{
-		func->context->functions = func->next;
+		context->functions = func->next;
 	}
+
 	_jit_function_free_builder(func);
 	_jit_varint_free_data(func->bytecode_offset);
-	jit_meta_destroy(&(func->meta));
+	jit_meta_destroy(&func->meta);
 	jit_type_free(func->signature);
-	jit_free(func);
+
+	jit_mutex_lock(&context->cache_lock);
+	_jit_cache_free_function(context->cache, func);
+	jit_mutex_unlock(&context->cache_lock);
 }
 
 /*@
