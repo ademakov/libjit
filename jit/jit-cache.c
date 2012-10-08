@@ -521,7 +521,7 @@ _jit_cache_start_function(jit_cache_t cache, jit_function_t func)
 	cache->prev_start = cache->free_start;
 	cache->prev_end = cache->free_end;
 
-	/* Allocate memory for the function information block */
+	/* Get the function information block */
 	cache->method = (jit_cache_method_t)
 		(((char *) func) - offsetof(struct jit_cache_method, func));
 
@@ -631,6 +631,84 @@ _jit_cache_alloc_data(jit_cache_t cache, unsigned long size, unsigned long align
 	return ptr;
 }
 
+static void *
+alloc_code(jit_cache_t cache, unsigned int size, unsigned int align)
+{
+	unsigned char *ptr;
+
+	/* Bail out if there is a started function */
+	if(cache->method)
+	{
+		return 0;
+	}
+	/* Bail out if there is no cache available */
+	if(!cache->free_start)
+	{
+		return 0;
+	}
+
+	/* Allocate aligned memory. */
+	ptr = cache->free_start;
+	if(align > 1)
+	{
+		jit_nuint p = ((jit_nuint) ptr + align - 1) & ~(align - 1);
+		ptr = (unsigned char *) p;
+	}
+
+	/* Do we need to allocate a new cache page? */
+	if((ptr + size) > cache->free_end)
+	{
+		/* Allocate a new page */
+		AllocCachePage(cache, 0);
+
+		/* Bail out if the cache is full */
+		if(!cache->free_start)
+		{
+			return 0;
+		}
+
+		/* Allocate memory from the new page */
+		ptr = cache->free_start;
+		if(align > 1)
+		{
+			jit_nuint p = ((jit_nuint) ptr + align - 1) & ~(align - 1);
+			ptr = (unsigned char *) p;
+		}
+	}
+
+	/* Allocate the block and return it */
+	cache->free_start = ptr + size;
+	return (void *) ptr;
+}
+
+void *
+_jit_cache_alloc_trampoline(jit_cache_t cache)
+{
+	return alloc_code(cache,
+			  jit_get_trampoline_size(),
+			  jit_get_trampoline_alignment());
+}
+
+void
+_jit_cache_free_trampoline(jit_cache_t cache, void *trampoline)
+{
+	/* not supported yet */
+}
+
+void *
+_jit_cache_alloc_closure(jit_cache_t cache)
+{
+	return alloc_code(cache,
+			  jit_get_closure_size(),
+			  jit_get_closure_alignment());
+}
+
+void
+_jit_cache_free_closure(jit_cache_t cache, void *closure)
+{
+	/* not supported yet */
+}
+
 void *
 _jit_cache_alloc_no_method(jit_cache_t cache, unsigned long size, unsigned long align)
 {
@@ -680,7 +758,7 @@ _jit_cache_alloc_no_method(jit_cache_t cache, unsigned long size, unsigned long 
 		ptr = cache->free_end - size;
 		ptr = (unsigned char *) (((jit_nuint) ptr) & ~((jit_nuint) align - 1));
 	}
-	
+
 	/* Allocate the block and return it */
 	cache->free_end = ptr;
 	return (void *)ptr;

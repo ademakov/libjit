@@ -64,12 +64,12 @@ void _jit_cache_destroy(jit_cache_t cache);
 void _jit_cache_extend(jit_cache_t cache, int count);
 
 /*
- * Allocate a function description structure.
+ * Allocate a function information structure.
  */
 jit_function_t _jit_cache_alloc_function(jit_cache_t cache);
 
 /*
- * Release a function description structure.
+ * Release a function information structure.
  */
 void _jit_cache_free_function(jit_cache_t cache, jit_function_t func);
 
@@ -135,10 +135,30 @@ void *_jit_cache_alloc_data(jit_cache_t cache,
 			    unsigned long align);
 
 /*
- * Allocate "size" bytes of storage when we aren't currently
- * translating a method.
+ * Allocate memory for a trampoline.
+ *
+ * The required size and alignment can be determined with these functions:
+ * jit_get_trampoline_size(), jit_get_trampoline_alignment().
  */
-void *_jit_cache_alloc_no_method(jit_cache_t cache, unsigned long size, unsigned long align);
+void *_jit_cache_alloc_trampoline(jit_cache_t cache);
+
+/*
+ * Free memory used by a trampoline.
+ */
+void _jit_cache_free_trampoline(jit_cache_t cache, void *trampoline);
+
+/*
+ * Allocate memory for a closure.
+ * 
+ * The required size and alignment can be determined with these functions:
+ * jit_get_closure_size(), jit_get_closure_alignment().
+ */
+void *_jit_cache_alloc_closure(jit_cache_t cache);
+
+/*
+ * Free memory used by a closure.
+ */
+void _jit_cache_free_closure(jit_cache_t cache, void *closure);
 
 /*
  * Find the method that is associated with a particular

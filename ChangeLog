@@ -1,3 +1,17 @@
+2012-10-08  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-cache.c, jit/jit-cache.c(_jit_cache_alloc_trampoline)
+	(_jit_cache_free_trampoline, _jit_cache_alloc_closure)
+	(_jit_cache_free_closure): add functions.
+	* jit/jit-function.c (jit_function_create, _jit_function_destroy):
+	use trampoline alloc/free functions.
+
+	* jit/jit-apply.c, include/jit/jit-init.h (jit_get_closure_size)
+	(jit_get_closure_alignment, jit_get_trampoline_size)
+	(jit_get_trampoline_alignment): add functions.
+	* jit/jit-apply.c (jit_closures_supported): for consistency rename
+	function to jit_supports_closures.
+
 2012-10-07  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-function.c (jit_function_create, _jit_function_destroy):

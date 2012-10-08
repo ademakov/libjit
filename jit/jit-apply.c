@@ -893,7 +893,7 @@ jit_closure_create(jit_context_t context, jit_type_t signature, jit_closure_func
 		return 0;
 	}
 
-	closure = (jit_closure_t)_jit_cache_alloc_no_method(cache, sizeof(struct jit_closure), jit_closure_align);
+	closure = (jit_closure_t)_jit_cache_alloc_closure(cache);
 	if(!closure)
 	{
 		jit_mutex_unlock(&context->cache_lock);
@@ -922,13 +922,57 @@ jit_closure_create(jit_context_t context, jit_type_t signature, jit_closure_func
 }
 
 /*@
- * @deftypefun int jit_closures_supported (void)
+ * @deftypefun int jit_supports_closures (void)
  * Determine if this platform has support for closures.
  * @end deftypefun
 @*/
-int jit_closures_supported(void)
+int
+jit_supports_closures(void)
 {
 #ifdef jit_closure_size
+	return 1;
+#else
+	return 0;
+#endif
+}
+
+unsigned int
+jit_get_closure_size(void)
+{
+#ifdef jit_closure_size
+	return jit_closure_size;
+#else
+	return 0;
+#endif
+}
+
+unsigned int
+jit_get_closure_alignment(void)
+{
+#ifdef jit_closure_size
+	return jit_closure_align;
+#else
+	return 0;
+#endif
+}
+
+unsigned int
+jit_get_trampoline_size(void)
+{
+	int size = 0;
+#if defined(jit_redirector_size)
+	size += jit_redirector_size;
+#endif
+#if defined(jit_indirector_size)
+	size += jit_indirector_size;
+#endif
+	return size;
+}
+
+unsigned int
+jit_get_trampoline_alignment(void)
+{
+#if defined(jit_redirector_size) || defined(jit_indirector_size)
 	return 1;
 #else
 	return 0;
@@ -1009,8 +1053,8 @@ void *jit_closure_va_get_ptr(jit_closure_va_list_t va)
  * variable arguments, and copy it into @var{buf}.
  * @end deftypefun
 @*/
-void jit_closure_va_get_struct
-	(jit_closure_va_list_t va, void *buf, jit_type_t type)
+void
+jit_closure_va_get_struct(jit_closure_va_list_t va, void *buf, jit_type_t type)
 {
 #ifdef HAVE_JIT_BUILTIN_APPLY_STRUCT
 	_jit_builtin_apply_get_struct(&(va->builder), buf, type);

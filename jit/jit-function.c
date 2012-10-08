@@ -49,6 +49,9 @@ jit_function_create(jit_context_t context, jit_type_t signature)
 {
 	jit_function_t func;
 	jit_cache_t cache;
+#if !defined(JIT_BACKEND_INTERP) && (defined(jit_redirector_size) || defined(jit_indirector_size))
+	unsigned char *trampoline;
+#endif
 
 	/* We need the cache lock. */
 	jit_mutex_lock(&context->cache_lock);
@@ -70,27 +73,19 @@ jit_function_create(jit_context_t context, jit_type_t signature)
 	}
 
 #if !defined(JIT_BACKEND_INTERP) && (defined(jit_redirector_size) || defined(jit_indirector_size))
-	/* TODO: if the function is destroyed the redirector and indirector memory
-	   is leaked */
-# if defined(jit_redirector_size)
-	/* Allocate redirector buffer */
-	func->redirector = _jit_cache_alloc_no_method(cache, jit_redirector_size, 1);
-	if(!func->redirector)
+	trampoline = (unsigned char *) _jit_cache_alloc_trampoline(cache);
+	if(!trampoline)
 	{
 		_jit_cache_free_function(cache, func);
 		jit_mutex_unlock(&context->cache_lock);
 		return 0;
 	}
+# if defined(jit_redirector_size)
+	func->redirector = trampoline;
+	trampoline += jit_redirector_size;
 # endif
 # if defined(jit_indirector_size)
-	/* Allocate indirector buffer */
-	func->indirector = _jit_cache_alloc_no_method(cache, jit_indirector_size, 1);
-	if(!func->indirector)
-	{
-		_jit_cache_free_function(cache, func);
-		jit_mutex_unlock(&context->cache_lock);
-		return 0;
-	}
+	func->indirector = trampoline;
 # endif
 #endif /* !defined(JIT_BACKEND_INTERP) && (defined(jit_redirector_size) || defined(jit_indirector_size)) */
 
@@ -267,6 +262,13 @@ _jit_function_destroy(jit_function_t func)
 	jit_type_free(func->signature);
 
 	jit_mutex_lock(&context->cache_lock);
+#if !defined(JIT_BACKEND_INTERP) && (defined(jit_redirector_size) || defined(jit_indirector_size))
+# if defined(jit_redirector_size)
+	_jit_cache_free_trampoline(context->cache, func->redirector);
+# else
+	_jit_cache_free_trampoline(context->cache, func->indirector);
+# endif
+#endif
 	_jit_cache_free_function(context->cache, func);
 	jit_mutex_unlock(&context->cache_lock);
 }

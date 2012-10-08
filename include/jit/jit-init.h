@@ -35,6 +35,13 @@ int jit_supports_threads(void) JIT_NOTHROW;
 
 int jit_supports_virtual_memory(void) JIT_NOTHROW;
 
+int jit_supports_closures(void);
+
+unsigned int jit_get_closure_size(void);
+unsigned int jit_get_closure_alignment(void);
+unsigned int jit_get_trampoline_size(void);
+unsigned int jit_get_trampoline_alignment(void);
+
 #ifdef	__cplusplus
 };
 #endif

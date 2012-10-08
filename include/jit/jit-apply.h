@@ -53,8 +53,6 @@ int jit_raw_supported(jit_type_t signature);
 void *jit_closure_create(jit_context_t context, jit_type_t signature,
 			 jit_closure_func func, void *user_data);
 
-int jit_closures_supported(void);
-
 jit_nint jit_closure_va_get_nint(jit_closure_va_list_t va);
 jit_nuint jit_closure_va_get_nuint(jit_closure_va_list_t va);
 jit_long jit_closure_va_get_long(jit_closure_va_list_t va);
