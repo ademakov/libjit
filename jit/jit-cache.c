@@ -709,6 +709,7 @@ _jit_cache_free_closure(jit_cache_t cache, void *closure)
 	/* not supported yet */
 }
 
+#if 0
 void *
 _jit_cache_alloc_no_method(jit_cache_t cache, unsigned long size, unsigned long align)
 {
@@ -763,6 +764,7 @@ _jit_cache_alloc_no_method(jit_cache_t cache, unsigned long size, unsigned long 
 	cache->free_end = ptr;
 	return (void *)ptr;
 }
+#endif
 
 jit_function_t
 _jit_cache_get_function(jit_cache_t cache, void *pc)
