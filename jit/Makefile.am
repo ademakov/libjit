@@ -68,7 +68,6 @@ libjit_la_SOURCES = \
 	jit-rules-x86-64.c \
 	jit-setjmp.h \
 	jit-signal.c \
-	jit-string.c \
 	jit-symbol.c \
 	jit-thread.c \
 	jit-thread.h \

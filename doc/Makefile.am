@@ -23,7 +23,6 @@ libjit_TEXINFOS = \
 	$(srcdir)/libjitext-meta.texi \
 	$(srcdir)/libjitext-reg-alloc.texi \
 	$(srcdir)/libjitext-rules-interp.texi \
-	$(srcdir)/libjitext-string.texi \
 	$(srcdir)/libjitext-type.texi \
 	$(srcdir)/libjitext-value.texi \
 	$(srcdir)/libjitext-walk.texi \
@@ -83,9 +82,6 @@ $(srcdir)/libjitext-reg-alloc.texi: $(top_srcdir)/jit/jit-reg-alloc.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
 $(srcdir)/libjitext-rules-interp.texi: $(top_srcdir)/jit/jit-rules-interp.c
-	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
-
-$(srcdir)/libjitext-string.texi: $(top_srcdir)/jit/jit-string.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
 $(srcdir)/libjitext-type.texi: $(top_srcdir)/jit/jit-type.c

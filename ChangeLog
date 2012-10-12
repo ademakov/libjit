@@ -1,7 +1,8 @@
 2012-10-12  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-memory.h: remove file.
-	* jit/jit-memory.c: rename to jit/jit-util.c
+	* jit/jit-memory.c: rename to jit/jit-util.c.
+	* jit/jit-string.c: append to jit/jit-util.c.
 
 2012-10-08  Aleksey Demakov  <ademakov@gmail.com>
 
