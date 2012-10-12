@@ -45,7 +45,6 @@ libjit_la_SOURCES = \
 	jit-interp-opcode.c \
 	jit-intrinsic.c \
 	jit-live.c \
-	jit-memory.c \
 	jit-meta.c \
 	jit-opcode-apply.c \
 	jit-objmodel.c \
@@ -75,6 +74,7 @@ libjit_la_SOURCES = \
 	jit-thread.h \
 	jit-type.c \
 	jit-unwind.c \
+	jit-util.c \
 	jit-value.c \
 	jit-varint.h \
 	jit-varint.c \

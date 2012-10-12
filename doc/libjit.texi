@@ -1058,7 +1058,7 @@ The @code{libjit} library provides a number of utility routines
 that it itself uses internally, but which may also be useful to front ends.
 
 @include libjitext-alloc.texi
-@include libjitext-memory.texi
+@include libjitext-util.texi
 @include libjitext-string.texi
 @include libjitext-meta.texi
 @include libjitext-apply.texi
