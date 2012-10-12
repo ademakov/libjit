@@ -1,8 +1,13 @@
 2012-10-12  Aleksey Demakov  <ademakov@gmail.com>
 
-	* jit/jit-memory.h: remove file.
-	* jit/jit-memory.c: rename to jit/jit-util.c.
-	* jit/jit-string.c: append to jit/jit-util.c.
+	* include/jit/jit-util.h, jit/jit-alloc.c (jit_malloc_exec)
+	(jit_free_exec, jit_flush_exec, jit_exec_page_size): remove functions
+	from public API.
+	* jit/jit-internal.h, jit/jit-alloc.c (_jit_malloc_exec)
+	(_jit_free_exec, _jit_flush_exec): make these functions internal.
+
+	* jit/jit-util.c: new file, move here all public util functions from
+	jit/jit-alloc.c, jit/jit-memory.c, jit/jit-string.c.
 
 2012-10-08  Aleksey Demakov  <ademakov@gmail.com>
 

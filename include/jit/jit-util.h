@@ -34,10 +34,7 @@ void *jit_malloc(unsigned int size) JIT_NOTHROW;
 void *jit_calloc(unsigned int num, unsigned int size) JIT_NOTHROW;
 void *jit_realloc(void *ptr, unsigned int size) JIT_NOTHROW;
 void jit_free(void *ptr) JIT_NOTHROW;
-void *jit_malloc_exec(unsigned int size) JIT_NOTHROW;
-void jit_free_exec(void *ptr, unsigned int size) JIT_NOTHROW;
-void jit_flush_exec(void *ptr, unsigned int size) JIT_NOTHROW;
-unsigned int jit_exec_page_size(void) JIT_NOTHROW;
+
 #define	jit_new(type)		((type *)jit_malloc(sizeof(type)))
 #define	jit_cnew(type)		((type *)jit_calloc(1, sizeof(type)))
 

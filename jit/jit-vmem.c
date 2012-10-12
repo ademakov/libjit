@@ -108,6 +108,14 @@ jit_vmem_init(void)
 #endif
 }
 
+/*@
+ * @deftypefun {unsigned int} jit_vmem_page_size (void)
+ * Get the page allocation size for the system.  This is the preferred
+ * unit when making calls to @code{_jit_malloc_exec}.  It is not
+ * required that you supply a multiple of this size when allocating,
+ * but it can lead to better performance on some systems.
+ * @end deftypefun
+@*/
 jit_uint
 jit_vmem_page_size(void)
 {

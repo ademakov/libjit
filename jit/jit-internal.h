@@ -81,6 +81,10 @@ extern	"C" {
  */
 #include "jit-varint.h"
 
+void *_jit_malloc_exec(unsigned int size);
+void _jit_free_exec(void *ptr, unsigned int size);
+void _jit_flush_exec(void *ptr, unsigned int size);
+
 /*
  * The following is some macro magic that attempts to detect
  * the best alignment to use on the target platform.  The final

@@ -57,91 +57,22 @@
 #endif
 #endif
 
-
 /*@
- * @section Memory allocation
- *
- * The @code{libjit} library provides an interface to the traditional
- * system @code{malloc} routines.  All heap allocation in @code{libjit}
- * goes through these functions.  If you need to perform some other kind
- * of memory allocation, you can replace these functions with your
- * own versions.
-@*/
-
-/*@
- * @deftypefun {void *} jit_malloc (unsigned int @var{size})
- * Allocate @var{size} bytes of memory from the heap.
- * @end deftypefun
- *
- * @deftypefun {type *} jit_new (@var{type})
- * Allocate @code{sizeof(@var{type})} bytes of memory from the heap and
- * cast the return pointer to @code{@var{type} *}.  This is a macro that
- * wraps up the underlying @code{jit_malloc} function and is less
- * error-prone when allocating structures.
- * @end deftypefun
-@*/
-void *jit_malloc(unsigned int size)
-{
-	return malloc(size);
-}
-
-/*@
- * @deftypefun {void *} jit_calloc (unsigned int @var{num}, unsigned int @var{size})
- * Allocate @code{@var{num} * @var{size}} bytes of memory from the heap and clear
- * them to zero.
- * @end deftypefun
- *
- * @deftypefun {type *} jit_cnew (@var{type})
- * Allocate @code{sizeof(@var{type})} bytes of memory from the heap and
- * cast the return pointer to @code{@var{type} *}.  The memory is cleared
- * to zero.
- * @end deftypefun
-@*/
-void *jit_calloc(unsigned int num, unsigned int size)
-{
-	return calloc(num, size);
-}
-
-/*@
- * @deftypefun {void *} jit_realloc (void *@var{ptr}, unsigned int @var{size})
- * Re-allocate the memory at @var{ptr} to be @var{size} bytes in size.
- * The memory block at @var{ptr} must have been allocated by a previous
- * call to @code{jit_malloc}, @code{jit_calloc}, or @code{jit_realloc}.
- * @end deftypefun
-@*/
-void *jit_realloc(void *ptr, unsigned int size)
-{
-	return realloc(ptr, size);
-}
-
-/*@
- * @deftypefun void jit_free (void *@var{ptr})
- * Free the memory at @var{ptr}.  It is safe to pass a NULL pointer.
- * @end deftypefun
-@*/
-void jit_free(void *ptr)
-{
-	if(ptr)
-	{
-		free(ptr);
-	}
-}
-
-/*@
- * @deftypefun {void *} jit_malloc_exec (unsigned int @var{size})
+ * @deftypefun {void *} _jit_malloc_exec (unsigned int @var{size})
  * Allocate a block of memory that is read/write/executable.  Such blocks
  * are used to store JIT'ed code, function closures, and other trampolines.
- * The size should be a multiple of @code{jit_exec_page_size()}.
+ * The size should be a multiple of @code{jit_vmem_page_size()}.
  *
  * This will usually be identical to @code{jit_malloc}.  However,
  * some systems may need special handling to create executable code
  * segments, so this function must be used instead.
  *
  * You must never mix regular and executable segment allocation.  That is,
- * do not use @code{jit_free} to free the result of @code{jit_malloc_exec}.
+ * do not use @code{jit_free} to free the result of @code{_jit_malloc_exec}.
  * @end deftypefun
 @*/
-void *jit_malloc_exec(unsigned int size)
+void *
+_jit_malloc_exec(unsigned int size)
 {
 #if defined(JIT_WIN32_PLATFORM)
 	return VirtualAlloc(NULL, size,
@@ -162,14 +93,15 @@ void *jit_malloc_exec(unsigned int size)
 }
 
 /*@
- * @deftypefun void jit_free_exec (void *@var{ptr}, unsigned int @var{size})
+ * @deftypefun void _jit_free_exec (void *@var{ptr}, unsigned int @var{size})
  * Free a block of memory that was previously allocated by
- * @code{jit_malloc_exec}.  The @var{size} must be identical to the
+ * @code{_jit_malloc_exec}.  The @var{size} must be identical to the
  * original allocated size, as some systems need to know this information
  * to be able to free the block.
  * @end deftypefun
 @*/
-void jit_free_exec(void *ptr, unsigned int size)
+void
+_jit_free_exec(void *ptr, unsigned int size)
 {
 	if(ptr)
 	{
@@ -184,14 +116,15 @@ void jit_free_exec(void *ptr, unsigned int size)
 }
 
 /*@
- * @deftypefun void jit_flush_exec (void *@var{ptr}, unsigned int @var{size})
+ * @deftypefun void _jit_flush_exec (void *@var{ptr}, unsigned int @var{size})
  * Flush the contents of the block at @var{ptr} from the CPU's
  * data and instruction caches.  This must be used after the code is
  * written to an executable code segment, but before the code is
  * executed, to prepare it for execution.
  * @end deftypefun
 @*/
-void jit_flush_exec(void *ptr, unsigned int size)
+void
+_jit_flush_exec(void *ptr, unsigned int size)
 {
 
 #define ROUND_BEG_PTR(p) \
@@ -268,37 +201,4 @@ void jit_flush_exec(void *ptr, unsigned int size)
 	asm volatile(";;sync.i;;srlz.i;;");
 #endif
 #endif	/* __GNUC__ */
-}
-
-/*@
- * @deftypefun {unsigned int} jit_exec_page_size (void)
- * Get the page allocation size for the system.  This is the preferred
- * unit when making calls to @code{jit_malloc_exec}.  It is not
- * required that you supply a multiple of this size when allocating,
- * but it can lead to better performance on some systems.
- * @end deftypefun
-@*/
-unsigned int jit_exec_page_size(void)
-{
-#ifndef JIT_WIN32_PLATFORM
-	/* Get the page size using a Unix-like sequence */
-	#ifdef HAVE_GETPAGESIZE
-		return (unsigned long)getpagesize();
-	#else
-		#ifdef NBPG
-			return NBPG;
-		#else
-			#ifdef PAGE_SIZE
-				return PAGE_SIZE;
-			#else
-				return 4096;
-			#endif
-		#endif
-	#endif
-#else
-	/* Get the page size from a Windows-specific API */
-	SYSTEM_INFO sysInfo;
-	GetSystemInfo(&sysInfo);
-	return (unsigned long)(sysInfo.dwPageSize);
-#endif
 }

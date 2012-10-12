@@ -146,7 +146,7 @@ AllocCachePage(jit_cache_t cache, int factor)
 	}
 
 	/* Try to allocate a physical page */
-	ptr = (unsigned char *) jit_malloc_exec((unsigned int) cache->pageSize * factor);
+	ptr = (unsigned char *) _jit_malloc_exec((unsigned int) cache->pageSize * factor);
 	if(!ptr)
 	{
 		goto failAlloc;
@@ -176,7 +176,7 @@ AllocCachePage(jit_cache_t cache, int factor)
 							     sizeof(struct jit_cache_page) * num);
 		if(!list)
 		{
-			jit_free_exec(ptr, cache->pageSize * factor);
+			_jit_free_exec(ptr, cache->pageSize * factor);
 		failAlloc:
 			cache->free_start = 0;
 			cache->free_end = 0;
@@ -380,7 +380,7 @@ _jit_cache_create(jit_context_t context)
 	}
 
 	/* determine the default cache page size */
-	exec_page_size = jit_exec_page_size();
+	exec_page_size = jit_vmem_page_size();
 	if(cache_page_size <= 0)
 	{
 		cache_page_size = JIT_CACHE_PAGE_SIZE;
@@ -446,8 +446,8 @@ _jit_cache_destroy(jit_cache_t cache)
 	/* Free all of the cache pages */
 	for(page = 0; page < cache->numPages; ++page)
 	{
-		jit_free_exec(cache->pages[page].page,
-			      cache->pageSize * cache->pages[page].factor);
+		_jit_free_exec(cache->pages[page].page,
+			       cache->pageSize * cache->pages[page].factor);
 	}
 	if(cache->pages)
 	{
@@ -476,7 +476,7 @@ _jit_cache_extend(jit_cache_t cache, int count)
 	if((cache->free_start == ((unsigned char *)p->page))
 	   && (cache->free_end == (cache->free_start + cache->pageSize * p->factor)))
 	{
-		jit_free_exec(p->page, cache->pageSize * p->factor);
+		_jit_free_exec(p->page, cache->pageSize * p->factor);
 
 		--(cache->numPages);
 		if(cache->pagesLeft >= 0)

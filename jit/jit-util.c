@@ -24,6 +24,9 @@
 #include "jit-config.h"
 
 #include <stdio.h>
+#ifdef HAVE_STDLIB_H
+# include <stdlib.h>
+#endif
 #if defined(HAVE_STRING_H)
 # include <string.h>
 #elif defined(HAVE_STRINGS_H)
@@ -47,6 +50,75 @@
 #undef jit_memmove
 #undef jit_memcmp
 #undef jit_memchr
+
+/*@
+ * @section Memory allocation
+ *
+ * The @code{libjit} library provides an interface to the traditional
+ * system @code{malloc} routines.  All heap allocation in @code{libjit}
+ * goes through these functions.  If you need to perform some other kind
+ * of memory allocation, you can replace these functions with your
+ * own versions.
+@*/
+
+/*@
+ * @deftypefun {void *} jit_malloc (unsigned int @var{size})
+ * Allocate @var{size} bytes of memory from the heap.
+ * @end deftypefun
+ *
+ * @deftypefun {type *} jit_new (@var{type})
+ * Allocate @code{sizeof(@var{type})} bytes of memory from the heap and
+ * cast the return pointer to @code{@var{type} *}.  This is a macro that
+ * wraps up the underlying @code{jit_malloc} function and is less
+ * error-prone when allocating structures.
+ * @end deftypefun
+@*/
+void *jit_malloc(unsigned int size)
+{
+	return malloc(size);
+}
+
+/*@
+ * @deftypefun {void *} jit_calloc (unsigned int @var{num}, unsigned int @var{size})
+ * Allocate @code{@var{num} * @var{size}} bytes of memory from the heap and clear
+ * them to zero.
+ * @end deftypefun
+ *
+ * @deftypefun {type *} jit_cnew (@var{type})
+ * Allocate @code{sizeof(@var{type})} bytes of memory from the heap and
+ * cast the return pointer to @code{@var{type} *}.  The memory is cleared
+ * to zero.
+ * @end deftypefun
+@*/
+void *jit_calloc(unsigned int num, unsigned int size)
+{
+	return calloc(num, size);
+}
+
+/*@
+ * @deftypefun {void *} jit_realloc (void *@var{ptr}, unsigned int @var{size})
+ * Re-allocate the memory at @var{ptr} to be @var{size} bytes in size.
+ * The memory block at @var{ptr} must have been allocated by a previous
+ * call to @code{jit_malloc}, @code{jit_calloc}, or @code{jit_realloc}.
+ * @end deftypefun
+@*/
+void *jit_realloc(void *ptr, unsigned int size)
+{
+	return realloc(ptr, size);
+}
+
+/*@
+ * @deftypefun void jit_free (void *@var{ptr})
+ * Free the memory at @var{ptr}.  It is safe to pass a NULL pointer.
+ * @end deftypefun
+@*/
+void jit_free(void *ptr)
+{
+	if(ptr)
+	{
+		free(ptr);
+	}
+}
 
 /*@
  * @section Memory set, copy, compare, etc

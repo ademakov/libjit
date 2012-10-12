@@ -103,11 +103,11 @@ jit_function_create(jit_context_t context, jit_type_t signature)
 	func->entry_point = _jit_create_redirector
 		(func->redirector, (void *) context->on_demand_driver,
 		 func, jit_type_get_abi(signature));
-	jit_flush_exec(func->redirector, jit_redirector_size);
+	_jit_flush_exec(func->redirector, jit_redirector_size);
 #endif
 #if !defined(JIT_BACKEND_INTERP) && defined(jit_indirector_size)
 	_jit_create_indirector(func->indirector, (void**) &(func->entry_point));
-	jit_flush_exec(func->indirector, jit_indirector_size);
+	_jit_flush_exec(func->indirector, jit_indirector_size);
 #endif
 
 	/* Add the function to the context list */

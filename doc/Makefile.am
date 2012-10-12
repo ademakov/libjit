@@ -5,7 +5,6 @@ EXTRA_DIST      = $(man_MANS) $(EXTRA_SCRIPTS)
 
 info_TEXINFOS   = libjit.texi
 libjit_TEXINFOS = \
-	$(srcdir)/libjitext-alloc.texi \
 	$(srcdir)/libjitext-apply.texi \
 	$(srcdir)/libjitext-block.texi \
 	$(srcdir)/libjitext-context.texi \
@@ -29,9 +28,6 @@ libjit_TEXINFOS = \
 	$(srcdir)/libjitext-plus-context.texi \
 	$(srcdir)/libjitext-plus-function.texi \
 	$(srcdir)/libjitext-plus-value.texi
-
-$(srcdir)/libjitext-alloc.texi: $(top_srcdir)/jit/jit-alloc.c
-	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
 $(srcdir)/libjitext-apply.texi: $(top_srcdir)/jit/jit-apply.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@

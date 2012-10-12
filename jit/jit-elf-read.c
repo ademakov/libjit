@@ -299,7 +299,7 @@ static int map_program(jit_readelf_t readelf, int fd)
 		int zero_fd, prot;
 
 		/* Round the total memory and file sizes up to the CPU page size */
-		page_size = (Elf_Off)(jit_exec_page_size());
+		page_size = (Elf_Off)(jit_vmem_page_size());
 		end = memory_size;
 		if((end % page_size) != 0)
 		{
@@ -416,7 +416,7 @@ failed_mmap:
 	/* If we haven't mapped the file yet, then fall back to "malloc" */
 	if(!base_address)
 	{
-		base_address = jit_malloc_exec(memory_size);
+		base_address = _jit_malloc_exec(memory_size);
 		if(!base_address)
 		{
 			return 0;
@@ -433,7 +433,7 @@ failed_mmap:
 	               read(fd, segment_address, (size_t)(phdr->p_filesz))
 				   		!= (int)(size_t)(phdr->p_filesz))
 				{
-					jit_free_exec(base_address, memory_size);
+					_jit_free_exec(base_address, memory_size);
 					return 0;
 				}
 			}
@@ -458,19 +458,19 @@ static void *map_section(int fd, Elf_Off offset, Elf_Xword file_size,
 	{
 		memory_size = file_size;
 	}
-	address = jit_malloc_exec(memory_size);
+	address = _jit_malloc_exec(memory_size);
 	if(!address)
 	{
 		return 0;
 	}
 	if(lseek(fd, (off_t)offset, 0) != (off_t)offset)
 	{
-		jit_free_exec(address, memory_size);
+		_jit_free_exec(address, memory_size);
 		return 0;
 	}
 	if(read(fd, address, (size_t)file_size) != (int)(size_t)file_size)
 	{
-		jit_free_exec(address, memory_size);
+		_jit_free_exec(address, memory_size);
 		return 0;
 	}
 	return address;
@@ -488,7 +488,7 @@ static void unmap_section(void *address, Elf_Xword file_size,
 	}
 	if((flags & JIT_ELF_IS_MALLOCED) != 0)
 	{
-		jit_free_exec(address, (unsigned int)memory_size);
+		_jit_free_exec(address, (unsigned int)memory_size);
 	}
 }
 
@@ -1105,7 +1105,7 @@ void jit_readelf_close(jit_readelf_t readelf)
 	else
 #endif
 	{
-		jit_free_exec(readelf->map_address, readelf->map_size);
+		_jit_free_exec(readelf->map_address, readelf->map_size);
 	}
 	for(index = 0; index < readelf->ehdr.e_shnum; ++index)
 	{

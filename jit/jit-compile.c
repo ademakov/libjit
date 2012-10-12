@@ -523,7 +523,7 @@ cache_flush(_jit_compile_t *state)
 
 #ifndef JIT_BACKEND_INTERP
 		/* On success perform a CPU cache flush, to make the code executable */
-		jit_flush_exec(state->code_start,
+		_jit_flush_exec(state->code_start,
 			       (unsigned int)(state->code_end - state->code_start));
 #endif
 

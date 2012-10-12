@@ -906,7 +906,7 @@ jit_closure_create(jit_context_t context, jit_type_t signature, jit_closure_func
 	closure->user_data = user_data;
 
 	/* Perform a cache flush on the closure's code */
-	jit_flush_exec(closure->buf, sizeof(closure->buf));
+	_jit_flush_exec(closure->buf, sizeof(closure->buf));
 
 	/* Unlock the cache, as we are finished with it */
 	jit_mutex_unlock(&context->cache_lock);

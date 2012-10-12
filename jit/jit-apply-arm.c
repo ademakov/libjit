@@ -91,7 +91,7 @@ void *_jit_create_redirector(unsigned char *buf, void *func,
 	arm_mov_reg_reg(inst, ARM_PC, ARM_R12);
 
 	/* Flush the cache lines that we just wrote */
-	jit_flush_exec(buf, ((unsigned char *)(inst.current)) - buf);
+	_jit_flush_exec(buf, ((unsigned char *)(inst.current)) - buf);
 
 	/* Return the aligned start of the buffer as the entry point */
 	return (void *)buf;
@@ -118,7 +118,7 @@ void *_jit_create_indirector(unsigned char *buf, void **entry)
 	arm_mov_reg_reg(inst, ARM_PC, ARM_WORK);
 
 	/* Flush the cache lines that we just wrote */
-	jit_flush_exec(buf, ((unsigned char *)(inst.current)) - buf);
+	_jit_flush_exec(buf, ((unsigned char *)(inst.current)) - buf);
 	
 	return start;
 }
@@ -137,7 +137,7 @@ void _jit_pad_buffer(unsigned char *buf, int len)
 	}
 	
 	/* Flush the cache lines that we just wrote */
-	jit_flush_exec(buf, ((unsigned char *)(inst.current)) - buf);
+	_jit_flush_exec(buf, ((unsigned char *)(inst.current)) - buf);
 }
 
 #endif /* arm */
