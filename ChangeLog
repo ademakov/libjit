@@ -1,3 +1,7 @@
+2012-10-12  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-memory.h: remove file.
+
 2012-10-08  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-cache.c, jit/jit-cache.c(_jit_cache_alloc_trampoline)

@@ -26,6 +26,42 @@
 #include <jit/jit.h>
 #include "jit-config.h"
 
+#if defined(HAVE_STRING_H)
+# include <string.h>
+#elif defined(HAVE_STRINGS_H)
+# include <strings.h>
+#endif
+#if defined(HAVE_MEMORY_H)
+# include <memory.h>
+#endif
+
+/*
+ * Macros that replace the routines in <jit/jit-util.h>
+ * with direct calls on the underlying library functions.
+ */
+#if defined(HAVE_MEMSET)
+# define jit_memset(s, c, len)		(memset((s), (c), (len)))
+# define jit_memzero(s, len)		(memset((s), 0, (len)))
+#elif defined(HAVE_BZERO)
+# define jit_memzero(s, len)		(bzero((char *)(s), (len)))
+#else
+# define jit_memzero(s, len)		(jit_memset((char *)(s), 0, (len)))
+#endif
+#if defined(HAVE_MEMCPY)
+# define jit_memcpy(s1, s2, len)	(memcpy((s1), (s2), (len)))
+#endif
+#if defined(HAVE_MEMMOVE)
+# define jit_memmove(s1, s2, len)	(memmove((s1), (s2), (len)))
+#endif
+#if defined(HAVE_MEMCMP)
+# define jit_memcmp(s1, s2, len)	(memcmp((s1), (s2), (len)))
+#elif defined(HAVE_BCMP)
+# define jit_memcmp(s1, s2, len)	(bcmp((char *)(s1), (char *)(s2), (len)))
+#endif
+#if defined(HAVE_MEMCHR)
+# define jit_memchr(s, c, len)		(memchr((s), (c), (len)))
+#endif
+
 #ifdef	__cplusplus
 extern	"C" {
 #endif

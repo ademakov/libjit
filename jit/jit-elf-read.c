@@ -23,7 +23,6 @@
 #include "jit-internal.h"
 #include "jit-rules.h"
 #include "jit-elf-defs.h"
-#include "jit-memory.h"
 #ifdef JIT_WIN32_PLATFORM
 	#ifdef HAVE_SYS_TYPES_H
 		#include <sys/types.h>

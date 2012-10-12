@@ -21,7 +21,6 @@
  */
 
 #include "jit-internal.h"
-#include "jit-memory.h"
 #include "jit-rules.h"
 #include "jit-reg-alloc.h"
 #include "jit-setjmp.h"

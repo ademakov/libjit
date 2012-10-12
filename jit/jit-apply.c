@@ -21,7 +21,6 @@
  */
 
 #include "jit-internal.h"
-#include "jit-memory.h"
 #include "jit-apply-rules.h"
 #include "jit-apply-func.h"
 #include "jit-cache.h"

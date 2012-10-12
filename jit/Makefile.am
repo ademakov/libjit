@@ -46,7 +46,6 @@ libjit_la_SOURCES = \
 	jit-intrinsic.c \
 	jit-live.c \
 	jit-memory.c \
-	jit-memory.h \
 	jit-meta.c \
 	jit-opcode-apply.c \
 	jit-objmodel.c \

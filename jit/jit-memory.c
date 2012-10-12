@@ -20,10 +20,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "jit-memory.h"
+#include "jit-internal.h"
 
 /*
- * Undefine the macros in "jit-memory.h" so that we
+ * Undefine the macros in "jit-internal.h" so that we
  * can define the real function forms.
  */
 #undef jit_memset

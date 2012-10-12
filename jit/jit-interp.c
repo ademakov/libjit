@@ -30,7 +30,6 @@ straight vanilla ANSI C.
 
 #include "jit-interp.h"
 #include "jit-rules.h"
-#include "jit-memory.h"
 #if HAVE_STDLIB_H
 	#include <stdlib.h>
 #endif

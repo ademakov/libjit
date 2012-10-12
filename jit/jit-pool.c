@@ -21,7 +21,6 @@
  */
 
 #include "jit-internal.h"
-#include "jit-memory.h"
 
 void _jit_memory_pool_init(jit_memory_pool *pool, unsigned int elem_size)
 {

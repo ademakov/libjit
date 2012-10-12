@@ -21,7 +21,6 @@
  */
 
 #include "jit-internal.h"
-#include "jit-memory.h"
 
 /*@
 

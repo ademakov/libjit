@@ -22,7 +22,6 @@
 
 #include "jit-internal.h"
 #include "jit-elf-defs.h"
-#include "jit-memory.h"
 #include "jit-rules.h"
 
 /*@
