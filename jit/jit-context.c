@@ -312,17 +312,12 @@ void jit_context_free_meta(jit_context_t context, int type)
 	jit_meta_free(&(context->meta), type);
 }
 
-struct jit_cache *_jit_context_get_cache(jit_context_t context)
+struct jit_cache *
+_jit_context_get_cache(jit_context_t context)
 {
-	if(!(context->cache))
+	if(!context->cache)
 	{
-		context->cache = _jit_cache_create
-			((long)jit_context_get_meta_numeric
-				(context, JIT_OPTION_CACHE_LIMIT),
-			 (long)jit_context_get_meta_numeric
-			 	(context, JIT_OPTION_CACHE_PAGE_SIZE),
-			 (int)jit_context_get_meta_numeric
-				(context, JIT_OPTION_CACHE_MAX_PAGE_FACTOR));
+		context->cache = _jit_cache_create(context);
 	}
 	return context->cache;
 }

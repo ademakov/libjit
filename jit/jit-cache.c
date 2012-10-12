@@ -359,10 +359,19 @@ AddToLookupTree(jit_cache_t cache, jit_cache_method_t method)
 }
 
 jit_cache_t
-_jit_cache_create(long limit, long cache_page_size, int max_page_factor)
+_jit_cache_create(jit_context_t context)
 {
 	jit_cache_t cache;
+	long limit, cache_page_size;
+	int max_page_factor;
 	unsigned long exec_page_size;
+
+	limit = (long)
+		jit_context_get_meta_numeric(context, JIT_OPTION_CACHE_LIMIT);
+	cache_page_size = (long)
+		jit_context_get_meta_numeric(context, JIT_OPTION_CACHE_PAGE_SIZE);
+	max_page_factor = (int)
+		jit_context_get_meta_numeric(context, JIT_OPTION_CACHE_MAX_PAGE_FACTOR);
 
 	/* Allocate space for the cache control structure */
 	if((cache = (jit_cache_t )jit_malloc(sizeof(struct jit_cache))) == 0)

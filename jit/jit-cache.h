@@ -44,9 +44,7 @@ extern	"C" {
  * indicates the maximum cache page size as multiple of
  * "max_page_factor" and "cache_page_size".
  */
-jit_cache_t _jit_cache_create(long limit,
-			      long cache_page_size,
-			      int max_page_factor);
+jit_cache_t _jit_cache_create(jit_context_t context);
 
 /*
  * Destroy a code cache.
