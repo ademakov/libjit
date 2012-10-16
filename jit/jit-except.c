@@ -392,16 +392,12 @@ unsigned int jit_stack_trace_get_size(jit_stack_trace_t trace)
  * @var{posn} within the stack trace.
  * @end deftypefun
 @*/
-jit_function_t jit_stack_trace_get_function
-	(jit_context_t context, jit_stack_trace_t trace, unsigned int posn)
+jit_function_t
+jit_stack_trace_get_function(jit_context_t context, jit_stack_trace_t trace, unsigned int posn)
 {
 	if(trace && posn < trace->size)
 	{
-		jit_cache_t cache = _jit_context_get_cache(context);
-		if(cache)
-		{
-			return _jit_cache_get_function(cache, trace->items[posn]);
-		}
+		return _jit_memory_find_function(context, trace->items[posn]);
 	}
 	return 0;
 }
@@ -433,19 +429,15 @@ void *jit_stack_trace_get_pc
  * is no bytecode offset associated with @var{posn}.
  * @end deftypefun
 @*/
-unsigned int jit_stack_trace_get_offset
-	(jit_context_t context, jit_stack_trace_t trace, unsigned int posn)
+unsigned int
+jit_stack_trace_get_offset(jit_context_t context, jit_stack_trace_t trace, unsigned int posn)
 {
 	if(trace && posn < trace->size)
 	{
-		jit_cache_t cache = _jit_context_get_cache(context);
-		if(cache)
+		jit_function_t func = _jit_memory_find_function(context, trace->items[posn]);
+		if (func)
 		{
-			jit_function_t func = _jit_cache_get_function(cache, trace->items[posn]);
-			if (func)
-			{
-				return _jit_function_get_bytecode(func, trace->items[posn], 0);
-			}
+			return _jit_function_get_bytecode(func, trace->items[posn], 0);
 		}
 	}
 	return JIT_NO_OFFSET;

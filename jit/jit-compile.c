@@ -385,15 +385,16 @@ cleanup_on_restart(jit_gencode_t gen, jit_function_t func)
 static void
 cache_acquire(_jit_compile_t *state)
 {
-	/* Acquire the cache lock */
-	jit_mutex_lock(&state->func->context->cache_lock);
+	/* Store the function's context as codegen context */
+	state->gen.context = state->func->context;
+
+	/* Acquire the memory context lock */
+	_jit_memory_lock(state->gen.context);
 
 	/* Remember that the lock is acquired */
 	state->cache_locked = 1;
 
-	/* Get the method cache */
-	state->gen.cache = _jit_context_get_cache(state->func->context);
-	if(!state->gen.cache)
+	if(!_jit_memory_ensure(state->gen.context))
 	{
 		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 	}
@@ -408,7 +409,7 @@ cache_release(_jit_compile_t *state)
 	/* Release the lock if it was previously acquired */
 	if(state->cache_locked)
 	{
-		jit_mutex_unlock(&state->func->context->cache_lock);
+		_jit_memory_unlock(state->gen.context);
 		state->cache_locked = 0;
 	}
 }
@@ -462,20 +463,20 @@ cache_alloc(_jit_compile_t *state)
 	int result;
 
 	/* First try with the current cache page */
-	result = _jit_cache_start_function(state->gen.cache, state->func);
-	if(result == JIT_CACHE_RESTART)
+	result = _jit_memory_start_function(state->gen.context, state->func);
+	if(result == JIT_MEMORY_RESTART)
 	{
 		/* No space left on the current cache page.  Allocate a new one. */
-		_jit_cache_extend(state->gen.cache, state->page_factor++);
-		result = _jit_cache_start_function(state->gen.cache, state->func);
+		_jit_memory_extend_limit(state->gen.context, state->page_factor++);
+		result = _jit_memory_start_function(state->gen.context, state->func);
 	}
-	if(result != JIT_CACHE_OK)
+	if(result != JIT_MEMORY_OK)
 	{
 		/* Failed to allocate any cache space */
 		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 	}
-	state->gen.ptr = _jit_cache_get_code_break(state->gen.cache);
-	state->gen.limit = _jit_cache_get_code_limit(state->gen.cache); 
+	state->gen.ptr = _jit_memory_get_break(state->gen.context);
+	state->gen.limit = _jit_memory_get_limit(state->gen.context); 
 
 	/* Align the function code. */
 	cache_align(state, JIT_FUNCTION_ALIGNMENT, JIT_FUNCTION_ALIGNMENT, 0);
@@ -500,13 +501,13 @@ cache_flush(_jit_compile_t *state)
 		state->cache_started = 0;
 
 		/* Let the cache know where we are */
-		_jit_cache_set_code_break(state->gen.cache, state->gen.ptr);
+		_jit_memory_set_break(state->gen.context, state->gen.ptr);
 
 		/* End the function's output process */
-		result = _jit_cache_end_function(state->gen.cache, JIT_CACHE_OK);
-		if(result != JIT_CACHE_OK)
+		result = _jit_memory_end_function(state->gen.context, JIT_MEMORY_OK);
+		if(result != JIT_MEMORY_OK)
 		{
-			if(result == JIT_CACHE_RESTART)
+			if(result == JIT_MEMORY_RESTART)
 			{
 				/* Throw an internal exception that causes
 				   a larger code space to be allocated and
@@ -547,7 +548,7 @@ cache_abort(_jit_compile_t *state)
 		state->cache_started = 0;
 
 		/* Release the cache space */
-		_jit_cache_end_function(state->gen.cache, JIT_CACHE_RESTART);
+		_jit_memory_end_function(state->gen.context, JIT_MEMORY_RESTART);
 
 		/* Free encoded bytecode offset data */
 		_jit_varint_free_data(_jit_varint_get_data(&state->gen.offset_encoder));
@@ -567,15 +568,15 @@ cache_realloc(_jit_compile_t *state)
 
 	/* Allocate a new cache page with the size that grows
 	   by factor of 2 on each reallocation */
-	_jit_cache_extend(state->gen.cache, state->page_factor++);
-	result = _jit_cache_start_function(state->gen.cache, state->func);
-	if(result != JIT_CACHE_OK)
+	_jit_memory_extend_limit(state->gen.context, state->page_factor++);
+	result = _jit_memory_start_function(state->gen.context, state->func);
+	if(result != JIT_MEMORY_OK)
 	{
 		/* Failed to allocate enough cache space */
 		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 	}
-	state->gen.ptr = _jit_cache_get_code_break(state->gen.cache);
-	state->gen.limit = _jit_cache_get_code_limit(state->gen.cache);
+	state->gen.ptr = _jit_memory_get_break(state->gen.context);
+	state->gen.limit = _jit_memory_get_limit(state->gen.context);
 
 	/* Align the function code. */
 	cache_align(state, JIT_FUNCTION_ALIGNMENT, JIT_FUNCTION_ALIGNMENT, 0);
@@ -1015,13 +1016,10 @@ unsigned long
 _jit_function_get_bytecode(jit_function_t func, void *pc, int exact)
 {
 	unsigned long offset = JIT_CACHE_NO_OFFSET;
-	jit_cache_t cache;
 	void *start;
 	unsigned long native_offset;
 	jit_varint_decoder_t decoder;
 	jit_uint off, noff;
-
-	cache = _jit_context_get_cache(func->context);
 
 #ifdef JIT_PROLOG_SIZE
 	start = func->code_start;

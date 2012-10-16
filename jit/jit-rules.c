@@ -752,13 +752,13 @@ void *
 _jit_gen_alloc(jit_gencode_t gen, unsigned long size)
 {
 	void *ptr;
-	_jit_cache_set_code_break(gen->cache, gen->ptr);
-	ptr = _jit_cache_alloc_data(gen->cache, size, JIT_BEST_ALIGNMENT);
+	_jit_memory_set_break(gen->context, gen->ptr);
+	ptr = _jit_memory_alloc_data(gen->context, size, JIT_BEST_ALIGNMENT);
 	if(!ptr)
 	{
 		jit_exception_builtin(JIT_RESULT_CACHE_FULL);
 	}
-	gen->limit = _jit_cache_get_code_limit(gen->cache);
+	gen->limit = _jit_memory_get_limit(gen->context);
 	return ptr;
 }
 

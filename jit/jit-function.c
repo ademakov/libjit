@@ -22,7 +22,6 @@
 
 #include "jit-internal.h"
 #include "jit-apply-func.h"
-#include "jit-cache.h"
 #include "jit-rules.h"
 #include "jit-setjmp.h"
 
@@ -48,36 +47,32 @@ jit_function_t
 jit_function_create(jit_context_t context, jit_type_t signature)
 {
 	jit_function_t func;
-	jit_cache_t cache;
 #if !defined(JIT_BACKEND_INTERP) && (defined(jit_redirector_size) || defined(jit_indirector_size))
 	unsigned char *trampoline;
 #endif
 
-	/* We need the cache lock. */
-	jit_mutex_lock(&context->cache_lock);
-
-	/* Get the method cache */
-	cache = _jit_context_get_cache(context);
-	if(!cache)
+	/* Acquire the memory context */
+	_jit_memory_lock(context);
+	if(!_jit_memory_ensure(context))
 	{
-		jit_mutex_unlock(&context->cache_lock);
+		_jit_memory_unlock(context);
 		return 0;
 	}
 
 	/* Allocate memory for the function and clear it */
-	func = _jit_cache_alloc_function(cache);
+	func = _jit_memory_alloc_function(context);
 	if(!func)
 	{
-		jit_mutex_unlock(&context->cache_lock);
+		_jit_memory_unlock(context);
 		return 0;
 	}
 
 #if !defined(JIT_BACKEND_INTERP) && (defined(jit_redirector_size) || defined(jit_indirector_size))
-	trampoline = (unsigned char *) _jit_cache_alloc_trampoline(cache);
+	trampoline = (unsigned char *) _jit_memory_alloc_trampoline(context);
 	if(!trampoline)
 	{
-		_jit_cache_free_function(cache, func);
-		jit_mutex_unlock(&context->cache_lock);
+		_jit_memory_free_function(context, func);
+		_jit_memory_unlock(context);
 		return 0;
 	}
 # if defined(jit_redirector_size)
@@ -89,7 +84,8 @@ jit_function_create(jit_context_t context, jit_type_t signature)
 # endif
 #endif /* !defined(JIT_BACKEND_INTERP) && (defined(jit_redirector_size) || defined(jit_indirector_size)) */
 
-	jit_mutex_unlock(&context->cache_lock);
+	/* Release the memory context */
+	_jit_memory_unlock(context);
 
 	/* Initialize the function block */
 	func->context = context;
@@ -261,16 +257,18 @@ _jit_function_destroy(jit_function_t func)
 	jit_meta_destroy(&func->meta);
 	jit_type_free(func->signature);
 
-	jit_mutex_lock(&context->cache_lock);
+	_jit_memory_lock(context);
+
 #if !defined(JIT_BACKEND_INTERP) && (defined(jit_redirector_size) || defined(jit_indirector_size))
 # if defined(jit_redirector_size)
-	_jit_cache_free_trampoline(context->cache, func->redirector);
+	_jit_memory_free_trampoline(context, func->redirector);
 # else
-	_jit_cache_free_trampoline(context->cache, func->indirector);
+	_jit_memory_free_trampoline(context, func->indirector);
 # endif
 #endif
-	_jit_cache_free_function(context->cache, func);
-	jit_mutex_unlock(&context->cache_lock);
+	_jit_memory_free_function(context, func);
+
+	_jit_memory_unlock(context);
 }
 
 /*@
@@ -647,13 +645,14 @@ void *jit_function_to_closure(jit_function_t func)
  * closure does not correspond to a function in the specified context.
  * @end deftypefun
 @*/
-jit_function_t jit_function_from_closure(jit_context_t context, void *closure)
+jit_function_t 
+jit_function_from_closure(jit_context_t context, void *closure)
 {
-	if(!context || !(context->cache))
+	if(!context)
 	{
 		return 0;
 	}
-	return _jit_cache_get_function(context->cache, closure);
+	return _jit_memory_find_function(context, closure);
 }
 
 /*@
@@ -664,40 +663,37 @@ jit_function_t jit_function_from_closure(jit_context_t context, void *closure)
  * under the control of @var{context}.
  * @end deftypefun
 @*/
-jit_function_t jit_function_from_pc
-	(jit_context_t context, void *pc, void **handler)
+jit_function_t
+jit_function_from_pc(jit_context_t context, void *pc, void **handler)
 {
 	jit_function_t func;
-	void *cookie;
 
-	/* Bail out if we don't have a function cache yet */
-	if(!context || !(context->cache))
+	if(!context)
 	{
 		return 0;
 	}
 
 	/* Get the function and the exception handler cookie */
-	func = _jit_cache_get_function(context->cache, pc);
+	func = _jit_memory_find_function(context, pc);
 	if(!func)
 	{
 		return 0;
 	}
-	cookie = func->cookie;
 
 	/* Convert the cookie into a handler address */
 	if(handler)
 	{
 #if 0
-		if(cookie)
+		if(func->cookie)
 		{
-			*handler = ((jit_cache_eh_t)cookie)->handler;
+			*handler = ((jit_cache_eh_t) func->cookie)->handler;
 		}
 		else
 		{
 			*handler = 0;
 		}
 #else
-		*handler = cookie;
+		*handler = func->cookie;
 #endif
 	}
 	return func;
@@ -716,7 +712,8 @@ jit_function_t jit_function_from_pc
  * guaranteed.  Closures can be used with @code{jit_insn_call_indirect}.
  * @end deftypefun
 @*/
-void *jit_function_to_vtable_pointer(jit_function_t func)
+void *
+jit_function_to_vtable_pointer(jit_function_t func)
 {
 #ifdef JIT_BACKEND_INTERP
 	/* In the interpreted version, the function pointer is used in vtables */
@@ -741,7 +738,8 @@ void *jit_function_to_vtable_pointer(jit_function_t func)
  * vtable_pointer does not correspond to a function in the specified context.
  * @end deftypefun
 @*/
-jit_function_t jit_function_from_vtable_pointer(jit_context_t context, void *vtable_pointer)
+jit_function_t
+jit_function_from_vtable_pointer(jit_context_t context, void *vtable_pointer)
 {
 #ifdef JIT_BACKEND_INTERP
 	/* In the interpreted version, the function pointer is used in vtables */
@@ -753,11 +751,11 @@ jit_function_t jit_function_from_vtable_pointer(jit_context_t context, void *vta
 	}
 	return 0;
 #else
-	if(!context || !(context->cache))
+	if(!context)
 	{
 		return 0;
 	}
-	return _jit_cache_get_function(context->cache, vtable_pointer);
+	return _jit_memory_find_function(context, vtable_pointer);
 #endif
 }
 

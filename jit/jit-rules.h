@@ -24,7 +24,6 @@
 #define	_JIT_RULES_H
 
 #include "jit-config.h"
-#include "jit-cache.h"
 
 #ifdef	__cplusplus
 extern	"C" {
@@ -159,7 +158,7 @@ struct jit_regcontents
 typedef struct jit_gencode *jit_gencode_t;
 struct jit_gencode
 {
-	jit_cache_t		cache;		/* Cache this position is attached to */
+	jit_context_t		context;	/* Context this position is attached to */
 	unsigned char		*ptr;		/* Current code pointer */
 	unsigned char		*limit;		/* Current code space limit */
 	jit_regused_t		permanent;	/* Permanently allocated global regs */

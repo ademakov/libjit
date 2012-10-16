@@ -1,3 +1,16 @@
+2012-10-16  Aleksey Demakov  <ademakov@gmail.com>
+
+	* include/jit/jit-memory.h: add file that defines pluggable memory
+	manager interface.
+	* jit-internal.h, jit/jit-memory.c: add a number of _jit_memory_*
+	pluggable memory wrapper functions. Replace with these wrappers
+	all _jit_cache_* calls.
+	* jit/jit-cache.c (jit_default_memory_manager): add function that
+	gets memory mamnager plugin interface.
+	* jit/jit-cache.h: remove file.
+	* include/jit/jit-context.h:
+	* jit/jit-context.c (jit_context_set_memory_manager): add function.
+
 2012-10-12  Aleksey Demakov  <ademakov@gmail.com>
 
 	* include/jit/jit-util.h, jit/jit-alloc.c (jit_malloc_exec)

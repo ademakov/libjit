@@ -1422,10 +1422,13 @@ void jit_readelf_add_to_context(jit_readelf_t readelf, jit_context_t context)
 	{
 		return;
 	}
-	jit_mutex_lock(&(context->cache_lock));
+
+	_jit_memory_lock(context);
+
 	readelf->next = context->elf_binaries;
 	context->elf_binaries = readelf;
-	jit_mutex_unlock(&(context->cache_lock));
+
+	_jit_memory_unlock(context);
 }
 
 /*
@@ -1773,13 +1776,15 @@ static int perform_relocations
 @*/
 int jit_readelf_resolve_all(jit_context_t context, int print_failures)
 {
-	jit_readelf_t readelf;
 	int ok = 1;
+	jit_readelf_t readelf;
 	if(!context)
 	{
 		return 0;
 	}
-	jit_mutex_lock(&(context->cache_lock));
+
+	_jit_memory_lock(context);
+
 	readelf = context->elf_binaries;
 	while(readelf != 0)
 	{
@@ -1793,7 +1798,8 @@ int jit_readelf_resolve_all(jit_context_t context, int print_failures)
 		}
 		readelf = readelf->next;
 	}
-	jit_mutex_unlock(&(context->cache_lock));
+
+	_jit_memory_unlock(context);
 	return ok;
 }
 

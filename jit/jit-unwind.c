@@ -21,7 +21,6 @@
  */
 
 #include "jit-internal.h"
-#include "jit-cache.h"
 #include "jit-rules.h"
 #include "jit-apply-rules.h"
 #include <jit/jit-unwind.h>
@@ -167,9 +166,8 @@ jit_unwind_get_function(jit_unwind_context_t *unwind)
 
 	if(!unwind->cache)
 	{
-		jit_cache_t cache = _jit_context_get_cache(unwind->context);
 		void *pc = jit_unwind_get_pc(unwind);
-		unwind->cache = _jit_cache_get_function(cache, pc);
+		unwind->cache = _jit_memory_find_function(unwind->context, pc);
 	}
 
 	return (jit_function_t) unwind->cache;

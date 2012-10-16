@@ -23,7 +23,6 @@
 #include "jit-internal.h"
 #include "jit-apply-rules.h"
 #include "jit-apply-func.h"
-#include "jit-cache.h"
 #if HAVE_STDLIB_H
 	#include <stdlib.h>
 #endif
@@ -872,7 +871,6 @@ void *
 jit_closure_create(jit_context_t context, jit_type_t signature, jit_closure_func func, void *user_data)
 {
 #ifdef jit_closure_size
-	jit_cache_t cache;
 	jit_closure_t closure;
 
 	/* Validate the parameters */
@@ -881,21 +879,19 @@ jit_closure_create(jit_context_t context, jit_type_t signature, jit_closure_func
 		return 0;
 	}
 
-	/* Acquire the cache lock while we do this */
-	jit_mutex_lock(&context->cache_lock);
-
-	/* Allocate space for the closure within the context's function cache */
-	cache = _jit_context_get_cache(context);
-	if(!cache)
+	/* Acquire the memory context */
+	_jit_memory_lock(context);
+	if(!_jit_memory_ensure(context))
 	{
-		jit_mutex_unlock(&context->cache_lock);
+		_jit_memory_unlock(context);
 		return 0;
 	}
 
-	closure = (jit_closure_t)_jit_cache_alloc_closure(cache);
+	/* Allocate memory space for the closure */
+	closure = (jit_closure_t) _jit_memory_alloc_closure(context);
 	if(!closure)
 	{
-		jit_mutex_unlock(&context->cache_lock);
+		_jit_memory_unlock(context);
 		return 0;
 	}
 
@@ -905,11 +901,11 @@ jit_closure_create(jit_context_t context, jit_type_t signature, jit_closure_func
 	closure->func = func;
 	closure->user_data = user_data;
 
+	/* Release the memory context, as we are finished with it */
+	_jit_memory_unlock(context);
+
 	/* Perform a cache flush on the closure's code */
 	_jit_flush_exec(closure->buf, sizeof(closure->buf));
-
-	/* Unlock the cache, as we are finished with it */
-	jit_mutex_unlock(&context->cache_lock);
 
 	/* Return the completed closure to the caller */
 	return closure;

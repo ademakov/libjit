@@ -25,7 +25,6 @@ See the bottom of this file for documentation on the cache system.
 */
 
 #include "jit-internal.h"
-#include "jit-cache.h"
 #include "jit-apply-func.h"
 
 #include <stddef.h> /* for offsetof */
@@ -76,7 +75,7 @@ struct jit_cache_page
 /*
  * Structure of the method cache.
  */
-#define	JIT_CACHE_DEBUG_SIZE		64
+typedef struct jit_cache *jit_cache_t;
 struct jit_cache
 {
 	struct jit_cache_page	*pages;		/* List of pages currently in the cache */
@@ -116,6 +115,8 @@ struct jit_cache
 	((node)->left = (jit_cache_method_t)(((jit_nuint)(node)->left) | ((jit_nuint)1)))
 #define	SetBlack(node)	\
 	((node)->left = (jit_cache_method_t)(((jit_nuint)(node)->left) & ~((jit_nuint)1)))
+
+void _jit_cache_destroy(jit_cache_t cache);
 
 /*
  * Allocate a cache page and add it to the cache.
@@ -517,13 +518,13 @@ _jit_cache_start_function(jit_cache_t cache, jit_function_t func)
 	/* Bail out if there is a started function already */
 	if(cache->method)
 	{
-		return JIT_CACHE_ERROR;
+		return JIT_MEMORY_ERROR;
 	}
 
 	/* Bail out if the cache is already full */
 	if(!cache->free_start)
 	{
-		return JIT_CACHE_TOO_BIG;
+		return JIT_MEMORY_TOO_BIG;
 	}
 
 	/* Save the cache position */
@@ -540,7 +541,7 @@ _jit_cache_start_function(jit_cache_t cache, jit_function_t func)
 	cache->method->left = 0;
 	cache->method->right = 0;
 
-	return JIT_CACHE_OK;
+	return JIT_MEMORY_OK;
 }
 
 int
@@ -549,17 +550,17 @@ _jit_cache_end_function(jit_cache_t cache, int result)
 	/* Bail out if there is no started function */
 	if(!cache->method)
 	{
-		return JIT_CACHE_ERROR;
+		return JIT_MEMORY_ERROR;
 	}
 
 	/* Determine if we ran out of space while writing the function */
-	if(result != JIT_CACHE_OK || cache->free_start >= cache->free_end)
+	if(result != JIT_MEMORY_OK || cache->free_start >= cache->free_end)
 	{
 		/* Restore the saved cache position */
 		cache->free_start = cache->prev_start;
 		cache->free_end = cache->prev_end;
 		cache->method = 0;
-		return JIT_CACHE_RESTART;
+		return JIT_MEMORY_RESTART;
 	}
 
 	/* Update the method region block and then add it to the lookup tree */
@@ -568,7 +569,7 @@ _jit_cache_end_function(jit_cache_t cache, int result)
 	cache->method = 0;
 
 	/* The method is ready to go */
-	return JIT_CACHE_OK;
+	return JIT_MEMORY_OK;
 }
 
 void *
@@ -795,6 +796,30 @@ _jit_cache_get_function(jit_cache_t cache, void *pc)
 		}
 	}
 	return 0;
+}
+
+jit_memory_manager_t
+jit_default_memory_manager(void)
+{
+	static const struct jit_memory_manager mm = {
+		&_jit_cache_create,
+		&_jit_cache_destroy,
+		&_jit_cache_get_function,
+		&_jit_cache_alloc_function,
+		&_jit_cache_free_function,
+		&_jit_cache_start_function,
+		&_jit_cache_end_function,
+		&_jit_cache_extend,
+		&_jit_cache_get_code_limit,
+		&_jit_cache_get_code_break,
+		&_jit_cache_set_code_break,
+		&_jit_cache_alloc_trampoline,
+		&_jit_cache_free_trampoline,
+		&_jit_cache_alloc_closure,
+		&_jit_cache_free_closure,
+		&_jit_cache_alloc_data
+	};
+	return &mm;
 }
 
 /*

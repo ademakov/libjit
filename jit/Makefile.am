@@ -17,7 +17,6 @@ libjit_la_SOURCES = \
 	jit-bitset.h \
 	jit-bitset.c \
 	jit-block.c \
-	jit-cache.h \
 	jit-cache.c \
 	jit-compile.c \
 	jit-config.h \
@@ -45,6 +44,7 @@ libjit_la_SOURCES = \
 	jit-interp-opcode.c \
 	jit-intrinsic.c \
 	jit-live.c \
+	jit-memory.c \
 	jit-meta.c \
 	jit-opcode-apply.c \
 	jit-objmodel.c \

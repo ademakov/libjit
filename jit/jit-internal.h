@@ -62,10 +62,6 @@
 # define jit_memchr(s, c, len)		(memchr((s), (c), (len)))
 #endif
 
-#ifdef	__cplusplus
-extern	"C" {
-#endif
-
 /*
  * We need the apply rules for "jit_redirector_size".
  */
@@ -81,9 +77,9 @@ extern	"C" {
  */
 #include "jit-varint.h"
 
-void *_jit_malloc_exec(unsigned int size);
-void _jit_free_exec(void *ptr, unsigned int size);
-void _jit_flush_exec(void *ptr, unsigned int size);
+#ifdef	__cplusplus
+extern	"C" {
+#endif
 
 /*
  * The following is some macro magic that attempts to detect
@@ -147,11 +143,6 @@ _JIT_ALIGN_CHECK_TYPE(jit_nfloat, nfloat);
 #define	JIT_ALIGN_FLOAT64		_JIT_ALIGN_FOR_TYPE(double)
 #define	JIT_ALIGN_NFLOAT		_JIT_ALIGN_FOR_TYPE(nfloat)
 #define	JIT_ALIGN_PTR			_JIT_ALIGN_FOR_TYPE(ptr)
-
-/*
- * Opaque function cache type.
- */
-typedef struct jit_cache *jit_cache_t;
 
 /*
  * Structure of a memory pool.
@@ -573,11 +564,13 @@ struct jit_regsym
  */
 struct _jit_context
 {
+	/* The context's memory control */
+	jit_memory_manager_t	memory_manager;
+	jit_memory_context_t	memory_context;
+	jit_mutex_t		memory_lock;
+
 	/* Lock that controls access to the building process */
 	jit_mutex_t		builder_lock;
-
-	/* Lock that controls access to the function code cache */
-	jit_mutex_t		cache_lock;
 
 	/* List of functions that are currently registered with the context */
 	jit_function_t		functions;
@@ -585,9 +578,6 @@ struct _jit_context
 
 	/* Metadata that is associated with the context */
 	jit_meta_t		meta;
-
-	/* The context's function code cache */
-	struct jit_cache	*cache;
 
 	/* ELF binaries that have been loaded into this context */
 	jit_readelf_t		elf_binaries;
@@ -603,6 +593,32 @@ struct _jit_context
 	/* On-demand compilation driver */
 	jit_on_demand_driver_func	on_demand_driver;
 };
+
+void *_jit_malloc_exec(unsigned int size);
+void _jit_free_exec(void *ptr, unsigned int size);
+void _jit_flush_exec(void *ptr, unsigned int size);
+
+void _jit_memory_lock(jit_context_t context);
+void _jit_memory_unlock(jit_context_t context);
+
+int _jit_memory_ensure(jit_context_t context);
+void _jit_memory_destroy(jit_context_t context);
+
+jit_function_t _jit_memory_find_function(jit_context_t context, void *pc);
+
+jit_function_t _jit_memory_alloc_function(jit_context_t context);
+void _jit_memory_free_function(jit_context_t context, jit_function_t func);
+int _jit_memory_start_function(jit_context_t context, jit_function_t func);
+int _jit_memory_end_function(jit_context_t context, int result);
+int _jit_memory_extend_limit(jit_context_t context, int count);
+void *_jit_memory_get_limit(jit_context_t context);
+void *_jit_memory_get_break(jit_context_t context);
+void _jit_memory_set_break(jit_context_t context, void *brk);
+void *_jit_memory_alloc_trampoline(jit_context_t context);
+void _jit_memory_free_trampoline(jit_context_t context, void *ptr);
+void *_jit_memory_alloc_closure(jit_context_t context);
+void _jit_memory_free_closure(jit_context_t context, void *ptr);
+void *_jit_memory_alloc_data(jit_context_t context, jit_size_t size, jit_size_t align);
 
 /*
  * Backtrace control structure, for managing stack traces.
@@ -643,11 +659,6 @@ struct jit_thread_control
 	jit_backtrace_t		backtrace_head;
 	struct jit_jmp_buf	*setjmp_head;
 };
-
-/*
- * Get the function code cache for a context, creating it if necessary.
- */
-struct jit_cache *_jit_context_get_cache(jit_context_t context);
 
 /*
  * Initialize the block list for a function.

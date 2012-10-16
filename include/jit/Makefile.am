@@ -19,6 +19,7 @@ dist_libjitinclude_HEADERS = \
 	jit-init.h \
 	jit-insn.h \
 	jit-intrinsic.h \
+	jit-memory.h \
 	jit-meta.h \
 	jit-objmodel.h \
 	jit-objmodel-private.h \

@@ -22,6 +22,7 @@
 #define	_JIT_CONTEXT_H
 
 #include <jit/jit-common.h>
+#include <jit/jit-memory.h>
 
 #ifdef	__cplusplus
 extern	"C" {
@@ -29,11 +30,18 @@ extern	"C" {
 
 jit_context_t jit_context_create(void) JIT_NOTHROW;
 void jit_context_destroy(jit_context_t context) JIT_NOTHROW;
+
 void jit_context_build_start(jit_context_t context) JIT_NOTHROW;
 void jit_context_build_end(jit_context_t context) JIT_NOTHROW;
+
 void jit_context_set_on_demand_driver(
 	jit_context_t context,
 	jit_on_demand_driver_func driver) JIT_NOTHROW;
+
+void jit_context_set_memory_manager(
+	jit_context_t context,
+	jit_memory_manager_t manager) JIT_NOTHROW;
+
 int jit_context_set_meta
 	(jit_context_t context, int type, void *data,
 	 jit_meta_free_func free_data) JIT_NOTHROW;

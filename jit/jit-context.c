@@ -21,7 +21,6 @@
  */
 
 #include "jit-internal.h"
-#include "jit-cache.h"
 
 /*@
 
@@ -71,7 +70,8 @@ ultimately destroy JIT contexts:
  * if out of memory.
  * @end deftypefun
 @*/
-jit_context_t jit_context_create(void)
+jit_context_t
+jit_context_create(void)
 {
 	jit_context_t context;
 
@@ -86,11 +86,12 @@ jit_context_t jit_context_create(void)
 	}
 
 	/* Initialize the context and return it */
-	jit_mutex_create(&(context->builder_lock));
-	jit_mutex_create(&(context->cache_lock));
+	jit_mutex_create(&context->memory_lock);
+	jit_mutex_create(&context->builder_lock);
 	context->functions = 0;
 	context->last_function = 0;
 	context->on_demand_driver = _jit_function_compile_on_demand;
+	context->memory_manager = jit_default_memory_manager();
 	return context;
 }
 
@@ -101,28 +102,33 @@ jit_context_t jit_context_create(void)
  * running compiled code when this function is called.
  * @end deftypefun
 @*/
-void jit_context_destroy(jit_context_t context)
+void
+jit_context_destroy(jit_context_t context)
 {
 	int sym;
-	if(context)
+
+	if(!context)
 	{
-		while(context->functions != 0)
-		{
-			_jit_function_destroy(context->functions);
-		}
-		if(context->cache)
-		{
-			_jit_cache_destroy(context->cache);
-		}
-		for(sym = 0; sym < context->num_registered_symbols; ++sym)
-		{
-			jit_free(context->registered_symbols[sym]);
-		}
-		jit_free(context->registered_symbols);
-		jit_mutex_destroy(&(context->cache_lock));
-		jit_mutex_destroy(&(context->builder_lock));
-		jit_free(context);
+		return;
 	}
+
+	for(sym = 0; sym < context->num_registered_symbols; ++sym)
+	{
+		jit_free(context->registered_symbols[sym]);
+	}
+	jit_free(context->registered_symbols);
+
+	while(context->functions != 0)
+	{
+		_jit_function_destroy(context->functions);
+	}
+
+	_jit_memory_destroy(context);
+
+	jit_mutex_destroy(&context->memory_lock);
+	jit_mutex_destroy(&context->builder_lock);
+
+	jit_free(context);
 }
 
 /*@
@@ -133,9 +139,10 @@ void jit_context_destroy(jit_context_t context)
  * can be performing build operations at any one time.
  * @end deftypefun
 @*/
-void jit_context_build_start(jit_context_t context)
+void
+jit_context_build_start(jit_context_t context)
 {
-	jit_mutex_lock(&(context->builder_lock));
+	jit_mutex_lock(&context->builder_lock);
 }
 
 /*@
@@ -146,9 +153,10 @@ void jit_context_build_start(jit_context_t context)
  * that are waiting on the builder to proceed.
  * @end deftypefun
 @*/
-void jit_context_build_end(jit_context_t context)
+void
+jit_context_build_end(jit_context_t context)
 {
-	jit_mutex_unlock(&(context->builder_lock));
+	jit_mutex_unlock(&context->builder_lock);
 }
 
 /*@
@@ -185,8 +193,7 @@ void jit_context_build_end(jit_context_t context)
  * or @code{JIT_RESULT_OUT_OF_MEMORY} will be thrown.
  *
  * @item
- * The entry point of the compiled function is returned from the
- * driver.
+ * The entry point of the compiled function is returned from the driver.
  * @end enumerate
  *
  * You may need to provide your own driver if some additional actions
@@ -194,7 +201,8 @@ void jit_context_build_end(jit_context_t context)
  *
  * @end deftypefun
 @*/
-void jit_context_set_on_demand_driver(jit_context_t context, jit_on_demand_driver_func driver)
+void
+jit_context_set_on_demand_driver(jit_context_t context, jit_on_demand_driver_func driver)
 {
 	if (driver)
 	{
@@ -203,6 +211,31 @@ void jit_context_set_on_demand_driver(jit_context_t context, jit_on_demand_drive
 	else
 	{
 		context->on_demand_driver = _jit_function_compile_on_demand;
+	}
+}
+
+/*@
+ * @deftypefun void jit_context_set_memory_manager (jit_context_t @var{context}, jit_memory_manager_t @var{manager})
+ * Specify the memory manager plug-in.
+ * @end deftypefun
+@*/
+void
+jit_context_set_memory_manager(jit_context_t context, jit_memory_manager_t manager)
+{
+	/* Bail out if there is already an established memory context */
+	if (context->memory_context)
+	{
+		return;
+	}
+
+	/* Set the context memory manager */
+	if (manager)
+	{
+		context->memory_manager = manager;
+	}
+	else
+	{
+		context->memory_manager = jit_default_memory_manager();
 	}
 }
 
@@ -220,9 +253,8 @@ void jit_context_set_on_demand_driver(jit_context_t context, jit_on_demand_drive
  * the previous value will be freed.
  * @end deftypefun
 @*/
-int jit_context_set_meta
-	(jit_context_t context, int type, void *data,
-	 jit_meta_free_func free_data)
+int
+jit_context_set_meta(jit_context_t context, int type, void *data, jit_meta_free_func free_data)
 {
 	return jit_meta_set(&(context->meta), type, data, free_data, 0);
 }
@@ -272,8 +304,8 @@ int jit_context_set_meta
  * Metadata type values of 10000 or greater are reserved for internal use.
  * @end deftypefun
 @*/
-int jit_context_set_meta_numeric
-	(jit_context_t context, int type, jit_nuint data)
+int
+jit_context_set_meta_numeric(jit_context_t context, int type, jit_nuint data)
 {
 	return jit_meta_set(&(context->meta), type, (void *)data, 0, 0);
 }
@@ -284,7 +316,8 @@ int jit_context_set_meta_numeric
  * if @var{type} does not have any metadata associated with it.
  * @end deftypefun
 @*/
-void *jit_context_get_meta(jit_context_t context, int type)
+void *
+jit_context_get_meta(jit_context_t context, int type)
 {
 	return jit_meta_get(context->meta, type);
 }
@@ -296,7 +329,8 @@ void *jit_context_get_meta(jit_context_t context, int type)
  * This version is more convenient for the pre-defined numeric option values.
  * @end deftypefun
 @*/
-jit_nuint jit_context_get_meta_numeric(jit_context_t context, int type)
+jit_nuint
+jit_context_get_meta_numeric(jit_context_t context, int type)
 {
 	return (jit_nuint)jit_meta_get(context->meta, type);
 }
@@ -307,17 +341,8 @@ jit_nuint jit_context_get_meta_numeric(jit_context_t context, int type)
  * the @var{type} does not have any metadata associated with it.
  * @end deftypefun
 @*/
-void jit_context_free_meta(jit_context_t context, int type)
+void
+jit_context_free_meta(jit_context_t context, int type)
 {
 	jit_meta_free(&(context->meta), type);
-}
-
-struct jit_cache *
-_jit_context_get_cache(jit_context_t context)
-{
-	if(!context->cache)
-	{
-		context->cache = _jit_cache_create(context);
-	}
-	return context->cache;
 }
