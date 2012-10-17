@@ -4,6 +4,7 @@ AC_PREREQ(2.61)
 AC_INIT([libjit], [0.1.3], [dotgnu-libjit@gnu.org])
 AC_CONFIG_SRCDIR([include/jit/jit.h])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 
 dnl Determine the host system type.
 AC_CANONICAL_HOST
@@ -103,6 +104,7 @@ dnl Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC
 AC_PROG_CXX
+AM_PROG_AR
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
