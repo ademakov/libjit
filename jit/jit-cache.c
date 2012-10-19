@@ -60,6 +60,8 @@ struct jit_cache_method
 {
 	jit_cache_method_t	left;		/* Left sub-tree and red/black bit */
 	jit_cache_method_t	right;		/* Right sub-tree */
+	unsigned char		*start;		/* Start of the cache region */
+	unsigned char		*end;		/* End of the cache region */
 	struct _jit_function	func;		/* Function */
 };
 
@@ -208,7 +210,7 @@ AllocCachePage(jit_cache_t cache, int factor)
 static int
 CacheCompare(jit_cache_t cache, unsigned char *key, jit_cache_method_t node)
 {
-	if(node == &(cache->nil) || node == &(cache->head))
+	if(node == &cache->nil || node == &cache->head)
 	{
 		/* Every key is greater than the sentinel nodes */
 		return 1;
@@ -216,11 +218,11 @@ CacheCompare(jit_cache_t cache, unsigned char *key, jit_cache_method_t node)
 	else
 	{
 		/* Compare a regular node */
-		if(key < node->func.code_start)
+		if(key < node->start)
 		{
 			return -1;
 		}
-		else if(key > node->func.code_start)
+		else if(key > node->start)
 		{
 			return 1;
 		}
@@ -300,7 +302,7 @@ CacheRotate(jit_cache_t cache, unsigned char *key, jit_cache_method_t around)
 static void
 AddToLookupTree(jit_cache_t cache, jit_cache_method_t method)
 {
-	unsigned char *key = method->func.code_start;
+	unsigned char *key = method->start;
 	jit_cache_method_t temp;
 	jit_cache_method_t greatGrandParent;
 	jit_cache_method_t grandParent;
@@ -536,8 +538,8 @@ _jit_cache_start_function(jit_cache_t cache, jit_function_t func)
 		(((char *) func) - offsetof(struct jit_cache_method, func));
 
 	/* Initialize the function information */
-	cache->method->func.code_start = cache->free_start;
-	cache->method->func.code_end = cache->free_start;
+	cache->method->start = cache->free_start;
+	cache->method->end = 0;
 	cache->method->left = 0;
 	cache->method->right = 0;
 
@@ -554,7 +556,7 @@ _jit_cache_end_function(jit_cache_t cache, int result)
 	}
 
 	/* Determine if we ran out of space while writing the function */
-	if(result != JIT_MEMORY_OK || cache->free_start >= cache->free_end)
+	if(result != JIT_MEMORY_OK)
 	{
 		/* Restore the saved cache position */
 		cache->free_start = cache->prev_start;
@@ -564,7 +566,7 @@ _jit_cache_end_function(jit_cache_t cache, int result)
 	}
 
 	/* Update the method region block and then add it to the lookup tree */
-	cache->method->func.code_end = cache->free_start;
+	cache->method->end = cache->free_start;
 	AddToLookupTree(cache, cache->method);
 	cache->method = 0;
 
@@ -782,11 +784,11 @@ _jit_cache_get_function(jit_cache_t cache, void *pc)
 	jit_cache_method_t node = cache->head.right;
 	while(node != &(cache->nil))
 	{
-		if(((unsigned char *)pc) < node->func.code_start)
+		if(((unsigned char *)pc) < node->start)
 		{
 			node = GetLeft(node);
 		}
-		else if(((unsigned char *)pc) >= node->func.code_end)
+		else if(((unsigned char *)pc) >= node->end)
 		{
 			node = GetRight(node);
 		}
@@ -798,25 +800,79 @@ _jit_cache_get_function(jit_cache_t cache, void *pc)
 	return 0;
 }
 
+void *
+_jit_cache_get_function_start(jit_memory_context_t memctx, jit_function_t func)
+{
+	jit_cache_method_t method = (jit_cache_method_t)
+		(((char *) func) - offsetof(struct jit_cache_method, func));
+	return method->start;
+}
+
+void *
+_jit_cache_get_function_end(jit_memory_context_t memctx, jit_function_t func)
+{
+	jit_cache_method_t method = (jit_cache_method_t)
+		(((char *) func) - offsetof(struct jit_cache_method, func));
+	return method->end;
+}
+
 jit_memory_manager_t
 jit_default_memory_manager(void)
 {
 	static const struct jit_memory_manager mm = {
+
+		(jit_memory_context_t (*)(jit_context_t))
 		&_jit_cache_create,
+
+		(void (*)(jit_memory_context_t))
 		&_jit_cache_destroy,
+
+		(jit_function_t (*)(jit_memory_context_t, void *))
 		&_jit_cache_get_function,
+
+		(void * (*)(jit_memory_context_t, jit_function_t))
+		&_jit_cache_get_function_start,
+
+		(void * (*)(jit_memory_context_t, jit_function_t))
+		&_jit_cache_get_function_end,
+
+		(jit_function_t (*)(jit_memory_context_t))
 		&_jit_cache_alloc_function,
+
+		(void (*)(jit_memory_context_t, jit_function_t))
 		&_jit_cache_free_function,
+
+		(int (*)(jit_memory_context_t, jit_function_t))
 		&_jit_cache_start_function,
+
+		(int (*)(jit_memory_context_t, int))
 		&_jit_cache_end_function,
+
+		(int (*)(jit_memory_context_t, int))
 		&_jit_cache_extend,
+
+		(void * (*)(jit_memory_context_t))
 		&_jit_cache_get_code_limit,
+
+		(void * (*)(jit_memory_context_t))
 		&_jit_cache_get_code_break,
+
+		(void (*)(jit_memory_context_t, void *))
 		&_jit_cache_set_code_break,
+
+		(void * (*)(jit_memory_context_t))
 		&_jit_cache_alloc_trampoline,
+
+		(void (*)(jit_memory_context_t, void *))
 		&_jit_cache_free_trampoline,
+
+		(void * (*)(jit_memory_context_t))
 		&_jit_cache_alloc_closure,
+
+		(void (*)(jit_memory_context_t, void *))
 		&_jit_cache_free_closure,
+
+		(void * (*)(jit_memory_context_t, jit_size_t, jit_size_t))
 		&_jit_cache_alloc_data
 	};
 	return &mm;

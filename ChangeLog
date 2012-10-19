@@ -1,3 +1,9 @@
+2012-10-20  Aleksey Demakov  <ademakov@gmail.com>
+
+	* include/jit/jit-memory.h, jit/jit-internal.h, jit/jit-memory.c
+	* jit-cache.c: get back to the scheme where function start and end
+	addresses are kept by the memory manager, not in jit_function_t.
+
 2012-10-16  Aleksey Demakov  <ademakov@gmail.com>
 
 	* include/jit/jit-memory.h: add file that defines pluggable memory

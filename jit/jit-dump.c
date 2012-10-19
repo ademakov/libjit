@@ -887,6 +887,7 @@ void jit_dump_function(FILE *stream, jit_function_t func, const char *name)
 	}
 	else if(func->is_compiled)
 	{
+		void *end  = _jit_memory_get_function_end(func->context, func);
 #if defined(JIT_BACKEND_INTERP)
 		/* Dump the interpreter's bytecode representation */
 		jit_function_interp_t interp;
@@ -895,9 +896,9 @@ void jit_dump_function(FILE *stream, jit_function_t func, const char *name)
 				(long)(jit_nint)interp, (long)(jit_nint)func,
 				(int)(interp->args_size), (int)(interp->frame_size),
 				(int)(interp->working_area));
-		dump_interp_code(stream, (void **)(interp + 1), (void **)func->code_end);
+		dump_interp_code(stream, (void **)(interp + 1), (void **)end);
 #else
-		dump_object_code(stream, func->entry_point, func->code_end);
+		dump_object_code(stream, func->entry_point, end);
 #endif
 	}
 

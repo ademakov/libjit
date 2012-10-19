@@ -41,7 +41,7 @@ extern	"C" {
 #define JIT_RESULT_CALLED_NESTED	(-7)
 #define JIT_RESULT_OUT_OF_BOUNDS	(-8)
 #define JIT_RESULT_UNDEFINED_LABEL	(-9)
-#define JIT_RESULT_CACHE_FULL		(-10000)
+#define JIT_RESULT_MEMORY_FULL		(-10000)
 
 /*
  * Exception handling function for builtin exceptions.

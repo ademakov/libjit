@@ -490,11 +490,6 @@ struct _jit_function
 	/* Flag set once the function is compiled */
 	int volatile		is_compiled;
 
-	/* Start of the cache region */
-	unsigned char		*code_start;
-	/* End of the cache region */
-	unsigned char		*code_end;
-
 	/* The entry point for the function's compiled code */
 	void * volatile		entry_point;
 
@@ -605,6 +600,8 @@ int _jit_memory_ensure(jit_context_t context);
 void _jit_memory_destroy(jit_context_t context);
 
 jit_function_t _jit_memory_find_function(jit_context_t context, void *pc);
+void *_jit_memory_get_function_start(jit_context_t context, jit_function_t func);
+void *_jit_memory_get_function_end(jit_context_t context, jit_function_t func);
 
 jit_function_t _jit_memory_alloc_function(jit_context_t context);
 void _jit_memory_free_function(jit_context_t context, jit_function_t func);

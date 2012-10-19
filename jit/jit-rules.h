@@ -160,7 +160,10 @@ struct jit_gencode
 {
 	jit_context_t		context;	/* Context this position is attached to */
 	unsigned char		*ptr;		/* Current code pointer */
-	unsigned char		*limit;		/* Current code space limit */
+	unsigned char		*mem_start;	/* Available space start */
+	unsigned char		*mem_limit;	/* Available space limit */
+	unsigned char		*code_start;	/* Real code start */
+	unsigned char		*code_end;	/* Real code end */
 	jit_regused_t		permanent;	/* Permanently allocated global regs */
 	jit_regused_t		touched;	/* All registers that were touched */
 	jit_regused_t		inhibit;	/* Temporarily inhibited registers */

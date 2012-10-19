@@ -740,11 +740,10 @@ int _jit_create_call_setup_insns
 void
 _jit_gen_check_space(jit_gencode_t gen, int space)
 {
-	if((gen->ptr + space) >= gen->limit)
+	if((gen->ptr + space) >= gen->mem_limit)
 	{
 		/* No space left on the current cache page. */
-		gen->ptr = gen->limit;
-		jit_exception_builtin(JIT_RESULT_CACHE_FULL);
+		jit_exception_builtin(JIT_RESULT_MEMORY_FULL);
 	}
 }
 
@@ -756,9 +755,9 @@ _jit_gen_alloc(jit_gencode_t gen, unsigned long size)
 	ptr = _jit_memory_alloc_data(gen->context, size, JIT_BEST_ALIGNMENT);
 	if(!ptr)
 	{
-		jit_exception_builtin(JIT_RESULT_CACHE_FULL);
+		jit_exception_builtin(JIT_RESULT_MEMORY_FULL);
 	}
-	gen->limit = _jit_memory_get_limit(gen->context);
+	gen->mem_limit = _jit_memory_get_limit(gen->context);
 	return ptr;
 }
 

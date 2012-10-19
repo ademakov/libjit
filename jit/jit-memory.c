@@ -63,6 +63,20 @@ _jit_memory_find_function(jit_context_t context, void *pc)
 	return context->memory_manager->find_function(context->memory_context, pc);
 }
 
+void *
+_jit_memory_get_function_start(jit_context_t context, jit_function_t func)
+{
+	/* TODO: read lock? */
+	return context->memory_manager->get_function_start(context->memory_context, func);
+}
+
+void *
+_jit_memory_get_function_end(jit_context_t context, jit_function_t func)
+{
+	/* TODO: read lock? */
+	return context->memory_manager->get_function_end(context->memory_context, func);
+}
+
 jit_function_t
 _jit_memory_alloc_function(jit_context_t context)
 {

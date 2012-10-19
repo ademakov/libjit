@@ -36,14 +36,11 @@ typedef struct
 {
 	jit_function_t		func;
 
-	int			cache_locked;
-	int 			cache_started;
+	int			memory_locked;
+	int 			memory_started;
 
 	int			restart;
 	int			page_factor;
-
-	void			*code_start;
-	void			*code_end;
 
 	struct jit_gencode	gen;
 
@@ -156,7 +153,7 @@ jit_optimize(jit_function_t func)
 void
 mark_offset(jit_gencode_t gen, jit_function_t func, unsigned long offset)
 {
-	unsigned long native_offset = gen->ptr - func->code_start;
+	unsigned long native_offset = gen->ptr - gen->mem_start;
 	if(!_jit_varint_encode_uint(&gen->offset_encoder, (jit_uint) offset))
 	{
 		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
@@ -380,10 +377,10 @@ cleanup_on_restart(jit_gencode_t gen, jit_function_t func)
 }
 
 /*
- * Acquire the code cache.
+ * Acquire the memory context.
  */
 static void
-cache_acquire(_jit_compile_t *state)
+memory_acquire(_jit_compile_t *state)
 {
 	/* Store the function's context as codegen context */
 	state->gen.context = state->func->context;
@@ -392,7 +389,7 @@ cache_acquire(_jit_compile_t *state)
 	_jit_memory_lock(state->gen.context);
 
 	/* Remember that the lock is acquired */
-	state->cache_locked = 1;
+	state->memory_locked = 1;
 
 	if(!_jit_memory_ensure(state->gen.context))
 	{
@@ -401,16 +398,16 @@ cache_acquire(_jit_compile_t *state)
 }
 
 /*
- * Release the code cache.
+ * Release the memory context.
  */
 static void
-cache_release(_jit_compile_t *state)
+memory_release(_jit_compile_t *state)
 {
 	/* Release the lock if it was previously acquired */
-	if(state->cache_locked)
+	if(state->memory_locked)
 	{
 		_jit_memory_unlock(state->gen.context);
-		state->cache_locked = 0;
+		state->memory_locked = 0;
 	}
 }
 
@@ -421,7 +418,7 @@ cache_release(_jit_compile_t *state)
  * to pad unused bytes.
  */
 static void
-cache_align(_jit_compile_t *state, int align, int diff, int nop)
+memory_align(_jit_compile_t *state, int align, int diff, int nop)
 {
 	jit_nuint p, n;
 
@@ -455,55 +452,69 @@ cache_align(_jit_compile_t *state, int align, int diff, int nop)
 }
 
 /*
- * Allocate some space in the code cache.
+ * Prepare to start code generation with just allocated code space.
  */
 static void
-cache_alloc(_jit_compile_t *state)
+memory_start(_jit_compile_t *state)
+{
+	/* Remember the memory context state */
+	state->memory_started = 1;
+
+	/* Store the bounds of the available space */
+	state->gen.mem_start = _jit_memory_get_break(state->gen.context);
+	state->gen.mem_limit = _jit_memory_get_limit(state->gen.context); 
+
+	/* Align the function code start as required */
+	state->gen.ptr = state->gen.mem_start;
+	memory_align(state, JIT_FUNCTION_ALIGNMENT, JIT_FUNCTION_ALIGNMENT, 0);
+
+	/* Prepare the bytecode offset encoder */
+	_jit_varint_init_encoder(&state->gen.offset_encoder);
+}
+
+/*
+ * Allocate some amount of code space.
+ */
+static void
+memory_alloc(_jit_compile_t *state)
 {
 	int result;
 
-	/* First try with the current cache page */
+	/* Try to allocate within the current memory limit */
 	result = _jit_memory_start_function(state->gen.context, state->func);
 	if(result == JIT_MEMORY_RESTART)
 	{
-		/* No space left on the current cache page.  Allocate a new one. */
+		/* Not enough space. Request to extend the limit and retry */
 		_jit_memory_extend_limit(state->gen.context, state->page_factor++);
 		result = _jit_memory_start_function(state->gen.context, state->func);
 	}
 	if(result != JIT_MEMORY_OK)
 	{
-		/* Failed to allocate any cache space */
+		/* Failed to allocate any space */
 		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 	}
-	state->gen.ptr = _jit_memory_get_break(state->gen.context);
-	state->gen.limit = _jit_memory_get_limit(state->gen.context); 
 
-	/* Align the function code. */
-	cache_align(state, JIT_FUNCTION_ALIGNMENT, JIT_FUNCTION_ALIGNMENT, 0);
-
-	/* Prepare the bytecode offset encoder */
-	_jit_varint_init_encoder(&state->gen.offset_encoder);
-
-	/* On success remember the cache state */
-	state->cache_started = 1;
+	/* Start with with allocated space */
+	memory_start(state);
 }
 
 /*
- * End function output to the cache.
+ * Finish code generation.
  */
 static void
-cache_flush(_jit_compile_t *state)
+memory_flush(_jit_compile_t *state)
 {
 	int result;
 
-	if(state->cache_started)
+	if(state->memory_started)
 	{
-		state->cache_started = 0;
+		/* Reset the memory state */
+		state->memory_started = 0;
 
-		/* Let the cache know where we are */
-		_jit_memory_set_break(state->gen.context, state->gen.ptr);
+		/* Let the memory context know the address we ended at */
+		_jit_memory_set_break(state->gen.context, state->gen.code_end);
 
-		/* End the function's output process */
+		/* Finally end the function */
 		result = _jit_memory_end_function(state->gen.context, JIT_MEMORY_OK);
 		if(result != JIT_MEMORY_OK)
 		{
@@ -512,7 +523,7 @@ cache_flush(_jit_compile_t *state)
 				/* Throw an internal exception that causes
 				   a larger code space to be allocated and
 				   the code generation to restart */
-				jit_exception_builtin(JIT_RESULT_CACHE_FULL);
+				jit_exception_builtin(JIT_RESULT_MEMORY_FULL);
 			}
 			else
 			{
@@ -524,8 +535,8 @@ cache_flush(_jit_compile_t *state)
 
 #ifndef JIT_BACKEND_INTERP
 		/* On success perform a CPU cache flush, to make the code executable */
-		_jit_flush_exec(state->code_start,
-			       (unsigned int)(state->code_end - state->code_start));
+		_jit_flush_exec(state->gen.code_start,
+			        state->gen.code_end - state->gen.code_start);
 #endif
 
 		/* Terminate the debug information and flush it */
@@ -538,16 +549,16 @@ cache_flush(_jit_compile_t *state)
 }
 
 /*
- * Release the allocated cache space.
+ * Give back the allocated space in case of failure to generate the code.
  */
 static void
-cache_abort(_jit_compile_t *state)
+memory_abort(_jit_compile_t *state)
 {
-	if(state->cache_started)
+	if(state->memory_started)
 	{
-		state->cache_started = 0;
+		state->memory_started = 0;
 
-		/* Release the cache space */
+		/* Release the code space */
 		_jit_memory_end_function(state->gen.context, JIT_MEMORY_RESTART);
 
 		/* Free encoded bytecode offset data */
@@ -556,40 +567,31 @@ cache_abort(_jit_compile_t *state)
 }
 
 /*
- * Allocate more space in the code cache.
+ * Allocate more code space.
  */
 static void
-cache_realloc(_jit_compile_t *state)
+memory_realloc(_jit_compile_t *state)
 {
 	int result;
 
-	/* Release the allocated cache space */
-	cache_abort(state);
+	/* Release the previously allocated code space */
+	memory_abort(state);
 
-	/* Allocate a new cache page with the size that grows
-	   by factor of 2 on each reallocation */
+	/* Request to extend memory limit and retry space allocation */
 	_jit_memory_extend_limit(state->gen.context, state->page_factor++);
 	result = _jit_memory_start_function(state->gen.context, state->func);
 	if(result != JIT_MEMORY_OK)
 	{
-		/* Failed to allocate enough cache space */
+		/* Failed to allocate enough space */
 		jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 	}
-	state->gen.ptr = _jit_memory_get_break(state->gen.context);
-	state->gen.limit = _jit_memory_get_limit(state->gen.context);
 
-	/* Align the function code. */
-	cache_align(state, JIT_FUNCTION_ALIGNMENT, JIT_FUNCTION_ALIGNMENT, 0);
-
-	/* Prepare the bytecode offset encoder */
-	_jit_varint_init_encoder(&state->gen.offset_encoder);
-
-	/* On success remember the cache state */
-	state->cache_started = 1;
+	/* Start with with allocated space */
+	memory_start(state);
 }
 
 /*
- * Prepare data needed for code generation.
+ * Prepare function info needed for code generation.
  */
 static void
 codegen_prepare(_jit_compile_t *state)
@@ -623,7 +625,9 @@ codegen(_jit_compile_t *state)
 	struct jit_gencode *gen = &state->gen;
 	jit_block_t block;
 
-	state->code_start = gen->ptr;
+	/* Remember the start code address (due to alignment it may differ from
+	   the available space start - gen->start) */
+	gen->code_start = gen->ptr;
 
 #ifdef JIT_PROLOG_SIZE
 	/* Output space for the function prolog */
@@ -657,11 +661,13 @@ codegen(_jit_compile_t *state)
 
 	/* Output the function epilog.  All return paths will jump to here */
 	_jit_gen_epilog(gen, func);
-	state->code_end = gen->ptr;
+
+	/* Remember the end code address */
+	gen->code_end = gen->ptr;
 
 #ifdef JIT_PROLOG_SIZE
 	/* Back-patch the function prolog and get the real entry point */
-	state->code_start = _jit_gen_prolog(gen, func, state->code_start);
+	gen->code_start = _jit_gen_prolog(gen, func, gen->code_start);
 #endif
 
 #if !defined(JIT_BACKEND_INTERP) && (!defined(jit_redirector_size) || !defined(jit_indirector_size))
@@ -703,15 +709,15 @@ compile(_jit_compile_t *state, jit_function_t func)
 	if(setjmp(jbuf.buf))
 	{
 		result = _JIT_RESULT_FROM_OBJECT(jit_exception_get_last_and_clear());
-		if(result == JIT_RESULT_CACHE_FULL)
+		if(result == JIT_RESULT_MEMORY_FULL)
 		{
-			/* Restart code generation after the cache-full condition */
+			/* Restart code generation after the memory full condition */
 			state->restart = 1;
 			goto restart;
 		}
 
-		/* Release allocated cache space and exit */
-		cache_abort(state);
+		/* Release allocated code space and exit */
+		memory_abort(state);
 		goto exit;
 	}
 
@@ -725,9 +731,9 @@ compile(_jit_compile_t *state, jit_function_t func)
 		/* Prepare data needed for code generation */
 		codegen_prepare(state);
 
-		/* Allocate some cache */
-		cache_acquire(state);
-		cache_alloc(state);
+		/* Allocate some space */
+		memory_acquire(state);
+		memory_alloc(state);
 	}
 	else
 	{
@@ -736,8 +742,8 @@ compile(_jit_compile_t *state, jit_function_t func)
 		/* Clean up the compilation state */
 		cleanup_on_restart(&state->gen, state->func);
 
-		/* Allocate more cache */
-		cache_realloc(state);
+		/* Allocate more space */
+		memory_realloc(state);
 	}
 
 #ifdef _JIT_COMPILE_DEBUG
@@ -768,14 +774,14 @@ compile(_jit_compile_t *state, jit_function_t func)
 #endif
 
 	/* End the function's output process */
-	cache_flush(state);
+	memory_flush(state);
 
-	/* Compilation done, no exceptions occured */
+	/* Compilation done, no exceptions occurred */
 	result = JIT_RESULT_OK;
 
  exit:
-	/* Release the cache */
-	cache_release(state);
+	/* Release the memory context */
+	memory_release(state);
 
 	/* Restore the "setjmp" context */
 	_jit_unwind_pop_setjmp();
@@ -833,7 +839,7 @@ jit_compile(jit_function_t func)
 	result = compile(&state, func);
 	if(result == JIT_RESULT_OK)
 	{
-		func->entry_point = state.code_start;
+		func->entry_point = state.gen.code_start;
 		func->is_compiled = 1;
 
 		/* Free the builder structure, which we no longer require */
@@ -892,7 +898,7 @@ jit_compile_entry(jit_function_t func, void **entry_point)
 	result = compile(&state, func);
 	if(result == JIT_RESULT_OK)
 	{
-		*entry_point = state.code_start;
+		*entry_point = state.gen.code_start;
 	}
 
 	return result;
@@ -991,7 +997,7 @@ _jit_function_compile_on_demand(jit_function_t func)
 			result = compile(&state, func);
 			if(result == JIT_RESULT_OK)
 			{
-				func->entry_point = state.code_start;
+				func->entry_point = state.gen.code_start;
 				func->is_compiled = 1;
 			}
 		}
@@ -1021,12 +1027,7 @@ _jit_function_get_bytecode(jit_function_t func, void *pc, int exact)
 	jit_varint_decoder_t decoder;
 	jit_uint off, noff;
 
-#ifdef JIT_PROLOG_SIZE
-	start = func->code_start;
-#else
-	start = func->entry_point;
-#endif
-
+	start = _jit_memory_get_function_start(func->context, func);
 	native_offset = pc - start;
 
 	_jit_varint_init_decoder(&decoder, func->bytecode_offset);
