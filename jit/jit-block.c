@@ -292,7 +292,7 @@ delete_block(jit_block_t block)
 	block->insns = 0;
 
 	block->next = block->func->builder->deleted_blocks;
-	block->func->builder->deleted_blocks = block->next;
+	block->func->builder->deleted_blocks = block;
 }
 
 /* The block is empty if it contains nothing apart from an unconditional branch */
