@@ -68,6 +68,7 @@ int main(int argc, char **argv)
 
 	/* Clean up */
 	jit_context_destroy(context);
+	jit_type_free(signature);
 
 	/* Finished */
 	return 0;
