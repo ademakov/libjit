@@ -1,3 +1,7 @@
+2012-10-30  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-memory-cache.c: rename jit-cache.c
+
 2012-10-20  Aleksey Demakov  <ademakov@gmail.com>
 
 	* include/jit/jit-memory.h, jit/jit-internal.h, jit/jit-memory.c
