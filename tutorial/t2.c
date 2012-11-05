@@ -55,6 +55,7 @@ int main(int argc, char **argv)
 
 	/* Create the function object */
 	function = jit_function_create(context, signature);
+	jit_type_free(signature);
 
 	/* Check the condition "if(x == y)" */
 	x = jit_value_get_param(function, 0);
@@ -105,7 +106,6 @@ int main(int argc, char **argv)
 
 	/* Clean up */
 	jit_context_destroy(context);
-	jit_type_free(signature);
 
 	/* Finished */
 	return 0;

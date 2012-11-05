@@ -60,6 +60,7 @@ int main(int argc, char **argv)
 
 	/* Create the function object */
 	function = jit_function_create(context, signature);
+	jit_type_free(signature);
 
 	/* Make the function recompilable */
 	jit_function_set_recompilable(function);
