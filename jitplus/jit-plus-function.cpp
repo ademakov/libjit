@@ -187,10 +187,7 @@ void jit_function::create()
 	{
 		jit_type_t signature = create_signature();
 		create(signature);
-		if(!func)
-		{
-			jit_type_free(signature);
-		}
+		jit_type_free(signature);
 	}
 }
 
