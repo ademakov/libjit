@@ -167,17 +167,17 @@ jit_unwind_get_function(jit_unwind_context_t *unwind)
 	if(!unwind->cache)
 	{
 		void *pc = jit_unwind_get_pc(unwind);
-		unwind->cache = _jit_memory_find_function(unwind->context, pc);
+		unwind->cache = _jit_memory_find_function_info(unwind->context, pc);
 	}
 
-	return (jit_function_t) unwind->cache;
+	return _jit_memory_get_function(unwind->context, unwind->cache);
 }
 
 unsigned int
 jit_unwind_get_offset(jit_unwind_context_t *unwind)
 {
-	jit_function_t func;
 	void *pc;
+	jit_function_t func;
 
 	if(!unwind || !unwind->frame || !unwind->context)
 	{
@@ -190,11 +190,15 @@ jit_unwind_get_offset(jit_unwind_context_t *unwind)
 		return JIT_NO_OFFSET;
 	}
 
-	func = jit_unwind_get_function(unwind);
+	if(!unwind->cache)
+	{
+		unwind->cache = _jit_memory_find_function_info(unwind->context, pc);
+	}
+	func = _jit_memory_get_function(unwind->context, unwind->cache);
 	if(!func)
 	{
 		return JIT_NO_OFFSET;
 	}
 
-	return _jit_function_get_bytecode(func, pc, 0);
+	return _jit_function_get_bytecode(func, unwind->cache, pc, 0);
 }

@@ -1019,7 +1019,8 @@ _jit_function_compile_on_demand(jit_function_t func)
 #define	JIT_CACHE_NO_OFFSET		(~((unsigned long)0))
 
 unsigned long
-_jit_function_get_bytecode(jit_function_t func, void *pc, int exact)
+_jit_function_get_bytecode(jit_function_t func,
+			   void *func_info, void *pc, int exact)
 {
 	unsigned long offset = JIT_CACHE_NO_OFFSET;
 	void *start;
@@ -1027,7 +1028,7 @@ _jit_function_get_bytecode(jit_function_t func, void *pc, int exact)
 	jit_varint_decoder_t decoder;
 	jit_uint off, noff;
 
-	start = _jit_memory_get_function_start(func->context, func);
+	start = _jit_memory_get_function_start(func->context, func_info);
 	native_offset = pc - start;
 
 	_jit_varint_init_decoder(&decoder, func->bytecode_offset);

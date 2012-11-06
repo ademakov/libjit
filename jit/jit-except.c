@@ -397,7 +397,11 @@ jit_stack_trace_get_function(jit_context_t context, jit_stack_trace_t trace, uns
 {
 	if(trace && posn < trace->size)
 	{
-		return _jit_memory_find_function(context, trace->items[posn]);
+		void *func_info = _jit_memory_find_function_info(context, trace->items[posn]);
+		if(func_info)
+		{
+			return _jit_memory_get_function(context, func_info);
+		}
 	}
 	return 0;
 }
@@ -432,15 +436,26 @@ void *jit_stack_trace_get_pc
 unsigned int
 jit_stack_trace_get_offset(jit_context_t context, jit_stack_trace_t trace, unsigned int posn)
 {
-	if(trace && posn < trace->size)
+	void *func_info;
+	jit_function_t func;
+
+	if(!trace || posn >= trace->size)
 	{
-		jit_function_t func = _jit_memory_find_function(context, trace->items[posn]);
-		if (func)
-		{
-			return _jit_function_get_bytecode(func, trace->items[posn], 0);
-		}
+		return JIT_NO_OFFSET;
 	}
-	return JIT_NO_OFFSET;
+
+	func_info = _jit_memory_find_function_info(context, trace->items[posn]);
+	if(!func_info)
+	{
+		return JIT_NO_OFFSET;
+	}
+	func = _jit_memory_get_function(context, func_info);
+	if(!func)
+	{
+		return JIT_NO_OFFSET;
+	}
+
+	return _jit_function_get_bytecode(func, func_info, trace->items[posn], 0);
 }
 
 /*@

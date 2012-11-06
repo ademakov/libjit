@@ -1,3 +1,9 @@
+2012-11-06  Aleksey Demakov  <ademakov@gmail.com>
+
+	* include/jit/jit-memory.h, jit/jit-internal.h, jit/jit-memory.c
+	* jit-cache.c: restore ability to allocate memory for recompiled
+	functions.
+
 2012-11-05  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jitplus/jit-plus-function.cpp (create): free function signature.

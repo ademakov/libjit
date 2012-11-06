@@ -52,29 +52,36 @@ _jit_memory_destroy(jit_context_t context)
 	context->memory_manager->destroy(context->memory_context);
 }
 
-jit_function_t
-_jit_memory_find_function(jit_context_t context, void *pc)
+void *
+_jit_memory_find_function_info(jit_context_t context, void *pc)
 {
 	if(!context->memory_context)
 	{
 		return 0;
 	}
 	/* TODO: read lock? */
-	return context->memory_manager->find_function(context->memory_context, pc);
+	return context->memory_manager->find_function_info(context->memory_context, pc);
+}
+
+jit_function_t
+_jit_memory_get_function(jit_context_t context, void *func_info)
+{
+	/* TODO: read lock? */
+	return context->memory_manager->get_function(context->memory_context, func_info);
 }
 
 void *
-_jit_memory_get_function_start(jit_context_t context, jit_function_t func)
+_jit_memory_get_function_start(jit_context_t context, void *func_info)
 {
 	/* TODO: read lock? */
-	return context->memory_manager->get_function_start(context->memory_context, func);
+	return context->memory_manager->get_function_start(context->memory_context, func_info);
 }
 
 void *
-_jit_memory_get_function_end(jit_context_t context, jit_function_t func)
+_jit_memory_get_function_end(jit_context_t context, void *func_info)
 {
 	/* TODO: read lock? */
-	return context->memory_manager->get_function_end(context->memory_context, func);
+	return context->memory_manager->get_function_end(context->memory_context, func_info);
 }
 
 jit_function_t

@@ -648,11 +648,20 @@ void *jit_function_to_closure(jit_function_t func)
 jit_function_t 
 jit_function_from_closure(jit_context_t context, void *closure)
 {
+	void *func_info;
+
 	if(!context)
 	{
 		return 0;
 	}
-	return _jit_memory_find_function(context, closure);
+
+	func_info = _jit_memory_find_function_info(context, closure);
+	if(!func_info)
+	{
+		return 0;
+	}
+
+	return _jit_memory_get_function(context, func_info);
 }
 
 /*@
@@ -666,6 +675,7 @@ jit_function_from_closure(jit_context_t context, void *closure)
 jit_function_t
 jit_function_from_pc(jit_context_t context, void *pc, void **handler)
 {
+	void *func_info;
 	jit_function_t func;
 
 	if(!context)
@@ -674,7 +684,12 @@ jit_function_from_pc(jit_context_t context, void *pc, void **handler)
 	}
 
 	/* Get the function and the exception handler cookie */
-	func = _jit_memory_find_function(context, pc);
+	func_info = _jit_memory_find_function_info(context, pc);
+	if(!func_info)
+	{
+		return 0;
+	}
+	func = _jit_memory_get_function(context, func_info);
 	if(!func)
 	{
 		return 0;
@@ -751,11 +766,20 @@ jit_function_from_vtable_pointer(jit_context_t context, void *vtable_pointer)
 	}
 	return 0;
 #else
+	void *func_info;
+
 	if(!context)
 	{
 		return 0;
 	}
-	return _jit_memory_find_function(context, vtable_pointer);
+
+	func_info = _jit_memory_find_function_info(context, vtable_pointer);
+	if(!func_info)
+	{
+		return 0;
+	}
+
+	return _jit_memory_get_function(context, func_info);
 #endif
 }
 

@@ -541,7 +541,7 @@ void *_jit_function_compile_on_demand(jit_function_t func);
  * offset within a method.  Returns JIT_CACHE_NO_OFFSET
  * if the bytecode offset could not be determined.
  */
-unsigned long _jit_function_get_bytecode(jit_function_t func, void *pc, int exact);
+unsigned long _jit_function_get_bytecode(jit_function_t func, void *func_info, void *pc, int exact);
 
 /*
  * Information about a registered external symbol.
@@ -599,9 +599,10 @@ void _jit_memory_unlock(jit_context_t context);
 int _jit_memory_ensure(jit_context_t context);
 void _jit_memory_destroy(jit_context_t context);
 
-jit_function_t _jit_memory_find_function(jit_context_t context, void *pc);
-void *_jit_memory_get_function_start(jit_context_t context, jit_function_t func);
-void *_jit_memory_get_function_end(jit_context_t context, jit_function_t func);
+void *_jit_memory_find_function_info(jit_context_t context, void *pc);
+jit_function_t _jit_memory_get_function(jit_context_t context, void *func_info);
+void *_jit_memory_get_function_start(jit_context_t context, void *func_info);
+void *_jit_memory_get_function_end(jit_context_t context, void *func_info);
 
 jit_function_t _jit_memory_alloc_function(jit_context_t context);
 void _jit_memory_free_function(jit_context_t context, jit_function_t func);

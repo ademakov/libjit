@@ -48,9 +48,10 @@ struct jit_memory_manager
 	jit_memory_context_t (*create)(jit_context_t context);
 	void (*destroy)(jit_memory_context_t memctx);
 
-	jit_function_t (*find_function)(jit_memory_context_t memctx, void *pc);
-	void * (*get_function_start)(jit_memory_context_t memctx, jit_function_t func);
-	void * (*get_function_end)(jit_memory_context_t memctx, jit_function_t func);
+	void * (*find_function_info)(jit_memory_context_t memctx, void *pc);
+	jit_function_t (*get_function)(jit_memory_context_t memctx, void *func_info);
+	void * (*get_function_start)(jit_memory_context_t memctx, void *func_info);
+	void * (*get_function_end)(jit_memory_context_t memctx, void *func_info);
 
 	jit_function_t (*alloc_function)(jit_memory_context_t memctx);
 	void (*free_function)(jit_memory_context_t memctx, jit_function_t func);

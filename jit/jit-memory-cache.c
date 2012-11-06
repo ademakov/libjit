@@ -55,14 +55,14 @@ extern	"C" {
  * There may be more than one such block associated with a method
  * if the method contains exception regions.
  */
-typedef struct jit_cache_method *jit_cache_method_t;
-struct jit_cache_method
+typedef struct jit_cache_node *jit_cache_node_t;
+struct jit_cache_node
 {
-	jit_cache_method_t	left;		/* Left sub-tree and red/black bit */
-	jit_cache_method_t	right;		/* Right sub-tree */
+	jit_cache_node_t	left;		/* Left sub-tree and red/black bit */
+	jit_cache_node_t	right;		/* Right sub-tree */
 	unsigned char		*start;		/* Start of the cache region */
 	unsigned char		*end;		/* End of the cache region */
-	struct _jit_function	func;		/* Function */
+	jit_function_t		func;		/* Function info block slot */
 };
 
 /*
@@ -90,20 +90,20 @@ struct jit_cache
 	unsigned char		*free_end;	/* Current end of the free region */
 	unsigned char		*prev_start;	/* Previous start of the free region */
 	unsigned char		*prev_end;	/* Previous end of the free region */
-	jit_cache_method_t	method;		/* Information for the current method */
-	struct jit_cache_method	head;		/* Head of the lookup tree */
-	struct jit_cache_method	nil;		/* Nil pointer for the lookup tree */
+	jit_cache_node_t	node;		/* Information for the current function */
+	struct jit_cache_node	head;		/* Head of the lookup tree */
+	struct jit_cache_node	nil;		/* Nil pointer for the lookup tree */
 };
 
 /*
  * Get or set the sub-trees of a node.
  */
 #define	GetLeft(node)	\
-	((jit_cache_method_t)(((jit_nuint)(node)->left) & ~((jit_nuint)1)))
+	((jit_cache_node_t)(((jit_nuint)(node)->left) & ~((jit_nuint)1)))
 #define	GetRight(node)	\
 	((node)->right)
 #define	SetLeft(node,value)	\
-	((node)->left = (jit_cache_method_t)(((jit_nuint)value) | \
+	((node)->left = (jit_cache_node_t)(((jit_nuint)value) | \
 						(((jit_nuint)(node)->left) & ((jit_nuint)1))))
 #define	SetRight(node,value)	\
 	((node)->right = (value))
@@ -114,11 +114,12 @@ struct jit_cache
 #define	GetRed(node)	\
 	((((jit_nuint)((node)->left)) & ((jit_nuint)1)) != 0)
 #define	SetRed(node)	\
-	((node)->left = (jit_cache_method_t)(((jit_nuint)(node)->left) | ((jit_nuint)1)))
+	((node)->left = (jit_cache_node_t)(((jit_nuint)(node)->left) | ((jit_nuint)1)))
 #define	SetBlack(node)	\
-	((node)->left = (jit_cache_method_t)(((jit_nuint)(node)->left) & ~((jit_nuint)1)))
+	((node)->left = (jit_cache_node_t)(((jit_nuint)(node)->left) & ~((jit_nuint)1)))
 
 void _jit_cache_destroy(jit_cache_t cache);
+void * _jit_cache_alloc_data(jit_cache_t cache, unsigned long size, unsigned long align);
 
 /*
  * Allocate a cache page and add it to the cache.
@@ -208,7 +209,7 @@ AllocCachePage(jit_cache_t cache, int factor)
  * Compare a key against a node, being careful of sentinel nodes.
  */
 static int
-CacheCompare(jit_cache_t cache, unsigned char *key, jit_cache_method_t node)
+CacheCompare(jit_cache_t cache, unsigned char *key, jit_cache_node_t node)
 {
 	if(node == &cache->nil || node == &cache->head)
 	{
@@ -236,10 +237,10 @@ CacheCompare(jit_cache_t cache, unsigned char *key, jit_cache_method_t node)
 /*
  * Rotate a sub-tree around a specific node.
  */
-static jit_cache_method_t
-CacheRotate(jit_cache_t cache, unsigned char *key, jit_cache_method_t around)
+static jit_cache_node_t
+CacheRotate(jit_cache_t cache, unsigned char *key, jit_cache_node_t around)
 {
-	jit_cache_method_t child, grandChild;
+	jit_cache_node_t child, grandChild;
 	int setOnLeft;
 	if(CacheCompare(cache, key, around) < 0)
 	{
@@ -300,14 +301,14 @@ CacheRotate(jit_cache_t cache, unsigned char *key, jit_cache_method_t around)
  * that is associated with a method cache.
  */
 static void
-AddToLookupTree(jit_cache_t cache, jit_cache_method_t method)
+AddToLookupTree(jit_cache_t cache, jit_cache_node_t method)
 {
 	unsigned char *key = method->start;
-	jit_cache_method_t temp;
-	jit_cache_method_t greatGrandParent;
-	jit_cache_method_t grandParent;
-	jit_cache_method_t parent;
-	jit_cache_method_t nil = &(cache->nil);
+	jit_cache_node_t temp;
+	jit_cache_node_t greatGrandParent;
+	jit_cache_node_t grandParent;
+	jit_cache_node_t parent;
+	jit_cache_node_t nil = &(cache->nil);
 	int cmp;
 
 	/* Search for the insert position */
@@ -347,7 +348,7 @@ AddToLookupTree(jit_cache_t cache, jit_cache_method_t method)
 	}
 
 	/* Insert the new node into the current position */
-	method->left = (jit_cache_method_t)(((jit_nuint)nil) | ((jit_nuint)1));
+	method->left = (jit_cache_node_t)(((jit_nuint)nil) | ((jit_nuint)1));
 	method->right = nil;
 	if(CacheCompare(cache, key, parent) < 0)
 	{
@@ -423,11 +424,13 @@ _jit_cache_create(jit_context_t context)
 	{
 		cache->pagesLeft = -1;
 	}
-	cache->method = 0;
+	cache->node = 0;
 	cache->nil.left = &(cache->nil);
 	cache->nil.right = &(cache->nil);
+	cache->nil.func = 0;
 	cache->head.left = 0;
 	cache->head.right = &(cache->nil);
+	cache->head.func = 0;
 
 	/* Allocate the initial cache page */
 	AllocCachePage(cache, 0);
@@ -468,7 +471,7 @@ _jit_cache_extend(jit_cache_t cache, int count)
 	int factor = 1 << count;
 
 	/* Bail out if there is a started function */
-	if(cache->method)
+	if(cache->node)
 	{
 		return;
 	}
@@ -502,23 +505,20 @@ _jit_cache_extend(jit_cache_t cache, int count)
 jit_function_t
 _jit_cache_alloc_function(jit_cache_t cache)
 {
-	jit_cache_method_t method = jit_cnew(struct jit_cache_method);
-	return &method->func;
+	return jit_cnew(struct _jit_function);
 }
 
 void
 _jit_cache_free_function(jit_cache_t cache, jit_function_t func)
 {
-	jit_cache_method_t method = (jit_cache_method_t)
-		(((char *) func) - offsetof(struct jit_cache_method, func));
-	jit_free(method);
+	jit_free(func);
 }
 
 int
 _jit_cache_start_function(jit_cache_t cache, jit_function_t func)
 {
 	/* Bail out if there is a started function already */
-	if(cache->method)
+	if(cache->node)
 	{
 		return JIT_MEMORY_ERROR;
 	}
@@ -533,15 +533,20 @@ _jit_cache_start_function(jit_cache_t cache, jit_function_t func)
 	cache->prev_start = cache->free_start;
 	cache->prev_end = cache->free_end;
 
-	/* Get the function information block */
-	cache->method = (jit_cache_method_t)
-		(((char *) func) - offsetof(struct jit_cache_method, func));
+	/* Allocate a new cache node */
+	cache->node = _jit_cache_alloc_data(
+		cache, sizeof(struct jit_cache_node), sizeof(void *));
+	if(!cache->node)
+	{
+		return JIT_MEMORY_TOO_BIG;
+	}
+	cache->node->func = func;
 
 	/* Initialize the function information */
-	cache->method->start = cache->free_start;
-	cache->method->end = 0;
-	cache->method->left = 0;
-	cache->method->right = 0;
+	cache->node->start = cache->free_start;
+	cache->node->end = 0;
+	cache->node->left = 0;
+	cache->node->right = 0;
 
 	return JIT_MEMORY_OK;
 }
@@ -550,7 +555,7 @@ int
 _jit_cache_end_function(jit_cache_t cache, int result)
 {
 	/* Bail out if there is no started function */
-	if(!cache->method)
+	if(!cache->node)
 	{
 		return JIT_MEMORY_ERROR;
 	}
@@ -561,14 +566,15 @@ _jit_cache_end_function(jit_cache_t cache, int result)
 		/* Restore the saved cache position */
 		cache->free_start = cache->prev_start;
 		cache->free_end = cache->prev_end;
-		cache->method = 0;
+		cache->node = 0;
+
 		return JIT_MEMORY_RESTART;
 	}
 
 	/* Update the method region block and then add it to the lookup tree */
-	cache->method->end = cache->free_start;
-	AddToLookupTree(cache, cache->method);
-	cache->method = 0;
+	cache->node->end = cache->free_start;
+	AddToLookupTree(cache, cache->node);
+	cache->node = 0;
 
 	/* The method is ready to go */
 	return JIT_MEMORY_OK;
@@ -578,7 +584,7 @@ void *
 _jit_cache_get_code_break(jit_cache_t cache)
 {
 	/* Bail out if there is no started function */
-	if(!cache->method)
+	if(!cache->node)
 	{
 		return 0;
 	}
@@ -591,16 +597,16 @@ void
 _jit_cache_set_code_break(jit_cache_t cache, void *ptr)
 {
 	/* Bail out if there is no started function */
-	if(!cache->method)
+	if(!cache->node)
 	{
 		return;
 	}
 	/* Sanity checks */
-	if ((unsigned char *) ptr < cache->free_start)
+	if((unsigned char *) ptr < cache->free_start)
 	{
 		return;
 	}
-	if ((unsigned char *) ptr > cache->free_end)
+	if((unsigned char *) ptr > cache->free_end)
 	{
 		return;
 	}
@@ -613,7 +619,7 @@ void *
 _jit_cache_get_code_limit(jit_cache_t cache)
 {
 	/* Bail out if there is no started function */
-	if(!cache->method)
+	if(!cache->node)
 	{
 		return 0;
 	}
@@ -649,7 +655,7 @@ alloc_code(jit_cache_t cache, unsigned int size, unsigned int align)
 	unsigned char *ptr;
 
 	/* Bail out if there is a started function */
-	if(cache->method)
+	if(cache->node)
 	{
 		return 0;
 	}
@@ -778,10 +784,10 @@ _jit_cache_alloc_no_method(jit_cache_t cache, unsigned long size, unsigned long 
 }
 #endif
 
-jit_function_t
-_jit_cache_get_function(jit_cache_t cache, void *pc)
+void *
+_jit_cache_find_function_info(jit_cache_t cache, void *pc)
 {
-	jit_cache_method_t node = cache->head.right;
+	jit_cache_node_t node = cache->head.right;
 	while(node != &(cache->nil))
 	{
 		if(((unsigned char *)pc) < node->start)
@@ -794,26 +800,43 @@ _jit_cache_get_function(jit_cache_t cache, void *pc)
 		}
 		else
 		{
-			return &node->func;
+			return node;
 		}
 	}
 	return 0;
 }
 
-void *
-_jit_cache_get_function_start(jit_memory_context_t memctx, jit_function_t func)
+jit_function_t
+_jit_cache_get_function(jit_cache_t cache, void *func_info)
 {
-	jit_cache_method_t method = (jit_cache_method_t)
-		(((char *) func) - offsetof(struct jit_cache_method, func));
-	return method->start;
+	if (func_info)
+	{
+		jit_cache_node_t node = (jit_cache_node_t) func_info;
+		return node->func;
+	}
+	return 0;
 }
 
 void *
-_jit_cache_get_function_end(jit_memory_context_t memctx, jit_function_t func)
+_jit_cache_get_function_start(jit_memory_context_t memctx, void *func_info)
 {
-	jit_cache_method_t method = (jit_cache_method_t)
-		(((char *) func) - offsetof(struct jit_cache_method, func));
-	return method->end;
+	if (func_info)
+	{
+		jit_cache_node_t node = (jit_cache_node_t) func_info;
+		return node->start;
+	}
+	return 0;
+}
+
+void *
+_jit_cache_get_function_end(jit_memory_context_t memctx, void *func_info)
+{
+	if (func_info)
+	{
+		jit_cache_node_t node = (jit_cache_node_t) func_info;
+		return node->end;
+	}
+	return 0;
 }
 
 jit_memory_manager_t
@@ -827,13 +850,16 @@ jit_default_memory_manager(void)
 		(void (*)(jit_memory_context_t))
 		&_jit_cache_destroy,
 
+		(void * (*)(jit_memory_context_t, void *))
+		&_jit_cache_find_function_info,
+
 		(jit_function_t (*)(jit_memory_context_t, void *))
 		&_jit_cache_get_function,
 
-		(void * (*)(jit_memory_context_t, jit_function_t))
+		(void * (*)(jit_memory_context_t, void *))
 		&_jit_cache_get_function_start,
 
-		(void * (*)(jit_memory_context_t, jit_function_t))
+		(void * (*)(jit_memory_context_t, void *))
 		&_jit_cache_get_function_end,
 
 		(jit_function_t (*)(jit_memory_context_t))
