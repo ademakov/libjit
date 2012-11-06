@@ -1,5 +1,7 @@
 2012-11-06  Aleksey Demakov  <ademakov@gmail.com>
 
+	* dpas/dpas-scope.c (dpas_scope_destroy): Fix a memory leak in dpas.
+
 	* include/jit/jit-memory.h, jit/jit-internal.h, jit/jit-memory.c
 	* jit-cache.c: restore ability to allocate memory for recompiled
 	functions.

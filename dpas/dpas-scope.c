@@ -87,6 +87,10 @@ void dpas_scope_destroy(dpas_scope_t scope)
 			{
 				jit_free(item->name);
 			}
+			if(item->filename)
+			{
+				jit_free(item->filename);
+			}
 			if(item->free_info)
 			{
 				(*(item->free_info))(item->info);
@@ -102,6 +106,10 @@ void dpas_scope_destroy(dpas_scope_t scope)
 			if(item->name)
 			{
 				jit_free(item->name);
+			}
+			if(item->filename)
+			{
+				jit_free(item->filename);
 			}
 			if(item->free_info)
 			{
