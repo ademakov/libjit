@@ -44,5 +44,5 @@ jit-arch.h: $(ARCH_HEADER)
 	rm -f $@
 	$(LN_S) $(srcdir)/$(ARCH_HEADER) $@
 
-jit-opcode.h: $(top_srcdir)/config/jit-opcodes.ops
-	$(top_builddir)/tools/gen-ops -H $(top_srcdir)/config/jit-opcodes.ops >jit-opcode.h
+jit-opcode.h: $(top_srcdir)/jit/jit-opcodes.ops
+	$(top_builddir)/tools/gen-ops -H $(top_srcdir)/jit/jit-opcodes.ops >jit-opcode.h

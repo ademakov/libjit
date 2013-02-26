@@ -483,7 +483,6 @@ AC_FUNC_ALLOCA
 
 AC_CONFIG_FILES([
   Makefile
-  config/Makefile
   include/Makefile
   include/jit/Makefile
   include/jit/jit-defs.h

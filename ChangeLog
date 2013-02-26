@@ -1,5 +1,9 @@
 2013-02-26  Aleksey Demakov  <ademakov@gmail.com>
 
+	* configure.ac, jit/jit-opcodes.ops, jit/jit-interp-opcode.ops
+	* Makefile.am, jit/Makefile.am, include/jit/Makefile.am: Move ops
+	files from the config to jit dir, remove the config dir.
+
 	* configure.ac: Use build-aux dir for autoconf files. Update the
 	mailing list address.
 
