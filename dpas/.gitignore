@@ -1,12 +1,4 @@
-Makefile
-Makefile.in
-.deps
-.libs
 dpas-parser.h
 dpas-parser.c
 dpas-scanner.c
 dpas
-*.lo
-*.la
-*.o
-*.a

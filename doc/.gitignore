@@ -1,10 +1,4 @@
-Makefile
-Makefile.in
-.deps
-.libs
 libjit.info*
 libjitext-*
 texinfo.tex
 *.pdf
-*.lo
-*.la

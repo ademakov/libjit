@@ -1,7 +1,3 @@
-Makefile
-Makefile.in
-.deps
-.libs
 jit-apply-rules.h
 jit-interp-labels.h
 jit-interp-opcode.c
@@ -9,7 +5,3 @@ jit-interp-opcode.h
 jit-opcode.c
 *.inc
 *.slc
-*.lo
-*.la
-*.o
-*.a

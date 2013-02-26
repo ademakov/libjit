@@ -1,17 +1,9 @@
-Makefile
-Makefile.in
-.deps
-.libs
 gen-apply
 gen-apply.exe
 gen-ops
 gen-ops.exe
 gen-rules
 gen-rules.exe
-*.lo
-*.la
-*.o
-*.a
 gen-rules-parser.c
 gen-rules-parser.h
 gen-rules-scanner.c

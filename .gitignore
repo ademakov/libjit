@@ -1,7 +1,15 @@
+*~
+*.o
+*.a
+*.lo
+*.la
+
+.deps
+.libs
+
 INSTALL
 Makefile
 Makefile.in
-.deps
 configure
 config.log
 config.cache
