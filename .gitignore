@@ -2,6 +2,7 @@ INSTALL
 Makefile
 Makefile.in
 .deps
+ar-lib
 configure
 config.log
 config.cache
