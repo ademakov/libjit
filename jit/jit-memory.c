@@ -1,7 +1,7 @@
 /*
  * jit-memory.c - Memory management.
  *
- * Copyright (C) 2012  Southern Storm Software, Pty Ltd.
+ * Copyright (C) 2012  Aleksey Demakov
  *
  * The libjit library is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License

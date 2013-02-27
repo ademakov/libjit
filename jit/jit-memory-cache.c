@@ -2,6 +2,7 @@
  * jit-cache.c - Translated function cache implementation.
  *
  * Copyright (C) 2002, 2003, 2008  Southern Storm Software, Pty Ltd.
+ * Copyright (C) 2012  Aleksey Demakov
  *
  * This file is part of the libjit library.
  *

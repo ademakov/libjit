@@ -2,6 +2,7 @@
  * jit-compile.c - Function compilation.
  *
  * Copyright (C) 2004, 2006-2008  Southern Storm Software, Pty Ltd.
+ * Copyright (C) 2012  Aleksey Demakov
  *
  * This file is part of the libjit library.
  *

@@ -1,7 +1,7 @@
 /*
  * jit-varint.h - Variable length integer encoding.
  *
- * Copyright (C) 2011  Southern Storm Software, Pty Ltd.
+ * Copyright (C) 2011  Aleksey Demakov
  *
  * The libjit library is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
