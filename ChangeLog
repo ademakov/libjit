@@ -1,5 +1,8 @@
 2013-02-27  Aleksey Demakov  <ademakov@gmail.com>
 
+	* jit/jit-dump.c (jit_dump_function): fix error finding function end
+	address (thanks Alexey Galakhov <agalakhov@gmail.com> for spotting).
+
 	* jit/Makefile.am, jit/jit-apply-alpha.h, jit/jit-apply-alpha.c
 	* jit/jit-gen-alpha.h, jit/jit-rules-alpha.h, jit/jit-rules-alpha.c
 	* jit/jit-rules-alpha.ins: Remove all alpha related files from the
