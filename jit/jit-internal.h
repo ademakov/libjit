@@ -877,7 +877,7 @@ typedef enum
 } _jit_intrinsic_signature;
 
 /*
- * Flags for the instinsic info.
+ * Flags for the intrinsic info.
  */
 #define _JIT_INTRINSIC_FLAG_NONE		0x0000
 #define _JIT_INTRINSIC_FLAG_BRANCH		0x8000
@@ -886,7 +886,7 @@ typedef enum
 #define _JIT_INTRINSIC_FLAG_MASK		0xC000
 
 /*
- * Addititional intrinsic flags for the unary branches.
+ * Additional intrinsic flags for the unary branches.
  */
 #define _JIT_INTRINSIC_FLAG_IFALSE		0x0000
 #define _JIT_INTRINSIC_FLAG_ITRUE		0x0001
@@ -894,7 +894,7 @@ typedef enum
 #define _JIT_INTRINSIC_FLAG_LTRUE		0x0003
 
 /*
- * Descriprion for the implementation of an opcode by an intrinsic.
+ * Description for the implementation of an opcode by an intrinsic.
  */
 typedef struct _jit_intrinsic_info _jit_intrinsic_info_t;
 struct _jit_intrinsic_info
