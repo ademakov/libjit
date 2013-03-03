@@ -40,6 +40,7 @@ extern "C" {
 typedef unsigned int jit_size_t;
 
 typedef void *jit_memory_context_t;
+typedef void *jit_function_info_t;
 
 typedef struct jit_memory_manager const* jit_memory_manager_t;
 
@@ -48,10 +49,10 @@ struct jit_memory_manager
 	jit_memory_context_t (*create)(jit_context_t context);
 	void (*destroy)(jit_memory_context_t memctx);
 
-	void * (*find_function_info)(jit_memory_context_t memctx, void *pc);
-	jit_function_t (*get_function)(jit_memory_context_t memctx, void *func_info);
-	void * (*get_function_start)(jit_memory_context_t memctx, void *func_info);
-	void * (*get_function_end)(jit_memory_context_t memctx, void *func_info);
+	jit_function_info_t (*find_function_info)(jit_memory_context_t memctx, void *pc);
+	jit_function_t (*get_function)(jit_memory_context_t memctx, jit_function_info_t info);
+	void * (*get_function_start)(jit_memory_context_t memctx, jit_function_info_t info);
+	void * (*get_function_end)(jit_memory_context_t memctx, jit_function_info_t info);
 
 	jit_function_t (*alloc_function)(jit_memory_context_t memctx);
 	void (*free_function)(jit_memory_context_t memctx, jit_function_t func);

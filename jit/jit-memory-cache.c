@@ -465,7 +465,7 @@ _jit_cache_destroy(jit_cache_t cache)
 	jit_free(cache);
 }
 
-void
+int
 _jit_cache_extend(jit_cache_t cache, int count)
 {
 	/* Compute the page size factor */
@@ -474,7 +474,7 @@ _jit_cache_extend(jit_cache_t cache, int count)
 	/* Bail out if there is a started function */
 	if(cache->node)
 	{
-		return;
+		return JIT_MEMORY_ERROR;
 	}
 
 	/* If we had a newly allocated page then it has to be freed
@@ -501,6 +501,11 @@ _jit_cache_extend(jit_cache_t cache, int count)
 
 	/* Allocate a new page now */
 	AllocCachePage(cache, factor);
+	if(!cache->free_start)
+	{
+		return JIT_MEMORY_TOO_BIG;
+	}
+	return JIT_MEMORY_OK;
 }
 
 jit_function_t
@@ -851,16 +856,16 @@ jit_default_memory_manager(void)
 		(void (*)(jit_memory_context_t))
 		&_jit_cache_destroy,
 
-		(void * (*)(jit_memory_context_t, void *))
+		(jit_function_info_t (*)(jit_memory_context_t, void *))
 		&_jit_cache_find_function_info,
 
-		(jit_function_t (*)(jit_memory_context_t, void *))
+		(jit_function_t (*)(jit_memory_context_t, jit_function_info_t))
 		&_jit_cache_get_function,
 
-		(void * (*)(jit_memory_context_t, void *))
+		(void * (*)(jit_memory_context_t, jit_function_info_t))
 		&_jit_cache_get_function_start,
 
-		(void * (*)(jit_memory_context_t, void *))
+		(void * (*)(jit_memory_context_t, jit_function_info_t))
 		&_jit_cache_get_function_end,
 
 		(jit_function_t (*)(jit_memory_context_t))
