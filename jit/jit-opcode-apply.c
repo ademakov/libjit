@@ -72,64 +72,50 @@ apply_conv(jit_constant_t *const_result, jit_value_t value, int overflow_check)
 	{
 		return 0;
 	}
+
 	const_value.type = srctype;
 	switch(srctype->kind)
 	{
-		case JIT_TYPE_INT:
-		{
-			const_value.un.int_value = value->address;
-		}
+	case JIT_TYPE_INT:
+		const_value.un.int_value = value->address;
 		break;
 
-		case JIT_TYPE_UINT:
-		{
-			const_value.un.uint_value = value->address;
-		}
+	case JIT_TYPE_UINT:
+		const_value.un.uint_value = value->address;
 		break;
 
-		case JIT_TYPE_LONG:
-		{
+	case JIT_TYPE_LONG:
 #ifdef JIT_NATIVE_INT64
-			const_value.un.long_value = value->address;
+		const_value.un.long_value = value->address;
 #else
-			const_value.un.long_value = *(jit_long *)(value->address);
+		const_value.un.long_value = *(jit_long *)(value->address);
 #endif
-		}
 		break;
 
-		case JIT_TYPE_ULONG:
-		{
+	case JIT_TYPE_ULONG:
 #ifdef JIT_NATIVE_INT64
-			const_value.un.ulong_value = value->address;
+		const_value.un.ulong_value = value->address;
 #else
-			const_value.un.ulong_value = *(jit_ulong *)(value->address);
+		const_value.un.ulong_value = *(jit_ulong *)(value->address);
 #endif
-		}
 		break;
 
-		case JIT_TYPE_FLOAT32:
-		{
-			const_value.un.float32_value = *(jit_float32 *)(value->address);
-		}
+	case JIT_TYPE_FLOAT32:
+		const_value.un.float32_value = *(jit_float32 *)(value->address);
 		break;
 
-		case JIT_TYPE_FLOAT64:
-		{
-			const_value.un.float64_value = *(jit_float64 *)(value->address);
-		}
+	case JIT_TYPE_FLOAT64:
+		const_value.un.float64_value = *(jit_float64 *)(value->address);
 		break;
 
-		case JIT_TYPE_NFLOAT:
-		{
-			const_value.un.nfloat_value = *(jit_nfloat *)(value->address);
-		}
+	case JIT_TYPE_NFLOAT:
+		const_value.un.nfloat_value = *(jit_nfloat *)(value->address);
 		break;
 
-		default:
-		{
-			return 0;
-		}
+	default:
+		return 0;
 	}
+
 	return jit_constant_convert(const_result, &const_value,
 				    const_result->type, overflow_check);
 }
@@ -573,270 +559,176 @@ apply_opcode(jit_function_t func, const _jit_intrinsic_info_t *opcode_info,
 	const_result.type = dest_type;
 	switch(opcode_info->signature)
 	{
-		case JIT_SIG_i_i:
-		{
-			result = apply_i_i
-				 (&const_result, value1,
-				 (jit_cf_i_i_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_i:
+		result = apply_i_i(&const_result, value1,
+				   (jit_cf_i_i_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_ii:
-		{
-			result = apply_i_ii
+	case JIT_SIG_i_ii:
+		result = apply_i_ii
 				 (&const_result, value1, value2,
-				 (jit_cf_i_ii_func)opcode_info->intrinsic);
-		}
+				 (jit_cf_i_ii_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_piii:
-		{
-			result = apply_i_piii
-				 (&const_result, value1, value2,
-				 (jit_cf_i_piii_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_piii:
+		result = apply_i_piii(&const_result, value1, value2,
+				      (jit_cf_i_piii_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_iI:
-		{
-			result = apply_i_iI
-				 (&const_result, value1, value2,
-				 (jit_cf_i_iI_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_iI:
+		result = apply_i_iI(&const_result, value1, value2,
+				    (jit_cf_i_iI_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_II:
-		{
-			result = apply_i_II
-				 (&const_result, value1, value2,
-				 (jit_cf_i_II_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_II:
+		result = apply_i_II(&const_result, value1, value2,
+				    (jit_cf_i_II_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_I_I:
-		{
-			result = apply_I_I
-				 (&const_result, value1,
-				 (jit_cf_I_I_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_I_I:
+		result = apply_I_I(&const_result, value1,
+				   (jit_cf_I_I_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_I_II:
-		{
-			result = apply_I_II
-				 (&const_result, value1, value2,
-				 (jit_cf_I_II_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_I_II:
+		result = apply_I_II(&const_result, value1, value2,
+				    (jit_cf_I_II_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_pIII:
-		{
-			result = apply_i_pIII
-				 (&const_result, value1, value2,
-				 (jit_cf_i_pIII_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_pIII:
+		result = apply_i_pIII(&const_result, value1, value2,
+				      (jit_cf_i_pIII_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_l_l:
-		{
-			result = apply_l_l
-				 (&const_result, value1,
-				 (jit_cf_l_l_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_l_l:
+		result = apply_l_l(&const_result, value1,
+				   (jit_cf_l_l_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_l_ll:
-		{
-			result = apply_l_ll
-				 (&const_result, value1, value2,
-				 (jit_cf_l_ll_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_l_ll:
+		result = apply_l_ll(&const_result, value1, value2,
+				    (jit_cf_l_ll_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_plll:
-		{
-			result = apply_i_plll
-				 (&const_result, value1, value2,
-				 (jit_cf_i_plll_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_plll:
+		result = apply_i_plll(&const_result, value1, value2,
+				      (jit_cf_i_plll_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_l:
-		{
-			result = apply_i_l
-				 (&const_result, value1,
-				 (jit_cf_i_l_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_l:
+		result = apply_i_l(&const_result, value1,
+				   (jit_cf_i_l_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_ll:
-		{
-			result = apply_i_ll
-				 (&const_result, value1, value2,
-				 (jit_cf_i_ll_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_ll:
+		result = apply_i_ll(&const_result, value1, value2,
+				    (jit_cf_i_ll_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_l_lI:
-		{
-			result = apply_l_lI
-				 (&const_result, value1, value2,
-				 (jit_cf_l_lI_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_l_lI:
+		result = apply_l_lI(&const_result, value1, value2,
+				    (jit_cf_l_lI_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_L_L:
-		{
-			result = apply_L_L
-				 (&const_result, value1,
-				 (jit_cf_L_L_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_L_L:
+		result = apply_L_L(&const_result, value1,
+				   (jit_cf_L_L_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_L_LL:
-		{
-			result = apply_L_LL
-				 (&const_result, value1, value2,
-				 (jit_cf_L_LL_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_L_LL:
+		result = apply_L_LL(&const_result, value1, value2,
+				    (jit_cf_L_LL_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_pLLL:
-		{
-			result = apply_i_pLLL
-				 (&const_result, value1, value2,
-				 (jit_cf_i_pLLL_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_pLLL:
+		result = apply_i_pLLL(&const_result, value1, value2,
+				      (jit_cf_i_pLLL_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_LL:
-		{
-			result = apply_i_LL
-				 (&const_result, value1, value2,
-				 (jit_cf_i_LL_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_LL:
+		result = apply_i_LL(&const_result, value1, value2,
+				    (jit_cf_i_LL_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_L_LI:
-		{
-			result = apply_L_LI
-				 (&const_result, value1, value2,
-				 (jit_cf_L_LI_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_L_LI:
+		result = apply_L_LI(&const_result, value1, value2,
+				    (jit_cf_L_LI_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_f_f:
-		{
-			result = apply_f_f
-				 (&const_result, value1,
-				 (jit_cf_f_f_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_f_f:
+		result = apply_f_f(&const_result, value1,
+				   (jit_cf_f_f_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_f_ff:
-		{
-			result = apply_f_ff
-				 (&const_result, value1, value2,
-				 (jit_cf_f_ff_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_f_ff:
+		result = apply_f_ff(&const_result, value1, value2,
+				    (jit_cf_f_ff_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_f:
-		{
-			result = apply_i_f
-				 (&const_result, value1,
-				 (jit_cf_i_f_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_f:
+		result = apply_i_f(&const_result, value1,
+				   (jit_cf_i_f_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_ff:
-		{
-			result = apply_i_ff
-				 (&const_result, value1, value2,
-				 (jit_cf_i_ff_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_ff:
+		result = apply_i_ff(&const_result, value1, value2,
+				    (jit_cf_i_ff_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_d_d:
-		{
-			result = apply_d_d
-				 (&const_result, value1,
-				 (jit_cf_d_d_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_d_d:
+		result = apply_d_d(&const_result, value1,
+				   (jit_cf_d_d_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_d_dd:
-		{
-			result = apply_d_dd
-				 (&const_result, value1, value2,
-				 (jit_cf_d_dd_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_d_dd:
+		result = apply_d_dd(&const_result, value1, value2,
+				    (jit_cf_d_dd_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_d:
-		{
-			result = apply_i_d
-				 (&const_result, value1,
-				 (jit_cf_i_d_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_d:
+		result = apply_i_d(&const_result, value1,
+				   (jit_cf_i_d_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_dd:
-		{
-			result = apply_i_dd
-				 (&const_result, value1, value2,
-				 (jit_cf_i_dd_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_dd:
+		result = apply_i_dd(&const_result, value1, value2,
+				    (jit_cf_i_dd_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_D_D:
-		{
-			result = apply_D_D
-				 (&const_result, value1,
-				 (jit_cf_D_D_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_D_D:
+		result = apply_D_D(&const_result, value1,
+				   (jit_cf_D_D_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_D_DD:
-		{
-			result = apply_D_DD
-				 (&const_result, value1, value2,
-				 (jit_cf_D_DD_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_D_DD:
+		result = apply_D_DD(&const_result, value1, value2,
+				    (jit_cf_D_DD_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_D:
-		{
-			result = apply_i_D
-				 (&const_result, value1,
-				 (jit_cf_i_D_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_D:
+		result = apply_i_D(&const_result, value1,
+				   (jit_cf_i_D_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_i_DD:
-		{
-			result = apply_i_DD
-				 (&const_result, value1, value2,
-				 (jit_cf_i_DD_func)opcode_info->intrinsic);
-		}
+	case JIT_SIG_i_DD:
+		result = apply_i_DD(&const_result, value1, value2,
+				    (jit_cf_i_DD_func) opcode_info->intrinsic);
 		break;
 
-		case JIT_SIG_conv:
-		{
-			result = apply_conv(&const_result, value1, 0);
-		}
+	case JIT_SIG_conv:
+		result = apply_conv(&const_result, value1, 0);
 		break;
 
-		case JIT_SIG_conv_ovf:
-		{
-			result = apply_conv(&const_result, value1, 1);
-		}
+	case JIT_SIG_conv_ovf:
+		result = apply_conv(&const_result, value1, 1);
 		break;
 	}
+
 	if(result)
 	{
 		return jit_value_create_constant(func, &const_result);
 	}
+
 	return 0;
 }
 
@@ -850,13 +742,19 @@ _jit_opcode_apply(jit_function_t func, jit_uint opcode, jit_type_t dest_type,
 	{
 		return 0;
 	}
-	if((value1 == 0) || !(value1->is_constant))
+	if((value1 == 0) || !value1->is_constant)
 	{
 		return 0;
 	}
-	opcode_info = &(_jit_intrinsics[opcode]);
-	if((opcode_info->flags & _JIT_INTRINSIC_FLAG_MASK) ==
-	   _JIT_INTRINSIC_FLAG_NOT)
+
+	opcode_info = &_jit_intrinsics[opcode];
+
+	if((opcode_info->flags & _JIT_INTRINSIC_FLAG_MASK) == _JIT_INTRINSIC_FLAG_NONE)
+	{
+		return apply_opcode(func, opcode_info, dest_type, value1, value2);
+	}
+
+	if((opcode_info->flags & _JIT_INTRINSIC_FLAG_MASK) == _JIT_INTRINSIC_FLAG_NOT)
 	{
 		jit_value_t value;
 		
@@ -865,6 +763,7 @@ _jit_opcode_apply(jit_function_t func, jit_uint opcode, jit_type_t dest_type,
 		{
 			return 0;
 		}
+
 		opcode_info = &(_jit_intrinsics[opcode]);
 		value = apply_opcode(func, opcode_info, dest_type, value1, value2);
 		if(value)
@@ -877,11 +776,7 @@ _jit_opcode_apply(jit_function_t func, jit_uint opcode, jit_type_t dest_type,
 			return value;
 		}
 	}
-	else if((opcode_info->flags & _JIT_INTRINSIC_FLAG_MASK) ==
-	      _JIT_INTRINSIC_FLAG_NONE)
-	{
-		return apply_opcode(func, opcode_info, dest_type, value1, value2);
-	}
+
 	return 0;
 }
 

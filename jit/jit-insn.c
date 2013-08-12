@@ -48,38 +48,46 @@
  */
 typedef struct
 {
-	unsigned short	ioper;					/* Primary operator for "int" */
-	unsigned short	iuoper;					/* Primary operator for "uint" */
-	unsigned short	loper;					/* Primary operator for "long" */
-	unsigned short	luoper;					/* Primary operator for "ulong" */
-	unsigned short	foper;					/* Primary operator for "float32" */
-	unsigned short	doper;					/* Primary operator for "float64" */
-	unsigned short	nfoper;					/* Primary operator for "nfloat" */
-	void		   *ifunc;					/* Function for "int" */
-	const char	   *iname;					/* Intrinsic name for "int" */
-	const jit_intrinsic_descr_t *idesc;		/* Descriptor for "int" */
-	void		   *iufunc;					/* Function for "uint" */
-	const char	   *iuname;					/* Intrinsic name for "uint" */
+	unsigned short	ioper;			/* Primary operator for "int" */
+	unsigned short	iuoper;			/* Primary operator for "uint" */
+	unsigned short	loper;			/* Primary operator for "long" */
+	unsigned short	luoper;			/* Primary operator for "ulong" */
+	unsigned short	foper;			/* Primary operator for "float32" */
+	unsigned short	doper;			/* Primary operator for "float64" */
+	unsigned short	nfoper;			/* Primary operator for "nfloat" */
+
+	void		   *ifunc;		/* Function for "int" */
+	const char	   *iname;		/* Intrinsic name for "int" */
+	const jit_intrinsic_descr_t *idesc;	/* Descriptor for "int" */
+
+	void		   *iufunc;		/* Function for "uint" */
+	const char	   *iuname;		/* Intrinsic name for "uint" */
 	const jit_intrinsic_descr_t *iudesc; 	/* Descriptor for "uint" */
-	void		   *lfunc;					/* Function for "long" */
-	const char	   *lname;					/* Intrinsic name for "long" */
-	const jit_intrinsic_descr_t *ldesc;		/* Descriptor for "long" */
-	void		   *lufunc;					/* Function for "ulong" */
-	const char	   *luname;					/* Intrinsic name for "ulong" */
+
+	void		   *lfunc;		/* Function for "long" */
+	const char	   *lname;		/* Intrinsic name for "long" */
+	const jit_intrinsic_descr_t *ldesc;	/* Descriptor for "long" */
+
+	void		   *lufunc;		/* Function for "ulong" */
+	const char	   *luname;		/* Intrinsic name for "ulong" */
 	const jit_intrinsic_descr_t *ludesc;	/* Descriptor for "ulong" */
-	void		   *ffunc;					/* Function for "float32" */
-	const char	   *fname;					/* Intrinsic name for "float32" */
-	const jit_intrinsic_descr_t *fdesc;		/* Descriptor for "float32" */
-	void		   *dfunc;					/* Function for "float64" */
-	const char	   *dname;					/* Intrinsic name for "float64" */
-	const jit_intrinsic_descr_t *ddesc;		/* Descriptor for "float64" */
-	void		   *nffunc;					/* Function for "nfloat" */
-	const char	   *nfname;					/* Intrinsic name for "nfloat" */
+
+	void		   *ffunc;		/* Function for "float32" */
+	const char	   *fname;		/* Intrinsic name for "float32" */
+	const jit_intrinsic_descr_t *fdesc;	/* Descriptor for "float32" */
+
+	void		   *dfunc;		/* Function for "float64" */
+	const char	   *dname;		/* Intrinsic name for "float64" */
+	const jit_intrinsic_descr_t *ddesc;	/* Descriptor for "float64" */
+
+	void		   *nffunc;		/* Function for "nfloat" */
+	const char	   *nfname;		/* Intrinsic name for "nfloat" */
 	const jit_intrinsic_descr_t *nfdesc;	/* Descriptor for "nfloat" */
 
 } jit_opcode_descr;
-#define	jit_intrinsic(name,descr)		(void *)name, #name, &descr
-#define	jit_no_intrinsic				0, 0, 0
+
+#define	jit_intrinsic(name, descr)	(void *)name, #name, &descr
+#define	jit_no_intrinsic		0, 0, 0
 
 /*
  * Some common intrinsic descriptors that are used in this file.
