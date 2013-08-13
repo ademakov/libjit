@@ -544,7 +544,7 @@ _jit_cache_start_function(jit_cache_t cache, jit_function_t func)
 		cache, sizeof(struct jit_cache_node), sizeof(void *));
 	if(!cache->node)
 	{
-		return JIT_MEMORY_TOO_BIG;
+		return JIT_MEMORY_RESTART;
 	}
 	cache->node->func = func;
 

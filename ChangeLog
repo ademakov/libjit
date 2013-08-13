@@ -1,6 +1,12 @@
+2013-08-13  Chetan Reddy  <chetanreddy@gmail.com>
+
+	* jit/jit-memory-cache.c (_jit_cache_start_function): If there is no
+	room left for a cache node on the current page then let restart with
+	a new page rather than giving up on it.
+
 2013-03-04  Aleksey Demakov  <ademakov@gmail.com>
 
-	* jit/jit-memory-cache.c (jit/jit-memory-cache.c): the function now
+	* jit/jit-memory-cache.c (_jit_cache_extend): the function now
 	returns a value (thanks Alexey Galakhov <agalakhov@gmail.com>).
 
 	* include/jit/jit-memory.h, jit/jit-internal.h, jit/jit-memory.c:
