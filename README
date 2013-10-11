@@ -25,13 +25,21 @@ in the source files themselves.
 Building libjit
 ---------------
 
-You will need GNU make, Bison, and Flex to build libjit, and it is
-also highly recommended that you use gcc.  To configure, build,
-and install, you would do the following:
+To build libjit from a release tarball you will need GNU make, Bison, and
+Flex, and it is also highly recommended that you use gcc.  To configure,
+build, and install, you would do the following:
 
         ./configure
         make
         make install
+
+To build libjit from the repository tree you will also need autotools:
+autoconf, automake, and libtool.  These tools let you create ./configure
+script which is miising in the repository.  To run autotools you would
+just do the followoing:
+
+	./auto_gen.sh
+
 
 Compiler notes
 --------------
