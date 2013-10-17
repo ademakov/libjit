@@ -113,11 +113,16 @@ we provide a complete reference guide for all of the API functions in
 
 @section Obtaining libjit
 
-The latest version of @code{libjit} can be obtained from Southern
-Storm Software, Pty Ltd's Web site:
+Currently it is recommended to get @code{libjit} source code from its
+@uref{http://savannah.gnu.org/git/?group=libjit, Savannah git repository}:
+
+@code{git clone git://git.savannah.gnu.org/libjit.git}
+
+The latest released version of @code{libjit} is severely out of date and
+its use is discuraged. Still it can be downloaded from here:
 
 @quotation
-@uref{http://www.southern-storm.com.au/libjit.html}
+@uref{http://ftp.gnu.org/old-gnu/dotgnu/libjit/}
 @end quotation
 
 @section Further reading
