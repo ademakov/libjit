@@ -60,14 +60,24 @@ Contacting the authors
 ----------------------
 
 The primary author is Rhys Weatherley at Southern Storm Software, Pty Ltd.
-He can be reached via e-mail at "rweather@southern-storm.com.au".
+He can be reached via e-mail at "rweather@southern-storm.com.au".  [ This
+address is probably not valid anymore. ]
 
-The latest version of libjit will always be available from the Southern
-Storm Web site:
+A number of other authors have also contributed to libjit.  The current
+libjit maintainer is Aleksey Demakov <ademakov@gmail.com>.
 
-        http://www.southern-storm.com.au/libjit/
+Currently it is recommended to obtain libjit source tree from its Savannah
+git repository:
 
-Discussions about libjit can be carried out on the DotGNU Portable.NET
-mailing list, "pnet-developers@dotgnu.org".  Visit "www.dotgnu.org"
-for details on how to subscribe to this list.  A separate mailing list
-will be created if there is demand for it.
+git clone git://git.savannah.gnu.org/libjit.git
+
+The latest released version of libjit is severely out of date and its use
+is discuraged.  Still it can be downloaded from here:
+
+http://ftp.gnu.org/old-gnu/dotgnu/libjit/
+
+Discussions about libjit can be carried out on the libjit mailing list,
+"libjit@gnu.org".  For details on how to subscribe to the list visit libjit
+home page:
+
+http://www.gnu.org/software/libjit/

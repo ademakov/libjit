@@ -1,3 +1,7 @@
+2013-10-17  Aleksey Demakov  <ademakov@gmail.com>
+
+	* README, doc/libjit.texi: Update info on obtaining libjit sources.
+
 2013-08-13  Chetan Reddy  <chetanreddy@gmail.com>
 
 	* jit/jit-memory-cache.c (_jit_cache_start_function): If there is no
