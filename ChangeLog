@@ -2,6 +2,11 @@
 
 	* doc/libjit.texi: Fix makeinfo problem with newer texinfo.
 
+2014-01-20  Ben Noordhuis  <info@bnoordhuis.nl>
+
+	* jit/jit-thread.c (_jit_thread_init): Fix Windows-only race
+	condition.
+
 2013-10-17  Aleksey Demakov  <ademakov@gmail.com>
 
 	* README, doc/libjit.texi: Update info on obtaining libjit sources.
