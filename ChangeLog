@@ -1,3 +1,7 @@
+2014-01-21  John Perkins <jeperk70@gmail.com>
+
+	* doc/libjit.texi: Fix makeinfo problem with newer texinfo.
+
 2013-10-17  Aleksey Demakov  <ademakov@gmail.com>
 
 	* README, doc/libjit.texi: Update info on obtaining libjit sources.

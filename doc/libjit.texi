@@ -23,7 +23,7 @@ Copyright @copyright{} 2004 Southern Storm Software, Pty Ltd
 @center @titlefont{Just-In-Time Compiler Library}
 
 @vskip 0pt plus 1fill
-@center{Copyright @copyright{} 2004 Southern Storm Software, Pty Ltd}
+@center Copyright @copyright{} 2004 Southern Storm Software, Pty Ltd
 @end titlepage
 
 @syncodeindex fn cp
