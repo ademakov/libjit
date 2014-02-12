@@ -24,3 +24,5 @@ libtool
 ltconfig
 autom4te.cache
 stamp-h1
+build-aux
+
