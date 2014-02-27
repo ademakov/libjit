@@ -1301,7 +1301,7 @@ void jit_type_set_tagged_type(jit_type_t type, jit_type_t underlying,
 }
 
 /*@
- * @deftypefun int jit_type_get_tagged_type (jit_type_t @var{type})
+ * @deftypefun int jit_type_get_tagged_kind (jit_type_t @var{type})
  * Get the kind of tag that is applied to a tagged type.  Returns -1
  * if not a tagged type.
  * @end deftypefun
