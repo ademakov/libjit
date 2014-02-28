@@ -1270,10 +1270,11 @@ jit_type_t jit_type_get_tagged_type(jit_type_t type)
 }
 
 /*@
- * @deftypefun void jit_type_set_tagged_type (jit_type_t @var{type}, jit_type_t @var{underlying})
+ * @deftypefun void jit_type_set_tagged_type (jit_type_t @var{type}, jit_type_t @var{underlying}, int @var{incref})
  * Set the type that underlies a tagged type.  Ignored if @var{type}
  * is not a tagged type.  If @var{type} already has an underlying
- * type, then the original is freed.
+ * type, then the original is freed.  The reference count on @var{underlying}
+ * is incremented if @var{incref} is non-zero.
  *
  * This function is typically used to flesh out the body of a
  * forward-declared type.  The tag is used as a placeholder
