@@ -346,7 +346,7 @@ static void dump_value(FILE *stream, jit_function_t func,
 }
 
 /*@
- * @deftypefun void jit_dump_insn (FILE *@var{stream}, jit_function_t @var{func}, jit_value_t @var{value})
+ * @deftypefun void jit_dump_insn (FILE *@var{stream}, jit_function_t @var{func}, jit_insn_t @var{insn})
  * Dump the contents of an instruction to a stdio stream.
  * @end deftypefun
 @*/
