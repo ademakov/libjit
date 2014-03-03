@@ -248,7 +248,7 @@ jit_value_t jit_value_create(jit_function_t func, jit_type_t type)
  * For example, the following will create an unsigned byte constant:
  *
  * @example
- * value = jit_value_create_nint_constant(context, jit_type_ubyte, 128);
+ * value = jit_value_create_nint_constant(func, jit_type_ubyte, 128);
  * @end example
  *
  * This function can be used to create constants of type @code{jit_type_sbyte},
