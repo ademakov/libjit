@@ -987,6 +987,7 @@ field with a @code{pointer to procedure/function} type.
 @cindex Compiling functions
 
 @include libjitext-function.texi
+@include libjitext-compile.texi
 
 @c -----------------------------------------------------------------------
 

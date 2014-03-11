@@ -1,4 +1,8 @@
-2014-01-21  John Perkins <jeperk70@gmail.com>
+2014-03-11  Niklas Koep  <niklas.koep@gmail.com>
+
+	* doc/Makefile.am, doc/libjit.texi: Include docs from jit-compile.c.
+
+2014-01-21  John Perkins  <jeperk70@gmail.com>
 
 	* doc/libjit.texi: Fix makeinfo problem with newer texinfo.
 

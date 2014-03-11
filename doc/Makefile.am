@@ -7,6 +7,7 @@ info_TEXINFOS   = libjit.texi
 libjit_TEXINFOS = \
 	$(srcdir)/libjitext-apply.texi \
 	$(srcdir)/libjitext-block.texi \
+	$(srcdir)/libjitext-compile.texi \
 	$(srcdir)/libjitext-context.texi \
 	$(srcdir)/libjitext-debugger.texi \
 	$(srcdir)/libjitext-dump.texi \
@@ -33,6 +34,9 @@ $(srcdir)/libjitext-apply.texi: $(top_srcdir)/jit/jit-apply.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
 $(srcdir)/libjitext-block.texi: $(top_srcdir)/jit/jit-block.c
+	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
+
+$(srcdir)/libjitext-compile.texi: $(top_srcdir)/jit/jit-compile.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
 $(srcdir)/libjitext-context.texi: $(top_srcdir)/jit/jit-context.c
