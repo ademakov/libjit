@@ -1138,7 +1138,8 @@ jit_insn_label(jit_function_t func, jit_label_t *label)
 
 /*@
  * @deftypefun int jit_insn_new_block (jit_function_t @var{func})
- * Start a new basic block, without giving it an explicit label.
+ * Start a new basic block, without giving it an explicit label. Returns a
+ * non-zero value on success.
  * @end deftypefun
 @*/
 int
@@ -1620,7 +1621,7 @@ jit_value_t jit_insn_load_relative
 /*@
  * @deftypefun int jit_insn_store_relative (jit_function_t @var{func}, jit_value_t @var{dest}, jit_nint @var{offset}, jit_value_t @var{value})
  * Store @var{value} at the effective address @code{(@var{dest} + @var{offset})},
- * where @var{dest} is a pointer.
+ * where @var{dest} is a pointer. Returns a non-zero value on success.
  * @end deftypefun
 @*/
 int jit_insn_store_relative
