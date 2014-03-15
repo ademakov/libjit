@@ -415,7 +415,7 @@ jit_value_t jit_value_create_nfloat_constant
 }
 
 /*@
- * @deftypefun jit_value_t jit_value_create_constant (jit_function_t @var{func}, const jit_constant *@var{const_value})
+ * @deftypefun jit_value_t jit_value_create_constant (jit_function_t @var{func}, const jit_constant_t *@var{const_value})
  * Create a new constant from a generic constant structure in the specified
  * function.  Returns NULL if out of memory or if the type in
  * @var{const_value} is not suitable for a constant.
