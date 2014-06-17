@@ -1,3 +1,8 @@
+2014-06-18  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-value.c (jit_value_get_param): add range check for param
+	argument (thanks Niklas Koep).
+
 2014-03-11  Niklas Koep  <niklas.koep@gmail.com>
 
 	* doc/Makefile.am, doc/libjit.texi: Include docs from jit-compile.c.

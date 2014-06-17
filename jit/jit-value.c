@@ -473,10 +473,11 @@ jit_value_t jit_value_create_constant
 /*@
  * @deftypefun jit_value_t jit_value_get_param (jit_function_t @var{func}, unsigned int @var{param})
  * Get the value that corresponds to a specified function parameter.
- * Returns NULL if out of memory.
+ * Returns NULL if out of memory or @var{param} is invalid.
  * @end deftypefun
 @*/
-jit_value_t jit_value_get_param(jit_function_t func, unsigned int param)
+jit_value_t
+jit_value_get_param(jit_function_t func, unsigned int param)
 {
 	jit_type_t signature;
 	unsigned int num_params, current;
@@ -484,6 +485,14 @@ jit_value_t jit_value_get_param(jit_function_t func, unsigned int param)
 
 	/* Ensure that we have a builder for this function */
 	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+
+	/* Ensure valid param number. */
+	signature = func->signature;
+	num_params = jit_type_num_params(signature);
+	if(param >= num_params)
 	{
 		return 0;
 	}
@@ -496,8 +505,6 @@ jit_value_t jit_value_get_param(jit_function_t func, unsigned int param)
 	}
 
 	/* Create the values for the first time */
-	signature = func->signature;
-	num_params = jit_type_num_params(signature);
 	values = (jit_value_t *)jit_calloc(num_params, sizeof(jit_value_t));
 	if(!values)
 	{
@@ -506,8 +513,7 @@ jit_value_t jit_value_get_param(jit_function_t func, unsigned int param)
 	func->builder->param_values = values;
 	for(current = 0; current < num_params; ++current)
 	{
-		values[current] = jit_value_create
-			(func, jit_type_get_param(signature, current));
+		values[current] = jit_value_create(func, jit_type_get_param(signature, current));
 		if(values[current])
 		{
 			/* The value belongs to the entry block, no matter
