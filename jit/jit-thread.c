@@ -21,18 +21,19 @@
  */
 
 #include "jit-internal.h"
+
 #if TIME_WITH_SYS_TIME
-	#include <sys/time.h>
-    #include <time.h>
+# include <sys/time.h>
+# include <time.h>
 #else
-    #if HAVE_SYS_TIME_H
-		#include <sys/time.h>
-    #elif !defined(__palmos__)
-        #include <time.h>
-    #endif
+# if HAVE_SYS_TIME_H
+#  include <sys/time.h>
+# elif !defined(__palmos__)
+#  include <time.h>
+# endif
 #endif
 #ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h>
+# include <sys/types.h>
 #endif
 #include <errno.h>
 
@@ -205,8 +206,7 @@ int _jit_monitor_wait(jit_monitor_t *mon, jit_int timeout)
 	++(mon->_waiting);
 	if(timeout >= 0)
 	{
-		result = SignalObjectAndWait(mon->_mutex, mon->_cond,
-									 (DWORD)timeout, FALSE);
+		result = SignalObjectAndWait(mon->_mutex, mon->_cond, (DWORD)timeout, FALSE);
 	}
 	else
 	{
