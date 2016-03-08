@@ -94,6 +94,7 @@ int jit_insn_store_elem
 	(jit_function_t func, jit_value_t base_addr,
 	 jit_value_t index, jit_value_t value) JIT_NOTHROW;
 int jit_insn_check_null(jit_function_t func, jit_value_t value) JIT_NOTHROW;
+int jit_insn_nop(jit_function_t func) JIT_NOTHROW;
 
 jit_value_t jit_insn_add
 	(jit_function_t func, jit_value_t value1, jit_value_t value2) JIT_NOTHROW;
