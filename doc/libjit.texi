@@ -49,6 +49,7 @@ Copyright @copyright{} 2004 Southern Storm Software, Pty Ltd
 * ELF Binaries::            Manipulating ELF binaries
 * Utility Routines::        Miscellaneous utility routines
 * Diagnostic Routines::     Diagnostic routines
+* Object Model Extension::  Library extension to ease working with objects
 * C++ Interface::           Using libjit from C++
 * Porting::                 Porting libjit to new architectures
 * Index::                   Index of concepts and facilities
@@ -1047,7 +1048,7 @@ field with a @code{pointer to procedure/function} type.
 
 @c -----------------------------------------------------------------------
 
-@node ELF Binaries, Utility Routines, Breakpoint Debugging, Top
+@node ELF Binaries, Object Model Extension, Breakpoint Debugging, Top
 @chapter Manipulating ELF binaries
 @cindex ELF binaries
 
@@ -1055,7 +1056,16 @@ field with a @code{pointer to procedure/function} type.
 
 @c -----------------------------------------------------------------------
 
-@node Utility Routines, Diagnostic Routines, ELF Binaries, Top
+@node Object Model Extension, Utility Routines, ELF Binaries, Top
+@chapter Library extension to ease working with objects
+@cindex Object Model Extension
+@cindex jit-objmodel.h
+
+@include libjitext-objmodel.texi
+
+@c -----------------------------------------------------------------------
+
+@node Utility Routines, Diagnostic Routines, Object Model Extension, Top
 @chapter Miscellaneous utility routines
 @cindex Utility routines
 @cindex jit-util.h

@@ -358,7 +358,7 @@ jit_value_t jitom_class_new_value
  * Note: no attempt is made to destroy inline stack values automatically when
  * they go out of scope.  It is up to the caller to output instructions
  * in the appropriate places to do this.
- * @end 
+ * @end deftypefun
 @*/
 int jitom_class_delete
 	(jit_objmodel_t model, jitom_class_t klass, jit_value_t obj_value)
@@ -374,7 +374,7 @@ int jitom_class_delete
  *
  * Other functions, such as @code{jitom_field_store}, may also change the
  * reference count, but such behavior is object model specific.
- * @end 
+ * @end deftypefun
 @*/
 int jitom_class_add_ref
 	(jit_objmodel_t model, jitom_class_t klass, jit_value_t obj_value)

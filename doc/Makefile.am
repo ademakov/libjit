@@ -1,6 +1,6 @@
 
 man_MANS        = libjit.3
-EXTRA_SCRIPTS	= extract-docs.sh mkhtml.sh mkpdf.sh
+EXTRA_SCRIPTS	= extract-docs.sh mkhtml.sh mkhtml_onefile.sh mkpdf.sh
 EXTRA_DIST      = $(man_MANS) $(EXTRA_SCRIPTS)
 
 info_TEXINFOS   = libjit.texi
@@ -21,6 +21,7 @@ libjit_TEXINFOS = \
 	$(srcdir)/libjitext-cpp-mangle.texi \
 	$(srcdir)/libjitext-util.texi \
 	$(srcdir)/libjitext-meta.texi \
+	$(srcdir)/libjitext-objmodel.texi \
 	$(srcdir)/libjitext-reg-alloc.texi \
 	$(srcdir)/libjitext-rules-interp.texi \
 	$(srcdir)/libjitext-type.texi \
@@ -76,6 +77,9 @@ $(srcdir)/libjitext-util.texi: $(top_srcdir)/jit/jit-util.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
 $(srcdir)/libjitext-meta.texi: $(top_srcdir)/jit/jit-meta.c
+	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
+
+$(srcdir)/libjitext-objmodel.texi: $(top_srcdir)/jit/jit-objmodel.c
 	$(SHELL) $(srcdir)/extract-docs.sh $< >$@
 
 $(srcdir)/libjitext-reg-alloc.texi: $(top_srcdir)/jit/jit-reg-alloc.c
