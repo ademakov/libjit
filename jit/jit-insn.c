@@ -279,6 +279,22 @@ static jit_intrinsic_descr_t const descr_i_D = {
 	0
 };
 
+int jit_insn_nop(jit_function_t func)
+{
+	jit_insn_t insn;
+	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+	insn = _jit_block_add_insn(func->builder->current_block);
+	if(!insn)
+	{
+		return 0;
+	}
+	insn->opcode = JIT_OP_NOP;
+	return 1;
+}
+
 /*
  * Apply a unary operator.
  */
