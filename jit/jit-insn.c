@@ -5933,7 +5933,7 @@ jit_value_t jit_insn_call_indirect_vtable
 }
 
 /*@
- * @deftypefun jit_value_t jit_insn_call_native (jit_function_t @var{func}, const char *@var{name}, void *@var{native_func}, jit_type_t @var{signature}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{exception_return}, int @var{flags})
+ * @deftypefun jit_value_t jit_insn_call_native (jit_function_t @var{func}, const char *@var{name}, void *@var{native_func}, jit_type_t @var{signature}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{flags})
  * Output an instruction that calls an external native function.
  * The @var{name} is for diagnostic purposes only, and can be NULL.
  * @end deftypefun
