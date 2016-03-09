@@ -279,30 +279,6 @@ static jit_intrinsic_descr_t const descr_i_D = {
 	0
 };
 
-/*@
- * @deftypefun int jit_insn_nop (jit_function_t @var{func})
- * Emits "no operation" instruction. You may want to do that if you need
- * an empty block to move it with @code{jit_insn_move_blocks_XXX} later.
- * If you will not put empty instruction between two labels, both labels
- * will point to the same block, and block moving will fail.
- * @end deftypefun
-@*/
-int jit_insn_nop(jit_function_t func)
-{
-	jit_insn_t insn;
-	if(!_jit_function_ensure_builder(func))
-	{
-		return 0;
-	}
-	insn = _jit_block_add_insn(func->builder->current_block);
-	if(!insn)
-	{
-		return 0;
-	}
-	insn->opcode = JIT_OP_NOP;
-	return 1;
-}
-
 /*
  * Apply a unary operator.
  */
@@ -1370,6 +1346,30 @@ int _jit_store_opcode(int base_opcode, int small_base, jit_type_t type)
 		}
 		/* Not reached */
 	}
+}
+
+/*@
+ * @deftypefun int jit_insn_nop (jit_function_t @var{func})
+ * Emits "no operation" instruction. You may want to do that if you need
+ * an empty block to move it with @code{jit_insn_move_blocks_XXX} later.
+ * If you will not put empty instruction between two labels, both labels
+ * will point to the same block, and block moving will fail.
+ * @end deftypefun
+@*/
+int jit_insn_nop(jit_function_t func)
+{
+	jit_insn_t insn;
+	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+	insn = _jit_block_add_insn(func->builder->current_block);
+	if(!insn)
+	{
+		return 0;
+	}
+	insn->opcode = JIT_OP_NOP;
+	return 1;
 }
 
 /*@
