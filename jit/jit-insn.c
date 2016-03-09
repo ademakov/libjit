@@ -279,6 +279,14 @@ static jit_intrinsic_descr_t const descr_i_D = {
 	0
 };
 
+/*@
+ * @deftypefun int jit_insn_nop (jit_function_t @var{func})
+ * Emits "no operation" instruction. You may want to do that if you need
+ * an empty block to move it with @code{jit_insn_move_blocks_XXX} later.
+ * If you will not put empty instruction between two labels, both labels
+ * will point to the same block, and block moving will fail.
+ * @end deftypefun
+@*/
 int jit_insn_nop(jit_function_t func)
 {
 	jit_insn_t insn;
