@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_PREREQ(2.61)
+AC_PREREQ([2.69])
 
 AC_INIT([libjit], [0.1.3], [libjit@gnu.org])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -111,8 +111,9 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_YACC
 AM_PROG_LEX
-AC_LIBTOOL_WIN32_DLL
-AC_PROG_LIBTOOL
+
+dnl Initialize libtool.
+LT_INIT([win32-dll])
 
 dnl Set the correct flags for compiling with MSVC.  "/QIfist" is needed
 dnl on systems with both VC 6.0 and VC 7.0 installed: sometimes VC 7.0
