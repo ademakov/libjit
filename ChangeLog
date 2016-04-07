@@ -3,6 +3,15 @@
 	* jit/jit-insn.c (jit_insn_call): the "intuit additional flags" code
 	was using wrong (caller instead of callee) function.
 
+2016-03-09  Ketmar Dark <ketmar@ketmar.no-ip.org>
+
+	* jit/jit-insn.c (jit_insn_nop): add function.
+
+	* doc/mkhtml_onefile.sh: add file.
+
+	* doc/Makefile.am, doc/libjit.texi, jit/jit-objmodel.c: build docs
+	for `objmodel` extension.
+
 2014-06-18  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-value.c (jit_value_get_param): add range check for param
