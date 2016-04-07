@@ -5644,11 +5644,11 @@ jit_value_t jit_insn_call
 	}
 
 	/* Intuit additional flags from "jit_func" if it was already compiled */
-	if(func->no_throw)
+	if(jit_func->no_throw)
 	{
 		flags |= JIT_CALL_NOTHROW;
 	}
-	if(func->no_return)
+	if(jit_func->no_return)
 	{
 		flags |= JIT_CALL_NORETURN;
 	}
