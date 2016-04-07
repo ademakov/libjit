@@ -151,7 +151,7 @@
 	* jit/jit-rules.h, jit/jit-rules.c: (_jit_gen_check_space)
 	(_jit_gen_alloc): add.
 	* jit/jit-cache.h, jit/jit-cache.c (_jit_cache_get_function):
-	rename from _jit_cache_get_method. 
+	rename from _jit_cache_get_method.
 
 2012-02-11  Aleksey Demakov  <ademakov@gmail.com>
 
@@ -436,7 +436,7 @@
 	Add jit-interp-opcode.c and jit-interp-opcode.h to libjit_la_SOURCES.
 	Add rules to generate jit-opcode.c, jit-interp-opcode.c and
 	jit-interp-opcode.h.
-	Adjust rule to generate jit-interp-labels.h. 
+	Adjust rule to generate jit-interp-labels.h.
 
 	* jit/jit-dump.c: Remove the extern declaration of the interpreter
 	opcode table.
@@ -588,7 +588,7 @@
 2009-10-09  Gopal V  <gopalv@php.net>
 
 	* jit/jit-insn.c (jit_insn_branch_if_not,jit_insn_branch_if): Remove
-	the premature optimization of compare & branch operations (thanks 
+	the premature optimization of compare & branch operations (thanks
 	Klaus).
 
 2009-08-04  Aleksey Demakov  <ademakov@gmail.com>
@@ -606,8 +606,8 @@
 
 2009-06-05  Aleksey Demakov  <ademakov@gmail.com>
 
-	* jit/jit-compile.c (jit_function_compile) 
-	(jit_function_compile_entry, jit_function_setup_entry) 
+	* jit/jit-compile.c (jit_function_compile)
+	(jit_function_compile_entry, jit_function_setup_entry)
 	(_jit_function_compile_on_demand): new file, move all compile
 	functions here from jit-function.c.
 
@@ -686,7 +686,7 @@
 
 2009-04-22  Aleksey Demakov  <ademakov@gmail.com>
 
-	* jit/jit-insn.c (jit_insn_call, jit_insn_call_indirect) 
+	* jit/jit-insn.c (jit_insn_call, jit_insn_call_indirect)
 	(jit_insn_call_indirect_vtable, jit_insn_call_native): don't end
 	basic block before a function call, rather end it after the call if
 	the call may throw some exception.
@@ -733,7 +733,7 @@
 	* jit/jit-rules.h (jit_reg_other_reg): add macro.
 	* jit/jit-reg-alloc.c: replace OTHER_REG with jit_reg_other_reg.
 	* jit/jit-rules-x86.c (_jit_gen_load_value): use jit_reg_other_reg.
-	* jit/jit-rules-arm.c (_jit_gen_load_value) 
+	* jit/jit-rules-arm.c (_jit_gen_load_value)
 	(_jit_gen_load_value_struct): use jit_reg_other_reg.
 
 2009-03-23  Aleksey Demakov  <ademakov@gmail.com>
@@ -1016,8 +1016,8 @@
 
 2008-05-08  Aleksey Demakov  <ademakov@gmail.com>
 
-	* jit/jit-rules-x86.ins: 
-	* jit/jit-rules-x86-64.ins: 
+	* jit/jit-rules-x86.ins:
+	* jit/jit-rules-x86-64.ins:
 	* jit/jit-function.c (compile_block): let register allocator see
 	JIT_OP_INCOMING_REG and JIT_OP_RETURN_REG instructions so it can
 	free unused values on these instructions rather than on the block
@@ -1241,7 +1241,7 @@
 	* COPYING.LESSER: add LGPL v2.1 file.
 
 	* jit/*.c, jitplus/*.cpp, jitdynamic/*.c: fix texinfo markup for
-	parameters. 
+	parameters.
 
 2008-01-21 Dalibor Topic <robilad@kaffe.org>
 
@@ -1290,7 +1290,7 @@
 
 2007-12-21  Aleksey Demakov  <ademakov@gmail.com>
 
-	* jit/jit-internal.h, jit/jit-context.c, jit/jit-function.c: 
+	* jit/jit-internal.h, jit/jit-context.c, jit/jit-function.c:
 	* jit/jit-interp.c: use on-demand driver for interpreter but skip
 	indirector/redirector stuff for it.
 
@@ -1351,7 +1351,7 @@
 	* jit/jit-rules-x86.ins (JIT_OP_JUMP_TABLE): fix jump table code
 	generation.
 
-	* include/jit/jit-function.h: 
+	* include/jit/jit-function.h:
 	* jit/jit-function.c (jit_function_reserve_label): add new function
 	to create labels for jump tables.
 
@@ -1439,7 +1439,7 @@
 	automake --add-missing as well as auto_gen.sh add an up-to-date
 	version of it.
 
-	* jit/jit-insn.c, jit/jit-rules-interp.c: 
+	* jit/jit-insn.c, jit/jit-rules-interp.c:
 	* jitplus/jit-plus-value.cpp, jitplus/jit-plus-function.cpp: fix
 	texinfo comments.
 
@@ -1660,7 +1660,7 @@
 
 2006-10-16  Aleksey Demakov  <ademakov@gmail.com>
 
-	* jit/jit-interp.h, jit/jit-interp.c (_jit_run_function): 
+	* jit/jit-interp.h, jit/jit-interp.c (_jit_run_function):
 	* jit/jit-opcode.c, jit/jit-rules-interp.c (_jit_gen_insn): Repair
 	struct handling broken since the last interpreter reorganization,
 	remove unused interpreter opcodes.
@@ -1860,9 +1860,9 @@
 2006-08-15  Thomas Cort  <linuxgeek@gmail.com>
 
 	* jit/jit-rules-alpha.c jit/jit-rules-alpha.h jit/jit-rules-alpha.ins
-	Add a TODO() macro to print unimplemented warnings. Fix some 
+	Add a TODO() macro to print unimplemented warnings. Fix some
 	casting warnings. Implement _jit_gen_redirector(...). Fix
-	JIT_CDECL_WORD_REG_PARAMS to use the correct parameter 
+	JIT_CDECL_WORD_REG_PARAMS to use the correct parameter
 	registers. Add some stack push and pop instructions.
 
 2006-08-15  Kirill Kononenko  <Kirill.Kononenko@gmail.com>
@@ -1894,20 +1894,20 @@
 
 	* jit/jit-apply-alpha.c jit/jit-apply-alpha.h jit/jit-apply-func.h
 	jit/jit-gen-alpha.h jit/jit-rules-alpha.c jit/jit-rules-alpha.h
-	jit/jit-rules-alpha.ins Implement the redirector for alpha. 
+	jit/jit-rules-alpha.ins Implement the redirector for alpha.
 	Continue to implement more functions in jit/jit-rules-alpha.c.
 
 2006-07-15  Thomas Cort  <linuxgeek@gmail.com>
 
 	* jit/jit-apply-alpha.c jit/jit-gen-alpha.h jit/jit-rules-alpha.h
-	jit/jit-rules-alpha.c: Implement closure for alpha. Use jsr 
-	instead of bsr in alpha_call. Clean up prolog and epilog 
+	jit/jit-rules-alpha.c: Implement closure for alpha. Use jsr
+	instead of bsr in alpha_call. Clean up prolog and epilog
 	generation for alpha to be more readable.
 
 2006-07-13  Thomas Cort  <linuxgeek@gmail.com>
 
 	* jit/jit-gen-alpha.h jit/jit-rules-alpha.c jit/jit-rules-alpha.h:
-	Added trap barrier macro alpha_trapb. Implemented 
+	Added trap barrier macro alpha_trapb. Implemented
 	_jit_gen_prolog and _jit_gen_epilog for alpha.
 
 2006-07-12  Aleksey Demakov  <ademakov@gmail.com>
@@ -1919,9 +1919,9 @@
 
 2006-07-12  Thomas Cort  <linuxgeek@gmail.com>
 
-	* README.alpha jit/Makefile.am jit/jit-apply-alpha.c 
+	* README.alpha jit/Makefile.am jit/jit-apply-alpha.c
 	jit/jit-apply-alpha.h jit/jit-elf-defs.h jit/jit-gen-alpha.h
-	jit/jit-rules-alpha.c jit/jit-rules-alpha.h 
+	jit/jit-rules-alpha.c jit/jit-rules-alpha.h
 	jit/jit-rules-alpha.ins /jit/jit-rules.h: Initial import of the
 	code for the alpha port.
 
@@ -1948,7 +1948,7 @@
 
 2006-06-28  Aleksey Demakov  <ademakov@gmail.com>
 
-	* tools/gen-rules-parser.y (gensel_output_code): 
+	* tools/gen-rules-parser.y (gensel_output_code):
 	* jit/jit-rules-x86.ins: use $1 for dest register instead of $0
 	for consistency.
 
@@ -2051,7 +2051,7 @@
 	cost for clean values is not zero. This keeps them in registers
 	as long as there are free registers and thus reduces the number of
 	loads.
-	
+
 2006-05-25  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-reg-alloc.c (use_cheapest_register): fix cost calculation
@@ -2175,13 +2175,13 @@
 	* jit/jit-reg-alloc.h, jit/jit-reg-alloc.c: new register allocator
 	improved and extended to support stack registers.
 
-	* jit/jit-internal.h (struct _jit_builder): 
+	* jit/jit-internal.h (struct _jit_builder):
 	* jit/jit-function.c (compile_block, jit_function_compile): add
 	some tracing.
 
 	* jit/jit-rules.h:
 	* jit/jit-rules-arm.c:
-	* jit/jit-rules-interp.c: 
+	* jit/jit-rules-interp.c:
 	* jit/jit-rules-x86.c: add _jit_gen_exch_top and _jit_gen_spill_top
 	functions used by new allocator to handle stack registers. Add reg
 	argument to _jit_gen_spill_global and_jit_gen_load_global
@@ -2226,7 +2226,7 @@
 
 2006-03-23  Aleksey Demakov  <ademakov@gmail.com>
 
-	* tools/Makefile.am: 
+	* tools/Makefile.am:
 	* tools/gen-rules-parser.y, tools/gen-rules-scanner.l: add
 	"gen-rules" tool that is similar to "gen-sel" but uses new
 	register allocator.
@@ -2266,13 +2266,13 @@
 
 2006-02-19  Aleksey Demakov  <ademakov@gmail.com>
 
-	* jit/jit-reg-alloc.h: 
+	* jit/jit-reg-alloc.h:
 	* jit/jit-reg-alloc.c: Initial version of new local register
 	  allocator.
 
-	* jit/jit-rules.h: 
-	* jit/jit-rules-arm.c (_jit_gen_spill_global): 
-	* jit/jit-rules-interp.c (_jit_gen_spill_global): 
+	* jit/jit-rules.h:
+	* jit/jit-rules-arm.c (_jit_gen_spill_global):
+	* jit/jit-rules-interp.c (_jit_gen_spill_global):
 	* jit/jit-rules-x86.c (_jit_gen_spill_global): add function for
 	spilling global registers. Used by the new allocator. Only x86
 	version is really implemented.
@@ -2289,8 +2289,8 @@
 
 2006-02-10  Aleksey Demakov  <ademakov@gmail.com>
 
-	* jit/jit-bitset.c: 
-	* jit/jit-bitset.h: 
+	* jit/jit-bitset.c:
+	* jit/jit-bitset.h:
 	* jit/jit-cfg.c:
 	* jit/jit-cfg.h: initial code drop for a more precise liveness
 	analysis based on control flow graph.
