@@ -69,7 +69,10 @@ jit_type_t jit_insn_get_signature(jit_insn_t insn) JIT_NOTHROW;
 int jit_insn_dest_is_value(jit_insn_t insn) JIT_NOTHROW;
 
 int jit_insn_label(jit_function_t func, jit_label_t *label) JIT_NOTHROW;
+int jit_insn_label_tight(jit_function_t func, jit_label_t *label) JIT_NOTHROW;
+
 int jit_insn_new_block(jit_function_t func) JIT_NOTHROW;
+
 jit_value_t jit_insn_load(jit_function_t func, jit_value_t value) JIT_NOTHROW;
 jit_value_t jit_insn_dup(jit_function_t func, jit_value_t value) JIT_NOTHROW;
 jit_value_t jit_insn_load_small
