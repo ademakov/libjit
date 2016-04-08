@@ -5736,7 +5736,7 @@ jit_value_t jit_insn_call
 		{
 			return 0;
 		}
-		if(!jit_insn_label(func, &entry_point))
+		if(!jit_insn_label_tight(func, &entry_point))
 		{
 			return 0;
 		}
@@ -6295,7 +6295,7 @@ jit_value_t jit_insn_call_intrinsic
 	jit_type_free(signature);
 
 	/* Execution continues here if there was no exception */
-	if(!jit_insn_label(func, &label))
+	if(!jit_insn_label_tight(func, &label))
 	{
 		return 0;
 	}
@@ -7234,7 +7234,7 @@ static int initialize_setjmp_block(jit_function_t func)
 	func->builder->catcher_label = jit_label_undefined;
 
 	/* Force the start of a new block to mark the start of the init code */
-	if(!jit_insn_label(func, &start_label))
+	if(!jit_insn_label_tight(func, &start_label))
 	{
 		return 0;
 	}
@@ -7371,15 +7371,14 @@ static int initialize_setjmp_block(jit_function_t func)
 	}
 
 	/* Mark the position of the rethrow label */
-	if(!jit_insn_label(func, &rethrow_label))
+	if(!jit_insn_label_tight(func, &rethrow_label))
 	{
 		return 0;
 	}
 
 	/* Call "_jit_unwind_pop_and_rethrow" to pop the current
 	   "setjmp" context and then rethrow the current exception */
-	type = jit_type_create_signature
-		(jit_abi_cdecl, jit_type_void, 0, 0, 1);
+	type = jit_type_create_signature(jit_abi_cdecl, jit_type_void, 0, 0, 1);
 	if(!type)
 	{
 		return 0;
@@ -7391,7 +7390,7 @@ static int initialize_setjmp_block(jit_function_t func)
 	jit_type_free(type);
 
 	/* Insert the target to jump to the normal code. */
-	if(!jit_insn_label(func, &code_label))
+	if(!jit_insn_label_tight(func, &code_label))
 	{
 		return 0;
 	}
@@ -7456,7 +7455,7 @@ jit_value_t jit_insn_start_catcher(jit_function_t func)
 	{
 		return 0;
 	}
-	if(!jit_insn_label(func, &(func->builder->catcher_label)))
+	if(!jit_insn_label_tight(func, &(func->builder->catcher_label)))
 	{
 		return 0;
 	}
@@ -7635,9 +7634,10 @@ int jit_insn_rethrow_unhandled(jit_function_t func)
  * Start a @code{finally} clause.
  * @end deftypefun
 @*/
-int jit_insn_start_finally(jit_function_t func, jit_label_t *finally_label)
+int
+jit_insn_start_finally(jit_function_t func, jit_label_t *finally_label)
 {
-	if(!jit_insn_label(func, finally_label))
+	if(!jit_insn_label_tight(func, finally_label))
 	{
 		return 0;
 	}
@@ -7730,11 +7730,11 @@ int jit_insn_call_finally(jit_function_t func, jit_label_t *finally_label)
  * indicating the parameter that is supplied to the filter.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_start_filter
-	(jit_function_t func, jit_label_t *label, jit_type_t type)
+jit_value_t
+jit_insn_start_filter(jit_function_t func, jit_label_t *label, jit_type_t type)
 {
 	/* Set a label at this point to start a new block */
-	if(!jit_insn_label(func, label))
+	if(!jit_insn_label_tight(func, label))
 	{
 		return 0;
 	}

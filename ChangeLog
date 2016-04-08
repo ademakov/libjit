@@ -5,7 +5,8 @@
 	relied upon it.
 
 	* include/jit/jit-insn.h, jit/jit-insn.c (jit_insn_label_tight): add
-	new function for the behavior of jit_insn_label() before reverted.
+	new function for the behavior of jit_insn_label() before reverted,
+	use it in most cases.
 
 	* include/jit/jit-plus.h
 	* jitplus/jit-plus-function.cpp (insn_label_tight): likewise.
