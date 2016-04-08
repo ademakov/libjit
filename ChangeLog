@@ -1,3 +1,12 @@
+2016-04-08  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-insn.c (jit_insn_label): revert the function to its old
+	behavior of unconditional new basic block creation. Certain code
+	relied upon it.
+
+	* include/jit/jit-insn.h, jit/jit-insn.c (jit_insn_label_tight): add
+	new function for the behavior of jit_insn_label() before reverted.
+
 2016-04-07  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-insn.c (jit_insn_call): the "intuit additional flags" code
