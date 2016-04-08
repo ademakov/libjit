@@ -11,10 +11,14 @@
 	* include/jit/jit-plus.h
 	* jitplus/jit-plus-function.cpp (insn_label_tight): likewise.
 
+	* README, tests/README, jitruby/README: update.
+
 2016-04-07  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-insn.c (jit_insn_call): the "intuit additional flags" code
 	was using wrong (caller instead of callee) function.
+
+	* bootstrap: renamed from auto_gen.sh
 
 2016-03-09  Ketmar Dark <ketmar@ketmar.no-ip.org>
 

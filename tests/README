@@ -9,7 +9,7 @@ following steps:
 
     2. Add "foo.pas" to the "TESTS" list in "Makefile.am".
 
-    3. Re-run "auto_gen.sh" and "configure".
+    3. Re-run "bootstrap" and "configure".
 
     4. Type "make check" in this directory to run all of the test cases.
 
