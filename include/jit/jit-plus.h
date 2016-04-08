@@ -242,7 +242,10 @@ public:
 	jit_label new_label();
 
 	void insn_label(jit_label& label);
+	void insn_label_tight(jit_label& label);
+
 	void insn_new_block();
+
 	jit_value insn_load(const jit_value& value);
 	jit_value insn_dup(const jit_value& value);
 	jit_value insn_load_small(const jit_value& value);
