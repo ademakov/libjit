@@ -38,7 +38,7 @@ autoconf, automake, and libtool.  These tools let you create ./configure
 script which is miising in the repository.  To run autotools you would
 just do the followoing:
 
-	./auto_gen.sh
+	./bootstrap
 
 
 Compiler notes
