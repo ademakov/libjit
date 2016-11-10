@@ -21,7 +21,7 @@
 #ifndef	_JIT_META_H
 #define	_JIT_META_H
 
-#include <jit/jit-defs.h>
+#include <jit/jit-common.h>
 
 #ifdef	__cplusplus
 extern	"C" {
