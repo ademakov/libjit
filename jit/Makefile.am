@@ -89,11 +89,11 @@ libjit_la_LDFLAGS = -version-info $(LIBJIT_VERSION) -no-undefined
 
 jit-interp.lo: jit-interp-labels.h
 
-jit-interp-labels.h: $(top_srcdir)/include/jit/jit-opcode.h \
-		$(top_srcdir)/jit/jit-interp-opcode.h $(srcdir)/mklabel.sh
+jit-interp-labels.h: $(top_builddir)/include/jit/jit-opcode.h \
+		$(top_builddir)/jit/jit-interp-opcode.h $(srcdir)/mklabel.sh
 	$(SHELL) $(srcdir)/mklabel.sh "$(AWK)" \
-		$(top_srcdir)/include/jit/jit-opcode.h \
-		$(top_srcdir)/jit/jit-interp-opcode.h >jit-interp-labels.h
+		$(top_builddir)/include/jit/jit-opcode.h \
+		$(top_builddir)/jit/jit-interp-opcode.h >jit-interp-labels.h
 
 jit-rules-x86.lo: jit-rules-x86.inc
 
