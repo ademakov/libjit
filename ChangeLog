@@ -1,3 +1,8 @@
+2017-05-25  George Barrett  <bob@bob131.so>
+
+	* configure.ac: autotools currently defaults to the parallel test
+	harness. So add the serial test option to AM_INIT_AUTOMAKE.
+
 2016-11-10  Tomasz Borowik  <timon37@gmail.com>
 	* include/jit/jit-meta.h: include jit-common.h instead of jit-defs.h
 

@@ -11,7 +11,7 @@ dnl Determine the host system type.
 AC_CANONICAL_HOST
 
 dnl Initialize automake.
-AM_INIT_AUTOMAKE([-Wall dist-bzip2])
+AM_INIT_AUTOMAKE([-Wall dist-bzip2 serial-tests])
 
 dnl Set the version number for the shared libraries.
 AC_SUBST(LIBJIT_VERSION)
