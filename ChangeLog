@@ -1,5 +1,5 @@
 2016-11-10  Tomasz Borowik  <timon37@gmail.com>
-	* include/jit/jit-meta.h: include jit-coomon.h instead of jit-defs.h
+	* include/jit/jit-meta.h: include jit-common.h instead of jit-defs.h
 
 2016-10-22  Aleksey Demakov  <ademakov@gmail.com>
 
