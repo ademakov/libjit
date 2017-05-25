@@ -951,7 +951,7 @@ struct jit_opcode_info
 #endif
 JIT_EXPORT_DATA jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES];
 
-#include "jit-opcode-compat.h"
+#include "jit/jit-opcode-compat.h"
 
 #ifdef	__cplusplus
 };

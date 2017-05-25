@@ -3,6 +3,13 @@
 	* configure.ac: autotools currently defaults to the parallel test
 	harness. So add the serial test option to AM_INIT_AUTOMAKE.
 
+2017-05-15  Sebastien Alaiwan <sebastien.alaiwan@gmail.com>
+
+	* jit/jit-opcodes: include jit/jit-opcode-compat.h instead of
+	jit-opcode-compat.h.
+	* jit/Makefile.am: make path of generated dependencies relative to
+	top_builddir.
+
 2016-11-10  Tomasz Borowik  <timon37@gmail.com>
 	* include/jit/jit-meta.h: include jit-common.h instead of jit-defs.h
 
