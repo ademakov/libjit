@@ -657,7 +657,11 @@ static jit_value_t apply_unary_arith
 		func->builder->may_throw = 1;
 	}
 	value1 = jit_insn_convert(func, value1, result_type, overflow_check);
-	if(_jit_opcode_is_supported(oper))
+	if(jit_value_is_constant(value1))
+	{
+		return _jit_opcode_apply(func, oper, result_type, value1, 0);
+	}
+	else if(_jit_opcode_is_supported(oper))
 	{
 		return apply_unary(func, oper, value1, result_type);
 	}
@@ -726,7 +730,11 @@ static jit_value_t apply_arith
 	}
 	value1 = jit_insn_convert(func, value1, result_type, overflow_check);
 	value2 = jit_insn_convert(func, value2, result_type, overflow_check);
-	if(_jit_opcode_is_supported(oper))
+	if(jit_value_is_constant(value1) && jit_value_is_constant(value2))
+	{
+		return _jit_opcode_apply(func, oper, result_type, value1, value2);
+	}
+	else if(_jit_opcode_is_supported(oper))
 	{
 		return apply_binary(func, oper, value1, value2, result_type);
 	}
@@ -780,7 +788,11 @@ static jit_value_t apply_shift
 	}
 	value1 = jit_insn_convert(func, value1, result_type, 0);
 	value2 = jit_insn_convert(func, value2, count_type, 0);
-	if(_jit_opcode_is_supported(oper))
+	if(jit_value_is_constant(value1) && jit_value_is_constant(value2))
+	{
+		return _jit_opcode_apply(func, oper, result_type, value1, value2);
+	}
+	else if(_jit_opcode_is_supported(oper))
 	{
 		return apply_binary(func, oper, value1, value2, result_type);
 	}
@@ -835,7 +847,11 @@ static jit_value_t apply_compare
 	}
 	value1 = jit_insn_convert(func, value1, result_type, 0);
 	value2 = jit_insn_convert(func, value2, result_type, 0);
-	if(_jit_opcode_is_supported(oper))
+	if(jit_value_is_constant(value1) && jit_value_is_constant(value2))
+	{
+		return _jit_opcode_apply(func, oper, result_type, value1, value2);
+	}
+	else if(_jit_opcode_is_supported(oper))
 	{
 		return apply_binary(func, oper, value1, value2, jit_type_int);
 	}
