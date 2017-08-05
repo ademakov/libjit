@@ -1,3 +1,9 @@
+2017-08-06 Jakob Löw <jakob@m4gnus.de>
+
+	* jit/jit-insn.c (apply_unary_arith, apply_arith, apply_shift)
+	(apply_compare): for constant arguments compute constant result at
+	the function build time.
+
 2017-05-25  George Barrett  <bob@bob131.so>
 
 	* configure.ac: autotools currently defaults to the parallel test
