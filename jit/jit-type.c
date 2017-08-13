@@ -1054,6 +1054,17 @@ jit_nuint jit_type_get_alignment(jit_type_t type)
 }
 
 /*@
+ * @deftypefun jit_nuint jit_type_best_alignment (void)
+ * Get the best alignment value for this platform.
+ * @end deftypefun
+@*/
+jit_nuint
+jit_type_best_alignment(void)
+{
+	return JIT_BEST_ALIGNMENT;
+}
+
+/*@
  * @deftypefun {unsigned int} jit_type_num_fields (jit_type_t @var{type})
  * Get the number of fields in a structure or union type.
  * @end deftypefun
@@ -1464,13 +1475,20 @@ int jit_type_is_tagged(jit_type_t type)
 }
 
 /*@
- * @deftypefun jit_nuint jit_type_best_alignment (void)
- * Get the best alignment value for this platform.
+ * @deftypefun jit_type_t jit_type_remove_tags (jit_type_t @var{type})
+ * Remove tags from a type, and return the underlying type.
+ * This is different from normalization, which also collapses
+ * native types to their basic numeric counterparts.
  * @end deftypefun
 @*/
-jit_nuint jit_type_best_alignment(void)
+jit_type_t
+jit_type_remove_tags(jit_type_t type)
 {
-	return JIT_BEST_ALIGNMENT;
+	while(type && type->kind >= JIT_TYPE_FIRST_TAGGED)
+	{
+		type = type->sub_type;
+	}
+	return type;
 }
 
 /*@
@@ -1485,33 +1503,33 @@ jit_nuint jit_type_best_alignment(void)
  * It will also remove tags from the specified type.
  * @end deftypefun
 @*/
-jit_type_t jit_type_normalize(jit_type_t type)
+jit_type_t
+jit_type_normalize(jit_type_t type)
 {
-	while(type && type->kind >= JIT_TYPE_FIRST_TAGGED)
-	{
-		/* Remove any tags that are attached to the type */
-		type = type->sub_type;
-	}
+	/* Remove any tags that are attached to the type */
+	type = jit_type_remove_tags(type);
 	if(!type)
 	{
 		return type;
 	}
+
+	/* Put a platform-dependent type to its basic form */
 	if(type == jit_type_nint || type->kind == JIT_TYPE_PTR ||
 	   type->kind == JIT_TYPE_SIGNATURE)
 	{
-	#ifdef JIT_NATIVE_INT32
+#ifdef JIT_NATIVE_INT32
 		return jit_type_int;
-	#else
+#else
 		return jit_type_long;
-	#endif
+#endif
 	}
 	else if(type == jit_type_nuint)
 	{
-	#ifdef JIT_NATIVE_INT32
+#ifdef JIT_NATIVE_INT32
 		return jit_type_uint;
-	#else
+#else
 		return jit_type_ulong;
-	#endif
+#endif
 	}
 	else if(type == jit_type_nfloat)
 	{
@@ -1523,22 +1541,6 @@ jit_type_t jit_type_normalize(jit_type_t type)
 		{
 			return jit_type_float32;
 		}
-	}
-	return type;
-}
-
-/*@
- * @deftypefun jit_type_t jit_type_remove_tags (jit_type_t @var{type})
- * Remove tags from a type, and return the underlying type.
- * This is different from normalization, which will also collapses
- * native types to their basic numeric counterparts.
- * @end deftypefun
-@*/
-jit_type_t jit_type_remove_tags(jit_type_t type)
-{
-	while(type && type->kind >= JIT_TYPE_FIRST_TAGGED)
-	{
-		type = type->sub_type;
 	}
 	return type;
 }
