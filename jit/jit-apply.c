@@ -24,16 +24,16 @@
 #include "jit-apply-rules.h"
 #include "jit-apply-func.h"
 #if HAVE_STDLIB_H
-	#include <stdlib.h>
+# include <stdlib.h>
 #endif
 #if HAVE_ALLOCA_H
-	#include <alloca.h>
+# include <alloca.h>
 #endif
 #ifdef JIT_WIN32_PLATFORM
-	#include <malloc.h>
-	#ifndef alloca
-		#define	alloca	_alloca
-	#endif
+# include <malloc.h>
+# ifndef alloca
+#  define alloca	_alloca
+# endif
 #endif
 
 /*
@@ -79,7 +79,8 @@ unsigned char const _jit_apply_return_in_reg[] =
 /*
  * Get the maximum argument stack size of a signature type.
  */
-static unsigned int jit_type_get_max_arg_size(jit_type_t signature)
+static unsigned int
+jit_type_get_max_arg_size(jit_type_t signature)
 {
 	unsigned int size;
 	unsigned int typeSize;
@@ -95,54 +96,46 @@ static unsigned int jit_type_get_max_arg_size(jit_type_t signature)
 	while(param > 0)
 	{
 		--param;
-		type = jit_type_normalize(jit_type_get_param(signature, param));
+		type = jit_type_remove_tags(jit_type_get_param(signature, param));
 		switch(type->kind)
 		{
-			case JIT_TYPE_SBYTE:
-			case JIT_TYPE_UBYTE:
-			case JIT_TYPE_SHORT:
-			case JIT_TYPE_USHORT:
-			case JIT_TYPE_INT:
-			case JIT_TYPE_UINT:
-			case JIT_TYPE_NINT:
-			case JIT_TYPE_NUINT:
-			case JIT_TYPE_PTR:
-			case JIT_TYPE_SIGNATURE:
-			{
-				size += sizeof(jit_nint);
-			}
+		case JIT_TYPE_SBYTE:
+		case JIT_TYPE_UBYTE:
+		case JIT_TYPE_SHORT:
+		case JIT_TYPE_USHORT:
+		case JIT_TYPE_INT:
+		case JIT_TYPE_UINT:
+		case JIT_TYPE_NINT:
+		case JIT_TYPE_NUINT:
+		case JIT_TYPE_PTR:
+		case JIT_TYPE_SIGNATURE:
+			size += sizeof(jit_nint);
 			break;
 
-			case JIT_TYPE_LONG:
-			case JIT_TYPE_ULONG:
-			{
-			#ifdef JIT_NATIVE_INT32
-				/* Add one extra word for possible alignment padding */
-				size += sizeof(jit_long) + sizeof(jit_nint);
-			#else
-				size += sizeof(jit_nint);
-			#endif
-			}
+		case JIT_TYPE_LONG:
+		case JIT_TYPE_ULONG:
+#ifdef JIT_NATIVE_INT32
+			/* Add one extra word for possible alignment padding */
+			size += sizeof(jit_long) + sizeof(jit_nint);
+#else
+			size += sizeof(jit_nint);
+#endif
 			break;
 
-			case JIT_TYPE_FLOAT32:
-			case JIT_TYPE_FLOAT64:
-			case JIT_TYPE_NFLOAT:
-			{
-				/* Allocate space for an "nfloat" and an alignment word */
-				size += (sizeof(jit_nfloat) + sizeof(jit_nint) * 2 - 1) &
-							~(sizeof(jit_nint) - 1);
-			}
+		case JIT_TYPE_FLOAT32:
+		case JIT_TYPE_FLOAT64:
+		case JIT_TYPE_NFLOAT:
+			/* Allocate space for an "nfloat" and an alignment word */
+			size += sizeof(jit_nfloat) + sizeof(jit_nint) * 2 - 1;
+			size &= ~(sizeof(jit_nint) - 1);
 			break;
 
-			case JIT_TYPE_STRUCT:
-			case JIT_TYPE_UNION:
-			{
-				/* Allocate space for the structure and an alignment word */
-				typeSize = jit_type_get_size(type);
-				size += (typeSize + sizeof(jit_nint) * 2 - 1) &
-							~(sizeof(jit_nint) - 1);
-			}
+		case JIT_TYPE_STRUCT:
+		case JIT_TYPE_UNION:
+			/* Allocate space for the structure and an alignment word */
+			typeSize = jit_type_get_size(type);
+			size += typeSize + sizeof(jit_nint) * 2 - 1;
+			size &= ~(sizeof(jit_nint) - 1);
 			break;
 		}
 	}
@@ -159,122 +152,81 @@ static unsigned int jit_type_get_max_arg_size(jit_type_t signature)
 /*
  * Copy apply arguments into position.
  */
-static void jit_apply_builder_add_arguments
-		(jit_apply_builder *builder, jit_type_t signature,
-		 void **args, unsigned int index, unsigned int num_args)
+static void
+jit_apply_builder_add_arguments(jit_apply_builder *builder, jit_type_t signature,
+				void **args, unsigned int index, unsigned int num_args)
 {
 	unsigned int param;
-	jit_type_t type;
 	for(param = 0; param < num_args; ++param)
 	{
-		type = jit_type_normalize
-			(jit_type_get_param(signature, index + param));
+		void *arg = args[param];
+		jit_type_t type = jit_type_get_param(signature, index + param);
+		type = jit_type_remove_tags(type);
 		switch(type->kind)
 		{
-			case JIT_TYPE_SBYTE:
-			{
-				jit_apply_builder_add_sbyte
-					(builder, *((jit_sbyte *)(args[param])));
-			}
+		case JIT_TYPE_SBYTE:
+			jit_apply_builder_add_sbyte(builder,*((jit_sbyte *) arg));
 			break;
 
-			case JIT_TYPE_UBYTE:
-			{
-				jit_apply_builder_add_ubyte
-					(builder, *((jit_ubyte *)(args[param])));
-			}
+		case JIT_TYPE_UBYTE:
+			jit_apply_builder_add_ubyte(builder, *((jit_ubyte *) arg));
 			break;
 
-			case JIT_TYPE_SHORT:
-			{
-				jit_apply_builder_add_short
-					(builder, *((jit_short *)(args[param])));
-			}
+		case JIT_TYPE_SHORT:
+			jit_apply_builder_add_short(builder, *((jit_short *) arg));
 			break;
 
-			case JIT_TYPE_USHORT:
-			{
-				jit_apply_builder_add_ushort
-					(builder, *((jit_ushort *)(args[param])));
-			}
+		case JIT_TYPE_USHORT:
+			jit_apply_builder_add_ushort(builder, *((jit_ushort *) arg));
 			break;
 
-			case JIT_TYPE_INT:
-			{
-				jit_apply_builder_add_int
-					(builder, *((jit_int *)(args[param])));
-			}
+		case JIT_TYPE_INT:
+			jit_apply_builder_add_int(builder, *((jit_int *) arg));
 			break;
 
-			case JIT_TYPE_UINT:
-			{
-				jit_apply_builder_add_uint
-					(builder, *((jit_uint *)(args[param])));
-			}
+		case JIT_TYPE_UINT:
+			jit_apply_builder_add_uint(builder, *((jit_uint *) arg));
 			break;
 
-			case JIT_TYPE_NINT:
-			case JIT_TYPE_PTR:
-			case JIT_TYPE_SIGNATURE:
-			{
-				jit_apply_builder_add_nint
-					(builder, *((jit_nint *)(args[param])));
-			}
+		case JIT_TYPE_NINT:
+		case JIT_TYPE_PTR:
+		case JIT_TYPE_SIGNATURE:
+			jit_apply_builder_add_nint(builder, *((jit_nint *) args));
 			break;
 
-			case JIT_TYPE_NUINT:
-			{
-				jit_apply_builder_add_nuint
-					(builder, *((jit_nuint *)(args[param])));
-			}
+		case JIT_TYPE_NUINT:
+			jit_apply_builder_add_nuint(builder, *((jit_nuint *) arg));
 			break;
 
-			case JIT_TYPE_LONG:
-			{
-				jit_apply_builder_add_long
-					(builder, *((jit_long *)(args[param])));
-			}
+		case JIT_TYPE_LONG:
+			jit_apply_builder_add_long(builder, *((jit_long *) args));
 			break;
 
-			case JIT_TYPE_ULONG:
-			{
-				jit_apply_builder_add_ulong
-					(builder, *((jit_ulong *)(args[param])));
-			}
+		case JIT_TYPE_ULONG:
+			jit_apply_builder_add_ulong(builder, *((jit_ulong *) arg));
 			break;
 
-			case JIT_TYPE_FLOAT32:
-			{
-				jit_apply_builder_add_float32
-					(builder, *((jit_float32 *)(args[param])));
-			}
+		case JIT_TYPE_FLOAT32:
+			jit_apply_builder_add_float32(builder, *((jit_float32 *) arg));
 			break;
 
-			case JIT_TYPE_FLOAT64:
-			{
-				jit_apply_builder_add_float64
-					(builder, *((jit_float64 *)(args[param])));
-			}
+		case JIT_TYPE_FLOAT64:
+			jit_apply_builder_add_float64(builder, *((jit_float64 *) arg));
 			break;
 
-			case JIT_TYPE_NFLOAT:
-			{
-				jit_apply_builder_add_nfloat
-					(builder, *((jit_nfloat *)(args[param])));
-			}
+		case JIT_TYPE_NFLOAT:
+			jit_apply_builder_add_nfloat(builder, *((jit_nfloat *) arg));
 			break;
 
-			case JIT_TYPE_STRUCT:
-			case JIT_TYPE_UNION:
-			{
+		case JIT_TYPE_STRUCT:
+		case JIT_TYPE_UNION:
 #ifdef HAVE_JIT_BUILTIN_APPLY_STRUCT
-				_jit_builtin_apply_add_struct(builder, args[param], type);
+			_jit_builtin_apply_add_struct(builder, arg, type);
 #else
-				jit_apply_builder_add_struct(builder, args[param],
-							     jit_type_get_size(type),
-							     jit_type_get_alignment(type));
+			jit_apply_builder_add_struct(builder, arg,
+						     jit_type_get_size(type),
+						     jit_type_get_alignment(type));
 #endif
-			}
 			break;
 		}
 	}
@@ -283,115 +235,76 @@ static void jit_apply_builder_add_arguments
 /*
  * Get the return value after calling a function using "__builtin_apply".
  */
-static void jit_apply_builder_get_return
-		(jit_apply_builder *builder, void *return_value,
-		 jit_type_t type, jit_apply_return *result)
+static void
+jit_apply_builder_get_return(jit_apply_builder *builder, void *rv,
+			     jit_type_t type, jit_apply_return *result)
 {
+	unsigned int size;
+
 	switch(type->kind)
 	{
-		case JIT_TYPE_SBYTE:
-		{
-			*((jit_sbyte *)return_value) =
-				jit_apply_return_get_sbyte(result);
-		}
+	case JIT_TYPE_SBYTE:
+		*((jit_sbyte *) rv) = jit_apply_return_get_sbyte(result);
 		break;
 
-		case JIT_TYPE_UBYTE:
-		{
-			*((jit_ubyte *)return_value) =
-				jit_apply_return_get_ubyte(result);
-		}
+	case JIT_TYPE_UBYTE:
+		*((jit_ubyte *) rv) = jit_apply_return_get_ubyte(result);
 		break;
 
-		case JIT_TYPE_SHORT:
-		{
-			*((jit_short *)return_value) =
-				jit_apply_return_get_short(result);
-		}
+	case JIT_TYPE_SHORT:
+		*((jit_short *) rv) = jit_apply_return_get_short(result);
 		break;
 
-		case JIT_TYPE_USHORT:
-		{
-			*((jit_ushort *)return_value) =
-				jit_apply_return_get_ushort(result);
-		}
+	case JIT_TYPE_USHORT:
+		*((jit_ushort *) rv) = jit_apply_return_get_ushort(result);
 		break;
 
-		case JIT_TYPE_INT:
-		{
-			*((jit_int *)return_value) =
-				jit_apply_return_get_int(result);
-		}
+	case JIT_TYPE_INT:
+		*((jit_int *) rv) = jit_apply_return_get_int(result);
 		break;
 
-		case JIT_TYPE_UINT:
-		{
-			*((jit_uint *)return_value) =
-				jit_apply_return_get_uint(result);
-		}
+	case JIT_TYPE_UINT:
+		*((jit_uint *) rv) = jit_apply_return_get_uint(result);
 		break;
 
-		case JIT_TYPE_NINT:
-		case JIT_TYPE_PTR:
-		case JIT_TYPE_SIGNATURE:
-		{
-			*((jit_nint *)return_value) =
-				jit_apply_return_get_nint(result);
-		}
+	case JIT_TYPE_NINT:
+	case JIT_TYPE_PTR:
+	case JIT_TYPE_SIGNATURE:
+		*((jit_nint *) rv) = jit_apply_return_get_nint(result);
 		break;
 
-		case JIT_TYPE_NUINT:
-		{
-			*((jit_nuint *)return_value) =
-				jit_apply_return_get_nuint(result);
-		}
+	case JIT_TYPE_NUINT:
+		*((jit_nuint *) rv) = jit_apply_return_get_nuint(result);
 		break;
 
-		case JIT_TYPE_LONG:
-		{
-			*((jit_long *)return_value) =
-				jit_apply_return_get_long(result);
-		}
+	case JIT_TYPE_LONG:
+		*((jit_long *) rv) = jit_apply_return_get_long(result);
 		break;
 
-		case JIT_TYPE_ULONG:
-		{
-			*((jit_ulong *)return_value) =
-				jit_apply_return_get_ulong(result);
-		}
+	case JIT_TYPE_ULONG:
+		*((jit_ulong *) rv) = jit_apply_return_get_ulong(result);
 		break;
 
-		case JIT_TYPE_FLOAT32:
-		{
-			*((jit_float32 *)return_value) =
-				jit_apply_return_get_float32(result);
-		}
+	case JIT_TYPE_FLOAT32:
+		*((jit_float32 *) rv) = jit_apply_return_get_float32(result);
 		break;
 
-		case JIT_TYPE_FLOAT64:
-		{
-			*((jit_float64 *)return_value) =
-				jit_apply_return_get_float64(result);
-		}
+	case JIT_TYPE_FLOAT64:
+		*((jit_float64 *) rv) = jit_apply_return_get_float64(result);
 		break;
 
-		case JIT_TYPE_NFLOAT:
-		{
-			*((jit_nfloat *)return_value) =
-				jit_apply_return_get_nfloat(result);
-		}
+	case JIT_TYPE_NFLOAT:
+		*((jit_nfloat *) rv) = jit_apply_return_get_nfloat(result);
 		break;
 
-		case JIT_TYPE_STRUCT:
-		case JIT_TYPE_UNION:
-		{
+	case JIT_TYPE_STRUCT:
+	case JIT_TYPE_UNION:
 #ifdef HAVE_JIT_BUILTIN_APPLY_STRUCT_RETURN
-			_jit_builtin_apply_get_struct_return(builder, return_value, result, type);
+		_jit_builtin_apply_get_struct_return(builder, rv, result, type);
 #else
-			unsigned int size = jit_type_get_size(type);
-			jit_apply_builder_get_struct_return(builder, size, return_value, result);
+		size = jit_type_get_size(type);
+		jit_apply_builder_get_struct_return(builder, size, rv, result);
 #endif
-		}
 		break;
 	}
 }
@@ -406,9 +319,10 @@ static void jit_apply_builder_get_return
  * including those in the vararg argument area.
  * @end deftypefun
 @*/
-void jit_apply(jit_type_t signature, void *func,
-               void **args, unsigned int num_fixed_args,
-			   void *return_value)
+void
+jit_apply(jit_type_t signature, void *func,
+	  void **args, unsigned int num_fixed_args,
+	  void *return_value)
 {
 	jit_apply_builder builder;
 	unsigned int size;
@@ -419,38 +333,39 @@ void jit_apply(jit_type_t signature, void *func,
 	jit_apply_builder_init(&builder, signature);
 
 	/* Handle the structure return argument */
-	type = jit_type_normalize(jit_type_get_return(signature));
+	type = jit_type_remove_tags(jit_type_get_return(signature));
 	if(jit_type_is_struct(type) || jit_type_is_union(type))
 	{
 		size = jit_type_get_size(type);
-		jit_apply_builder_add_struct_return(&builder, size, return_value);
+		jit_apply_builder_add_struct_return(&builder, size,
+						    return_value);
 	}
 
 	/* Copy the arguments into position */
-	jit_apply_builder_add_arguments
-		(&builder, signature, args, 0, num_fixed_args);
+	jit_apply_builder_add_arguments(&builder, signature, args, 0,
+					num_fixed_args);
 	jit_apply_builder_start_varargs(&builder);
-	jit_apply_builder_add_arguments
-		(&builder, signature, args + num_fixed_args, num_fixed_args,
-		 jit_type_num_params(signature) - num_fixed_args);
+	jit_apply_builder_add_arguments(&builder, signature,
+					args + num_fixed_args, num_fixed_args,
+					jit_type_num_params(signature) - num_fixed_args);
 
 	/* Call the function using "__builtin_apply" or something similar */
 	if(type->kind < JIT_TYPE_FLOAT32 || type->kind > JIT_TYPE_NFLOAT)
 	{
-		jit_builtin_apply(func, builder.apply_args,
-						  builder.stack_used, 0, apply_return);
+		jit_builtin_apply(func, builder.apply_args, builder.stack_used,
+				  0, apply_return);
 	}
 	else
 	{
-		jit_builtin_apply(func, builder.apply_args,
-						  builder.stack_used, 1, apply_return);
+		jit_builtin_apply(func, builder.apply_args, builder.stack_used,
+				  1, apply_return);
 	}
 
 	/* Copy the return value into position */
 	if(return_value != 0 && type != jit_type_void)
 	{
-		jit_apply_builder_get_return
-			(&builder, return_value, type, apply_return);
+		jit_apply_builder_get_return(&builder, return_value, type,
+					     apply_return);
 	}
 }
 
@@ -464,15 +379,16 @@ void jit_apply(jit_type_t signature, void *func,
  * only be used in certain circumstances.
  * @end deftypefun
 @*/
-void jit_apply_raw(jit_type_t signature, void *func,
-                   void *args, void *return_value)
+void
+jit_apply_raw(jit_type_t signature, void *func,
+	      void *args, void *return_value)
 {
 	jit_apply_return *apply_return;
 	unsigned int size;
 	jit_type_t type;
 
 	/* Call the function using "__builtin_apply" or something similar */
-	type = jit_type_normalize(jit_type_get_return(signature));
+	type = jit_type_remove_tags(jit_type_get_return(signature));
 	size = jit_type_num_params(signature) * sizeof(jit_nint);
 	if(type->kind < JIT_TYPE_FLOAT32 || type->kind > JIT_TYPE_NFLOAT)
 	{
@@ -486,8 +402,8 @@ void jit_apply_raw(jit_type_t signature, void *func,
 	/* Copy the return value into position */
 	if(return_value != 0 && type != jit_type_void)
 	{
-		jit_apply_builder_get_return
-			(0, return_value, type, apply_return);
+		jit_apply_builder_get_return(0, return_value, type,
+					     apply_return);
 	}
 }
 

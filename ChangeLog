@@ -1,7 +1,10 @@
-2017-08-14  Aleksey Demakov  <ademakov@gmail.com>
+2017-08-15  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-type.c (jit_type_return_via_pointer): replace the call to
-	jit_type_normalize with jit_type_remove_tags.
+	jit_type_normalize call with jit_type_remove_tags.
+	* jit/jit-apply.c (jit_type_get_max_arg_size): likewise.
+	(jit_apply_builder_add_arguments): likewise.
+	(jit_apply, jit_apply_raw): likewise.
 
 2017-08-06  Jakob Löw <jakob@m4gnus.de>
 
