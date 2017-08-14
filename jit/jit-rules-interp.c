@@ -314,62 +314,55 @@ int _jit_create_entry_insns(jit_function_t func)
 		{
 			continue;
 		}
-		type = jit_type_normalize(jit_value_get_type(value));
+
+		type = jit_type_remove_tags(jit_value_get_type(value));
 		switch(type->kind)
 		{
-			case JIT_TYPE_SBYTE:
-			case JIT_TYPE_UBYTE:
+		case JIT_TYPE_SBYTE:
+		case JIT_TYPE_UBYTE:
+			if(!jit_insn_incoming_frame_posn(func, value,
+							 offset - _jit_int_lowest_byte()))
 			{
-				if(!jit_insn_incoming_frame_posn
-						(func, value, offset - _jit_int_lowest_byte()))
-				{
-					return 0;
-				}
-				--offset;
+				return 0;
 			}
+			--offset;
 			break;
 
-			case JIT_TYPE_SHORT:
-			case JIT_TYPE_USHORT:
+		case JIT_TYPE_SHORT:
+		case JIT_TYPE_USHORT:
+			if(!jit_insn_incoming_frame_posn(func, value,
+							 offset - _jit_int_lowest_short()))
 			{
-				if(!jit_insn_incoming_frame_posn
-						(func, value, offset - _jit_int_lowest_short()))
-				{
-					return 0;
-				}
-				--offset;
+				return 0;
 			}
+			--offset;
 			break;
 
-			case JIT_TYPE_INT:
-			case JIT_TYPE_UINT:
-			case JIT_TYPE_NINT:
-			case JIT_TYPE_NUINT:
-			case JIT_TYPE_SIGNATURE:
-			case JIT_TYPE_PTR:
-			case JIT_TYPE_LONG:
-			case JIT_TYPE_ULONG:
-			case JIT_TYPE_FLOAT32:
-			case JIT_TYPE_FLOAT64:
-			case JIT_TYPE_NFLOAT:
+		case JIT_TYPE_INT:
+		case JIT_TYPE_UINT:
+		case JIT_TYPE_NINT:
+		case JIT_TYPE_NUINT:
+		case JIT_TYPE_SIGNATURE:
+		case JIT_TYPE_PTR:
+		case JIT_TYPE_LONG:
+		case JIT_TYPE_ULONG:
+		case JIT_TYPE_FLOAT32:
+		case JIT_TYPE_FLOAT64:
+		case JIT_TYPE_NFLOAT:
+			if(!jit_insn_incoming_frame_posn(func, value, offset))
 			{
-				if(!jit_insn_incoming_frame_posn(func, value, offset))
-				{
-					return 0;
-				}
-				--offset;
+				return 0;
 			}
+			--offset;
 			break;
 
-			case JIT_TYPE_STRUCT:
-			case JIT_TYPE_UNION:
+		case JIT_TYPE_STRUCT:
+		case JIT_TYPE_UNION:
+			if(!jit_insn_incoming_frame_posn(func, value, offset))
 			{
-				if(!jit_insn_incoming_frame_posn(func, value, offset))
-				{
-					return 0;
-				}
-				offset -= JIT_NUM_ITEMS_IN_STRUCT(jit_type_get_size(type));
+				return 0;
 			}
+			offset -= JIT_NUM_ITEMS_IN_STRUCT(jit_type_get_size(type));
 			break;
 		}
 	}
@@ -414,7 +407,8 @@ int _jit_create_call_setup_insns
 		while(num_args > 0)
 		{
 			--num_args;
-			type = jit_type_normalize(jit_type_get_param(signature, num_args));
+			type = jit_type_get_param(signature, num_args);
+			type = jit_type_remove_tags(type);
 			if(type->kind == JIT_TYPE_STRUCT || type->kind == JIT_TYPE_UNION)
 			{
 				/* If the value is a pointer, then we are pushing a structure
@@ -503,7 +497,7 @@ int _jit_create_call_setup_insns
 			{
 				return 0;
 			}
-			type = jit_type_normalize(type);
+			type = jit_type_remove_tags(type);
 			size = jit_type_get_size(type);
 			offset -= (jit_nint)(JIT_NUM_ITEMS_IN_STRUCT(size));
 			if(type->kind == JIT_TYPE_STRUCT || type->kind == JIT_TYPE_UNION)
@@ -584,7 +578,8 @@ int _jit_create_call_return_insns
 		size = jit_type_get_size(jit_value_get_type(args[num_args]));
 		pop_items += JIT_NUM_ITEMS_IN_STRUCT(size);
 	}
-	return_type = jit_type_normalize(jit_type_get_return(signature));
+	return_type = jit_type_get_return(signature);
+	return_type = jit_type_remove_tags(return_type);
 	ptr_return = jit_type_return_via_pointer(return_type);
 	if(ptr_return)
 	{
@@ -683,7 +678,8 @@ unsigned int _jit_interp_calculate_arg_size
 	num_params = jit_type_num_params(signature);
 	for(param = 0; param < num_params; ++param)
 	{
-		type = jit_type_normalize(jit_type_get_param(signature, param));
+		type = jit_type_get_param(signature, param);
+		type = jit_type_remove_tags(type);
 		if(type->kind == JIT_TYPE_STRUCT || type->kind == JIT_TYPE_UNION)
 		{
 			size += JIT_NUM_ITEMS_IN_STRUCT(jit_type_get_size(type)) *
