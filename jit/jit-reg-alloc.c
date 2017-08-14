@@ -3054,7 +3054,7 @@ _jit_regs_load_value(jit_gencode_t gen, jit_value_t value, int destroy, int used
 		return reg;
 	}
 
-	switch(jit_type_normalize(value->type)->kind)
+	switch(jit_type_remove_tags(value->type)->kind)
 	{
 	case JIT_TYPE_SBYTE:
 	case JIT_TYPE_UBYTE:
