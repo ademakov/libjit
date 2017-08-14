@@ -1575,13 +1575,14 @@ jit_type_t jit_type_promote_int(jit_type_t type)
  * as the return type in a signature.
  * @end deftypefun
 @*/
-int jit_type_return_via_pointer(jit_type_t type)
+int
+jit_type_return_via_pointer(jit_type_t type)
 {
 	extern unsigned char const _jit_apply_return_in_reg[];
 	unsigned int size;
 
-	/* Normalize the type first, just in case the structure is tagged */
-	type = jit_type_normalize(type);
+	/* Remove tags if any */
+	type = jit_type_remove_tags(type);
 
 	/* Only structure and union types require special handling */
 	if(!jit_type_is_struct(type) && !jit_type_is_union(type))

@@ -1,3 +1,8 @@
+2017-08-14  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-type.c (jit_type_return_via_pointer): replace the call to
+	jit_type_normalize with jit_type_remove_tags.
+
 2017-08-06  Jakob Löw <jakob@m4gnus.de>
 
 	* jit/jit-insn.c (apply_unary_arith, apply_arith, apply_shift)
