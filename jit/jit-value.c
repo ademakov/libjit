@@ -257,29 +257,25 @@ jit_value_t jit_value_create(jit_function_t func, jit_type_t type)
  * @code{jit_type_nuint}, and all pointer types.
  * @end deftypefun
 @*/
-jit_value_t jit_value_create_nint_constant
-		(jit_function_t func, jit_type_t type, jit_nint const_value)
+jit_value_t
+jit_value_create_nint_constant(jit_function_t func, jit_type_t type, jit_nint const_value)
 {
 	jit_value_t value;
-	jit_type_t stripped;
-	if(!_jit_function_ensure_builder(func))
-	{
-		return 0;
-	}
+	jit_type_t stripped = 0;
 	if(!const_value)
 	{
 		/* Special cases: see if this is the NULL or zero constant */
 		stripped = jit_type_remove_tags(type);
 		if(jit_type_is_pointer(stripped) || stripped == jit_type_nint)
 		{
-			if(func->builder->null_constant)
+			if(func && func->builder && func->builder->null_constant)
 			{
 				return func->builder->null_constant;
 			}
 		}
 		else if(stripped == jit_type_int)
 		{
-			if(func->builder->zero_constant)
+			if(func && func->builder && func->builder->zero_constant)
 			{
 				return func->builder->zero_constant;
 			}
@@ -293,10 +289,9 @@ jit_value_t jit_value_create_nint_constant
 	value->is_constant = 1;
 	value->is_nint_constant = 1;
 	value->address = const_value;
-	if(!const_value)
+	if(stripped)
 	{
 		/* Special cases: see if we need to cache this constant for later */
-		stripped = jit_type_remove_tags(type);
 		if(jit_type_is_pointer(stripped) || stripped == jit_type_nint)
 		{
 			func->builder->null_constant = value;
@@ -421,8 +416,8 @@ jit_value_t jit_value_create_nfloat_constant
  * @var{const_value} is not suitable for a constant.
  * @end deftypefun
 @*/
-jit_value_t jit_value_create_constant
-		(jit_function_t func, const jit_constant_t *const_value)
+jit_value_t
+jit_value_create_constant(jit_function_t func, const jit_constant_t *const_value)
 {
 	jit_type_t stripped = jit_type_normalize(const_value->type);
 	if(!stripped)
@@ -431,41 +426,41 @@ jit_value_t jit_value_create_constant
 	}
 	switch(stripped->kind)
 	{
-		case JIT_TYPE_SBYTE:
-		case JIT_TYPE_UBYTE:
-		case JIT_TYPE_SHORT:
-		case JIT_TYPE_USHORT:
-		case JIT_TYPE_INT:
-		case JIT_TYPE_UINT:
-			return jit_value_create_nint_constant
-				(func, const_value->type, const_value->un.int_value);
+	case JIT_TYPE_SBYTE:
+	case JIT_TYPE_UBYTE:
+	case JIT_TYPE_SHORT:
+	case JIT_TYPE_USHORT:
+	case JIT_TYPE_INT:
+	case JIT_TYPE_UINT:
+		return jit_value_create_nint_constant(func, const_value->type,
+						      const_value->un.int_value);
 
-		case JIT_TYPE_NINT:
-		case JIT_TYPE_NUINT:
-			return jit_value_create_nint_constant
-				(func, const_value->type, const_value->un.nint_value);
+	case JIT_TYPE_NINT:
+	case JIT_TYPE_NUINT:
+		return jit_value_create_nint_constant(func, const_value->type,
+						      const_value->un.nint_value);
 
-		case JIT_TYPE_LONG:
-		case JIT_TYPE_ULONG:
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
 #ifdef JIT_NATIVE_INT64
-			return jit_value_create_nint_constant
-				(func, const_value->type, const_value->un.long_value);
+		return jit_value_create_nint_constant(func, const_value->type,
+						      const_value->un.long_value);
 #else
-			return jit_value_create_long_constant
-				(func, const_value->type, const_value->un.long_value);
+		return jit_value_create_long_constant(func, const_value->type,
+						      const_value->un.long_value);
 #endif
 
-		case JIT_TYPE_FLOAT32:
-			return jit_value_create_float32_constant
-				(func, const_value->type, const_value->un.float32_value);
+	case JIT_TYPE_FLOAT32:
+		return jit_value_create_float32_constant(func, const_value->type,
+							 const_value->un.float32_value);
 
-		case JIT_TYPE_FLOAT64:
-			return jit_value_create_float64_constant
-				(func, const_value->type, const_value->un.float64_value);
+	case JIT_TYPE_FLOAT64:
+		return jit_value_create_float64_constant(func, const_value->type,
+							 const_value->un.float64_value);
 
-		case JIT_TYPE_NFLOAT:
-			return jit_value_create_nfloat_constant
-				(func, const_value->type, const_value->un.nfloat_value);
+	case JIT_TYPE_NFLOAT:
+		return jit_value_create_nfloat_constant(func, const_value->type,
+							const_value->un.nfloat_value);
 	}
 	return 0;
 }
@@ -542,7 +537,7 @@ jit_value_t jit_value_get_struct_pointer(jit_function_t func)
 	{
 		return 0;
 	}
-	type = jit_type_normalize(jit_type_get_return(func->signature));
+	type = jit_type_remove_tags(jit_type_get_return(func->signature));
 	if(jit_type_is_struct(type) || jit_type_is_union(type))
 	{
 		if(jit_type_return_via_pointer(type))
@@ -805,10 +800,11 @@ jit_context_t jit_value_get_context(jit_value_t value)
  * @code{value} is not a constant.
  * @end deftypefun
 @*/
-jit_constant_t jit_value_get_constant(jit_value_t value)
+jit_constant_t
+jit_value_get_constant(jit_value_t value)
 {
 	jit_constant_t result;
-	if(!value || !(value->is_constant))
+	if(!value || !value->is_constant)
 	{
 		result.type = jit_type_void;
 		return result;
@@ -816,57 +812,43 @@ jit_constant_t jit_value_get_constant(jit_value_t value)
 	result.type = value->type;
 	switch(jit_type_normalize(value->type)->kind)
 	{
-		case JIT_TYPE_SBYTE:
-		case JIT_TYPE_UBYTE:
-		case JIT_TYPE_SHORT:
-		case JIT_TYPE_USHORT:
-		case JIT_TYPE_INT:
-		case JIT_TYPE_UINT:
-		{
-			result.un.int_value = (jit_int)(value->address);
-		}
+	case JIT_TYPE_SBYTE:
+	case JIT_TYPE_UBYTE:
+	case JIT_TYPE_SHORT:
+	case JIT_TYPE_USHORT:
+	case JIT_TYPE_INT:
+	case JIT_TYPE_UINT:
+		result.un.int_value = (jit_int)(value->address);
 		break;
 
-		case JIT_TYPE_NINT:
-		case JIT_TYPE_NUINT:
-		{
-			result.un.nint_value = value->address;
-		}
+	case JIT_TYPE_NINT:
+	case JIT_TYPE_NUINT:
+		result.un.nint_value = value->address;
 		break;
 
-		case JIT_TYPE_LONG:
-		case JIT_TYPE_ULONG:
-		{
-		#ifdef JIT_NATIVE_INT64
-			result.un.long_value = (jit_long)(value->address);
-		#else
-			result.un.long_value = *((jit_long *)(value->address));
-		#endif
-		}
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+#ifdef JIT_NATIVE_INT64
+		result.un.long_value = (jit_long)(value->address);
+#else
+		result.un.long_value = *((jit_long *)(value->address));
+#endif
 		break;
 
-		case JIT_TYPE_FLOAT32:
-		{
-			result.un.float32_value = *((jit_float32 *)(value->address));
-		}
+	case JIT_TYPE_FLOAT32:
+		result.un.float32_value = *((jit_float32 *)(value->address));
 		break;
 
-		case JIT_TYPE_FLOAT64:
-		{
-			result.un.float64_value = *((jit_float64 *)(value->address));
-		}
+	case JIT_TYPE_FLOAT64:
+		result.un.float64_value = *((jit_float64 *)(value->address));
 		break;
 
-		case JIT_TYPE_NFLOAT:
-		{
-			result.un.nfloat_value = *((jit_nfloat *)(value->address));
-		}
+	case JIT_TYPE_NFLOAT:
+		result.un.nfloat_value = *((jit_nfloat *)(value->address));
 		break;
 
-		default:
-		{
-			result.type = jit_type_void;
-		}
+	default:
+		result.type = jit_type_void;
 		break;
 	}
 	return result;
@@ -878,7 +860,8 @@ jit_constant_t jit_value_get_constant(jit_value_t value)
  * that its type is compatible with @code{jit_type_nint}.
  * @end deftypefun
 @*/
-jit_nint jit_value_get_nint_constant(jit_value_t value)
+jit_nint
+jit_value_get_nint_constant(jit_value_t value)
 {
 	if(value->is_nint_constant)
 	{
@@ -896,7 +879,8 @@ jit_nint jit_value_get_nint_constant(jit_value_t value)
  * that its type is compatible with @code{jit_type_long}.
  * @end deftypefun
 @*/
-jit_long jit_value_get_long_constant(jit_value_t value)
+jit_long
+jit_value_get_long_constant(jit_value_t value)
 {
 	if(!(value->is_constant))
 	{
@@ -904,15 +888,13 @@ jit_long jit_value_get_long_constant(jit_value_t value)
 	}
 	switch(jit_type_normalize(value->type)->kind)
 	{
-		case JIT_TYPE_LONG:
-		case JIT_TYPE_ULONG:
-		{
-		#ifdef JIT_NATIVE_INT64
-			return (jit_long)(value->address);
-		#else
-			return *((jit_long *)(value->address));
-		#endif
-		}
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+#ifdef JIT_NATIVE_INT64
+		return (jit_long)(value->address);
+#else
+		return *((jit_long *)(value->address));
+#endif
 		/* Not reached */
 	}
 	return 0;
@@ -962,9 +944,10 @@ jit_float64 jit_value_get_float64_constant(jit_value_t value)
  * that its type is compatible with @code{jit_type_nfloat}.
  * @end deftypefun
 @*/
-jit_nfloat jit_value_get_nfloat_constant(jit_value_t value)
+jit_nfloat
+jit_value_get_nfloat_constant(jit_value_t value)
 {
-	if(!(value->is_constant))
+	if(!value->is_constant)
 	{
 		return (jit_nfloat)0.0;
 	}
@@ -980,59 +963,33 @@ jit_nfloat jit_value_get_nfloat_constant(jit_value_t value)
  * Determine if @var{value} is constant and non-zero.
  * @end deftypefun
 @*/
-int jit_value_is_true(jit_value_t value)
+int
+jit_value_is_true(jit_value_t value)
 {
-	if(!value || !(value->is_constant))
+	if(!value || !value->is_constant)
 	{
 		return 0;
 	}
-	else if(value->is_nint_constant)
+	if(value->is_nint_constant)
 	{
 		return (value->address != 0);
 	}
-	else
+	switch(jit_type_remove_tags(value->type)->kind)
 	{
-		switch(jit_type_normalize(value->type)->kind)
-		{
-			case JIT_TYPE_LONG:
-			case JIT_TYPE_ULONG:
-			{
-				if(jit_value_get_long_constant(value) != 0)
-				{
-					return 1;
-				}
-			}
-			break;
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+		return (jit_value_get_long_constant(value) != 0);
 
-			case JIT_TYPE_FLOAT32:
-			{
-				if(jit_value_get_float32_constant(value) != (jit_float32)0.0)
-				{
-					return 1;
-				}
-			}
-			break;
+	case JIT_TYPE_FLOAT32:
+		return (jit_value_get_float32_constant(value) != (jit_float32) 0.0);
 
-			case JIT_TYPE_FLOAT64:
-			{
-				if(jit_value_get_float64_constant(value) != (jit_float64)0.0)
-				{
-					return 1;
-				}
-			}
-			break;
+	case JIT_TYPE_FLOAT64:
+		return (jit_value_get_float64_constant(value) != (jit_float64) 0.0);
 
-			case JIT_TYPE_NFLOAT:
-			{
-				if(jit_value_get_nfloat_constant(value) != (jit_nfloat)0.0)
-				{
-					return 1;
-				}
-			}
-			break;
-		}
-		return 0;
+	case JIT_TYPE_NFLOAT:
+		return (jit_value_get_nfloat_constant(value) != (jit_nfloat) 0.0);
 	}
+	return 0;
 }
 
 /*@

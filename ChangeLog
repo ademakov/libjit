@@ -8,6 +8,9 @@
 	* jit/jit-rules-interp.c (_jit_create_entry_insns):
 	(_jit_create_call_setup_insns, _jit_create_call_return_insns)
 	(_jit_interp_calculate_arg_size): likewise.
+	* jit/jit-value.c (jit_value_get_struct_pointer):
+	(jit_value_is_true): likewise.
+	(jit_value_create_nint_constant): cleanup.
 
 2017-08-06  Jakob Löw <jakob@m4gnus.de>
 
