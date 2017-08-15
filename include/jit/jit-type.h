@@ -132,6 +132,11 @@ typedef enum
 } jit_abi_t;
 
 /*
+ * Invalid result returned by jit_type_find_name()
+ */
+#define	JIT_INVALID_NAME	(~((unsigned int) 0))
+
+/*
  * External function declarations.
  */
 jit_type_t jit_type_copy(jit_type_t type) JIT_NOTHROW;
@@ -156,13 +161,13 @@ void jit_type_set_offset
 int jit_type_get_kind(jit_type_t type) JIT_NOTHROW;
 jit_nuint jit_type_get_size(jit_type_t type) JIT_NOTHROW;
 jit_nuint jit_type_get_alignment(jit_type_t type) JIT_NOTHROW;
+jit_nuint jit_type_best_alignment(void) JIT_NOTHROW;
 unsigned int jit_type_num_fields(jit_type_t type) JIT_NOTHROW;
 jit_type_t jit_type_get_field
 	(jit_type_t type, unsigned int field_index) JIT_NOTHROW;
 jit_nuint jit_type_get_offset
 	(jit_type_t type, unsigned int field_index) JIT_NOTHROW;
 const char *jit_type_get_name(jit_type_t type, unsigned int index) JIT_NOTHROW;
-#define	JIT_INVALID_NAME	(~((unsigned int)0))
 unsigned int jit_type_find_name(jit_type_t type, const char *name) JIT_NOTHROW;
 unsigned int jit_type_num_params(jit_type_t type) JIT_NOTHROW;
 jit_type_t jit_type_get_return(jit_type_t type) JIT_NOTHROW;
@@ -183,9 +188,8 @@ int jit_type_is_union(jit_type_t type) JIT_NOTHROW;
 int jit_type_is_signature(jit_type_t type) JIT_NOTHROW;
 int jit_type_is_pointer(jit_type_t type) JIT_NOTHROW;
 int jit_type_is_tagged(jit_type_t type) JIT_NOTHROW;
-jit_nuint jit_type_best_alignment(void) JIT_NOTHROW;
-jit_type_t jit_type_normalize(jit_type_t type) JIT_NOTHROW;
 jit_type_t jit_type_remove_tags(jit_type_t type) JIT_NOTHROW;
+jit_type_t jit_type_normalize(jit_type_t type) JIT_NOTHROW;
 jit_type_t jit_type_promote_int(jit_type_t type) JIT_NOTHROW;
 int jit_type_return_via_pointer(jit_type_t type) JIT_NOTHROW;
 int jit_type_has_tag(jit_type_t type, int kind) JIT_NOTHROW;
