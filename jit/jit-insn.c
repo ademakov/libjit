@@ -5996,9 +5996,10 @@ jit_value_t jit_insn_call_indirect_vtable
  * The @var{name} is for diagnostic purposes only, and can be NULL.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_call_native
-	(jit_function_t func, const char *name, void *native_func,
-	 jit_type_t signature, jit_value_t *args, unsigned int num_args, int flags)
+jit_value_t
+jit_insn_call_native(jit_function_t func, const char *name,
+		     void *native_func, jit_type_t signature,
+		     jit_value_t *args, unsigned int num_args, int flags)
 {
 	jit_value_t *new_args;
 	jit_value_t return_value;
@@ -6052,8 +6053,8 @@ jit_value_t jit_insn_call_native
 	}
 
 	/* Create the instructions to push the parameters onto the stack */
-	if(!create_call_setup_insns
-		(func, 0, signature, new_args, num_args, 0, 0, &return_value, flags))
+	if(!create_call_setup_insns(func, 0, signature, new_args, num_args,
+				    0, 0, &return_value, flags))
 	{
 		return 0;
 	}
@@ -6089,7 +6090,7 @@ jit_value_t jit_insn_call_native
 				     new_args, num_args, return_value);
 
 	/* Make sure that returned byte / short values get zero / sign extended */
-	return_type = jit_type_normalize(return_value->type);
+	return_type = jit_type_remove_tags(return_value->type);
 	switch(return_type->kind)
 	{
 	case JIT_TYPE_SBYTE:
@@ -6594,32 +6595,27 @@ int jit_insn_push(jit_function_t func, jit_value_t value)
  * by the CPU back ends to set up the stack for a subroutine call.
  * @end deftypefun
 @*/
-int jit_insn_push_ptr(jit_function_t func, jit_value_t value, jit_type_t type)
+int
+jit_insn_push_ptr(jit_function_t func, jit_value_t value, jit_type_t type)
 {
 	if(!value || !type)
 	{
 		return 0;
 	}
-	switch(jit_type_normalize(type)->kind)
+	switch(jit_type_remove_tags(type)->kind)
 	{
-		case JIT_TYPE_STRUCT:
-		case JIT_TYPE_UNION:
-		{
-			/* Push the structure onto the stack by address */
-			return create_note
-				(func, JIT_OP_PUSH_STRUCT, value,
-				 jit_value_create_nint_constant
-				 	(func, jit_type_nint, (jit_nint)jit_type_get_size(type)));
-		}
-		/* Not reached */
+	case JIT_TYPE_STRUCT:
+	case JIT_TYPE_UNION:
+		/* Push the structure onto the stack by address */
+		return create_note(func, JIT_OP_PUSH_STRUCT, value,
+				   jit_value_create_nint_constant(
+					   func, jit_type_nint,
+					   (jit_nint) jit_type_get_size(type)));
 
-		default:
-		{
-			/* Load the value from the address and push it normally */
-			return jit_insn_push
-				(func, jit_insn_load_relative(func, value, 0, type));
-		}
-		/* Not reached */
+	default:
+		/* Load the value from the address and push it normally */
+		return jit_insn_push(func,
+				     jit_insn_load_relative(func, value, 0, type));
 	}
 }
 
@@ -6718,35 +6714,32 @@ int jit_insn_set_param(jit_function_t func, jit_value_t value, jit_nint offset)
  * at @code{*@var{value}}.
  * @end deftypefun
 @*/
-int jit_insn_set_param_ptr
-	(jit_function_t func, jit_value_t value, jit_type_t type, jit_nint offset)
+int
+jit_insn_set_param_ptr(jit_function_t func, jit_value_t value,
+		       jit_type_t type, jit_nint offset)
 {
 	if(!value || !type)
 	{
 		return 0;
 	}
-	switch(jit_type_normalize(type)->kind)
+	switch(jit_type_remove_tags(type)->kind)
 	{
-		case JIT_TYPE_STRUCT:
-		case JIT_TYPE_UNION:
-		{
-			/* Set the structure into the parameter area by address */
-			return apply_ternary
-				(func, JIT_OP_SET_PARAM_STRUCT,
-				 jit_value_create_nint_constant(func, jit_type_nint, offset),
-				 value,
-				 jit_value_create_nint_constant
-				 	(func, jit_type_nint, (jit_nint)jit_type_get_size(type)));
-		}
-		/* Not reached */
+	case JIT_TYPE_STRUCT:
+	case JIT_TYPE_UNION:
+		/* Set the structure into the parameter area by address */
+		return apply_ternary(func, JIT_OP_SET_PARAM_STRUCT,
+				     jit_value_create_nint_constant(
+					     func, jit_type_nint, offset),
+				     value,
+				     jit_value_create_nint_constant(
+					     func, jit_type_nint,
+					     (jit_nint) jit_type_get_size(type)));
 
-		default:
-		{
-			/* Load the value from the address and set it normally */
-			return jit_insn_set_param
-				(func, jit_insn_load_relative(func, value, 0, type), offset);
-		}
-		/* Not reached */
+	default:
+		/* Load the value from the address and set it normally */
+		return jit_insn_set_param(func,
+					  jit_insn_load_relative(func, value, 0, type),
+					  offset);
 	}
 }
 
@@ -7000,8 +6993,8 @@ int jit_insn_return(jit_function_t func, jit_value_t value)
  * than the structure's contents, in @var{value}.
  * @end deftypefun
 @*/
-int jit_insn_return_ptr
-	(jit_function_t func, jit_value_t value, jit_type_t type)
+int
+jit_insn_return_ptr(jit_function_t func, jit_value_t value, jit_type_t type)
 {
 	jit_value_t return_ptr;
 
@@ -7015,15 +7008,15 @@ int jit_insn_return_ptr
 	/* We need to pop the "setjmp" context */
 	if(func->has_try)
 	{
-		type = jit_type_create_signature
-			(jit_abi_cdecl, jit_type_void, 0, 0, 1);
+		type = jit_type_create_signature(jit_abi_cdecl, jit_type_void,
+						 0, 0, 1);
 		if(!type)
 		{
 			return 0;
 		}
-		jit_insn_call_native
-			(func, "_jit_unwind_pop_setjmp",
-			 (void *)_jit_unwind_pop_setjmp, type, 0, 0, JIT_CALL_NOTHROW);
+		jit_insn_call_native(func, "_jit_unwind_pop_setjmp",
+				     (void *) _jit_unwind_pop_setjmp, type,
+				     0, 0, JIT_CALL_NOTHROW);
 		jit_type_free(type);
 	}
 #endif
@@ -7039,53 +7032,45 @@ int jit_insn_return_ptr
 	}
 
 	/* Determine how to return the value, based on the pointed-to type */
-	switch(jit_type_normalize(type)->kind)
+	switch(jit_type_remove_tags(type)->kind)
 	{
-		case JIT_TYPE_STRUCT:
-		case JIT_TYPE_UNION:
+	case JIT_TYPE_STRUCT:
+	case JIT_TYPE_UNION:
+		/* Determine the kind of structure return to use */
+		return_ptr = jit_value_get_struct_pointer(func);
+		if(return_ptr)
 		{
-			/* Determine the kind of structure return to use */
-			return_ptr = jit_value_get_struct_pointer(func);
-			if(return_ptr)
+			/* Copy the structure's contents to the supplied pointer */
+			if(!jit_insn_memcpy(func, return_ptr, value,
+					    jit_value_create_nint_constant(
+						    func, jit_type_nint,
+						    (jit_nint) jit_type_get_size(type))))
 			{
-				/* Copy the structure's contents to the supplied pointer */
-				if(!jit_insn_memcpy
-					   (func, return_ptr, value,
-					    jit_value_create_nint_constant
-							(func, jit_type_nint,
-							 (jit_nint)(jit_type_get_size(type)))))
-				{
-					return 0;
-				}
-
-				/* Output a regular return for the function */
-				if(!create_noarg_note(func, JIT_OP_RETURN))
-				{
-					return 0;
-				}
+				return 0;
 			}
-			else
+
+			/* Output a regular return for the function */
+			if(!create_noarg_note(func, JIT_OP_RETURN))
 			{
-				/* Return the structure via registers */
-				if(!create_note
-					(func, JIT_OP_RETURN_SMALL_STRUCT, value,
-				     jit_value_create_nint_constant
-						(func, jit_type_nint,
-						 (jit_nint)(jit_type_get_size(type)))))
-				{
-					break;
-				}
+				return 0;
+			}
+		}
+		else
+		{
+			/* Return the structure via registers */
+			if(!create_note(func, JIT_OP_RETURN_SMALL_STRUCT, value,
+					jit_value_create_nint_constant(
+						func, jit_type_nint,
+						(jit_nint) jit_type_get_size(type))))
+			{
+				break;
 			}
 		}
 		break;
 
-		default:
-		{
-			/* Everything else uses the normal return logic */
-			return jit_insn_return
-				(func, jit_insn_load_relative(func, value, 0, type));
-		}
-		/* Not reached */
+	default:
+		/* Everything else uses the normal return logic */
+		return jit_insn_return(func, jit_insn_load_relative(func, value, 0, type));
 	}
 
 	/* Mark the current block as "ends in dead" */
