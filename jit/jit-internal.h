@@ -909,11 +909,14 @@ extern _jit_intrinsic_info_t const _jit_intrinsics[JIT_OP_NUM_OPCODES];
 /*
  * Apply an opcode to one or two constant values.
  * Returns the constant result value on success and NULL otherwise.
- * NOTE: dest_type MUST be either the correct destination type for the
+ * NOTE: The type argument MUST be the correct destination type for the
  * opcode or a tagged type of the correct destination type.
  */
 jit_value_t
-_jit_opcode_apply(jit_function_t func, jit_uint opcode, jit_type_t dest_type,
+_jit_opcode_apply_unary(jit_function_t func, jit_uint opcode, jit_type_t type,
+			jit_value_t value);
+jit_value_t
+_jit_opcode_apply(jit_function_t func, jit_uint opcode, jit_type_t type,
 		  jit_value_t value1, jit_value_t value2);
 
 /*

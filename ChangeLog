@@ -1,3 +1,9 @@
+2017-08-22  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-opcode-apply.c (_jit_opcode_apply_unary): add function
+	that computes unary constant ops. Remove redundant if-conditions in
+	the opcode wrappers.
+
 2017-08-15  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-type.c (jit_type_return_via_pointer): replace the call to
