@@ -187,15 +187,16 @@ to create and manipulate values.
 /*
  * Allocate a new value from a function's memory pool.
  */
-static jit_value_t alloc_value(jit_function_t func, jit_type_t type)
+static jit_value_t
+alloc_value(jit_function_t func, jit_type_t type)
 {
-	jit_value_t value;
+	/* Ensure that we have a builder for this function */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-	value = jit_memory_pool_alloc(&(func->builder->value_pool),
-								  struct _jit_value);
+
+	jit_value_t value = jit_memory_pool_alloc(&func->builder->value_pool, struct _jit_value);
 	if(!value)
 	{
 		return 0;
@@ -205,6 +206,7 @@ static jit_value_t alloc_value(jit_function_t func, jit_type_t type)
 	value->reg = -1;
 	value->frame_offset = JIT_INVALID_FRAME_OFFSET;
 	value->index = -1;
+
 	return value;
 }
 
@@ -223,7 +225,8 @@ static jit_value_t alloc_value(jit_function_t func, jit_type_t type)
  * the JIT if it can assume that all values are local.
  * @end deftypefun
 @*/
-jit_value_t jit_value_create(jit_function_t func, jit_type_t type)
+jit_value_t
+jit_value_create(jit_function_t func, jit_type_t type)
 {
 	jit_value_t value = alloc_value(func, type);
 	if(!value)
@@ -260,20 +263,21 @@ jit_value_t jit_value_create(jit_function_t func, jit_type_t type)
 jit_value_t
 jit_value_create_nint_constant(jit_function_t func, jit_type_t type, jit_nint const_value)
 {
-	jit_value_t value;
 	jit_type_t stripped = 0;
 	if(!const_value)
 	{
 		/* Special cases: see if this is the NULL or zero constant */
 		stripped = jit_type_remove_tags(type);
-		if(jit_type_is_pointer(stripped) || stripped == jit_type_nint)
+		if(stripped->kind == JIT_TYPE_SIGNATURE
+		   || stripped->kind == JIT_TYPE_PTR
+		   || stripped->kind == JIT_TYPE_NINT)
 		{
 			if(func && func->builder && func->builder->null_constant)
 			{
 				return func->builder->null_constant;
 			}
 		}
-		else if(stripped == jit_type_int)
+		else if(stripped->kind == JIT_TYPE_INT)
 		{
 			if(func && func->builder && func->builder->zero_constant)
 			{
@@ -281,7 +285,8 @@ jit_value_create_nint_constant(jit_function_t func, jit_type_t type, jit_nint co
 			}
 		}
 	}
-	value = alloc_value(func, type);
+
+	jit_value_t value = alloc_value(func, type);
 	if(!value)
 	{
 		return 0;
@@ -289,18 +294,22 @@ jit_value_create_nint_constant(jit_function_t func, jit_type_t type, jit_nint co
 	value->is_constant = 1;
 	value->is_nint_constant = 1;
 	value->address = const_value;
+
 	if(stripped)
 	{
 		/* Special cases: see if we need to cache this constant for later */
-		if(jit_type_is_pointer(stripped) || stripped == jit_type_nint)
+		if(stripped->kind == JIT_TYPE_SIGNATURE
+		   || stripped->kind == JIT_TYPE_PTR
+		   || stripped->kind == JIT_TYPE_NINT)
 		{
 			func->builder->null_constant = value;
 		}
-		else if(stripped == jit_type_int)
+		else if(stripped->kind == JIT_TYPE_INT)
 		{
 			func->builder->zero_constant = value;
 		}
 	}
+
 	return value;
 }
 
@@ -311,8 +320,8 @@ jit_value_create_nint_constant(jit_function_t func, jit_type_t type, jit_nint co
  * type @code{jit_type_ulong}.  Returns NULL if out of memory.
  * @end deftypefun
 @*/
-jit_value_t jit_value_create_long_constant
-		(jit_function_t func, jit_type_t type, jit_long const_value)
+jit_value_t
+jit_value_create_long_constant(jit_function_t func, jit_type_t type, jit_long const_value)
 {
 	jit_value_t value = alloc_value(func, type);
 	if(!value)
@@ -321,14 +330,15 @@ jit_value_t jit_value_create_long_constant
 	}
 	value->is_constant = 1;
 #ifdef JIT_NATIVE_INT64
-	value->address = (jit_nint)const_value;
+	value->is_nint_constant = 1;
+	value->address = (jit_nint) const_value;
 #else
-	value->address = (jit_nint)jit_malloc(sizeof(jit_long));
-	if(!(value->address))
+	value->address = (jit_nint) jit_malloc(sizeof(jit_long));
+	if(!value->address)
 	{
 		return 0;
 	}
-	*((jit_long *)(value->address)) = const_value;
+	*((jit_long *) value->address) = const_value;
 	value->free_address = 1;
 #endif
 	return value;
@@ -340,8 +350,8 @@ jit_value_t jit_value_create_long_constant
  * function.  Returns NULL if out of memory.
  * @end deftypefun
 @*/
-jit_value_t jit_value_create_float32_constant
-		(jit_function_t func, jit_type_t type, jit_float32 const_value)
+jit_value_t
+jit_value_create_float32_constant(jit_function_t func, jit_type_t type, jit_float32 const_value)
 {
 	jit_value_t value = alloc_value(func, type);
 	if(!value)
@@ -349,12 +359,12 @@ jit_value_t jit_value_create_float32_constant
 		return 0;
 	}
 	value->is_constant = 1;
-	value->address = (jit_nint)jit_malloc(sizeof(jit_float32));
-	if(!(value->address))
+	value->address = (jit_nint) jit_malloc(sizeof(jit_float32));
+	if(!value->address)
 	{
 		return 0;
 	}
-	*((jit_float32 *)(value->address)) = const_value;
+	*((jit_float32 *) value->address) = const_value;
 	value->free_address = 1;
 	return value;
 }
@@ -365,8 +375,8 @@ jit_value_t jit_value_create_float32_constant
  * function.  Returns NULL if out of memory.
  * @end deftypefun
 @*/
-jit_value_t jit_value_create_float64_constant
-		(jit_function_t func, jit_type_t type, jit_float64 const_value)
+jit_value_t
+jit_value_create_float64_constant(jit_function_t func, jit_type_t type, jit_float64 const_value)
 {
 	jit_value_t value = alloc_value(func, type);
 	if(!value)
@@ -374,12 +384,12 @@ jit_value_t jit_value_create_float64_constant
 		return 0;
 	}
 	value->is_constant = 1;
-	value->address = (jit_nint)jit_malloc(sizeof(jit_float64));
-	if(!(value->address))
+	value->address = (jit_nint) jit_malloc(sizeof(jit_float64));
+	if(!value->address)
 	{
 		return 0;
 	}
-	*((jit_float64 *)(value->address)) = const_value;
+	*((jit_float64 *) value->address) = const_value;
 	value->free_address = 1;
 	return value;
 }
@@ -390,8 +400,8 @@ jit_value_t jit_value_create_float64_constant
  * function.  Returns NULL if out of memory.
  * @end deftypefun
 @*/
-jit_value_t jit_value_create_nfloat_constant
-		(jit_function_t func, jit_type_t type, jit_nfloat const_value)
+jit_value_t
+jit_value_create_nfloat_constant(jit_function_t func, jit_type_t type, jit_nfloat const_value)
 {
 	jit_value_t value = alloc_value(func, type);
 	if(!value)
@@ -399,12 +409,12 @@ jit_value_t jit_value_create_nfloat_constant
 		return 0;
 	}
 	value->is_constant = 1;
-	value->address = (jit_nint)jit_malloc(sizeof(jit_nfloat));
-	if(!(value->address))
+	value->address = (jit_nint) jit_malloc(sizeof(jit_nfloat));
+	if(!value->address)
 	{
 		return 0;
 	}
-	*((jit_nfloat *)(value->address)) = const_value;
+	*((jit_nfloat *) value->address) = const_value;
 	value->free_address = 1;
 	return value;
 }
@@ -419,7 +429,7 @@ jit_value_t jit_value_create_nfloat_constant
 jit_value_t
 jit_value_create_constant(jit_function_t func, const jit_constant_t *const_value)
 {
-	jit_type_t stripped = jit_type_normalize(const_value->type);
+	jit_type_t stripped = jit_type_remove_tags(const_value->type);
 	if(!stripped)
 	{
 		return 0;
@@ -437,18 +447,15 @@ jit_value_create_constant(jit_function_t func, const jit_constant_t *const_value
 
 	case JIT_TYPE_NINT:
 	case JIT_TYPE_NUINT:
+	case JIT_TYPE_PTR:
+	case JIT_TYPE_SIGNATURE:
 		return jit_value_create_nint_constant(func, const_value->type,
 						      const_value->un.nint_value);
 
 	case JIT_TYPE_LONG:
 	case JIT_TYPE_ULONG:
-#ifdef JIT_NATIVE_INT64
-		return jit_value_create_nint_constant(func, const_value->type,
-						      const_value->un.long_value);
-#else
 		return jit_value_create_long_constant(func, const_value->type,
 						      const_value->un.long_value);
-#endif
 
 	case JIT_TYPE_FLOAT32:
 		return jit_value_create_float32_constant(func, const_value->type,
@@ -474,9 +481,7 @@ jit_value_create_constant(jit_function_t func, const jit_constant_t *const_value
 jit_value_t
 jit_value_get_param(jit_function_t func, unsigned int param)
 {
-	jit_type_t signature;
 	unsigned int num_params, current;
-	jit_value_t *values;
 
 	/* Ensure that we have a builder for this function */
 	if(!_jit_function_ensure_builder(func))
@@ -485,7 +490,7 @@ jit_value_get_param(jit_function_t func, unsigned int param)
 	}
 
 	/* Ensure valid param number. */
-	signature = func->signature;
+	jit_type_t signature = func->signature;
 	num_params = jit_type_num_params(signature);
 	if(param >= num_params)
 	{
@@ -493,14 +498,14 @@ jit_value_get_param(jit_function_t func, unsigned int param)
 	}
 
 	/* If we have already created the values, then exit immediately */
-	values = func->builder->param_values;
+	jit_value_t *values = func->builder->param_values;
 	if(values)
 	{
 		return values[param];
 	}
 
 	/* Create the values for the first time */
-	values = (jit_value_t *)jit_calloc(num_params, sizeof(jit_value_t));
+	values = (jit_value_t *) jit_calloc(num_params, sizeof(jit_value_t));
 	if(!values)
 	{
 		return 0;
@@ -508,7 +513,8 @@ jit_value_get_param(jit_function_t func, unsigned int param)
 	func->builder->param_values = values;
 	for(current = 0; current < num_params; ++current)
 	{
-		values[current] = jit_value_create(func, jit_type_get_param(signature, current));
+		jit_type_t type = jit_type_get_param(signature, current);
+		values[current] = jit_value_create(func, type);
 		if(values[current])
 		{
 			/* The value belongs to the entry block, no matter
@@ -529,20 +535,24 @@ jit_value_get_param(jit_function_t func, unsigned int param)
  * (i.e. structures are returned in registers), then this returns NULL.
  * @end deftypefun
 @*/
-jit_value_t jit_value_get_struct_pointer(jit_function_t func)
+jit_value_t
+jit_value_get_struct_pointer(jit_function_t func)
 {
 	jit_type_t type;
 	jit_value_t value;
+
+	/* Ensure that we have a builder for this function */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
+
 	type = jit_type_remove_tags(jit_type_get_return(func->signature));
 	if(jit_type_is_struct(type) || jit_type_is_union(type))
 	{
 		if(jit_type_return_via_pointer(type))
 		{
-			if(!(func->builder->struct_return))
+			if(!func->builder->struct_return)
 			{
 				type = jit_type_create_pointer(type, 1);
 				if(!type)
@@ -572,7 +582,8 @@ jit_value_t jit_value_get_struct_pointer(jit_function_t func)
  * over a single block within its function.
  * @end deftypefun
 @*/
-int jit_value_is_temporary(jit_value_t value)
+int
+jit_value_is_temporary(jit_value_t value)
 {
 	return value->is_temporary;
 }
@@ -583,7 +594,8 @@ int jit_value_is_temporary(jit_value_t value)
  * over multiple blocks within its function.
  * @end deftypefun
 @*/
-int jit_value_is_local(jit_value_t value)
+int
+jit_value_is_local(jit_value_t value)
 {
 	return value->is_local;
 }
@@ -593,7 +605,8 @@ int jit_value_is_local(jit_value_t value)
  * Determine if a value is a constant.
  * @end deftypefun
 @*/
-int jit_value_is_constant(jit_value_t value)
+int
+jit_value_is_constant(jit_value_t value)
 {
 	return value->is_constant;
 }
@@ -603,7 +616,8 @@ int jit_value_is_constant(jit_value_t value)
  * Determine if a value is a function parameter.
  * @end deftypefun
 @*/
-int jit_value_is_parameter(jit_value_t value)
+int
+jit_value_is_parameter(jit_value_t value)
 {
 	return value->is_parameter;
 }
@@ -620,13 +634,16 @@ int jit_value_is_parameter(jit_value_t value)
  * function, referring to a local variable in its parent function.
  * @end deftypefun
 @*/
-void jit_value_ref(jit_function_t func, jit_value_t value)
+void
+jit_value_ref(jit_function_t func, jit_value_t value)
 {
-	if(!value || !_jit_function_ensure_builder(func))
+	/* Ensure that we have a builder for this function */
+	if(!_jit_function_ensure_builder(func))
 	{
 		return;
 	}
-	++(value->usage_count);
+
+	value->usage_count++;
 	if(value->is_temporary)
 	{
 		if(value->block->func != func)
@@ -662,6 +679,7 @@ void jit_value_ref(jit_function_t func, jit_value_t value)
 	}
 }
 
+/* TODO: seems to be unused */
 void _jit_value_ref_params(jit_function_t func)
 {
 	unsigned int num_params;
@@ -685,7 +703,8 @@ void _jit_value_ref_params(jit_function_t func)
  * cached register copy.
  * @end deftypefun
 @*/
-void jit_value_set_volatile(jit_value_t value)
+void
+jit_value_set_volatile(jit_value_t value)
 {
 	value->is_volatile = 1;
 }
@@ -695,7 +714,8 @@ void jit_value_set_volatile(jit_value_t value)
  * Determine if a value is volatile.
  * @end deftypefun
 @*/
-int jit_value_is_volatile(jit_value_t value)
+int
+jit_value_is_volatile(jit_value_t value)
 {
 	return value->is_volatile;
 }
@@ -710,7 +730,8 @@ int jit_value_is_volatile(jit_value_t value)
  * then the value will be automatically marked as addressable.
  * @end deftypefun
 @*/
-void jit_value_set_addressable(jit_value_t value)
+void
+jit_value_set_addressable(jit_value_t value)
 {
 	value->is_addressable = 1;
 }
@@ -720,7 +741,8 @@ void jit_value_set_addressable(jit_value_t value)
  * Determine if a value is addressable.
  * @end deftypefun
 @*/
-int jit_value_is_addressable(jit_value_t value)
+int
+jit_value_is_addressable(jit_value_t value)
 {
 	return value->is_addressable;
 }
@@ -730,16 +752,10 @@ int jit_value_is_addressable(jit_value_t value)
  * Get the type that is associated with a value.
  * @end deftypefun
 @*/
-jit_type_t jit_value_get_type(jit_value_t value)
+jit_type_t
+jit_value_get_type(jit_value_t value)
 {
-	if(value)
-	{
-		return value->type;
-	}
-	else
-	{
-		return 0;
-	}
+	return value->type;
 }
 
 /*@
@@ -747,16 +763,10 @@ jit_type_t jit_value_get_type(jit_value_t value)
  * Get the function which owns a particular @var{value}.
  * @end deftypefun
 @*/
-jit_function_t jit_value_get_function(jit_value_t value)
+jit_function_t
+jit_value_get_function(jit_value_t value)
 {
-	if(value)
-	{
-		return value->block->func;
-	}
-	else
-	{
-		return 0;
-	}
+	return value->block->func;
 }
 
 /*@
@@ -764,16 +774,10 @@ jit_function_t jit_value_get_function(jit_value_t value)
  * Get the block which owns a particular @var{value}.
  * @end deftypefun
 @*/
-jit_block_t jit_value_get_block(jit_value_t value)
+jit_block_t
+jit_value_get_block(jit_value_t value)
 {
-	if(value)
-	{
-		return value->block;
-	}
-	else
-	{
-		return 0;
-	}
+	return value->block;
 }
 
 /*@
@@ -781,16 +785,10 @@ jit_block_t jit_value_get_block(jit_value_t value)
  * Get the context which owns a particular @var{value}.
  * @end deftypefun
 @*/
-jit_context_t jit_value_get_context(jit_value_t value)
+jit_context_t
+jit_value_get_context(jit_value_t value)
 {
-	if(value)
-	{
-		return value->block->func->context;
-	}
-	else
-	{
-		return 0;
-	}
+	return value->block->func->context;
 }
 
 /*@
@@ -804,13 +802,13 @@ jit_constant_t
 jit_value_get_constant(jit_value_t value)
 {
 	jit_constant_t result;
-	if(!value || !value->is_constant)
+	if(!value->is_constant)
 	{
 		result.type = jit_type_void;
 		return result;
 	}
 	result.type = value->type;
-	switch(jit_type_normalize(value->type)->kind)
+	switch(jit_type_remove_tags(value->type)->kind)
 	{
 	case JIT_TYPE_SBYTE:
 	case JIT_TYPE_UBYTE:
@@ -818,33 +816,35 @@ jit_value_get_constant(jit_value_t value)
 	case JIT_TYPE_USHORT:
 	case JIT_TYPE_INT:
 	case JIT_TYPE_UINT:
-		result.un.int_value = (jit_int)(value->address);
+		result.un.int_value = (jit_int) value->address;
 		break;
 
 	case JIT_TYPE_NINT:
 	case JIT_TYPE_NUINT:
+	case JIT_TYPE_PTR:
+	case JIT_TYPE_SIGNATURE:
 		result.un.nint_value = value->address;
 		break;
 
 	case JIT_TYPE_LONG:
 	case JIT_TYPE_ULONG:
 #ifdef JIT_NATIVE_INT64
-		result.un.long_value = (jit_long)(value->address);
+		result.un.long_value = (jit_long) value->address;
 #else
-		result.un.long_value = *((jit_long *)(value->address));
+		result.un.long_value = *((jit_long *) value->address);
 #endif
 		break;
 
 	case JIT_TYPE_FLOAT32:
-		result.un.float32_value = *((jit_float32 *)(value->address));
+		result.un.float32_value = *((jit_float32 *) value->address);
 		break;
 
 	case JIT_TYPE_FLOAT64:
-		result.un.float64_value = *((jit_float64 *)(value->address));
+		result.un.float64_value = *((jit_float64 *) value->address);
 		break;
 
 	case JIT_TYPE_NFLOAT:
-		result.un.nfloat_value = *((jit_nfloat *)(value->address));
+		result.un.nfloat_value = *((jit_nfloat *) value->address);
 		break;
 
 	default:
@@ -863,14 +863,11 @@ jit_value_get_constant(jit_value_t value)
 jit_nint
 jit_value_get_nint_constant(jit_value_t value)
 {
-	if(value->is_nint_constant)
-	{
-		return (jit_nint)(value->address);
-	}
-	else
+	if(!value->is_nint_constant)
 	{
 		return 0;
 	}
+	return (jit_nint) value->address;
 }
 
 /*@
@@ -882,7 +879,7 @@ jit_value_get_nint_constant(jit_value_t value)
 jit_long
 jit_value_get_long_constant(jit_value_t value)
 {
-	if(!(value->is_constant))
+	if(!value->is_constant)
 	{
 		return 0;
 	}
@@ -891,11 +888,10 @@ jit_value_get_long_constant(jit_value_t value)
 	case JIT_TYPE_LONG:
 	case JIT_TYPE_ULONG:
 #ifdef JIT_NATIVE_INT64
-		return (jit_long)(value->address);
+		return (jit_long) value->address;
 #else
-		return *((jit_long *)(value->address));
+		return *((jit_long *) value->address);
 #endif
-		/* Not reached */
 	}
 	return 0;
 }
@@ -906,17 +902,14 @@ jit_value_get_long_constant(jit_value_t value)
  * that its type is compatible with @code{jit_type_float32}.
  * @end deftypefun
 @*/
-jit_float32 jit_value_get_float32_constant(jit_value_t value)
+jit_float32
+jit_value_get_float32_constant(jit_value_t value)
 {
-	if(!(value->is_constant))
+	if(!value->is_constant || jit_type_normalize(value->type)->kind != JIT_TYPE_FLOAT32)
 	{
-		return (jit_float32)0.0;
+		return (jit_float32) 0.0;
 	}
-	if(jit_type_normalize(value->type)->kind == JIT_TYPE_FLOAT32)
-	{
-		return *((jit_float32 *)(value->address));
-	}
-	return (jit_float32)0.0;
+	return *((jit_float32 *) value->address);
 }
 
 /*@
@@ -925,17 +918,14 @@ jit_float32 jit_value_get_float32_constant(jit_value_t value)
  * that its type is compatible with @code{jit_type_float64}.
  * @end deftypefun
 @*/
-jit_float64 jit_value_get_float64_constant(jit_value_t value)
+jit_float64
+jit_value_get_float64_constant(jit_value_t value)
 {
-	if(!(value->is_constant))
+	if(!value->is_constant || jit_type_normalize(value->type)->kind != JIT_TYPE_FLOAT64)
 	{
-		return (jit_float64)0.0;
+		return (jit_float64) 0.0;
 	}
-	if(jit_type_normalize(value->type)->kind == JIT_TYPE_FLOAT64)
-	{
-		return *((jit_float64 *)(value->address));
-	}
-	return (jit_float64)0.0;
+	return *((jit_float64 *) value->address);
 }
 
 /*@
@@ -947,15 +937,11 @@ jit_float64 jit_value_get_float64_constant(jit_value_t value)
 jit_nfloat
 jit_value_get_nfloat_constant(jit_value_t value)
 {
-	if(!value->is_constant)
+	if(!value->is_constant || jit_type_normalize(value->type)->kind != JIT_TYPE_NFLOAT)
 	{
-		return (jit_nfloat)0.0;
+		return (jit_nfloat) 0.0;
 	}
-	if(jit_type_normalize(value->type)->kind == JIT_TYPE_NFLOAT)
-	{
-		return *((jit_nfloat *)(value->address));
-	}
-	return (jit_nfloat)0.0;
+	return *((jit_nfloat *) value->address);
 }
 
 /*@
@@ -999,9 +985,9 @@ jit_value_is_true(jit_value_t value)
  * is not possible, usually due to overflow.
  * @end deftypefun
 @*/
-int jit_constant_convert
-		(jit_constant_t *result, const jit_constant_t *value,
-		 jit_type_t type, int overflow_check)
+int
+jit_constant_convert(jit_constant_t *result, const jit_constant_t *value, jit_type_t type,
+		     int overflow_check)
 {
 	jit_type_t srctype;
 	jit_type_t desttype;
@@ -1009,10 +995,6 @@ int jit_constant_convert
 	/* Normalize the source and destination types.  The source type
 	   is also promoted, to reduce the number of cases in the
 	   inner switch statements below */
-	if(!result || !value)
-	{
-		return 0;
-	}
 	srctype = jit_type_promote_int(jit_type_normalize(value->type));
 	if(!srctype)
 	{
@@ -1028,1412 +1010,1119 @@ int jit_constant_convert
 	result->type = type;
 	switch(desttype->kind)
 	{
-		case JIT_TYPE_SBYTE:
+	case JIT_TYPE_SBYTE:
+		/* Convert to a signed 8-bit integer */
+		switch(srctype->kind)
 		{
-			/* Convert to a signed 8-bit integer */
-			switch(srctype->kind)
-			{
-				case JIT_TYPE_INT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_int_to_sbyte_ovf
-								(&(result->un.int_value),
-								 value->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_sbyte(value->un.int_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_UINT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_uint_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.uint_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_sbyte_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_sbyte(value->un.int_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_LONG:
-				{
-					if(overflow_check)
-					{
-						if(!jit_long_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.long_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_sbyte_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_sbyte
-								(jit_long_to_int(value->un.long_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_ULONG:
-				{
-					if(overflow_check)
-					{
-						if(!jit_ulong_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.ulong_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_sbyte_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_sbyte
-								(jit_ulong_to_int(value->un.ulong_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT32:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float32_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.float32_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_sbyte_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_sbyte
-								(jit_float32_to_int(value->un.float32_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT64:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float64_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.float64_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_sbyte_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_sbyte
-								(jit_float64_to_int(value->un.float64_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_NFLOAT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_nfloat_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.nfloat_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_sbyte_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_sbyte
-								(jit_nfloat_to_int(value->un.nfloat_value));
-					}
-				}
-				break;
-
-				default: return 0;
-			}
-		}
-		break;
-
-		case JIT_TYPE_UBYTE:
-		{
-			/* Convert to an unsigned 8-bit integer */
-			switch(srctype->kind)
-			{
-				case JIT_TYPE_INT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_int_to_ubyte_ovf
-								(&(result->un.int_value),
-								 value->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_ubyte(value->un.int_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_UINT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_uint_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.uint_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_ubyte_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_ubyte(value->un.int_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_LONG:
-				{
-					if(overflow_check)
-					{
-						if(!jit_long_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.long_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_ubyte_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_ubyte
-								(jit_long_to_int(value->un.long_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_ULONG:
-				{
-					if(overflow_check)
-					{
-						if(!jit_ulong_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.ulong_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_ubyte_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_ubyte
-								(jit_ulong_to_int(value->un.ulong_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT32:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float32_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.float32_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_ubyte_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_ubyte
-								(jit_float32_to_int(value->un.float32_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT64:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float64_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.float64_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_ubyte_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_ubyte
-								(jit_float64_to_int(value->un.float64_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_NFLOAT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_nfloat_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.nfloat_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_ubyte_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_ubyte
-								(jit_nfloat_to_int(value->un.nfloat_value));
-					}
-				}
-				break;
-
-				default: return 0;
-			}
-		}
-		break;
-
-		case JIT_TYPE_SHORT:
-		{
-			/* Convert to a signed 16-bit integer */
-			switch(srctype->kind)
-			{
-				case JIT_TYPE_INT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_int_to_short_ovf
-								(&(result->un.int_value),
-								 value->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_short(value->un.int_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_UINT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_uint_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.uint_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_short_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_short(value->un.int_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_LONG:
-				{
-					if(overflow_check)
-					{
-						if(!jit_long_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.long_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_short_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_short
-								(jit_long_to_int(value->un.long_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_ULONG:
-				{
-					if(overflow_check)
-					{
-						if(!jit_ulong_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.ulong_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_short_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_short
-								(jit_ulong_to_int(value->un.ulong_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT32:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float32_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.float32_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_short_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_short
-								(jit_float32_to_int(value->un.float32_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT64:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float64_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.float64_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_short_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_short
-								(jit_float64_to_int(value->un.float64_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_NFLOAT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_nfloat_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.nfloat_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_short_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_short
-								(jit_nfloat_to_int(value->un.nfloat_value));
-					}
-				}
-				break;
-
-				default: return 0;
-			}
-		}
-		break;
-
-		case JIT_TYPE_USHORT:
-		{
-			/* Convert to an unsigned 16-bit integer */
-			switch(srctype->kind)
-			{
-				case JIT_TYPE_INT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_int_to_ushort_ovf
-								(&(result->un.int_value),
-								 value->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_ushort(value->un.int_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_UINT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_uint_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.uint_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_ushort_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_ushort(value->un.int_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_LONG:
-				{
-					if(overflow_check)
-					{
-						if(!jit_long_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.long_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_ushort_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_ushort
-								(jit_long_to_int(value->un.long_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_ULONG:
-				{
-					if(overflow_check)
-					{
-						if(!jit_ulong_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.ulong_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_ushort_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_ushort
-								(jit_ulong_to_int(value->un.ulong_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT32:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float32_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.float32_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_ushort_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_ushort
-								(jit_float32_to_int(value->un.float32_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT64:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float64_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.float64_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_ushort_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_ushort
-								(jit_float64_to_int(value->un.float64_value));
-					}
-				}
-				break;
-
-				case JIT_TYPE_NFLOAT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_nfloat_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.nfloat_value))
-						{
-							return 0;
-						}
-						if(!jit_int_to_ushort_ovf
-								(&(result->un.int_value),
-								 result->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_int_to_ushort
-								(jit_nfloat_to_int(value->un.nfloat_value));
-					}
-				}
-				break;
-
-				default: return 0;
-			}
-		}
-		break;
-
 		case JIT_TYPE_INT:
-		{
-			/* Convert to a signed 32-bit integer */
-			switch(srctype->kind)
+			if(overflow_check)
 			{
-				case JIT_TYPE_INT:
+				if(!jit_int_to_sbyte_ovf(&result->un.int_value,
+							 value->un.int_value))
 				{
-					result->un.int_value = value->un.int_value;
+					return 0;
 				}
-				break;
-
-				case JIT_TYPE_UINT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_uint_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.uint_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_uint_to_int(value->un.uint_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_LONG:
-				{
-					if(overflow_check)
-					{
-						if(!jit_long_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.long_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_long_to_int(value->un.long_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_ULONG:
-				{
-					if(overflow_check)
-					{
-						if(!jit_ulong_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.ulong_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_ulong_to_int(value->un.ulong_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT32:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float32_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.float32_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_float32_to_int(value->un.float32_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT64:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float64_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.float64_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_float64_to_int(value->un.float64_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_NFLOAT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_nfloat_to_int_ovf
-								(&(result->un.int_value),
-								 value->un.nfloat_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.int_value =
-							jit_nfloat_to_int(value->un.nfloat_value);
-					}
-				}
-				break;
-
-				default: return 0;
 			}
-		}
-		break;
+			else
+			{
+				result->un.int_value = jit_int_to_sbyte(value->un.int_value);
+			}
+			break;
 
 		case JIT_TYPE_UINT:
-		{
-			/* Convert to an unsigned 32-bit integer */
-			switch(srctype->kind)
+			if(overflow_check)
 			{
-				case JIT_TYPE_INT:
+				if(!jit_uint_to_int_ovf(&result->un.int_value,
+							value->un.uint_value))
 				{
-					if(overflow_check)
-					{
-						if(!jit_int_to_uint_ovf
-								(&(result->un.uint_value),
-								 value->un.uint_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.uint_value =
-							jit_int_to_uint(value->un.int_value);
-					}
+					return 0;
 				}
-				break;
-
-				case JIT_TYPE_UINT:
+				if(!jit_int_to_sbyte_ovf(&result->un.int_value,
+							 result->un.int_value))
 				{
-					result->un.uint_value = value->un.uint_value;
+					return 0;
 				}
-				break;
-
-				case JIT_TYPE_LONG:
-				{
-					if(overflow_check)
-					{
-						if(!jit_long_to_uint_ovf
-								(&(result->un.uint_value),
-								 value->un.long_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.uint_value =
-							jit_long_to_uint(value->un.long_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_ULONG:
-				{
-					if(overflow_check)
-					{
-						if(!jit_ulong_to_uint_ovf
-								(&(result->un.uint_value),
-								 value->un.ulong_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.uint_value =
-							jit_ulong_to_uint(value->un.ulong_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT32:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float32_to_uint_ovf
-								(&(result->un.uint_value),
-								 value->un.float32_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.uint_value =
-							jit_float32_to_uint(value->un.float32_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT64:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float64_to_uint_ovf
-								(&(result->un.uint_value),
-								 value->un.float64_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.uint_value =
-							jit_float64_to_uint(value->un.float64_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_NFLOAT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_nfloat_to_uint_ovf
-								(&(result->un.uint_value),
-								 value->un.nfloat_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.uint_value =
-							jit_nfloat_to_uint(value->un.nfloat_value);
-					}
-				}
-				break;
-
-				default: return 0;
 			}
-		}
-		break;
+			else
+			{
+				result->un.int_value = jit_int_to_sbyte(value->un.int_value);
+			}
+			break;
 
 		case JIT_TYPE_LONG:
-		{
-			/* Convert to a signed 64-bit integer */
-			switch(srctype->kind)
+			if(overflow_check)
 			{
-				case JIT_TYPE_INT:
+				if(!jit_long_to_int_ovf(&result->un.int_value,
+							value->un.long_value))
 				{
-					result->un.long_value =
-						jit_int_to_long(value->un.int_value);
+					return 0;
 				}
-				break;
-
-				case JIT_TYPE_UINT:
+				if(!jit_int_to_sbyte_ovf(&result->un.int_value,
+							 result->un.int_value))
 				{
-					result->un.long_value =
-						jit_uint_to_long(value->un.int_value);
+					return 0;
 				}
-				break;
-
-				case JIT_TYPE_LONG:
-				{
-					result->un.long_value = value->un.long_value;
-				}
-				break;
-
-				case JIT_TYPE_ULONG:
-				{
-					if(overflow_check)
-					{
-						if(!jit_ulong_to_long_ovf
-								(&(result->un.long_value),
-								 value->un.ulong_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.long_value =
-							jit_ulong_to_long(value->un.ulong_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT32:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float32_to_long_ovf
-								(&(result->un.long_value),
-								 value->un.float32_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.long_value =
-							jit_float32_to_long(value->un.float32_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT64:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float64_to_long_ovf
-								(&(result->un.long_value),
-								 value->un.float64_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.long_value =
-							jit_float64_to_long(value->un.float64_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_NFLOAT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_nfloat_to_long_ovf
-								(&(result->un.long_value),
-								 value->un.nfloat_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.long_value =
-							jit_nfloat_to_long(value->un.nfloat_value);
-					}
-				}
-				break;
-
-				default: return 0;
 			}
-		}
-		break;
+			else
+			{
+				result->un.int_value =
+					jit_int_to_sbyte(jit_long_to_int(value->un.long_value));
+			}
+			break;
 
 		case JIT_TYPE_ULONG:
-		{
-			/* Convert to an unsigned 64-bit integer */
-			switch(srctype->kind)
+			if(overflow_check)
 			{
-				case JIT_TYPE_INT:
+				if(!jit_ulong_to_int_ovf(&result->un.int_value,
+							 value->un.ulong_value))
 				{
-					if(overflow_check)
-					{
-						if(!jit_int_to_ulong_ovf
-								(&(result->un.ulong_value),
-								 value->un.int_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.ulong_value =
-							jit_int_to_ulong(value->un.int_value);
-					}
+					return 0;
 				}
-				break;
-
-				case JIT_TYPE_UINT:
+				if(!jit_int_to_sbyte_ovf(&result->un.int_value,
+							 result->un.int_value))
 				{
-					result->un.ulong_value =
-						jit_uint_to_ulong(value->un.uint_value);
+					return 0;
 				}
-				break;
-
-				case JIT_TYPE_LONG:
-				{
-					if(overflow_check)
-					{
-						if(!jit_long_to_ulong_ovf
-								(&(result->un.ulong_value),
-								 value->un.long_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.ulong_value =
-							jit_long_to_ulong(value->un.long_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_ULONG:
-				{
-					result->un.ulong_value = value->un.ulong_value;
-				}
-				break;
-
-				case JIT_TYPE_FLOAT32:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float32_to_ulong_ovf
-								(&(result->un.ulong_value),
-								 value->un.float32_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.ulong_value =
-							jit_float32_to_ulong(value->un.float32_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_FLOAT64:
-				{
-					if(overflow_check)
-					{
-						if(!jit_float64_to_ulong_ovf
-								(&(result->un.ulong_value),
-								 value->un.float64_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.ulong_value =
-							jit_float64_to_ulong(value->un.float64_value);
-					}
-				}
-				break;
-
-				case JIT_TYPE_NFLOAT:
-				{
-					if(overflow_check)
-					{
-						if(!jit_nfloat_to_ulong_ovf
-								(&(result->un.ulong_value),
-								 value->un.nfloat_value))
-						{
-							return 0;
-						}
-					}
-					else
-					{
-						result->un.ulong_value =
-							jit_nfloat_to_ulong(value->un.nfloat_value);
-					}
-				}
-				break;
-
-				default: return 0;
 			}
-		}
-		break;
+			else
+			{
+				result->un.int_value =
+					jit_int_to_sbyte(jit_ulong_to_int(value->un.ulong_value));
+			}
+			break;
 
 		case JIT_TYPE_FLOAT32:
-		{
-			/* Convert to a 32-bit float */
-			switch(srctype->kind)
+			if(overflow_check)
 			{
-				case JIT_TYPE_INT:
+				if(!jit_float32_to_int_ovf(&result->un.int_value,
+							   value->un.float32_value))
 				{
-					result->un.float32_value =
-						jit_int_to_float32(value->un.int_value);
+					return 0;
 				}
-				break;
-
-				case JIT_TYPE_UINT:
+				if(!jit_int_to_sbyte_ovf(&result->un.int_value,
+							 result->un.int_value))
 				{
-					result->un.float32_value =
-						jit_uint_to_float32(value->un.uint_value);
+					return 0;
 				}
-				break;
-
-				case JIT_TYPE_LONG:
-				{
-					result->un.float32_value =
-						jit_long_to_float32(value->un.long_value);
-				}
-				break;
-
-				case JIT_TYPE_ULONG:
-				{
-					result->un.float32_value =
-						jit_ulong_to_float32(value->un.ulong_value);
-				}
-				break;
-
-				case JIT_TYPE_FLOAT32:
-				{
-					result->un.float32_value = value->un.float32_value;
-				}
-				break;
-
-				case JIT_TYPE_FLOAT64:
-				{
-					result->un.float32_value =
-						jit_float64_to_float32(value->un.float64_value);
-				}
-				break;
-
-				case JIT_TYPE_NFLOAT:
-				{
-					result->un.float32_value =
-						jit_nfloat_to_float32(value->un.nfloat_value);
-				}
-				break;
-
-				default: return 0;
 			}
-		}
-		break;
+			else
+			{
+				result->un.int_value =
+					jit_int_to_sbyte(jit_float32_to_int(value->un.float32_value));
+			}
+			break;
 
 		case JIT_TYPE_FLOAT64:
-		{
-			/* Convert to a 64-bit float */
-			switch(srctype->kind)
+			if(overflow_check)
 			{
-				case JIT_TYPE_INT:
+				if(!jit_float64_to_int_ovf(&result->un.int_value,
+							   value->un.float64_value))
 				{
-					result->un.float64_value =
-						jit_int_to_float64(value->un.int_value);
+					return 0;
 				}
-				break;
-
-				case JIT_TYPE_UINT:
+				if(!jit_int_to_sbyte_ovf(&result->un.int_value,
+							 result->un.int_value))
 				{
-					result->un.float64_value =
-						jit_uint_to_float64(value->un.uint_value);
+					return 0;
 				}
-				break;
-
-				case JIT_TYPE_LONG:
-				{
-					result->un.float64_value =
-						jit_long_to_float64(value->un.long_value);
-				}
-				break;
-
-				case JIT_TYPE_ULONG:
-				{
-					result->un.float64_value =
-						jit_ulong_to_float64(value->un.ulong_value);
-				}
-				break;
-
-				case JIT_TYPE_FLOAT32:
-				{
-					result->un.float64_value =
-						jit_float32_to_float64(value->un.float32_value);
-				}
-				break;
-
-				case JIT_TYPE_FLOAT64:
-				{
-					result->un.float64_value = value->un.float64_value;
-				}
-				break;
-
-				case JIT_TYPE_NFLOAT:
-				{
-					result->un.float64_value =
-						jit_nfloat_to_float64(value->un.nfloat_value);
-				}
-				break;
-
-				default: return 0;
 			}
-		}
-		break;
+			else
+			{
+				result->un.int_value =
+					jit_int_to_sbyte(jit_float64_to_int(value->un.float64_value));
+			}
+			break;
 
 		case JIT_TYPE_NFLOAT:
-		{
-			/* Convert to a native float */
-			switch(srctype->kind)
+			if(overflow_check)
 			{
-				case JIT_TYPE_INT:
+				if(!jit_nfloat_to_int_ovf(&result->un.int_value,
+							  value->un.nfloat_value))
 				{
-					result->un.nfloat_value =
-						jit_int_to_nfloat(value->un.int_value);
+					return 0;
 				}
-				break;
-
-				case JIT_TYPE_UINT:
+				if(!jit_int_to_sbyte_ovf(&result->un.int_value,
+							 result->un.int_value))
 				{
-					result->un.nfloat_value =
-						jit_uint_to_nfloat(value->un.uint_value);
+					return 0;
 				}
-				break;
-
-				case JIT_TYPE_LONG:
-				{
-					result->un.nfloat_value =
-						jit_long_to_nfloat(value->un.long_value);
-				}
-				break;
-
-				case JIT_TYPE_ULONG:
-				{
-					result->un.nfloat_value =
-						jit_ulong_to_nfloat(value->un.ulong_value);
-				}
-				break;
-
-				case JIT_TYPE_FLOAT32:
-				{
-					result->un.nfloat_value =
-						jit_float32_to_nfloat(value->un.float32_value);
-				}
-				break;
-
-				case JIT_TYPE_FLOAT64:
-				{
-					result->un.nfloat_value =
-						jit_float64_to_nfloat(value->un.float64_value);
-				}
-				break;
-
-				case JIT_TYPE_NFLOAT:
-				{
-					result->un.nfloat_value = value->un.nfloat_value;
-				}
-				break;
-
-				default: return 0;
 			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_sbyte(jit_nfloat_to_int(value->un.nfloat_value));
+			}
+			break;
+
+		default:
+			return 0;
 		}
 		break;
 
-		default:	return 0;
+	case JIT_TYPE_UBYTE:
+		/* Convert to an unsigned 8-bit integer */
+		switch(srctype->kind)
+		{
+		case JIT_TYPE_INT:
+			if(overflow_check)
+			{
+				if(!jit_int_to_ubyte_ovf(&result->un.int_value,
+							 value->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value = jit_int_to_ubyte(value->un.int_value);
+			}
+			break;
+
+		case JIT_TYPE_UINT:
+			if(overflow_check)
+			{
+				if(!jit_uint_to_int_ovf(&result->un.int_value,
+							value->un.uint_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_ubyte_ovf(&result->un.int_value,
+							 result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value = jit_int_to_ubyte(value->un.int_value);
+			}
+			break;
+
+		case JIT_TYPE_LONG:
+			if(overflow_check)
+			{
+				if(!jit_long_to_int_ovf(&result->un.int_value,
+							value->un.long_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_ubyte_ovf(&result->un.int_value,
+							 result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_ubyte(jit_long_to_int(value->un.long_value));
+			}
+			break;
+
+		case JIT_TYPE_ULONG:
+			if(overflow_check)
+			{
+				if(!jit_ulong_to_int_ovf(&result->un.int_value,
+							 value->un.ulong_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_ubyte_ovf(&result->un.int_value,
+							 result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_ubyte(jit_ulong_to_int(value->un.ulong_value));
+			}
+			break;
+
+		case JIT_TYPE_FLOAT32:
+			if(overflow_check)
+			{
+				if(!jit_float32_to_int_ovf(&result->un.int_value,
+							   value->un.float32_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_ubyte_ovf(&result->un.int_value,
+							 result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_ubyte(jit_float32_to_int(value->un.float32_value));
+			}
+			break;
+
+		case JIT_TYPE_FLOAT64:
+			if(overflow_check)
+			{
+				if(!jit_float64_to_int_ovf(&result->un.int_value,
+							   value->un.float64_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_ubyte_ovf(&result->un.int_value,
+							 result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_ubyte(jit_float64_to_int(value->un.float64_value));
+			}
+			break;
+
+		case JIT_TYPE_NFLOAT:
+			if(overflow_check)
+			{
+				if(!jit_nfloat_to_int_ovf(&result->un.int_value,
+							  value->un.nfloat_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_ubyte_ovf(&result->un.int_value,
+							 result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_ubyte(jit_nfloat_to_int(value->un.nfloat_value));
+			}
+			break;
+
+		default:
+			return 0;
+		}
+		break;
+
+	case JIT_TYPE_SHORT:
+		/* Convert to a signed 16-bit integer */
+		switch(srctype->kind)
+		{
+		case JIT_TYPE_INT:
+			if(overflow_check)
+			{
+				if(!jit_int_to_short_ovf(&result->un.int_value,
+							 value->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value = jit_int_to_short(value->un.int_value);
+			}
+			break;
+
+		case JIT_TYPE_UINT:
+			if(overflow_check)
+			{
+				if(!jit_uint_to_int_ovf(&result->un.int_value,
+							value->un.uint_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_short_ovf(&result->un.int_value,
+							 result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value = jit_int_to_short(value->un.int_value);
+			}
+			break;
+
+		case JIT_TYPE_LONG:
+			if(overflow_check)
+			{
+				if(!jit_long_to_int_ovf(&result->un.int_value,
+							value->un.long_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_short_ovf(&result->un.int_value,
+							 result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_short(
+						jit_long_to_int(value->un.long_value));
+			}
+			break;
+
+		case JIT_TYPE_ULONG:
+			if(overflow_check)
+			{
+				if(!jit_ulong_to_int_ovf(&result->un.int_value,
+							 value->un.ulong_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_short_ovf(&result->un.int_value,
+							 result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_short(
+						jit_ulong_to_int(value->un.ulong_value));
+			}
+			break;
+
+		case JIT_TYPE_FLOAT32:
+			if(overflow_check)
+			{
+				if(!jit_float32_to_int_ovf(&result->un.int_value,
+							   value->un.float32_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_short_ovf(&result->un.int_value,
+							 result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_short(
+						jit_float32_to_int(value->un.float32_value));
+			}
+			break;
+
+		case JIT_TYPE_FLOAT64:
+			if(overflow_check)
+			{
+				if(!jit_float64_to_int_ovf(&result->un.int_value,
+							   value->un.float64_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_short_ovf(&result->un.int_value,
+							 result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_short(
+						jit_float64_to_int(value->un.float64_value));
+			}
+			break;
+
+		case JIT_TYPE_NFLOAT:
+			if(overflow_check)
+			{
+				if(!jit_nfloat_to_int_ovf(&result->un.int_value,
+							  value->un.nfloat_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_short_ovf(&result->un.int_value,
+							 result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_short(
+						jit_nfloat_to_int(value->un.nfloat_value));
+			}
+			break;
+
+		default:
+			return 0;
+		}
+		break;
+
+	case JIT_TYPE_USHORT:
+		/* Convert to an unsigned 16-bit integer */
+		switch(srctype->kind)
+		{
+		case JIT_TYPE_INT:
+			if(overflow_check)
+			{
+				if(!jit_int_to_ushort_ovf(&result->un.int_value,
+							  value->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value = jit_int_to_ushort(value->un.int_value);
+			}
+			break;
+
+		case JIT_TYPE_UINT:
+			if(overflow_check)
+			{
+				if(!jit_uint_to_int_ovf(&result->un.int_value,
+							value->un.uint_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_ushort_ovf(&result->un.int_value,
+							  result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value = jit_int_to_ushort(value->un.int_value);
+			}
+			break;
+
+		case JIT_TYPE_LONG:
+			if(overflow_check)
+			{
+				if(!jit_long_to_int_ovf(&result->un.int_value,
+							value->un.long_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_ushort_ovf(&result->un.int_value,
+							  result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_ushort(
+						jit_long_to_int(value->un.long_value));
+			}
+			break;
+
+		case JIT_TYPE_ULONG:
+			if(overflow_check)
+			{
+				if(!jit_ulong_to_int_ovf(&result->un.int_value,
+							 value->un.ulong_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_ushort_ovf(&result->un.int_value,
+							  result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_ushort(
+						jit_ulong_to_int(value->un.ulong_value));
+			}
+			break;
+
+		case JIT_TYPE_FLOAT32:
+			if(overflow_check)
+			{
+				if(!jit_float32_to_int_ovf(&result->un.int_value,
+							   value->un.float32_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_ushort_ovf(&result->un.int_value,
+							  result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_ushort(
+						jit_float32_to_int(value->un.float32_value));
+			}
+			break;
+
+		case JIT_TYPE_FLOAT64:
+			if(overflow_check)
+			{
+				if(!jit_float64_to_int_ovf(&result->un.int_value,
+							   value->un.float64_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_ushort_ovf(&result->un.int_value,
+							  result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_ushort(
+						jit_float64_to_int(value->un.float64_value));
+			}
+			break;
+
+		case JIT_TYPE_NFLOAT:
+			if(overflow_check)
+			{
+				if(!jit_nfloat_to_int_ovf(&result->un.int_value,
+							  value->un.nfloat_value))
+				{
+					return 0;
+				}
+				if(!jit_int_to_ushort_ovf(&result->un.int_value,
+							  result->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value =
+					jit_int_to_ushort(
+						jit_nfloat_to_int(value->un.nfloat_value));
+			}
+			break;
+
+		default:
+			return 0;
+		}
+		break;
+
+	case JIT_TYPE_INT:
+		/* Convert to a signed 32-bit integer */
+		switch(srctype->kind)
+		{
+		case JIT_TYPE_INT:
+			result->un.int_value = value->un.int_value;
+			break;
+
+		case JIT_TYPE_UINT:
+			if(overflow_check)
+			{
+				if(!jit_uint_to_int_ovf(&result->un.int_value,
+							value->un.uint_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value = jit_uint_to_int(value->un.uint_value);
+			}
+			break;
+
+		case JIT_TYPE_LONG:
+			if(overflow_check)
+			{
+				if(!jit_long_to_int_ovf(&result->un.int_value,
+							value->un.long_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value = jit_long_to_int(value->un.long_value);
+			}
+			break;
+
+		case JIT_TYPE_ULONG:
+			if(overflow_check)
+			{
+				if(!jit_ulong_to_int_ovf(&result->un.int_value,
+							 value->un.ulong_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value = jit_ulong_to_int(value->un.ulong_value);
+			}
+			break;
+
+		case JIT_TYPE_FLOAT32:
+			if(overflow_check)
+			{
+				if(!jit_float32_to_int_ovf(&result->un.int_value,
+							   value->un.float32_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value = jit_float32_to_int(value->un.float32_value);
+			}
+			break;
+
+		case JIT_TYPE_FLOAT64:
+			if(overflow_check)
+			{
+				if(!jit_float64_to_int_ovf(&result->un.int_value,
+							   value->un.float64_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value = jit_float64_to_int(value->un.float64_value);
+			}
+			break;
+
+		case JIT_TYPE_NFLOAT:
+			if(overflow_check)
+			{
+				if(!jit_nfloat_to_int_ovf(&result->un.int_value,
+							  value->un.nfloat_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.int_value = jit_nfloat_to_int(value->un.nfloat_value);
+			}
+			break;
+
+		default:
+			return 0;
+		}
+		break;
+
+	case JIT_TYPE_UINT:
+		/* Convert to an unsigned 32-bit integer */
+		switch(srctype->kind)
+		{
+		case JIT_TYPE_INT:
+			if(overflow_check)
+			{
+				if(!jit_int_to_uint_ovf(&result->un.uint_value,
+							value->un.uint_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.uint_value = jit_int_to_uint(value->un.int_value);
+			}
+			break;
+
+		case JIT_TYPE_UINT:
+			result->un.uint_value = value->un.uint_value;
+			break;
+
+		case JIT_TYPE_LONG:
+			if(overflow_check)
+			{
+				if(!jit_long_to_uint_ovf(&result->un.uint_value,
+							 value->un.long_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.uint_value = jit_long_to_uint(value->un.long_value);
+			}
+			break;
+
+		case JIT_TYPE_ULONG:
+			if(overflow_check)
+			{
+				if(!jit_ulong_to_uint_ovf(&result->un.uint_value,
+							  value->un.ulong_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.uint_value = jit_ulong_to_uint(value->un.ulong_value);
+			}
+			break;
+
+		case JIT_TYPE_FLOAT32:
+			if(overflow_check)
+			{
+				if(!jit_float32_to_uint_ovf(&result->un.uint_value,
+							    value->un.float32_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.uint_value = jit_float32_to_uint(value->un.float32_value);
+			}
+			break;
+
+		case JIT_TYPE_FLOAT64:
+			if(overflow_check)
+			{
+				if(!jit_float64_to_uint_ovf(&result->un.uint_value,
+							    value->un.float64_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.uint_value = jit_float64_to_uint(value->un.float64_value);
+			}
+			break;
+
+		case JIT_TYPE_NFLOAT:
+			if(overflow_check)
+			{
+				if(!jit_nfloat_to_uint_ovf(&result->un.uint_value,
+							   value->un.nfloat_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.uint_value = jit_nfloat_to_uint(value->un.nfloat_value);
+			}
+			break;
+
+		default:
+			return 0;
+		}
+		break;
+
+	case JIT_TYPE_LONG:
+		/* Convert to a signed 64-bit integer */
+		switch(srctype->kind)
+		{
+		case JIT_TYPE_INT:
+			result->un.long_value =
+				jit_int_to_long(value->un.int_value);
+			break;
+
+		case JIT_TYPE_UINT:
+			result->un.long_value =
+				jit_uint_to_long(value->un.int_value);
+			break;
+
+		case JIT_TYPE_LONG:
+			result->un.long_value = value->un.long_value;
+			break;
+
+		case JIT_TYPE_ULONG:
+			if(overflow_check)
+			{
+				if(!jit_ulong_to_long_ovf(&result->un.long_value,
+							  value->un.ulong_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.long_value = jit_ulong_to_long(value->un.ulong_value);
+			}
+			break;
+
+		case JIT_TYPE_FLOAT32:
+			if(overflow_check)
+			{
+				if(!jit_float32_to_long_ovf(&result->un.long_value,
+							    value->un.float32_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.long_value = jit_float32_to_long(value->un.float32_value);
+			}
+			break;
+
+		case JIT_TYPE_FLOAT64:
+			if(overflow_check)
+			{
+				if(!jit_float64_to_long_ovf(&result->un.long_value,
+							    value->un.float64_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.long_value = jit_float64_to_long(value->un.float64_value);
+			}
+			break;
+
+		case JIT_TYPE_NFLOAT:
+			if(overflow_check)
+			{
+				if(!jit_nfloat_to_long_ovf(&result->un.long_value,
+							   value->un.nfloat_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.long_value = jit_nfloat_to_long(value->un.nfloat_value);
+			}
+			break;
+
+		default:
+			return 0;
+		}
+		break;
+
+	case JIT_TYPE_ULONG:
+		/* Convert to an unsigned 64-bit integer */
+		switch(srctype->kind)
+		{
+		case JIT_TYPE_INT:
+			if(overflow_check)
+			{
+				if(!jit_int_to_ulong_ovf(&result->un.ulong_value,
+							 value->un.int_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.ulong_value = jit_int_to_ulong(value->un.int_value);
+			}
+			break;
+
+		case JIT_TYPE_UINT:
+			result->un.ulong_value =
+				jit_uint_to_ulong(value->un.uint_value);
+			break;
+
+		case JIT_TYPE_LONG:
+			if(overflow_check)
+			{
+				if(!jit_long_to_ulong_ovf(&result->un.ulong_value,
+							  value->un.long_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.ulong_value = jit_long_to_ulong(value->un.long_value);
+			}
+			break;
+
+		case JIT_TYPE_ULONG:
+			result->un.ulong_value = value->un.ulong_value;
+			break;
+
+		case JIT_TYPE_FLOAT32:
+			if(overflow_check)
+			{
+				if(!jit_float32_to_ulong_ovf(&result->un.ulong_value,
+							     value->un.float32_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.ulong_value = jit_float32_to_ulong(value->un.float32_value);
+			}
+			break;
+
+		case JIT_TYPE_FLOAT64:
+			if(overflow_check)
+			{
+				if(!jit_float64_to_ulong_ovf(&result->un.ulong_value,
+							     value->un.float64_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.ulong_value = jit_float64_to_ulong(value->un.float64_value);
+			}
+			break;
+
+		case JIT_TYPE_NFLOAT:
+			if(overflow_check)
+			{
+				if(!jit_nfloat_to_ulong_ovf(&result->un.ulong_value,
+							    value->un.nfloat_value))
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				result->un.ulong_value = jit_nfloat_to_ulong(value->un.nfloat_value);
+			}
+			break;
+
+		default:
+			return 0;
+		}
+		break;
+
+	case JIT_TYPE_FLOAT32:
+		/* Convert to a 32-bit float */
+		switch(srctype->kind)
+		{
+		case JIT_TYPE_INT:
+			result->un.float32_value = jit_int_to_float32(value->un.int_value);
+			break;
+
+		case JIT_TYPE_UINT:
+			result->un.float32_value = jit_uint_to_float32(value->un.uint_value);
+			break;
+
+		case JIT_TYPE_LONG:
+			result->un.float32_value = jit_long_to_float32(value->un.long_value);
+			break;
+
+		case JIT_TYPE_ULONG:
+			result->un.float32_value = jit_ulong_to_float32(value->un.ulong_value);
+			break;
+
+		case JIT_TYPE_FLOAT32:
+			result->un.float32_value = value->un.float32_value;
+			break;
+
+		case JIT_TYPE_FLOAT64:
+			result->un.float32_value = jit_float64_to_float32(value->un.float64_value);
+			break;
+
+		case JIT_TYPE_NFLOAT:
+			result->un.float32_value = jit_nfloat_to_float32(value->un.nfloat_value);
+			break;
+
+		default:
+			return 0;
+		}
+		break;
+
+	case JIT_TYPE_FLOAT64:
+		/* Convert to a 64-bit float */
+		switch(srctype->kind)
+		{
+		case JIT_TYPE_INT:
+			result->un.float64_value = jit_int_to_float64(value->un.int_value);
+			break;
+
+		case JIT_TYPE_UINT:
+			result->un.float64_value = jit_uint_to_float64(value->un.uint_value);
+			break;
+
+		case JIT_TYPE_LONG:
+			result->un.float64_value = jit_long_to_float64(value->un.long_value);
+			break;
+
+		case JIT_TYPE_ULONG:
+			result->un.float64_value = jit_ulong_to_float64(value->un.ulong_value);
+			break;
+
+		case JIT_TYPE_FLOAT32:
+			result->un.float64_value = jit_float32_to_float64(value->un.float32_value);
+			break;
+
+		case JIT_TYPE_FLOAT64:
+			result->un.float64_value = value->un.float64_value;
+			break;
+
+		case JIT_TYPE_NFLOAT:
+			result->un.float64_value = jit_nfloat_to_float64(value->un.nfloat_value);
+			break;
+
+		default:
+			return 0;
+		}
+		break;
+
+	case JIT_TYPE_NFLOAT:
+		/* Convert to a native float */
+		switch(srctype->kind)
+		{
+		case JIT_TYPE_INT:
+			result->un.nfloat_value = jit_int_to_nfloat(value->un.int_value);
+			break;
+
+		case JIT_TYPE_UINT:
+			result->un.nfloat_value = jit_uint_to_nfloat(value->un.uint_value);
+			break;
+
+		case JIT_TYPE_LONG:
+			result->un.nfloat_value = jit_long_to_nfloat(value->un.long_value);
+			break;
+
+		case JIT_TYPE_ULONG:
+			result->un.nfloat_value = jit_ulong_to_nfloat(value->un.ulong_value);
+			break;
+
+		case JIT_TYPE_FLOAT32:
+			result->un.nfloat_value = jit_float32_to_nfloat(value->un.float32_value);
+			break;
+
+		case JIT_TYPE_FLOAT64:
+			result->un.nfloat_value	= jit_float64_to_nfloat(value->un.float64_value);
+			break;
+
+		case JIT_TYPE_NFLOAT:
+			result->un.nfloat_value = value->un.nfloat_value;
+			break;
+
+		default:
+			return 0;
+		}
+		break;
+
+	default:
+		return 0;
 	}
 	return 1;
 }
 
-void _jit_value_free(void *_value)
+void
+_jit_value_free(void *_value)
 {
-	jit_value_t value = (jit_value_t)_value;
+	jit_value_t value = (jit_value_t) _value;
 	jit_type_free(value->type);
 	if(value->free_address && value->address)
 	{
 		/* We need to free the memory for a large constant */
-		jit_free((void *)(value->address));
+		jit_free((void *) value->address);
 	}
 }
