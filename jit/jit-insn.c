@@ -48,40 +48,40 @@
  */
 typedef struct
 {
-	unsigned short	ioper;			/* Primary operator for "int" */
-	unsigned short	iuoper;			/* Primary operator for "uint" */
-	unsigned short	loper;			/* Primary operator for "long" */
-	unsigned short	luoper;			/* Primary operator for "ulong" */
-	unsigned short	foper;			/* Primary operator for "float32" */
-	unsigned short	doper;			/* Primary operator for "float64" */
-	unsigned short	nfoper;			/* Primary operator for "nfloat" */
+	unsigned short		ioper;		/* Primary operator for "int" */
+	unsigned short		iuoper;		/* Primary operator for "uint" */
+	unsigned short		loper;		/* Primary operator for "long" */
+	unsigned short		luoper;		/* Primary operator for "ulong" */
+	unsigned short		foper;		/* Primary operator for "float32" */
+	unsigned short		doper;		/* Primary operator for "float64" */
+	unsigned short		nfoper;		/* Primary operator for "nfloat" */
 
-	void		   *ifunc;		/* Function for "int" */
-	const char	   *iname;		/* Intrinsic name for "int" */
+	void			*ifunc;		/* Function for "int" */
+	const char		*iname;		/* Intrinsic name for "int" */
 	const jit_intrinsic_descr_t *idesc;	/* Descriptor for "int" */
 
-	void		   *iufunc;		/* Function for "uint" */
-	const char	   *iuname;		/* Intrinsic name for "uint" */
-	const jit_intrinsic_descr_t *iudesc; 	/* Descriptor for "uint" */
+	void			*iufunc;       	/* Function for "uint" */
+	const char		*iuname;	/* Intrinsic name for "uint" */
+	const jit_intrinsic_descr_t *iudesc;	/* Descriptor for "uint" */
 
-	void		   *lfunc;		/* Function for "long" */
-	const char	   *lname;		/* Intrinsic name for "long" */
+	void			*lfunc;		/* Function for "long" */
+	const char		*lname;		/* Intrinsic name for "long" */
 	const jit_intrinsic_descr_t *ldesc;	/* Descriptor for "long" */
 
-	void		   *lufunc;		/* Function for "ulong" */
-	const char	   *luname;		/* Intrinsic name for "ulong" */
+	void			*lufunc;	/* Function for "ulong" */
+	const char		*luname;	/* Intrinsic name for "ulong" */
 	const jit_intrinsic_descr_t *ludesc;	/* Descriptor for "ulong" */
 
-	void		   *ffunc;		/* Function for "float32" */
-	const char	   *fname;		/* Intrinsic name for "float32" */
+	void			*ffunc;		/* Function for "float32" */
+	const char		*fname;		/* Intrinsic name for "float32" */
 	const jit_intrinsic_descr_t *fdesc;	/* Descriptor for "float32" */
 
-	void		   *dfunc;		/* Function for "float64" */
-	const char	   *dname;		/* Intrinsic name for "float64" */
+	void			*dfunc;		/* Function for "float64" */
+	const char		*dname;		/* Intrinsic name for "float64" */
 	const jit_intrinsic_descr_t *ddesc;	/* Descriptor for "float64" */
 
-	void		   *nffunc;		/* Function for "nfloat" */
-	const char	   *nfname;		/* Intrinsic name for "nfloat" */
+	void			*nffunc;	/* Function for "nfloat" */
+	const char		*nfname;	/* Intrinsic name for "nfloat" */
 	const jit_intrinsic_descr_t *nfdesc;	/* Descriptor for "nfloat" */
 
 } jit_opcode_descr;
@@ -93,401 +93,390 @@ typedef struct
  * Some common intrinsic descriptors that are used in this file.
  */
 static jit_intrinsic_descr_t const descr_i_ii = {
-	(jit_type_t)&_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
 	0,
-	(jit_type_t)&_jit_type_int_def,
-	(jit_type_t)&_jit_type_int_def
+	(jit_type_t) &_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def
 };
 static jit_intrinsic_descr_t const descr_e_pi_ii = {
-	(jit_type_t)&_jit_type_int_def,
-	(jit_type_t)&_jit_type_int_def,
-	(jit_type_t)&_jit_type_int_def,
-	(jit_type_t)&_jit_type_int_def
+	(jit_type_t) &_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def
 };
 static jit_intrinsic_descr_t const descr_i_iI = {
-	(jit_type_t)&_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
 	0,
-	(jit_type_t)&_jit_type_int_def,
-	(jit_type_t)&_jit_type_uint_def
+	(jit_type_t) &_jit_type_int_def,
+	(jit_type_t) &_jit_type_uint_def
 };
 static jit_intrinsic_descr_t const descr_i_i = {
-	(jit_type_t)&_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
 	0,
-	(jit_type_t)&_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
 	0
 };
 static jit_intrinsic_descr_t const descr_I_II = {
-	(jit_type_t)&_jit_type_uint_def,
+	(jit_type_t) &_jit_type_uint_def,
 	0,
-	(jit_type_t)&_jit_type_uint_def,
-	(jit_type_t)&_jit_type_uint_def
+	(jit_type_t) &_jit_type_uint_def,
+	(jit_type_t) &_jit_type_uint_def
 };
 static jit_intrinsic_descr_t const descr_e_pI_II = {
-	(jit_type_t)&_jit_type_int_def,
-	(jit_type_t)&_jit_type_uint_def,
-	(jit_type_t)&_jit_type_uint_def,
-	(jit_type_t)&_jit_type_uint_def
+	(jit_type_t) &_jit_type_int_def,
+	(jit_type_t) &_jit_type_uint_def,
+	(jit_type_t) &_jit_type_uint_def,
+	(jit_type_t) &_jit_type_uint_def
 };
 static jit_intrinsic_descr_t const descr_I_I = {
-	(jit_type_t)&_jit_type_uint_def,
+	(jit_type_t) &_jit_type_uint_def,
 	0,
-	(jit_type_t)&_jit_type_uint_def,
+	(jit_type_t) &_jit_type_uint_def,
 	0
 };
 static jit_intrinsic_descr_t const descr_i_II = {
-	(jit_type_t)&_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
 	0,
-	(jit_type_t)&_jit_type_uint_def,
-	(jit_type_t)&_jit_type_uint_def
+	(jit_type_t) &_jit_type_uint_def,
+	(jit_type_t) &_jit_type_uint_def
 };
 static jit_intrinsic_descr_t const descr_l_ll = {
-	(jit_type_t)&_jit_type_long_def,
+	(jit_type_t) &_jit_type_long_def,
 	0,
-	(jit_type_t)&_jit_type_long_def,
-	(jit_type_t)&_jit_type_long_def
+	(jit_type_t) &_jit_type_long_def,
+	(jit_type_t) &_jit_type_long_def
 };
 static jit_intrinsic_descr_t const descr_e_pl_ll = {
-	(jit_type_t)&_jit_type_int_def,
-	(jit_type_t)&_jit_type_long_def,
-	(jit_type_t)&_jit_type_long_def,
-	(jit_type_t)&_jit_type_long_def
+	(jit_type_t) &_jit_type_int_def,
+	(jit_type_t) &_jit_type_long_def,
+	(jit_type_t) &_jit_type_long_def,
+	(jit_type_t) &_jit_type_long_def
 };
 static jit_intrinsic_descr_t const descr_l_lI = {
-	(jit_type_t)&_jit_type_long_def,
+	(jit_type_t) &_jit_type_long_def,
 	0,
-	(jit_type_t)&_jit_type_long_def,
-	(jit_type_t)&_jit_type_uint_def
+	(jit_type_t) &_jit_type_long_def,
+	(jit_type_t) &_jit_type_uint_def
 };
 static jit_intrinsic_descr_t const descr_l_l = {
-	(jit_type_t)&_jit_type_long_def,
+	(jit_type_t) &_jit_type_long_def,
 	0,
-	(jit_type_t)&_jit_type_long_def,
+	(jit_type_t) &_jit_type_long_def,
 	0
 };
 static jit_intrinsic_descr_t const descr_i_ll = {
-	(jit_type_t)&_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
 	0,
-	(jit_type_t)&_jit_type_long_def,
-	(jit_type_t)&_jit_type_long_def
+	(jit_type_t) &_jit_type_long_def,
+	(jit_type_t) &_jit_type_long_def
 };
 static jit_intrinsic_descr_t const descr_i_l = {
-	(jit_type_t)&_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
 	0,
-	(jit_type_t)&_jit_type_long_def,
+	(jit_type_t) &_jit_type_long_def,
 	0
 };
 static jit_intrinsic_descr_t const descr_L_LL = {
-	(jit_type_t)&_jit_type_ulong_def,
+	(jit_type_t) &_jit_type_ulong_def,
 	0,
-	(jit_type_t)&_jit_type_ulong_def,
-	(jit_type_t)&_jit_type_ulong_def
+	(jit_type_t) &_jit_type_ulong_def,
+	(jit_type_t) &_jit_type_ulong_def
 };
 static jit_intrinsic_descr_t const descr_e_pL_LL = {
-	(jit_type_t)&_jit_type_int_def,
-	(jit_type_t)&_jit_type_ulong_def,
-	(jit_type_t)&_jit_type_ulong_def,
-	(jit_type_t)&_jit_type_ulong_def
+	(jit_type_t) &_jit_type_int_def,
+	(jit_type_t) &_jit_type_ulong_def,
+	(jit_type_t) &_jit_type_ulong_def,
+	(jit_type_t) &_jit_type_ulong_def
 };
 static jit_intrinsic_descr_t const descr_L_LI = {
-	(jit_type_t)&_jit_type_ulong_def,
+	(jit_type_t) &_jit_type_ulong_def,
 	0,
-	(jit_type_t)&_jit_type_ulong_def,
-	(jit_type_t)&_jit_type_uint_def
+	(jit_type_t) &_jit_type_ulong_def,
+	(jit_type_t) &_jit_type_uint_def
 };
 static jit_intrinsic_descr_t const descr_L_L = {
-	(jit_type_t)&_jit_type_ulong_def,
+	(jit_type_t) &_jit_type_ulong_def,
 	0,
-	(jit_type_t)&_jit_type_ulong_def,
+	(jit_type_t) &_jit_type_ulong_def,
 	0
 };
 static jit_intrinsic_descr_t const descr_i_LL = {
-	(jit_type_t)&_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
 	0,
-	(jit_type_t)&_jit_type_ulong_def,
-	(jit_type_t)&_jit_type_ulong_def
+	(jit_type_t) &_jit_type_ulong_def,
+	(jit_type_t) &_jit_type_ulong_def
 };
 static jit_intrinsic_descr_t const descr_f_ff = {
-	(jit_type_t)&_jit_type_float32_def,
+	(jit_type_t) &_jit_type_float32_def,
 	0,
-	(jit_type_t)&_jit_type_float32_def,
-	(jit_type_t)&_jit_type_float32_def
+	(jit_type_t) &_jit_type_float32_def,
+	(jit_type_t) &_jit_type_float32_def
 };
 static jit_intrinsic_descr_t const descr_f_f = {
-	(jit_type_t)&_jit_type_float32_def,
+	(jit_type_t) &_jit_type_float32_def,
 	0,
-	(jit_type_t)&_jit_type_float32_def,
+	(jit_type_t) &_jit_type_float32_def,
 	0
 };
 static jit_intrinsic_descr_t const descr_i_ff = {
-	(jit_type_t)&_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
 	0,
-	(jit_type_t)&_jit_type_float32_def,
-	(jit_type_t)&_jit_type_float32_def
+	(jit_type_t) &_jit_type_float32_def,
+	(jit_type_t) &_jit_type_float32_def
 };
 static jit_intrinsic_descr_t const descr_i_f = {
-	(jit_type_t)&_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
 	0,
-	(jit_type_t)&_jit_type_float32_def,
+	(jit_type_t) &_jit_type_float32_def,
 	0
 };
 static jit_intrinsic_descr_t const descr_d_dd = {
-	(jit_type_t)&_jit_type_float64_def,
+	(jit_type_t) &_jit_type_float64_def,
 	0,
-	(jit_type_t)&_jit_type_float64_def,
-	(jit_type_t)&_jit_type_float64_def
+	(jit_type_t) &_jit_type_float64_def,
+	(jit_type_t) &_jit_type_float64_def
 };
 static jit_intrinsic_descr_t const descr_d_d = {
-	(jit_type_t)&_jit_type_float64_def,
+	(jit_type_t) &_jit_type_float64_def,
 	0,
-	(jit_type_t)&_jit_type_float64_def,
+	(jit_type_t) &_jit_type_float64_def,
 	0
 };
 static jit_intrinsic_descr_t const descr_i_dd = {
-	(jit_type_t)&_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
 	0,
-	(jit_type_t)&_jit_type_float64_def,
-	(jit_type_t)&_jit_type_float64_def
+	(jit_type_t) &_jit_type_float64_def,
+	(jit_type_t) &_jit_type_float64_def
 };
 static jit_intrinsic_descr_t const descr_i_d = {
-	(jit_type_t)&_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
 	0,
-	(jit_type_t)&_jit_type_float64_def,
+	(jit_type_t) &_jit_type_float64_def,
 	0
 };
 static jit_intrinsic_descr_t const descr_D_DD = {
-	(jit_type_t)&_jit_type_nfloat_def,
+	(jit_type_t) &_jit_type_nfloat_def,
 	0,
-	(jit_type_t)&_jit_type_nfloat_def,
-	(jit_type_t)&_jit_type_nfloat_def
+	(jit_type_t) &_jit_type_nfloat_def,
+	(jit_type_t) &_jit_type_nfloat_def
 };
 static jit_intrinsic_descr_t const descr_D_D = {
-	(jit_type_t)&_jit_type_nfloat_def,
+	(jit_type_t) &_jit_type_nfloat_def,
 	0,
-	(jit_type_t)&_jit_type_nfloat_def,
+	(jit_type_t) &_jit_type_nfloat_def,
 	0
 };
 static jit_intrinsic_descr_t const descr_i_DD = {
-	(jit_type_t)&_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
 	0,
-	(jit_type_t)&_jit_type_nfloat_def,
-	(jit_type_t)&_jit_type_nfloat_def
+	(jit_type_t) &_jit_type_nfloat_def,
+	(jit_type_t) &_jit_type_nfloat_def
 };
 static jit_intrinsic_descr_t const descr_i_D = {
-	(jit_type_t)&_jit_type_int_def,
+	(jit_type_t) &_jit_type_int_def,
 	0,
-	(jit_type_t)&_jit_type_nfloat_def,
+	(jit_type_t) &_jit_type_nfloat_def,
 	0
 };
 
 /*
  * Apply a unary operator.
  */
-static jit_value_t apply_unary
-		(jit_function_t func, int oper, jit_value_t value1,
-		 jit_type_t result_type)
+static jit_value_t
+apply_unary(jit_function_t func, int oper, jit_value_t value, jit_type_t type)
 {
-	jit_value_t dest;
-	jit_insn_t insn;
-	if(!value1)
-	{
-		return 0;
-	}
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-	insn = _jit_block_add_insn(func->builder->current_block);
-	if(!insn)
-	{
-		return 0;
-	}
-	dest = jit_value_create(func, result_type);
+
+	jit_value_t dest = jit_value_create(func, type);
 	if(!dest)
 	{
 		return 0;
 	}
-	jit_value_ref(func, value1);
-	insn->opcode = (short)oper;
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
+	if(!insn)
+	{
+		return 0;
+	}
+	insn->opcode = (short) oper;
 	insn->dest = dest;
-	insn->value1 = value1;
+	insn->value1 = value;
+	jit_value_ref(func, value);
+
 	return dest;
 }
 
 /*
  * Apply a binary operator.
  */
-static jit_value_t apply_binary
-		(jit_function_t func, int oper, jit_value_t value1,
-		 jit_value_t value2, jit_type_t result_type)
+static jit_value_t
+apply_binary(jit_function_t func, int oper, jit_value_t value1, jit_value_t value2,
+	     jit_type_t type)
 {
-	jit_value_t dest;
-	jit_insn_t insn;
-	if(!value1 || !value2)
-	{
-		return 0;
-	}
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-	insn = _jit_block_add_insn(func->builder->current_block);
-	if(!insn)
-	{
-		return 0;
-	}
-	dest = jit_value_create(func, result_type);
+
+	jit_value_t dest = jit_value_create(func, type);
 	if(!dest)
 	{
 		return 0;
 	}
-	jit_value_ref(func, value1);
-	jit_value_ref(func, value2);
-	insn->opcode = (short)oper;
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
+	if(!insn)
+	{
+		return 0;
+	}
+	insn->opcode = (short) oper;
 	insn->dest = dest;
 	insn->value1 = value1;
+	jit_value_ref(func, value1);
 	insn->value2 = value2;
+	jit_value_ref(func, value2);
+
 	return dest;
 }
 
 /*
  * Apply a ternary operator.
  */
-static int apply_ternary
-		(jit_function_t func, int oper, jit_value_t value1,
-		 jit_value_t value2, jit_value_t value3)
+static int
+apply_ternary(jit_function_t func, int oper, jit_value_t value1, jit_value_t value2,
+	      jit_value_t value3)
 {
-	jit_insn_t insn;
-	if(!value1 || !value2 || !value3)
-	{
-		return 0;
-	}
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-	insn = _jit_block_add_insn(func->builder->current_block);
+
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	jit_value_ref(func, value1);
-	jit_value_ref(func, value2);
-	jit_value_ref(func, value3);
-	insn->opcode = (short)oper;
+	insn->opcode = (short) oper;
 	insn->flags = JIT_INSN_DEST_IS_VALUE;
 	insn->dest = value1;
+	jit_value_ref(func, value1);
 	insn->value1 = value2;
+	jit_value_ref(func, value2);
 	insn->value2 = value3;
+	jit_value_ref(func, value3);
+
 	return 1;
 }
 
 /*
  * Create a note instruction, which doesn't have a result.
  */
-static int create_note
-		(jit_function_t func, int oper, jit_value_t value1,
-		 jit_value_t value2)
+static int
+create_note(jit_function_t func, int oper, jit_value_t value1, jit_value_t value2)
 {
-	jit_insn_t insn;
-	if(!value1 || !value2)
-	{
-		return 0;
-	}
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-	insn = _jit_block_add_insn(func->builder->current_block);
+
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	jit_value_ref(func, value1);
-	jit_value_ref(func, value2);
-	insn->opcode = (short)oper;
+	insn->opcode = (short) oper;
 	insn->value1 = value1;
+	jit_value_ref(func, value1);
 	insn->value2 = value2;
+	jit_value_ref(func, value2);
+
 	return 1;
 }
 
 /*
  * Create a unary note instruction, which doesn't have a result.
  */
-static int create_unary_note
-		(jit_function_t func, int oper, jit_value_t value1)
+static int
+create_unary_note(jit_function_t func, int oper, jit_value_t value)
 {
-	jit_insn_t insn;
-	if(!value1)
-	{
-		return 0;
-	}
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-	insn = _jit_block_add_insn(func->builder->current_block);
+
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	jit_value_ref(func, value1);
-	insn->opcode = (short)oper;
-	insn->value1 = value1;
+	insn->opcode = (short) oper;
+	insn->value1 = value;
+	jit_value_ref(func, value);
+
 	return 1;
 }
 
 /*
  * Create a note instruction with no arguments, which doesn't have a result.
  */
-static int create_noarg_note(jit_function_t func, int oper)
+static int
+create_noarg_note(jit_function_t func, int oper)
 {
-	jit_insn_t insn;
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-	insn = _jit_block_add_insn(func->builder->current_block);
+
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	insn->opcode = (short)oper;
+	insn->opcode = (short) oper;
+
 	return 1;
 }
 
 /*
  * Create a note instruction with only a destination.
  */
-static jit_value_t create_dest_note
-	(jit_function_t func, int oper, jit_type_t type)
+static jit_value_t
+create_dest_note(jit_function_t func, int oper, jit_type_t type)
 {
-	jit_insn_t insn;
-	jit_value_t value;
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-	value = jit_value_create(func, type);
-	if(!value)
+
+	jit_value_t dest = jit_value_create(func, type);
+	if(!dest)
 	{
 		return 0;
 	}
-	insn = _jit_block_add_insn(func->builder->current_block);
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	jit_value_ref(func, value);
-	insn->opcode = (short)oper;
-	insn->dest = value;
-	return value;
+	insn->opcode = (short) oper;
+	insn->dest = dest;
+
+	return dest;
 }
 
 /*
  * Get the common type to use for a binary operator.
  */
-static jit_type_t common_binary(jit_type_t type1, jit_type_t type2,
-								int int_only, int float_only)
+static jit_type_t
+common_binary(jit_type_t type1, jit_type_t type2, int int_only, int float_only)
 {
 	type1 = jit_type_promote_int(jit_type_normalize(type1));
 	type2 = jit_type_promote_int(jit_type_normalize(type2));
@@ -558,44 +547,41 @@ static jit_type_t common_binary(jit_type_t type1, jit_type_t type2,
 /*
  * Apply an intrinsic.
  */
-static jit_value_t apply_intrinsic
-		(jit_function_t func, const jit_opcode_descr *descr,
-		 jit_value_t value1, jit_value_t value2, jit_type_t result_type)
+static jit_value_t
+apply_intrinsic(jit_function_t func, const jit_opcode_descr *descr,
+		jit_value_t value1, jit_value_t value2, jit_type_t type)
 {
-	if(result_type == jit_type_int)
+	switch (type->kind)
 	{
-		return jit_insn_call_intrinsic
-			(func, descr->iname, descr->ifunc, descr->idesc, value1, value2);
-	}
-	else if(result_type == jit_type_uint)
-	{
-		return jit_insn_call_intrinsic
-			(func, descr->iuname, descr->iufunc, descr->iudesc, value1, value2);
-	}
-	else if(result_type == jit_type_long)
-	{
-		return jit_insn_call_intrinsic
-			(func, descr->lname, descr->lfunc, descr->ldesc, value1, value2);
-	}
-	else if(result_type == jit_type_ulong)
-	{
-		return jit_insn_call_intrinsic
-			(func, descr->luname, descr->lufunc, descr->ludesc, value1, value2);
-	}
-	else if(result_type == jit_type_float32)
-	{
-		return jit_insn_call_intrinsic
-			(func, descr->fname, descr->ffunc, descr->fdesc, value1, value2);
-	}
-	else if(result_type == jit_type_float64)
-	{
-		return jit_insn_call_intrinsic
-			(func, descr->dname, descr->dfunc, descr->ddesc, value1, value2);
-	}
-	else
-	{
-		return jit_insn_call_intrinsic
-			(func, descr->nfname, descr->nffunc, descr->nfdesc, value1, value2);
+	default: /* Shouldn't happen */
+	case JIT_TYPE_INT:
+		return jit_insn_call_intrinsic(func, descr->iname,
+					       descr->ifunc, descr->idesc,
+					       value1, value2);
+	case JIT_TYPE_UINT:
+		return jit_insn_call_intrinsic(func, descr->iuname,
+					       descr->iufunc, descr->iudesc,
+					       value1, value2);
+	case JIT_TYPE_LONG:
+		return jit_insn_call_intrinsic(func, descr->lname,
+					       descr->lfunc, descr->ldesc,
+					       value1, value2);
+	case JIT_TYPE_ULONG:
+		return jit_insn_call_intrinsic(func, descr->luname,
+					       descr->lufunc, descr->ludesc,
+					       value1, value2);
+	case JIT_TYPE_FLOAT32:
+		return jit_insn_call_intrinsic(func, descr->fname,
+					       descr->ffunc, descr->fdesc,
+					       value1, value2);
+	case JIT_TYPE_FLOAT64:
+		return jit_insn_call_intrinsic(func, descr->dname,
+					       descr->dfunc, descr->ddesc,
+					       value1, value2);
+	case JIT_TYPE_NFLOAT:
+		return jit_insn_call_intrinsic(func, descr->nfname,
+					       descr->nffunc, descr->nfdesc,
+					       value1, value2);
 	}
 }
 
@@ -603,280 +589,269 @@ static jit_value_t apply_intrinsic
  * Apply a unary arithmetic operator, after coercing the
  * argument to a suitable numeric type.
  */
-static jit_value_t apply_unary_arith
-		(jit_function_t func, const jit_opcode_descr *descr,
-		 jit_value_t value1, int int_only, int float_only,
-		 int overflow_check)
+static jit_value_t
+apply_unary_arith(jit_function_t func, const jit_opcode_descr *descr,
+		  jit_value_t value, int int_only, int float_only,
+		  int overflow_check)
 {
+	jit_type_t type = common_binary(value->type, value->type, int_only, float_only);
+
 	int oper;
-	jit_type_t result_type;
 	const jit_intrinsic_descr_t *desc;
-	if(!value1)
+	switch (type->kind)
+	{
+	default: /* Shouldn't happen */
+	case JIT_TYPE_INT:
+		oper = descr->ioper;
+		desc = descr->idesc;
+		break;
+	case JIT_TYPE_UINT:
+		oper = descr->iuoper;
+		desc = descr->iudesc;
+		break;
+	case JIT_TYPE_LONG:
+		oper = descr->loper;
+		desc = descr->ldesc;
+		break;
+	case JIT_TYPE_ULONG:
+		oper = descr->luoper;
+		desc = descr->ludesc;
+		break;
+	case JIT_TYPE_FLOAT32:
+		oper = descr->foper;
+		desc = descr->fdesc;
+		break;
+	case JIT_TYPE_FLOAT64:
+		oper = descr->doper;
+		desc = descr->ddesc;
+		break;
+	case JIT_TYPE_NFLOAT:
+		oper = descr->nfoper;
+		desc = descr->nfdesc;
+		break;
+	}
+
+	value = jit_insn_convert(func, value, type, overflow_check);
+	if(!value)
 	{
 		return 0;
 	}
-	result_type = common_binary
-		(value1->type, value1->type, int_only, float_only);
-	if(result_type == jit_type_int)
+	if(jit_value_is_constant(value))
 	{
-		oper = descr->ioper;
-		desc = descr->idesc;
+		jit_value_t result = _jit_opcode_apply_unary(func, oper, value, type);
+		if(result)
+		{
+			return result;
+		}
 	}
-	else if(result_type == jit_type_uint)
-	{
-		oper = descr->iuoper;
-		desc = descr->iudesc;
-	}
-	else if(result_type == jit_type_long)
-	{
-		oper = descr->loper;
-		desc = descr->ldesc;
-	}
-	else if(result_type == jit_type_ulong)
-	{
-		oper = descr->luoper;
-		desc = descr->ludesc;
-	}
-	else if(result_type == jit_type_float32)
-	{
-		oper = descr->foper;
-		desc = descr->fdesc;
-	}
-	else if(result_type == jit_type_float64)
-	{
-		oper = descr->doper;
-		desc = descr->ddesc;
-	}
-	else
-	{
-		oper = descr->nfoper;
-		desc = descr->nfdesc;
-	}
+
 	if(desc && desc->ptr_result_type)
 	{
 		func->builder->may_throw = 1;
 	}
-	value1 = jit_insn_convert(func, value1, result_type, overflow_check);
-	if(jit_value_is_constant(value1))
+	if(!_jit_opcode_is_supported(oper))
 	{
-		return _jit_opcode_apply(func, oper, result_type, value1, 0);
+		return apply_intrinsic(func, descr, value, 0, type);
 	}
-	else if(_jit_opcode_is_supported(oper))
-	{
-		return apply_unary(func, oper, value1, result_type);
-	}
-	else
-	{
-		return apply_intrinsic(func, descr, value1, 0, result_type);
-	}
+	return apply_unary(func, oper, value, type);
 }
 
 /*
  * Apply a binary arithmetic operator, after coercing both
  * arguments to a common type.
  */
-static jit_value_t apply_arith
-		(jit_function_t func, const jit_opcode_descr *descr,
-		 jit_value_t value1, jit_value_t value2,
-		 int int_only, int float_only, int overflow_check)
+static jit_value_t
+apply_arith(jit_function_t func, const jit_opcode_descr *descr,
+	    jit_value_t value1, jit_value_t value2,
+	    int int_only, int float_only, int overflow_check)
 {
+	jit_type_t type = common_binary(value1->type, value2->type, int_only, float_only);
+
 	int oper;
-	jit_type_t result_type;
 	const jit_intrinsic_descr_t *desc;
+	switch (type->kind)
+	{
+	default: /* Shouldn't happen */
+	case JIT_TYPE_INT:
+		oper = descr->ioper;
+		desc = descr->idesc;
+		break;
+	case JIT_TYPE_UINT:
+		oper = descr->iuoper;
+		desc = descr->iudesc;
+		break;
+	case JIT_TYPE_LONG:
+		oper = descr->loper;
+		desc = descr->ldesc;
+		break;
+	case JIT_TYPE_ULONG:
+		oper = descr->luoper;
+		desc = descr->ludesc;
+		break;
+	case JIT_TYPE_FLOAT32:
+		oper = descr->foper;
+		desc = descr->fdesc;
+		break;
+	case JIT_TYPE_FLOAT64:
+		oper = descr->doper;
+		desc = descr->ddesc;
+		break;
+	case JIT_TYPE_NFLOAT:
+		oper = descr->nfoper;
+		desc = descr->nfdesc;
+		break;
+	}
+
+	value1 = jit_insn_convert(func, value1, type, overflow_check);
+	value2 = jit_insn_convert(func, value2, type, overflow_check);
 	if(!value1 || !value2)
 	{
 		return 0;
 	}
-	result_type = common_binary
-		(value1->type, value2->type, int_only, float_only);
-	if(result_type == jit_type_int)
+	if(jit_value_is_constant(value1) && jit_value_is_constant(value2))
 	{
-		oper = descr->ioper;
-		desc = descr->idesc;
+		jit_value_t result = _jit_opcode_apply(func, oper, value1, value2, type);
+		if(result)
+		{
+			return result;
+		}
 	}
-	else if(result_type == jit_type_uint)
-	{
-		oper = descr->iuoper;
-		desc = descr->iudesc;
-	}
-	else if(result_type == jit_type_long)
-	{
-		oper = descr->loper;
-		desc = descr->ldesc;
-	}
-	else if(result_type == jit_type_ulong)
-	{
-		oper = descr->luoper;
-		desc = descr->ludesc;
-	}
-	else if(result_type == jit_type_float32)
-	{
-		oper = descr->foper;
-		desc = descr->fdesc;
-	}
-	else if(result_type == jit_type_float64)
-	{
-		oper = descr->doper;
-		desc = descr->ddesc;
-	}
-	else
-	{
-		oper = descr->nfoper;
-		desc = descr->nfdesc;
-	}
+
 	if(desc && desc->ptr_result_type)
 	{
 		func->builder->may_throw = 1;
 	}
-	value1 = jit_insn_convert(func, value1, result_type, overflow_check);
-	value2 = jit_insn_convert(func, value2, result_type, overflow_check);
-	if(jit_value_is_constant(value1) && jit_value_is_constant(value2))
+	if(!_jit_opcode_is_supported(oper))
 	{
-		return _jit_opcode_apply(func, oper, result_type, value1, value2);
+		return apply_intrinsic(func, descr, value1, value2, type);
 	}
-	else if(_jit_opcode_is_supported(oper))
-	{
-		return apply_binary(func, oper, value1, value2, result_type);
-	}
-	else
-	{
-		return apply_intrinsic(func, descr, value1, value2, result_type);
-	}
+	return apply_binary(func, oper, value1, value2, type);
 }
 
 /*
  * Apply a binary shift operator, after coercing both
  * arguments to suitable types.
  */
-static jit_value_t apply_shift
-		(jit_function_t func, const jit_opcode_descr *descr,
-		 jit_value_t value1, jit_value_t value2)
+static jit_value_t
+apply_shift(jit_function_t func, const jit_opcode_descr *descr,
+	    jit_value_t value1, jit_value_t value2)
 {
+	jit_type_t type = common_binary(value1->type, value1->type, 1, 0);
+
 	int oper;
-	jit_type_t result_type;
-	jit_type_t count_type;
-	if(!value1 || !value2)
+	switch (type->kind)
 	{
-		return 0;
-	}
-	result_type = common_binary(value1->type, value1->type, 1, 0);
-	if(result_type == jit_type_int)
-	{
+	case JIT_TYPE_INT:
 		oper = descr->ioper;
-	}
-	else if(result_type == jit_type_uint)
-	{
+		break;
+	case JIT_TYPE_UINT:
 		oper = descr->iuoper;
-	}
-	else if(result_type == jit_type_long)
-	{
+		break;
+	case JIT_TYPE_LONG:
 		oper = descr->loper;
-	}
-	else if(result_type == jit_type_ulong)
-	{
+		break;
+	default: /* Shouldn't happen */
+	case JIT_TYPE_ULONG:
 		oper = descr->luoper;
+		break;
 	}
-	else
-	{
-		/* Shouldn't happen */
-		oper = descr->loper;
-	}
-	count_type = jit_type_promote_int(jit_type_normalize(value2->type));
+
+	jit_type_t count_type = jit_type_promote_int(jit_type_normalize(value2->type));
 	if(count_type != jit_type_int)
 	{
 		count_type = jit_type_uint;
 	}
-	value1 = jit_insn_convert(func, value1, result_type, 0);
+
+	value1 = jit_insn_convert(func, value1, type, 0);
 	value2 = jit_insn_convert(func, value2, count_type, 0);
+	if(!value1 || !value2)
+	{
+		return 0;
+	}
 	if(jit_value_is_constant(value1) && jit_value_is_constant(value2))
 	{
-		return _jit_opcode_apply(func, oper, result_type, value1, value2);
+		jit_value_t result = _jit_opcode_apply(func, oper, value1, value2, type);
+		if(result)
+		{
+			return result;
+		}
 	}
-	else if(_jit_opcode_is_supported(oper))
+
+	if(!_jit_opcode_is_supported(oper))
 	{
-		return apply_binary(func, oper, value1, value2, result_type);
+		return apply_intrinsic(func, descr, value1, value2, type);
 	}
-	else
-	{
-		return apply_intrinsic(func, descr, value1, value2, result_type);
-	}
+	return apply_binary(func, oper, value1, value2, type);
 }
 
 /*
  * Apply a binary comparison operator, after coercing both
  * arguments to a common type.
  */
-static jit_value_t apply_compare
-		(jit_function_t func, const jit_opcode_descr *descr,
-		 jit_value_t value1, jit_value_t value2, int float_only)
+static jit_value_t
+apply_compare(jit_function_t func, const jit_opcode_descr *descr,
+	      jit_value_t value1, jit_value_t value2, int float_only)
 {
+	jit_type_t type = common_binary(value1->type, value2->type, 0, float_only);
+
 	int oper;
-	jit_type_t result_type;
+	switch (type->kind)
+	{
+	default: /* Shouldn't happen */
+	case JIT_TYPE_INT:
+		oper = descr->ioper;
+		break;
+	case JIT_TYPE_UINT:
+		oper = descr->iuoper;
+		break;
+	case JIT_TYPE_LONG:
+		oper = descr->loper;
+		break;
+	case JIT_TYPE_ULONG:
+		oper = descr->luoper;
+		break;
+	case JIT_TYPE_FLOAT32:
+		oper = descr->foper;
+		break;
+	case JIT_TYPE_FLOAT64:
+		oper = descr->doper;
+		break;
+	case JIT_TYPE_NFLOAT:
+		oper = descr->nfoper;
+		break;
+	}
+
+	value1 = jit_insn_convert(func, value1, type, 0);
+	value2 = jit_insn_convert(func, value2, type, 0);
 	if(!value1 || !value2)
 	{
 		return 0;
 	}
-	result_type = common_binary(value1->type, value2->type, 0, float_only);
-	if(result_type == jit_type_int)
-	{
-		oper = descr->ioper;
-	}
-	else if(result_type == jit_type_uint)
-	{
-		oper = descr->iuoper;
-	}
-	else if(result_type == jit_type_long)
-	{
-		oper = descr->loper;
-	}
-	else if(result_type == jit_type_ulong)
-	{
-		oper = descr->luoper;
-	}
-	else if(result_type == jit_type_float32)
-	{
-		oper = descr->foper;
-	}
-	else if(result_type == jit_type_float64)
-	{
-		oper = descr->doper;
-	}
-	else
-	{
-		oper = descr->nfoper;
-	}
-	value1 = jit_insn_convert(func, value1, result_type, 0);
-	value2 = jit_insn_convert(func, value2, result_type, 0);
 	if(jit_value_is_constant(value1) && jit_value_is_constant(value2))
 	{
-		return _jit_opcode_apply(func, oper, result_type, value1, value2);
+		jit_value_t result = _jit_opcode_apply(func, oper, value1, value2, type);
+		if(result)
+		{
+			return result;
+		}
 	}
-	else if(_jit_opcode_is_supported(oper))
+
+	if(!_jit_opcode_is_supported(oper))
 	{
-		return apply_binary(func, oper, value1, value2, jit_type_int);
+		return apply_intrinsic(func, descr, value1, value2, type);
 	}
-	else
-	{
-		return apply_intrinsic(func, descr, value1, value2, result_type);
-	}
+	return apply_binary(func, oper, value1, value2, jit_type_int);
 }
 
 /*
  * Apply a unary test to a floating point value.
  */
 static jit_value_t
-test_float_value(jit_function_t func, const jit_opcode_descr *descr, jit_value_t value1)
+test_float_value(jit_function_t func, const jit_opcode_descr *descr, jit_value_t value)
 {
+	jit_type_t type = jit_type_normalize(value->type);
+
 	int oper;
-	jit_type_t type;
-
-	/* Bail out if the parameters are invalid */
-	if(!value1)
-	{
-		return 0;
-	}
-
-	type = jit_type_normalize(value1->type);
 	if(type == jit_type_float32)
 	{
 		oper = descr->foper;
@@ -895,14 +870,11 @@ test_float_value(jit_function_t func, const jit_opcode_descr *descr, jit_value_t
 		return jit_value_create_nint_constant(func, jit_type_int, 0);
 	}
 
-	if(_jit_opcode_is_supported(oper))
+	if(!_jit_opcode_is_supported(oper))
 	{
-		return apply_unary(func, oper, value1, jit_type_int);
+		return apply_intrinsic(func, descr, value, 0, type);
 	}
-	else
-	{
-		return apply_intrinsic(func, descr, value1, 0, type);
-	}
+	return apply_unary(func, oper, value, jit_type_int);
 }
 
 /*@
@@ -910,16 +882,10 @@ test_float_value(jit_function_t func, const jit_opcode_descr *descr, jit_value_t
  * Get the opcode that is associated with an instruction.
  * @end deftypefun
 @*/
-int jit_insn_get_opcode(jit_insn_t insn)
+int
+jit_insn_get_opcode(jit_insn_t insn)
 {
-	if(insn)
-	{
-		return insn->opcode;
-	}
-	else
-	{
-		return 0;
-	}
+	return insn->opcode;
 }
 
 /*@
@@ -928,16 +894,14 @@ int jit_insn_get_opcode(jit_insn_t insn)
  * Returns NULL if the instruction does not have a destination.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_get_dest(jit_insn_t insn)
+jit_value_t
+jit_insn_get_dest(jit_insn_t insn)
 {
-	if(insn && (insn->flags & JIT_INSN_DEST_OTHER_FLAGS) == 0)
-	{
-		return insn->dest;
-	}
-	else
+	if((insn->flags & JIT_INSN_DEST_OTHER_FLAGS) != 0)
 	{
 		return 0;
 	}
+	return insn->dest;
 }
 
 /*@
@@ -946,16 +910,14 @@ jit_value_t jit_insn_get_dest(jit_insn_t insn)
  * Returns NULL if the instruction does not have a first argument value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_get_value1(jit_insn_t insn)
+jit_value_t
+jit_insn_get_value1(jit_insn_t insn)
 {
-	if(insn && (insn->flags & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
-	{
-		return insn->value1;
-	}
-	else
+	if((insn->flags & JIT_INSN_VALUE1_OTHER_FLAGS) != 0)
 	{
 		return 0;
 	}
+	return insn->value1;
 }
 
 /*@
@@ -964,16 +926,14 @@ jit_value_t jit_insn_get_value1(jit_insn_t insn)
  * Returns NULL if the instruction does not have a second argument value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_get_value2(jit_insn_t insn)
+jit_value_t
+jit_insn_get_value2(jit_insn_t insn)
 {
-	if(insn && (insn->flags & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
-	{
-		return insn->value2;
-	}
-	else
+	if((insn->flags & JIT_INSN_VALUE2_OTHER_FLAGS) != 0)
 	{
 		return 0;
 	}
+	return insn->value2;
 }
 
 /*@
@@ -982,21 +942,19 @@ jit_value_t jit_insn_get_value2(jit_insn_t insn)
  * Returns NULL if the instruction does not have a branch target.
  * @end deftypefun
 @*/
-jit_label_t jit_insn_get_label(jit_insn_t insn)
+jit_label_t
+jit_insn_get_label(jit_insn_t insn)
 {
-	if(insn && (insn->flags & JIT_INSN_DEST_IS_LABEL) != 0)
+	if((insn->flags & JIT_INSN_DEST_IS_LABEL) != 0)
 	{
-		return (jit_label_t)(insn->dest);
+		return (jit_label_t) insn->dest;
 	}
-	else if(insn && (insn->flags & JIT_INSN_VALUE1_IS_LABEL) != 0)
+	if((insn->flags & JIT_INSN_VALUE1_IS_LABEL) != 0)
 	{
 		/* "address_of_label" instruction */
-		return (jit_label_t)(insn->value1);
+		return (jit_label_t) insn->value1;
 	}
-	else
-	{
-		return 0;
-	}
+	return 0;
 }
 
 /*@
@@ -1005,16 +963,14 @@ jit_label_t jit_insn_get_label(jit_insn_t insn)
  * instruction does not refer to a called function.
  * @end deftypefun
 @*/
-jit_function_t jit_insn_get_function(jit_insn_t insn)
+jit_function_t
+jit_insn_get_function(jit_insn_t insn)
 {
-	if(insn && (insn->flags & JIT_INSN_DEST_IS_FUNCTION) != 0)
-	{
-		return (jit_function_t)(insn->dest);
-	}
-	else
+	if((insn->flags & JIT_INSN_DEST_IS_FUNCTION) == 0)
 	{
 		return 0;
 	}
+	return (jit_function_t) insn->dest;
 }
 
 /*@
@@ -1024,16 +980,14 @@ jit_function_t jit_insn_get_function(jit_insn_t insn)
  * function call.
  * @end deftypefun
 @*/
-void *jit_insn_get_native(jit_insn_t insn)
+void *
+jit_insn_get_native(jit_insn_t insn)
 {
-	if(insn && (insn->flags & JIT_INSN_DEST_IS_NATIVE) != 0)
-	{
-		return (void *)(insn->dest);
-	}
-	else
+	if((insn->flags & JIT_INSN_DEST_IS_NATIVE) == 0)
 	{
 		return 0;
 	}
+	return (void *) insn->dest;
 }
 
 /*@
@@ -1042,16 +996,14 @@ void *jit_insn_get_native(jit_insn_t insn)
  * if the instruction does not have a diagnostic name.
  * @end deftypefun
 @*/
-const char *jit_insn_get_name(jit_insn_t insn)
+const char *
+jit_insn_get_name(jit_insn_t insn)
 {
-	if(insn && (insn->flags & JIT_INSN_VALUE1_IS_NAME) != 0)
-	{
-		return (const char *)(insn->value1);
-	}
-	else
+	if((insn->flags & JIT_INSN_VALUE1_IS_NAME) == 0)
 	{
 		return 0;
 	}
+	return (const char *) insn->value1;
 }
 
 /*@
@@ -1060,16 +1012,14 @@ const char *jit_insn_get_name(jit_insn_t insn)
  * if the instruction is not a function call.
  * @end deftypefun
 @*/
-jit_type_t jit_insn_get_signature(jit_insn_t insn)
+jit_type_t
+jit_insn_get_signature(jit_insn_t insn)
 {
-	if(insn && (insn->flags & JIT_INSN_VALUE2_IS_SIGNATURE) != 0)
-	{
-		return (jit_type_t)(insn->value2);
-	}
-	else
+	if((insn->flags & JIT_INSN_VALUE2_IS_SIGNATURE) == 0)
 	{
 		return 0;
 	}
+	return (jit_type_t) insn->value2;
 }
 
 /*@
@@ -1081,34 +1031,30 @@ jit_type_t jit_insn_get_signature(jit_insn_t insn)
  * side-effect on one of the sources.
  * @end deftypefun
 @*/
-int jit_insn_dest_is_value(jit_insn_t insn)
+int
+jit_insn_dest_is_value(jit_insn_t insn)
 {
-	if(insn && (insn->flags & JIT_INSN_DEST_IS_VALUE) != 0)
-	{
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
+	return (insn->flags & JIT_INSN_DEST_IS_VALUE) != 0;
 }
 
 static int
 new_block_with_label(jit_function_t func, jit_label_t *label, int force_new_block)
 {
-	jit_block_t block, current_block;
-
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
+
+	/* Flush any stack pops that were deferred previously */
 	if(!jit_insn_flush_defer_pop(func, 0))
 	{
 		return 0;
 	}
 
 	/* Create a new block if required */
-	current_block = func->builder->current_block;
+	jit_block_t block;
+	jit_block_t current_block = func->builder->current_block;
 	if(force_new_block || _jit_block_get_last(current_block))
 	{
 		block = _jit_block_create(func);
@@ -1121,7 +1067,7 @@ new_block_with_label(jit_function_t func, jit_label_t *label, int force_new_bloc
 	{
 		/* Reuse the last empty block */
 		block = current_block;
-		if (block->label != jit_label_undefined && *label == jit_label_undefined)
+		if(block->label != jit_label_undefined && *label == jit_label_undefined)
 		{
 			/* Reuse its label if any */
 			*label = block->label;
@@ -1195,20 +1141,15 @@ jit_insn_label_tight(jit_function_t func, jit_label_t *label)
 int
 jit_insn_new_block(jit_function_t func)
 {
-	jit_block_t block;
-#ifdef _JIT_BLOCK_DEBUG
-	jit_label_t label;
-#endif
-
 	/* Create a new block */
-	block = _jit_block_create(func);
+	jit_block_t block = _jit_block_create(func);
 	if(!block)
 	{
 		return 0;
 	}
 
 #ifdef _JIT_BLOCK_DEBUG
-	label = (func->builder->next_label)++;
+	jit_label_t label = func->builder->next_label++;
 	if(!_jit_block_record_label(block, label))
 	{
 		_jit_block_destroy(block);
@@ -1223,103 +1164,56 @@ jit_insn_new_block(jit_function_t func)
 	return 1;
 }
 
-int _jit_load_opcode(int base_opcode, jit_type_t type,
-					 jit_value_t value, int no_temps)
+int
+_jit_load_opcode(int base_opcode, jit_type_t type)
 {
 	type = jit_type_normalize(type);
 	if(!type)
 	{
 		return 0;
 	}
+
 	switch(type->kind)
 	{
-		case JIT_TYPE_SBYTE:
-		{
-			return base_opcode;
-		}
-		/* Not reached */
+	case JIT_TYPE_SBYTE:
+		return base_opcode;
 
-		case JIT_TYPE_UBYTE:
-		{
-			return base_opcode + 1;
-		}
-		/* Not reached */
+	case JIT_TYPE_UBYTE:
+		return base_opcode + 1;
 
-		case JIT_TYPE_SHORT:
-		{
-			return base_opcode + 2;
-		}
-		/* Not reached */
+	case JIT_TYPE_SHORT:
+		return base_opcode + 2;
 
-		case JIT_TYPE_USHORT:
-		{
-			return base_opcode + 3;
-		}
-		/* Not reached */
+	case JIT_TYPE_USHORT:
+		return base_opcode + 3;
 
-		case JIT_TYPE_INT:
-		case JIT_TYPE_UINT:
-		{
-			if(no_temps && value && (value->is_temporary || value->is_local))
-			{
-				return 0;
-			}
-			return base_opcode + 4;
-		}
-		/* Not reached */
+	case JIT_TYPE_INT:
+	case JIT_TYPE_UINT:
+		return base_opcode + 4;
 
-		case JIT_TYPE_LONG:
-		case JIT_TYPE_ULONG:
-		{
-			if(no_temps && value && (value->is_temporary || value->is_local))
-			{
-				return 0;
-			}
-			return base_opcode + 5;
-		}
-		/* Not reached */
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+		return base_opcode + 5;
 
-		case JIT_TYPE_FLOAT32:
-		{
-			if(no_temps && value && (value->is_temporary || value->is_local))
-			{
-				return 0;
-			}
-			return base_opcode + 6;
-		}
-		/* Not reached */
+	case JIT_TYPE_FLOAT32:
+		return base_opcode + 6;
 
-		case JIT_TYPE_FLOAT64:
-		{
-			if(no_temps && value && (value->is_temporary || value->is_local))
-			{
-				return 0;
-			}
-			return base_opcode + 7;
-		}
-		/* Not reached */
+	case JIT_TYPE_FLOAT64:
+		return base_opcode + 7;
 
-		case JIT_TYPE_NFLOAT:
-		{
-			if(no_temps && value && (value->is_temporary || value->is_local))
-			{
-				return 0;
-			}
-			return base_opcode + 8;
-		}
-		/* Not reached */
+	case JIT_TYPE_NFLOAT:
+		return base_opcode + 8;
 
-		case JIT_TYPE_STRUCT:
-		case JIT_TYPE_UNION:
-		{
-			return base_opcode + 9;
-		}
-		/* Not reached */
+	case JIT_TYPE_STRUCT:
+	case JIT_TYPE_UNION:
+		return base_opcode + 9;
 	}
+
 	return 0;
 }
 
-int _jit_store_opcode(int base_opcode, int small_base, jit_type_t type)
+int
+_jit_store_opcode(int base_opcode, int small_base, jit_type_t type)
 {
 	/* Copy instructions are in two ranges: adjust for them */
 	if(small_base)
@@ -1335,66 +1229,38 @@ int _jit_store_opcode(int base_opcode, int small_base, jit_type_t type)
 	type = jit_type_normalize(type);
 	switch(type->kind)
 	{
-		case JIT_TYPE_SBYTE:
-		case JIT_TYPE_UBYTE:
-		{
-			return small_base;
-		}
-		/* Not reached */
+	case JIT_TYPE_SBYTE:
+	case JIT_TYPE_UBYTE:
+		return small_base;
 
-		case JIT_TYPE_SHORT:
-		case JIT_TYPE_USHORT:
-		{
-			return small_base + 1;
-		}
-		/* Not reached */
+	case JIT_TYPE_SHORT:
+	case JIT_TYPE_USHORT:
+		return small_base + 1;
 
-		case JIT_TYPE_INT:
-		case JIT_TYPE_UINT:
-		{
-			return base_opcode + 2;
-		}
-		/* Not reached */
+	case JIT_TYPE_INT:
+	case JIT_TYPE_UINT:
+		return base_opcode + 2;
 
-		case JIT_TYPE_LONG:
-		case JIT_TYPE_ULONG:
-		{
-			return base_opcode + 3;
-		}
-		/* Not reached */
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+		return base_opcode + 3;
 
-		case JIT_TYPE_FLOAT32:
-		{
-			return base_opcode + 4;
-		}
-		break;
+	case JIT_TYPE_FLOAT32:
+		return base_opcode + 4;
 
-		case JIT_TYPE_FLOAT64:
-		{
-			return base_opcode + 5;
-		}
-		break;
-		/* Not reached */
+	case JIT_TYPE_FLOAT64:
+		return base_opcode + 5;
 
-		case JIT_TYPE_NFLOAT:
-		{
-			return base_opcode + 6;
-		}
-		/* Not reached */
+	case JIT_TYPE_NFLOAT:
+		return base_opcode + 6;
 
-		case JIT_TYPE_STRUCT:
-		case JIT_TYPE_UNION:
-		{
-			return base_opcode + 7;
-		}
-		/* Not reached */
+	case JIT_TYPE_STRUCT:
+	case JIT_TYPE_UNION:
+		return base_opcode + 7;
 
-		default:
-		{
-			/* Shouldn't happen, but do something sane anyway */
-			return base_opcode + 2;
-		}
-		/* Not reached */
+	default:
+		/* Shouldn't happen, but do something sane anyway */
+		return base_opcode + 2;
 	}
 }
 
@@ -1406,19 +1272,23 @@ int _jit_store_opcode(int base_opcode, int small_base, jit_type_t type)
  * will point to the same block, and block moving will fail.
  * @end deftypefun
 @*/
-int jit_insn_nop(jit_function_t func)
+int
+jit_insn_nop(jit_function_t func)
 {
-	jit_insn_t insn;
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-	insn = _jit_block_add_insn(func->builder->current_block);
+
+	/* Add a new no-op instruction */
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
 	insn->opcode = JIT_OP_NOP;
+
 	return 1;
 }
 
@@ -1428,22 +1298,20 @@ int jit_insn_nop(jit_function_t func)
  * duplicating the value.  Constants are not duplicated.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_load(jit_function_t func, jit_value_t value)
+jit_value_t
+jit_insn_load(jit_function_t func, jit_value_t value)
 {
-	if(!value)
-	{
-		return 0;
-	}
-	else if(value->is_constant)
+	if(value->is_constant)
 	{
 		return value;
 	}
-	else
+
+	int opcode = _jit_load_opcode(JIT_OP_COPY_LOAD_SBYTE, value->type);
+	if(opcode == 0)
 	{
-		int opcode = _jit_load_opcode
-			(JIT_OP_COPY_LOAD_SBYTE, value->type, value, 0);
-		return apply_unary(func, opcode, value, value->type);
+		return 0;
 	}
+	return apply_unary(func, opcode, value, value->type);
 }
 
 /*@
@@ -1452,46 +1320,10 @@ jit_value_t jit_insn_load(jit_function_t func, jit_value_t value)
  * reflect how it is used in some front ends.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_dup(jit_function_t func, jit_value_t value)
+jit_value_t
+jit_insn_dup(jit_function_t func, jit_value_t value)
 {
 	return jit_insn_load(func, value);
-}
-
-/*@
- * @deftypefun jit_value_t jit_insn_load_small (jit_function_t @var{func}, jit_value_t @var{value})
- * If @var{value} is of type @code{sbyte}, @code{byte}, @code{short},
- * @code{ushort}, a structure, or a union, then make a copy of it and
- * return the temporary copy.  Otherwise return @var{value} as-is.
- *
- * This is useful where you want to use @var{value} directly without
- * duplicating it first.  However, certain types usually cannot
- * be operated on directly without first copying them elsewhere.
- * This function will do that whenever necessary.
- * @end deftypefun
-@*/
-jit_value_t jit_insn_load_small(jit_function_t func, jit_value_t value)
-{
-	if(!value)
-	{
-		return 0;
-	}
-	else if(value->is_constant)
-	{
-		return value;
-	}
-	else
-	{
-		int opcode = _jit_load_opcode
-			(JIT_OP_COPY_LOAD_SBYTE, value->type, value, 1);
-		if(opcode)
-		{
-			return apply_unary(func, opcode, value, value->type);
-		}
-		else
-		{
-			return value;
-		}
-	}
 }
 
 /*@
@@ -1502,33 +1334,38 @@ jit_value_t jit_insn_load_small(jit_function_t func, jit_value_t value)
  * to a location referred to by a pointer.
  * @end deftypefun
 @*/
-int jit_insn_store(jit_function_t func, jit_value_t dest, jit_value_t value)
+int
+jit_insn_store(jit_function_t func, jit_value_t dest, jit_value_t value)
 {
-	jit_insn_t insn;
-	if(!dest || !value)
-	{
-		return 0;
-	}
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
+
 	value = jit_insn_convert(func, value, dest->type, 0);
 	if(!value)
 	{
 		return 0;
 	}
-	insn = _jit_block_add_insn(func->builder->current_block);
+
+	int opcode = _jit_store_opcode(JIT_OP_COPY_INT, JIT_OP_COPY_STORE_BYTE, dest->type);
+	if(opcode == 0)
+	{
+		return 0;
+	}
+
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	jit_value_ref(func, dest);
-	jit_value_ref(func, value);
-	insn->opcode = (short)_jit_store_opcode
-		(JIT_OP_COPY_INT, JIT_OP_COPY_STORE_BYTE, dest->type);
+	insn->opcode = (short) opcode;
 	insn->dest = dest;
+	jit_value_ref(func, dest);
 	insn->value1 = value;
+	jit_value_ref(func, value);
+
 	return 1;
 }
 
@@ -1569,17 +1406,8 @@ int jit_insn_store(jit_function_t func, jit_value_t dest, jit_value_t value)
  * one, so there is no need to move it down.
  */
 static jit_insn_t
-find_base_insn(
-	jit_function_t func,
-	jit_insn_iter_t iter,
-	jit_value_t value,
-	int *plast)
+find_base_insn(jit_function_t func, jit_insn_iter_t iter, jit_value_t value, int *plast)
 {
-	int last;
-	jit_insn_t insn;
-	jit_insn_iter_t iter2;
-	jit_insn_t insn2;
-
 	/* The "value" could be vulnerable to aliasing effects so we cannot
 	   optimize it */
 	if(value->is_addressable || value->is_volatile)
@@ -1588,9 +1416,10 @@ find_base_insn(
 	}
 
 	/* We are about to check the last instruction before the current one */
-	last = 1;
+	int last = 1;
 
 	/* Iterate back through the block looking for a suitable instruction */
+	jit_insn_t insn;
 	while((insn = jit_insn_iter_previous(&iter)) != 0)
 	{
 		/* This instruction uses "value" in some way */
@@ -1613,8 +1442,9 @@ find_base_insn(
 				/* Scan forwards to ensure that "insn->value1"
 				   is not modified anywhere in the instructions
 				   that follow */
-				iter2 = iter;
+				jit_insn_iter_t iter2 = iter;
 				jit_insn_iter_next(&iter2);
+				jit_insn_t insn2;
 				while((insn2 = jit_insn_iter_next(&iter2)) != 0)
 				{
 					if(insn2->dest == value
@@ -1648,25 +1478,20 @@ find_base_insn(
  * @code{(@var{value} + @var{offset})}, where @var{value} is a pointer.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_load_relative
-		(jit_function_t func, jit_value_t value,
-		 jit_nint offset, jit_type_t type)
+jit_value_t
+jit_insn_load_relative(jit_function_t func, jit_value_t value, jit_nint offset, jit_type_t type)
 {
-	jit_insn_iter_t iter;
-	jit_insn_t insn;
-	int last;
-
-	if(!value)
-	{
-		return 0;
-	}
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
 
+	jit_insn_iter_t iter;
 	jit_insn_iter_init_last(&iter, func->builder->current_block);
-	insn = find_base_insn(func, iter, value, &last);
+
+	int last;
+	jit_insn_t insn = find_base_insn(func, iter, value, &last);
 	if(insn && insn->opcode == JIT_OP_ADD_RELATIVE)
 	{
 		/* We have a previous "add_relative" instruction for this
@@ -1687,9 +1512,18 @@ jit_value_t jit_insn_load_relative
 			return 0;
 		}
 	}
-	return apply_binary
-		(func, _jit_load_opcode(JIT_OP_LOAD_RELATIVE_SBYTE, type, 0, 0), value,
-		 jit_value_create_nint_constant(func, jit_type_nint, offset), type);
+
+	int opcode = _jit_load_opcode(JIT_OP_LOAD_RELATIVE_SBYTE, type);
+	if(opcode == 0)
+	{
+		return 0;
+	}
+	jit_value_t offset_value = jit_value_create_nint_constant(func, jit_type_nint, offset);
+	if(!offset_value)
+	{
+		return 0;
+	}
+	return apply_binary(func, opcode, value, offset_value, type);
 }
 
 /*@
@@ -1698,26 +1532,20 @@ jit_value_t jit_insn_load_relative
  * where @var{dest} is a pointer. Returns a non-zero value on success.
  * @end deftypefun
 @*/
-int jit_insn_store_relative
-		(jit_function_t func, jit_value_t dest,
-		 jit_nint offset, jit_value_t value)
+int
+jit_insn_store_relative(jit_function_t func, jit_value_t dest, jit_nint offset, jit_value_t value)
 {
-	jit_insn_iter_t iter;
-	jit_insn_t insn;
-	int last;
-	jit_value_t offset_value;
-
-	if(!dest || !value)
-	{
-		return 0;
-	}
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
 
+	jit_insn_iter_t iter;
 	jit_insn_iter_init_last(&iter, func->builder->current_block);
-	insn = find_base_insn(func, iter, dest, &last);
+
+	int last;
+	jit_insn_t insn = find_base_insn(func, iter, dest, &last);
 	if(insn && insn->opcode == JIT_OP_ADD_RELATIVE)
 	{
 		/* We have a previous "add_relative" instruction for this
@@ -1739,23 +1567,30 @@ int jit_insn_store_relative
 		}
 	}
 
-	offset_value = jit_value_create_nint_constant(func, jit_type_nint, offset);
+	int opcode = _jit_store_opcode(JIT_OP_STORE_RELATIVE_BYTE, 0, value->type);
+	if(opcode == 0)
+	{
+		return 0;
+	}
+	jit_value_t offset_value = jit_value_create_nint_constant(func, jit_type_nint, offset);
 	if(!offset_value)
 	{
 		return 0;
 	}
+
 	insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	jit_value_ref(func, dest);
-	jit_value_ref(func, value);
-	insn->opcode = (short)_jit_store_opcode(JIT_OP_STORE_RELATIVE_BYTE, 0, value->type);
+	insn->opcode = (short) opcode;
 	insn->flags = JIT_INSN_DEST_IS_VALUE;
 	insn->dest = dest;
+	jit_value_ref(func, dest);
 	insn->value1 = value;
+	jit_value_ref(func, value);
 	insn->value2 = offset_value;
+
 	return 1;
 }
 
@@ -1769,24 +1604,20 @@ int jit_insn_store_relative
  * can be collapsed into a single adjustment.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_add_relative
-		(jit_function_t func, jit_value_t value, jit_nint offset)
+jit_value_t
+jit_insn_add_relative(jit_function_t func, jit_value_t value, jit_nint offset)
 {
-	jit_insn_iter_t iter;
-	jit_insn_t insn;
-	int last;
-
-	if(!value)
-	{
-		return 0;
-	}
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
 
+	jit_insn_iter_t iter;
 	jit_insn_iter_init_last(&iter, func->builder->current_block);
-	insn = find_base_insn(func, iter, value, &last);
+
+	int last;
+	jit_insn_t insn = find_base_insn(func, iter, value, &last);
 	if(insn && insn->opcode == JIT_OP_ADD_RELATIVE)
 	{
 		/* We have a previous "add_relative" instruction for this
@@ -1795,9 +1626,28 @@ jit_value_t jit_insn_add_relative
 		value = insn->value1;
 	}
 
-	return apply_binary(func, JIT_OP_ADD_RELATIVE, value,
-			    jit_value_create_nint_constant(func, jit_type_nint, offset),
-			    jit_type_void_ptr);
+	jit_value_t offset_value = jit_value_create_nint_constant(func, jit_type_nint, offset);
+	if(!offset_value)
+	{
+		return 0;
+	}
+	return apply_binary(func, JIT_OP_ADD_RELATIVE, value, offset_value, jit_type_void_ptr);
+}
+
+static jit_value_t
+element_address(jit_function_t func, jit_value_t base, jit_value_t index, jit_nint size)
+{
+	jit_value_t offset_value = jit_value_create_nint_constant(func, jit_type_nint, size);
+	if(!offset_value)
+	{
+		return 0;
+	}
+	offset_value = jit_insn_mul(func, index, offset_value);
+	if(!offset_value)
+	{
+		return 0;
+	}
+	return jit_insn_add(func, base, offset_value);
 }
 
 /*@
@@ -1807,15 +1657,12 @@ jit_value_t jit_insn_add_relative
  * array element is @code{@var{base_addr} + @var{index} * sizeof(@var{elem_type})}.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_load_elem
-	(jit_function_t func, jit_value_t base_addr,
-	 jit_value_t index, jit_type_t elem_type)
+jit_value_t
+jit_insn_load_elem(jit_function_t func, jit_value_t base_addr, jit_value_t index,
+		   jit_type_t elem_type)
 {
-	jit_nint size;
-	int opcode;
-
 	/* Get the size of the element that we are fetching */
-	size = (jit_nint)(jit_type_get_size(elem_type));
+	jit_nint size = (jit_nint) jit_type_get_size(elem_type);
 
 	/* Convert the index into a native integer */
 	index = jit_insn_convert(func, index, jit_type_nint, 0);
@@ -1827,24 +1674,24 @@ jit_value_t jit_insn_load_elem
 	/* If the index is constant, then turn this into a relative load */
 	if(jit_value_is_constant(index))
 	{
-		return jit_insn_load_relative
-			(func, base_addr,
-			 jit_value_get_nint_constant(index) * size, elem_type);
+		size *= jit_value_get_nint_constant(index);
+		return jit_insn_load_relative(func, base_addr, size, elem_type);
 	}
 
 	/* See if we can use a special-case instruction */
-	opcode = _jit_load_opcode(JIT_OP_LOAD_ELEMENT_SBYTE, elem_type, 0, 0);
+	int opcode = _jit_load_opcode(JIT_OP_LOAD_ELEMENT_SBYTE, elem_type);
 	if(opcode != 0 && opcode != (JIT_OP_LOAD_ELEMENT_SBYTE + 9))
 	{
 		return apply_binary(func, opcode, base_addr, index, elem_type);
 	}
 
 	/* Calculate the effective address and then use a relative load */
-	base_addr = jit_insn_add(func, base_addr,
-		jit_insn_mul(func, index,
-					 jit_value_create_nint_constant
-					 	(func, jit_type_nint, size)));
-	return jit_insn_load_relative(func, base_addr, 0, elem_type);
+	jit_value_t addr = element_address(func, base_addr, index, size);
+	if(!addr)
+	{
+		return 0;
+	}
+	return jit_insn_load_relative(func, addr, 0, elem_type);
 }
 
 /*@
@@ -1857,16 +1704,20 @@ jit_value_t jit_insn_load_elem
  * and @code{jit_insn_add}.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_load_elem_address
-	(jit_function_t func, jit_value_t base_addr,
-	 jit_value_t index, jit_type_t elem_type)
+jit_value_t
+jit_insn_load_elem_address(jit_function_t func, jit_value_t base_addr, jit_value_t index,
+			   jit_type_t elem_type)
 {
-	jit_nint size = (jit_nint)(jit_type_get_size(elem_type));
+	jit_nint size = (jit_nint) jit_type_get_size(elem_type);
+
+	/* Convert the index into a native integer */
 	index = jit_insn_convert(func, index, jit_type_nint, 0);
-	return jit_insn_add(func, base_addr,
-		jit_insn_mul(func, index,
-					 jit_value_create_nint_constant
-					 	(func, jit_type_nint, size)));
+	if(!index)
+	{
+		return 0;
+	}
+
+	return element_address(func, base_addr, index, size);
 }
 
 /*@
@@ -1876,21 +1727,13 @@ jit_value_t jit_insn_load_elem_address
  * @code{@var{base_addr} + @var{index} * sizeof(jit_value_get_type(@var{value}))}.
  * @end deftypefun
 @*/
-int jit_insn_store_elem
-	(jit_function_t func, jit_value_t base_addr,
-	 jit_value_t index, jit_value_t value)
+int
+jit_insn_store_elem(jit_function_t func, jit_value_t base_addr, jit_value_t index,
+		    jit_value_t value)
 {
-	jit_nint size;
-	int opcode;
-	jit_type_t elem_type;
-
 	/* Get the size of the element that we are fetching */
-	if(!value)
-	{
-		return 0;
-	}
-	elem_type = jit_value_get_type(value);
-	size = (jit_nint)(jit_type_get_size(elem_type));
+	jit_type_t elem_type = jit_value_get_type(value);
+	jit_nint size = (jit_nint) jit_type_get_size(elem_type);
 
 	/* Convert the index into a native integer */
 	index = jit_insn_convert(func, index, jit_type_nint, 0);
@@ -1902,24 +1745,25 @@ int jit_insn_store_elem
 	/* If the index is constant, then turn this into a relative store */
 	if(jit_value_is_constant(index))
 	{
-		return jit_insn_store_relative
-			(func, base_addr,
-			 jit_value_get_nint_constant(index) * size, value);
+		return jit_insn_store_relative(func, base_addr,
+					       jit_value_get_nint_constant(index) * size,
+					       value);
 	}
 
 	/* See if we can use a special-case instruction */
-	opcode = _jit_store_opcode(JIT_OP_STORE_ELEMENT_BYTE, 0, elem_type);
+	int opcode = _jit_store_opcode(JIT_OP_STORE_ELEMENT_BYTE, 0, elem_type);
 	if(opcode != 0 && opcode != (JIT_OP_STORE_ELEMENT_BYTE + 7))
 	{
 		return apply_ternary(func, opcode, base_addr, index, value);
 	}
 
 	/* Calculate the effective address and then use a relative store */
-	base_addr = jit_insn_add(func, base_addr,
-		jit_insn_mul(func, index,
-					 jit_value_create_nint_constant
-					 	(func, jit_type_nint, size)));
-	return jit_insn_store_relative(func, base_addr, 0, value);
+	jit_value_t addr = element_address(func, base_addr, index, size);
+	if(!addr)
+	{
+		return 0;
+	}
+	return jit_insn_store_relative(func, addr, 0, value);
 }
 
 /*@
@@ -1928,14 +1772,17 @@ int jit_insn_store_elem
  * built-in @code{JIT_RESULT_NULL_REFERENCE} exception.
  * @end deftypefun
 @*/
-int jit_insn_check_null(jit_function_t func, jit_value_t value)
+int
+jit_insn_check_null(jit_function_t func, jit_value_t value)
 {
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
+
 	/* Do the check only if the value is no not Null constant */
-	if(value->is_nint_constant && (value->address != 0))
+	if(value->is_nint_constant && value->address != 0)
 	{
 		return 1;
 	}
@@ -1943,20 +1790,18 @@ int jit_insn_check_null(jit_function_t func, jit_value_t value)
 	return create_unary_note(func, JIT_OP_CHECK_NULL, value);
 }
 
-int _jit_insn_check_is_redundant(const jit_insn_iter_t *iter)
+int
+_jit_insn_check_is_redundant(const jit_insn_iter_t *iter)
 {
 	jit_insn_iter_t new_iter = *iter;
-	jit_insn_t insn;
-	jit_value_t value;
-
 	/* Back up to find the "check_null" instruction of interest */
-	insn = jit_insn_iter_previous(&new_iter);
-	value = insn->value1;
+	jit_insn_t insn = jit_insn_iter_previous(&new_iter);
+	jit_value_t value = insn->value1;
 
 	/* The value must be temporary or local, and not volatile or addressable.
 	   Otherwise the value could be vulnerable to aliasing side-effects that
 	   could make it NULL again even after we have checked it */
-	if(!(value->is_temporary) || !(value->is_local))
+	if(!value->is_temporary || !value->is_local)
 	{
 		return 0;
 	}
@@ -1996,8 +1841,8 @@ int _jit_insn_check_is_redundant(const jit_insn_iter_t *iter)
  * Add two values together and return the result in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_add
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_add(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const add_descr = {
 		JIT_OP_IADD,
@@ -2024,8 +1869,8 @@ jit_value_t jit_insn_add
  * Throw an exception if overflow occurs.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_add_ovf
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_add_ovf(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const add_ovf_descr = {
 		JIT_OP_IADD_OVF,
@@ -2051,8 +1896,8 @@ jit_value_t jit_insn_add_ovf
  * Subtract two values and return the result in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_sub
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_sub(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const sub_descr = {
 		JIT_OP_ISUB,
@@ -2079,8 +1924,8 @@ jit_value_t jit_insn_sub
  * Throw an exception if overflow occurs.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_sub_ovf
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_sub_ovf(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const sub_ovf_descr = {
 		JIT_OP_ISUB_OVF,
@@ -2106,8 +1951,8 @@ jit_value_t jit_insn_sub_ovf
  * Multiply two values and return the result in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_mul
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_mul(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const mul_descr = {
 		JIT_OP_IMUL,
@@ -2134,8 +1979,8 @@ jit_value_t jit_insn_mul
  * Throw an exception if overflow occurs.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_mul_ovf
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_mul_ovf(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const mul_ovf_descr = {
 		JIT_OP_IMUL_OVF,
@@ -2164,8 +2009,8 @@ jit_value_t jit_insn_mul_ovf
  * integer value is divided by -1).
  * @end deftypefun
 @*/
-jit_value_t jit_insn_div
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_div(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const div_descr = {
 		JIT_OP_IDIV,
@@ -2194,8 +2039,8 @@ jit_value_t jit_insn_div
  * integer value is divided by -1).
  * @end deftypefun
 @*/
-jit_value_t jit_insn_rem
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_rem(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const rem_descr = {
 		JIT_OP_IREM,
@@ -2226,8 +2071,8 @@ jit_value_t jit_insn_rem
  * the remainder of floating-point values.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_rem_ieee
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_rem_ieee(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const rem_ieee_descr = {
 		JIT_OP_IREM,
@@ -2253,8 +2098,8 @@ jit_value_t jit_insn_rem_ieee
  * Negate a value and return the result in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_neg
-		(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_neg(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const neg_descr = {
 		JIT_OP_INEG,
@@ -2272,56 +2117,57 @@ jit_value_t jit_insn_neg
 		jit_intrinsic(jit_float64_neg, descr_d_d),
 		jit_intrinsic(jit_nfloat_neg, descr_D_D)
 	};
-	int oper;
-	jit_type_t result_type;
 
-	/* Bail out if the parameters are invalid */
-	if(!value1)
+	jit_type_t type = jit_type_promote_int(jit_type_normalize(value->type));
+
+	int oper;
+	switch (type->kind)
+	{
+	default: /* Shouldn't happen */
+	case JIT_TYPE_INT:
+		oper = neg_descr.ioper;
+		break;
+	case JIT_TYPE_UINT:
+		type = jit_type_int;
+		oper = neg_descr.ioper;
+		break;
+	case JIT_TYPE_LONG:
+		oper = neg_descr.loper;
+		break;
+	case JIT_TYPE_ULONG:
+		type = jit_type_long;
+		oper = neg_descr.loper;
+		break;
+	case JIT_TYPE_FLOAT32:
+		oper = neg_descr.foper;
+		break;
+	case JIT_TYPE_FLOAT64:
+		oper = neg_descr.doper;
+		break;
+	case JIT_TYPE_NFLOAT:
+		oper = neg_descr.nfoper;
+		break;
+	}
+
+	value = jit_insn_convert(func, value, type, 0);
+	if(!value)
 	{
 		return 0;
 	}
-
-	result_type = jit_type_promote_int(jit_type_normalize(value1->type));
-	if(result_type == jit_type_int)
+	if(jit_value_is_constant(value))
 	{
-		oper = neg_descr.ioper;
-	}
-	else if(result_type == jit_type_uint)
-	{
-		result_type = jit_type_int;
-		oper = neg_descr.ioper;
-	}
-	else if(result_type == jit_type_long)
-	{
-		oper = neg_descr.loper;
-	}
-	else if(result_type == jit_type_ulong)
-	{
-		result_type = jit_type_long;
-		oper = neg_descr.loper;
-	}
-	else if(result_type == jit_type_float32)
-	{
-		oper = neg_descr.foper;
-	}
-	else if(result_type == jit_type_float64)
-	{
-		oper = neg_descr.doper;
-	}
-	else
-	{
-		oper = neg_descr.nfoper;
+		jit_value_t result = _jit_opcode_apply_unary(func, oper, value, type);
+		if(result)
+		{
+			return result;
+		}
 	}
 
-	value1 = jit_insn_convert(func, value1, result_type, 0);
-	if(_jit_opcode_is_supported(oper))
+	if(!_jit_opcode_is_supported(oper))
 	{
-		return apply_unary(func, oper, value1, result_type);
+		return apply_intrinsic(func, &neg_descr, value, 0, type);
 	}
-	else
-	{
-		return apply_intrinsic(func, &neg_descr, value1, 0, result_type);
-	}
+	return apply_unary(func, oper, value, type);
 }
 
 /*@
@@ -2329,8 +2175,8 @@ jit_value_t jit_insn_neg
  * Bitwise AND two values and return the result in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_and
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_and(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const and_descr = {
 		JIT_OP_IAND,
@@ -2354,8 +2200,8 @@ jit_value_t jit_insn_and
  * Bitwise OR two values and return the result in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_or
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_or(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const or_descr = {
 		JIT_OP_IOR,
@@ -2379,8 +2225,8 @@ jit_value_t jit_insn_or
  * Bitwise XOR two values and return the result in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_xor
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_xor(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const xor_descr = {
 		JIT_OP_IXOR,
@@ -2404,8 +2250,8 @@ jit_value_t jit_insn_xor
  * Bitwise NOT a value and return the result in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_not
-		(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_not(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const not_descr = {
 		JIT_OP_INOT,
@@ -2421,7 +2267,7 @@ jit_value_t jit_insn_not
 		jit_no_intrinsic,
 		jit_no_intrinsic
 	};
-	return apply_unary_arith(func, &not_descr, value1, 1, 0, 0);
+	return apply_unary_arith(func, &not_descr, value, 1, 0, 0);
 }
 
 /*@
@@ -2430,8 +2276,8 @@ jit_value_t jit_insn_not
  * result in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_shl
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_shl(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const shl_descr = {
 		JIT_OP_ISHL,
@@ -2457,8 +2303,8 @@ jit_value_t jit_insn_shl
  * on signed operators, and an unsigned shift on unsigned operands.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_shr
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_shr(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const shr_descr = {
 		JIT_OP_ISHR,
@@ -2484,8 +2330,8 @@ jit_value_t jit_insn_shr
  * shift on both signed and unsigned operands.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_ushr
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_ushr(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const ushr_descr = {
 		JIT_OP_ISHR_UN,
@@ -2511,8 +2357,8 @@ jit_value_t jit_insn_ushr
  * shift on both signed and unsigned operands.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_sshr
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_sshr(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const sshr_descr = {
 		JIT_OP_ISHR,
@@ -2537,8 +2383,8 @@ jit_value_t jit_insn_sshr
  * in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_eq
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_eq(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const eq_descr = {
 		JIT_OP_IEQ,
@@ -2565,8 +2411,8 @@ jit_value_t jit_insn_eq
  * in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_ne
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_ne(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const ne_descr = {
 		JIT_OP_INE,
@@ -2593,8 +2439,8 @@ jit_value_t jit_insn_ne
  * in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_lt
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_lt(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const lt_descr = {
 		JIT_OP_ILT,
@@ -2621,8 +2467,8 @@ jit_value_t jit_insn_lt
  * in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_le
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_le(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const le_descr = {
 		JIT_OP_ILE,
@@ -2649,8 +2495,8 @@ jit_value_t jit_insn_le
  * in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_gt
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_gt(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const gt_descr = {
 		JIT_OP_IGT,
@@ -2677,8 +2523,8 @@ jit_value_t jit_insn_gt
  * in a new temporary value.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_ge
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_ge(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const ge_descr = {
 		JIT_OP_IGE,
@@ -2705,8 +2551,8 @@ jit_value_t jit_insn_ge
  * value is "not a number", then -1 is returned.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_cmpl
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_cmpl(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const cmpl_descr = {
 		JIT_OP_ICMP,
@@ -2733,8 +2579,8 @@ jit_value_t jit_insn_cmpl
  * value is "not a number", then 1 is returned.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_cmpg
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_cmpg(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const cmpg_descr = {
 		JIT_OP_ICMP,
@@ -2760,19 +2606,9 @@ jit_value_t jit_insn_cmpg
  * Convert a value into a boolean 0 or 1 result of type @code{jit_type_int}.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_to_bool(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_to_bool(jit_function_t func, jit_value_t value)
 {
-	jit_type_t type;
-	jit_block_t block;
-	jit_insn_t last;
-	int opcode;
-
-	/* Bail out if the parameters are invalid */
-	if(!value1)
-	{
-		return 0;
-	}
-
 	/* Ensure that we have a builder for this function */
 	if(!_jit_function_ensure_builder(func))
 	{
@@ -2781,52 +2617,50 @@ jit_value_t jit_insn_to_bool(jit_function_t func, jit_value_t value1)
 
 	/* If the previous instruction was a comparison, then there is
 	   nothing that we need to do to make the value boolean */
-	block = func->builder->current_block;
-	last = _jit_block_get_last(block);
-	if(value1->is_temporary && last && last->dest == value1)
+	int opcode;
+	jit_block_t block = func->builder->current_block;
+	jit_insn_t last = _jit_block_get_last(block);
+	if(value->is_temporary && last && last->dest == value)
 	{
 		opcode = last->opcode;
 		if(opcode >= JIT_OP_IEQ && opcode <= JIT_OP_NFGE_INV)
 		{
-			return value1;
+			return value;
 		}
 	}
 
 	/* Perform a comparison to determine if the value is non-zero */
-	type = jit_type_promote_int(jit_type_normalize(value1->type));
-	if(type == jit_type_int || type == jit_type_uint)
+	jit_type_t type = jit_type_promote_int(jit_type_normalize(value->type));
+	jit_value_t zero;
+	switch(type->kind)
 	{
-		return jit_insn_ne
-			(func, value1,
-			 jit_value_create_nint_constant(func, jit_type_int, 0));
+	default: /* Shouldn't happen */
+	case JIT_TYPE_INT:
+	case JIT_TYPE_UINT:
+		zero = jit_value_create_nint_constant(func, jit_type_int, 0);
+		break;
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+		zero = jit_value_create_long_constant(func, jit_type_long, 0);
+		break;
+	case JIT_TYPE_FLOAT32:
+		zero = jit_value_create_float32_constant(func, jit_type_float32,
+							 (jit_float32) 0.0);
+		break;
+	case JIT_TYPE_FLOAT64:
+		zero = jit_value_create_float64_constant(func, jit_type_float64,
+							 (jit_float64) 0.0);
+		break;
+	case JIT_TYPE_NFLOAT:
+		zero = jit_value_create_nfloat_constant(func, jit_type_nfloat,
+							(jit_nfloat) 0.0);
+		break;
 	}
-	else if(type == jit_type_long || type == jit_type_ulong)
+	if(!zero)
 	{
-		return jit_insn_ne
-			(func, value1,
-			 jit_value_create_long_constant(func, jit_type_long, 0));
+		return 0;
 	}
-	else if(type == jit_type_float32)
-	{
-		return jit_insn_ne
-			(func, value1,
-			 jit_value_create_float32_constant
-			 	(func, jit_type_float32, (jit_float32)0.0));
-	}
-	else if(type == jit_type_float64)
-	{
-		return jit_insn_ne
-			(func, value1,
-			 jit_value_create_float64_constant
-			 	(func, jit_type_float64, (jit_float64)0.0));
-	}
-	else
-	{
-		return jit_insn_ne
-			(func, value1,
-			 jit_value_create_nfloat_constant
-			 	(func, jit_type_nfloat, (jit_nfloat)0.0));
-	}
+	return jit_insn_ne(func, value, zero);
 }
 
 /*@
@@ -2835,19 +2669,9 @@ jit_value_t jit_insn_to_bool(jit_function_t func, jit_value_t value1)
  * (i.e. the inverse of @code{jit_insn_to_bool}).
  * @end deftypefun
 @*/
-jit_value_t jit_insn_to_not_bool(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_to_not_bool(jit_function_t func, jit_value_t value)
 {
-	jit_type_t type;
-	jit_block_t block;
-	jit_insn_t last;
-	int opcode;
-
-	/* Bail out if the parameters are invalid */
-	if(!value1)
-	{
-		return 0;
-	}
-
 	/* Ensure that we have a builder for this function */
 	if(!_jit_function_ensure_builder(func))
 	{
@@ -2856,106 +2680,104 @@ jit_value_t jit_insn_to_not_bool(jit_function_t func, jit_value_t value1)
 
 	/* If the previous instruction was a comparison, then all
 	   we have to do is invert the comparison opcode */
-	block = func->builder->current_block;
-	last = _jit_block_get_last(block);
-	if(value1->is_temporary && last && last->dest == value1)
+	int opcode;
+	jit_block_t block = func->builder->current_block;
+	jit_insn_t last = _jit_block_get_last(block);
+	if(value->is_temporary && last && last->dest == value)
 	{
 		opcode = last->opcode;
 		if(opcode >= JIT_OP_IEQ && opcode <= JIT_OP_NFGE_INV)
 		{
 			switch(opcode)
 			{
-				case JIT_OP_IEQ:		opcode = JIT_OP_INE;      break;
-				case JIT_OP_INE:		opcode = JIT_OP_IEQ;      break;
-				case JIT_OP_ILT:		opcode = JIT_OP_IGE;      break;
-				case JIT_OP_ILT_UN:		opcode = JIT_OP_IGE_UN;   break;
-				case JIT_OP_ILE:		opcode = JIT_OP_IGT;      break;
-				case JIT_OP_ILE_UN:		opcode = JIT_OP_IGT_UN;   break;
-				case JIT_OP_IGT:		opcode = JIT_OP_ILE;      break;
-				case JIT_OP_IGT_UN:		opcode = JIT_OP_ILE_UN;   break;
-				case JIT_OP_IGE:		opcode = JIT_OP_ILT;      break;
-				case JIT_OP_IGE_UN:		opcode = JIT_OP_ILT_UN;   break;
-				case JIT_OP_LEQ:		opcode = JIT_OP_LNE;      break;
-				case JIT_OP_LNE:		opcode = JIT_OP_LEQ;      break;
-				case JIT_OP_LLT:		opcode = JIT_OP_LGE;      break;
-				case JIT_OP_LLT_UN:		opcode = JIT_OP_LGE_UN;   break;
-				case JIT_OP_LLE:		opcode = JIT_OP_LGT;      break;
-				case JIT_OP_LLE_UN:		opcode = JIT_OP_LGT_UN;   break;
-				case JIT_OP_LGT:		opcode = JIT_OP_LLE;      break;
-				case JIT_OP_LGT_UN:		opcode = JIT_OP_LLE_UN;   break;
-				case JIT_OP_LGE:		opcode = JIT_OP_LLT;      break;
-				case JIT_OP_LGE_UN:		opcode = JIT_OP_LLT_UN;   break;
-				case JIT_OP_FEQ:		opcode = JIT_OP_FNE;      break;
-				case JIT_OP_FNE:		opcode = JIT_OP_FEQ;      break;
-				case JIT_OP_FLT:		opcode = JIT_OP_FGE_INV;  break;
-				case JIT_OP_FLE:		opcode = JIT_OP_FGT_INV;  break;
-				case JIT_OP_FGT:		opcode = JIT_OP_FLE_INV;  break;
-				case JIT_OP_FGE:		opcode = JIT_OP_FLT_INV;  break;
-				case JIT_OP_FLT_INV:	opcode = JIT_OP_FGE;      break;
-				case JIT_OP_FLE_INV:	opcode = JIT_OP_FGT;      break;
-				case JIT_OP_FGT_INV:	opcode = JIT_OP_FLE;      break;
-				case JIT_OP_FGE_INV:	opcode = JIT_OP_FLT;      break;
-				case JIT_OP_DEQ:		opcode = JIT_OP_DNE;      break;
-				case JIT_OP_DNE:		opcode = JIT_OP_DEQ;      break;
-				case JIT_OP_DLT:		opcode = JIT_OP_DGE_INV;  break;
-				case JIT_OP_DLE:		opcode = JIT_OP_DGT_INV;  break;
-				case JIT_OP_DGT:		opcode = JIT_OP_DLE_INV;  break;
-				case JIT_OP_DGE:		opcode = JIT_OP_DLT_INV;  break;
-				case JIT_OP_DLT_INV:	opcode = JIT_OP_DGE;      break;
-				case JIT_OP_DLE_INV:	opcode = JIT_OP_DGT;      break;
-				case JIT_OP_DGT_INV:	opcode = JIT_OP_DLE;      break;
-				case JIT_OP_DGE_INV:	opcode = JIT_OP_DLT;      break;
-				case JIT_OP_NFEQ:		opcode = JIT_OP_NFNE;     break;
-				case JIT_OP_NFNE:		opcode = JIT_OP_NFEQ;     break;
-				case JIT_OP_NFLT:		opcode = JIT_OP_NFGE_INV; break;
-				case JIT_OP_NFLE:		opcode = JIT_OP_NFGT_INV; break;
-				case JIT_OP_NFGT:		opcode = JIT_OP_NFLE_INV; break;
-				case JIT_OP_NFGE:		opcode = JIT_OP_NFLT_INV; break;
-				case JIT_OP_NFLT_INV:	opcode = JIT_OP_NFGE;     break;
-				case JIT_OP_NFLE_INV:	opcode = JIT_OP_NFGT;     break;
-				case JIT_OP_NFGT_INV:	opcode = JIT_OP_NFLE;     break;
-				case JIT_OP_NFGE_INV:	opcode = JIT_OP_NFLT;     break;
+			case JIT_OP_IEQ:	opcode = JIT_OP_INE;      break;
+			case JIT_OP_INE:	opcode = JIT_OP_IEQ;      break;
+			case JIT_OP_ILT:	opcode = JIT_OP_IGE;      break;
+			case JIT_OP_ILT_UN:	opcode = JIT_OP_IGE_UN;   break;
+			case JIT_OP_ILE:	opcode = JIT_OP_IGT;      break;
+			case JIT_OP_ILE_UN:	opcode = JIT_OP_IGT_UN;   break;
+			case JIT_OP_IGT:	opcode = JIT_OP_ILE;      break;
+			case JIT_OP_IGT_UN:	opcode = JIT_OP_ILE_UN;   break;
+			case JIT_OP_IGE:	opcode = JIT_OP_ILT;      break;
+			case JIT_OP_IGE_UN:	opcode = JIT_OP_ILT_UN;   break;
+			case JIT_OP_LEQ:	opcode = JIT_OP_LNE;      break;
+			case JIT_OP_LNE:	opcode = JIT_OP_LEQ;      break;
+			case JIT_OP_LLT:	opcode = JIT_OP_LGE;      break;
+			case JIT_OP_LLT_UN:	opcode = JIT_OP_LGE_UN;   break;
+			case JIT_OP_LLE:	opcode = JIT_OP_LGT;      break;
+			case JIT_OP_LLE_UN:	opcode = JIT_OP_LGT_UN;   break;
+			case JIT_OP_LGT:	opcode = JIT_OP_LLE;      break;
+			case JIT_OP_LGT_UN:	opcode = JIT_OP_LLE_UN;   break;
+			case JIT_OP_LGE:	opcode = JIT_OP_LLT;      break;
+			case JIT_OP_LGE_UN:	opcode = JIT_OP_LLT_UN;   break;
+			case JIT_OP_FEQ:	opcode = JIT_OP_FNE;      break;
+			case JIT_OP_FNE:	opcode = JIT_OP_FEQ;      break;
+			case JIT_OP_FLT:	opcode = JIT_OP_FGE_INV;  break;
+			case JIT_OP_FLE:	opcode = JIT_OP_FGT_INV;  break;
+			case JIT_OP_FGT:	opcode = JIT_OP_FLE_INV;  break;
+			case JIT_OP_FGE:	opcode = JIT_OP_FLT_INV;  break;
+			case JIT_OP_FLT_INV:	opcode = JIT_OP_FGE;      break;
+			case JIT_OP_FLE_INV:	opcode = JIT_OP_FGT;      break;
+			case JIT_OP_FGT_INV:	opcode = JIT_OP_FLE;      break;
+			case JIT_OP_FGE_INV:	opcode = JIT_OP_FLT;      break;
+			case JIT_OP_DEQ:	opcode = JIT_OP_DNE;      break;
+			case JIT_OP_DNE:	opcode = JIT_OP_DEQ;      break;
+			case JIT_OP_DLT:	opcode = JIT_OP_DGE_INV;  break;
+			case JIT_OP_DLE:	opcode = JIT_OP_DGT_INV;  break;
+			case JIT_OP_DGT:	opcode = JIT_OP_DLE_INV;  break;
+			case JIT_OP_DGE:	opcode = JIT_OP_DLT_INV;  break;
+			case JIT_OP_DLT_INV:	opcode = JIT_OP_DGE;      break;
+			case JIT_OP_DLE_INV:	opcode = JIT_OP_DGT;      break;
+			case JIT_OP_DGT_INV:	opcode = JIT_OP_DLE;      break;
+			case JIT_OP_DGE_INV:	opcode = JIT_OP_DLT;      break;
+			case JIT_OP_NFEQ:	opcode = JIT_OP_NFNE;     break;
+			case JIT_OP_NFNE:	opcode = JIT_OP_NFEQ;     break;
+			case JIT_OP_NFLT:	opcode = JIT_OP_NFGE_INV; break;
+			case JIT_OP_NFLE:	opcode = JIT_OP_NFGT_INV; break;
+			case JIT_OP_NFGT:	opcode = JIT_OP_NFLE_INV; break;
+			case JIT_OP_NFGE:	opcode = JIT_OP_NFLT_INV; break;
+			case JIT_OP_NFLT_INV:	opcode = JIT_OP_NFGE;     break;
+			case JIT_OP_NFLE_INV:	opcode = JIT_OP_NFGT;     break;
+			case JIT_OP_NFGT_INV:	opcode = JIT_OP_NFLE;     break;
+			case JIT_OP_NFGE_INV:	opcode = JIT_OP_NFLT;     break;
 			}
-			last->opcode = (short)opcode;
-			return value1;
+			last->opcode = (short) opcode;
+			return value;
 		}
 	}
 
 	/* Perform a comparison to determine if the value is zero */
-	type = jit_type_promote_int(jit_type_normalize(value1->type));
-	if(type == jit_type_int || type == jit_type_uint)
+	jit_type_t type = jit_type_promote_int(jit_type_normalize(value->type));
+	jit_value_t zero;
+	switch(type->kind)
 	{
-		return jit_insn_eq
-			(func, value1,
-			 jit_value_create_nint_constant(func, jit_type_int, 0));
+	default: /* Shouldn't happen */
+	case JIT_TYPE_INT:
+	case JIT_TYPE_UINT:
+		zero = jit_value_create_nint_constant(func, jit_type_int, 0);
+		break;
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+		zero = jit_value_create_long_constant(func, jit_type_long, 0);
+		break;
+	case JIT_TYPE_FLOAT32:
+		zero = jit_value_create_float32_constant(func, jit_type_float32,
+							 (jit_float32) 0.0);
+		break;
+	case JIT_TYPE_FLOAT64:
+		zero = jit_value_create_float64_constant(func, jit_type_float64,
+							 (jit_float64) 0.0);
+		break;
+	case JIT_TYPE_NFLOAT:
+		zero = jit_value_create_nfloat_constant(func, jit_type_nfloat,
+							(jit_nfloat) 0.0);
+		break;
 	}
-	else if(type == jit_type_long || type == jit_type_ulong)
+	if(!zero)
 	{
-		return jit_insn_eq
-			(func, value1,
-			 jit_value_create_long_constant(func, jit_type_long, 0));
+		return 0;
 	}
-	else if(type == jit_type_float32)
-	{
-		return jit_insn_eq
-			(func, value1,
-			 jit_value_create_float32_constant
-			 	(func, jit_type_float32, (jit_float32)0.0));
-	}
-	else if(type == jit_type_float64)
-	{
-		return jit_insn_eq
-			(func, value1,
-			 jit_value_create_float64_constant
-			 	(func, jit_type_float64, (jit_float64)0.0));
-	}
-	else
-	{
-		return jit_insn_eq
-			(func, value1,
-			 jit_value_create_nfloat_constant
-			 	(func, jit_type_nfloat, (jit_nfloat)0.0));
-	}
+	return jit_insn_eq(func, value, zero);
 }
 
 /*@
@@ -2977,7 +2799,8 @@ jit_value_t jit_insn_to_not_bool(jit_function_t func, jit_value_t value1)
  * Apply a mathematical function to floating-point arguments.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_acos(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_acos(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const acos_descr = {
 		0, 0, 0, 0,
@@ -2992,10 +2815,11 @@ jit_value_t jit_insn_acos(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_acos, descr_d_d),
 		jit_intrinsic(jit_nfloat_acos, descr_D_D)
 	};
-	return apply_unary_arith(func, &acos_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &acos_descr, value, 0, 1, 0);
 }
 
-jit_value_t jit_insn_asin(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_asin(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const asin_descr = {
 		0, 0, 0, 0,
@@ -3010,10 +2834,11 @@ jit_value_t jit_insn_asin(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_asin, descr_d_d),
 		jit_intrinsic(jit_nfloat_asin, descr_D_D)
 	};
-	return apply_unary_arith(func, &asin_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &asin_descr, value, 0, 1, 0);
 }
 
-jit_value_t jit_insn_atan(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_atan(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const atan_descr = {
 		0, 0, 0, 0,
@@ -3028,11 +2853,11 @@ jit_value_t jit_insn_atan(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_atan, descr_d_d),
 		jit_intrinsic(jit_nfloat_atan, descr_D_D)
 	};
-	return apply_unary_arith(func, &atan_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &atan_descr, value, 0, 1, 0);
 }
 
-jit_value_t jit_insn_atan2
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_atan2(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const atan2_descr = {
 		0, 0, 0, 0,
@@ -3055,7 +2880,8 @@ jit_value_t jit_insn_atan2
  * Round @var{value1} up towads positive infinity.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_ceil(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_ceil(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const ceil_descr = {
 		0, 0, 0, 0,
@@ -3070,10 +2896,11 @@ jit_value_t jit_insn_ceil(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_ceil, descr_d_d),
 		jit_intrinsic(jit_nfloat_ceil, descr_D_D)
 	};
-	return apply_unary_arith(func, &ceil_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &ceil_descr, value, 0, 1, 0);
 }
 
-jit_value_t jit_insn_cos(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_cos(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const cos_descr = {
 		0, 0, 0, 0,
@@ -3088,10 +2915,11 @@ jit_value_t jit_insn_cos(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_cos, descr_d_d),
 		jit_intrinsic(jit_nfloat_cos, descr_D_D)
 	};
-	return apply_unary_arith(func, &cos_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &cos_descr, value, 0, 1, 0);
 }
 
-jit_value_t jit_insn_cosh(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_cosh(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const cosh_descr = {
 		0, 0, 0, 0,
@@ -3106,10 +2934,11 @@ jit_value_t jit_insn_cosh(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_cosh, descr_d_d),
 		jit_intrinsic(jit_nfloat_cosh, descr_D_D)
 	};
-	return apply_unary_arith(func, &cosh_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &cosh_descr, value, 0, 1, 0);
 }
 
-jit_value_t jit_insn_exp(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_exp(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const exp_descr = {
 		0, 0, 0, 0,
@@ -3124,7 +2953,7 @@ jit_value_t jit_insn_exp(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_exp, descr_d_d),
 		jit_intrinsic(jit_nfloat_exp, descr_D_D)
 	};
-	return apply_unary_arith(func, &exp_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &exp_descr, value, 0, 1, 0);
 }
 
 /*@
@@ -3132,7 +2961,8 @@ jit_value_t jit_insn_exp(jit_function_t func, jit_value_t value1)
  * Round @var{value1} down towards negative infinity.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_floor(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_floor(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const floor_descr = {
 		0, 0, 0, 0,
@@ -3147,10 +2977,11 @@ jit_value_t jit_insn_floor(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_floor, descr_d_d),
 		jit_intrinsic(jit_nfloat_floor, descr_D_D)
 	};
-	return apply_unary_arith(func, &floor_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &floor_descr, value, 0, 1, 0);
 }
 
-jit_value_t jit_insn_log(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_log(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const log_descr = {
 		0, 0, 0, 0,
@@ -3165,10 +2996,11 @@ jit_value_t jit_insn_log(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_log, descr_d_d),
 		jit_intrinsic(jit_nfloat_log, descr_D_D)
 	};
-	return apply_unary_arith(func, &log_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &log_descr, value, 0, 1, 0);
 }
 
-jit_value_t jit_insn_log10(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_log10(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const log10_descr = {
 		0, 0, 0, 0,
@@ -3183,11 +3015,11 @@ jit_value_t jit_insn_log10(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_log10, descr_d_d),
 		jit_intrinsic(jit_nfloat_log10, descr_D_D)
 	};
-	return apply_unary_arith(func, &log10_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &log10_descr, value, 0, 1, 0);
 }
 
-jit_value_t jit_insn_pow
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_pow(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const pow_descr = {
 		0, 0, 0, 0,
@@ -3210,7 +3042,8 @@ jit_value_t jit_insn_pow
  * Round @var{value1} to the nearest integer. Half-way cases are rounded to the even number.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_rint(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_rint(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const rint_descr = {
 		0, 0, 0, 0,
@@ -3225,7 +3058,7 @@ jit_value_t jit_insn_rint(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_rint, descr_d_d),
 		jit_intrinsic(jit_nfloat_rint, descr_D_D)
 	};
-	return apply_unary_arith(func, &rint_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &rint_descr, value, 0, 1, 0);
 }
 
 /*@
@@ -3233,7 +3066,8 @@ jit_value_t jit_insn_rint(jit_function_t func, jit_value_t value1)
  * Round @var{value1} to the nearest integer. Half-way cases are rounded away from zero.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_round(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_round(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const round_descr = {
 		0, 0, 0, 0,
@@ -3248,10 +3082,11 @@ jit_value_t jit_insn_round(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_round, descr_d_d),
 		jit_intrinsic(jit_nfloat_round, descr_D_D)
 	};
-	return apply_unary_arith(func, &round_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &round_descr, value, 0, 1, 0);
 }
 
-jit_value_t jit_insn_sin(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_sin(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const sin_descr = {
 		0, 0, 0, 0,
@@ -3266,10 +3101,11 @@ jit_value_t jit_insn_sin(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_sin, descr_d_d),
 		jit_intrinsic(jit_nfloat_sin, descr_D_D)
 	};
-	return apply_unary_arith(func, &sin_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &sin_descr, value, 0, 1, 0);
 }
 
-jit_value_t jit_insn_sinh(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_sinh(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const sinh_descr = {
 		0, 0, 0, 0,
@@ -3284,10 +3120,11 @@ jit_value_t jit_insn_sinh(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_sinh, descr_d_d),
 		jit_intrinsic(jit_nfloat_sinh, descr_D_D)
 	};
-	return apply_unary_arith(func, &sinh_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &sinh_descr, value, 0, 1, 0);
 }
 
-jit_value_t jit_insn_sqrt(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_sqrt(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const sqrt_descr = {
 		0, 0, 0, 0,
@@ -3302,10 +3139,11 @@ jit_value_t jit_insn_sqrt(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_sqrt, descr_d_d),
 		jit_intrinsic(jit_nfloat_sqrt, descr_D_D)
 	};
-	return apply_unary_arith(func, &sqrt_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &sqrt_descr, value, 0, 1, 0);
 }
 
-jit_value_t jit_insn_tan(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_tan(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const tan_descr = {
 		0, 0, 0, 0,
@@ -3320,10 +3158,11 @@ jit_value_t jit_insn_tan(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_tan, descr_d_d),
 		jit_intrinsic(jit_nfloat_tan, descr_D_D)
 	};
-	return apply_unary_arith(func, &tan_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &tan_descr, value, 0, 1, 0);
 }
 
-jit_value_t jit_insn_tanh(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_tanh(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const tanh_descr = {
 		0, 0, 0, 0,
@@ -3338,7 +3177,7 @@ jit_value_t jit_insn_tanh(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_tanh, descr_d_d),
 		jit_intrinsic(jit_nfloat_tanh, descr_D_D)
 	};
-	return apply_unary_arith(func, &tanh_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &tanh_descr, value, 0, 1, 0);
 }
 
 /*@
@@ -3346,7 +3185,8 @@ jit_value_t jit_insn_tanh(jit_function_t func, jit_value_t value1)
  * Round @var{value1} towards zero.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_trunc(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_trunc(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const trunc_descr = {
 		0, 0, 0, 0,
@@ -3361,7 +3201,7 @@ jit_value_t jit_insn_trunc(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_trunc, descr_d_d),
 		jit_intrinsic(jit_nfloat_trunc, descr_D_D)
 	};
-	return apply_unary_arith(func, &trunc_descr, value1, 0, 1, 0);
+	return apply_unary_arith(func, &trunc_descr, value, 0, 1, 0);
 }
 
 /*@
@@ -3371,7 +3211,8 @@ jit_value_t jit_insn_trunc(jit_function_t func, jit_value_t value1)
  * Test a floating point value for not a number, finite, or infinity.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_is_nan(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_is_nan(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const is_nan_descr = {
 		0, 0, 0, 0,
@@ -3386,10 +3227,11 @@ jit_value_t jit_insn_is_nan(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_is_nan, descr_i_d),
 		jit_intrinsic(jit_nfloat_is_nan, descr_i_D)
 	};
-	return test_float_value(func, &is_nan_descr, value1);
+	return test_float_value(func, &is_nan_descr, value);
 }
 
-jit_value_t jit_insn_is_finite(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_is_finite(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const is_finite_descr = {
 		0, 0, 0, 0,
@@ -3404,10 +3246,11 @@ jit_value_t jit_insn_is_finite(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_is_finite, descr_i_d),
 		jit_intrinsic(jit_nfloat_is_finite, descr_i_D)
 	};
-	return test_float_value(func, &is_finite_descr, value1);
+	return test_float_value(func, &is_finite_descr, value);
 }
 
-jit_value_t jit_insn_is_inf(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_is_inf(jit_function_t func, jit_value_t value)
 {
 	static jit_opcode_descr const is_inf_descr = {
 		0, 0, 0, 0,
@@ -3422,7 +3265,7 @@ jit_value_t jit_insn_is_inf(jit_function_t func, jit_value_t value1)
 		jit_intrinsic(jit_float64_is_inf, descr_i_d),
 		jit_intrinsic(jit_nfloat_is_inf, descr_i_D)
 	};
-	return test_float_value(func, &is_inf_descr, value1);
+	return test_float_value(func, &is_inf_descr, value);
 }
 
 /*@
@@ -3434,90 +3277,91 @@ jit_value_t jit_insn_is_inf(jit_function_t func, jit_value_t value1)
  * specified values.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_abs(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_abs(jit_function_t func, jit_value_t value)
 {
 	int oper;
 	void *intrinsic;
 	const char *name;
-	jit_type_t result_type;
 	const jit_intrinsic_descr_t *descr;
 
-	/* Bail out if the parameters are invalid */
-	if(!value1)
+	jit_type_t type = jit_type_promote_int(jit_type_normalize(value->type));
+	switch (type->kind)
 	{
+	case JIT_TYPE_INT:
+		oper = JIT_OP_IABS;
+		intrinsic = (void *) jit_int_abs;
+		name = "jit_int_abs";
+		descr = &descr_i_i;
+		break;
+	case JIT_TYPE_UINT:
+		oper = 0;
+		intrinsic = (void *) 0;
+		name = 0;
+		descr = 0;
+		break;
+	case JIT_TYPE_LONG:
+		oper = JIT_OP_LABS;
+		intrinsic = (void *) jit_long_abs;
+		name = "jit_long_abs";
+		descr = &descr_l_l;
+		break;
+	case JIT_TYPE_ULONG:
+		oper = 0;
+		intrinsic = (void *) 0;
+		name = 0;
+		descr = 0;
+		break;
+	case JIT_TYPE_FLOAT32:
+		oper = JIT_OP_FABS;
+		intrinsic = (void *) jit_float32_abs;
+		name = "jit_float32_abs";
+		descr = &descr_f_f;
+		break;
+	case JIT_TYPE_FLOAT64:
+		oper = JIT_OP_DABS;
+		intrinsic = (void *) jit_float64_abs;
+		name = "jit_float64_abs";
+		descr = &descr_d_d;
+		break;
+	case JIT_TYPE_NFLOAT:
+		oper = JIT_OP_NFABS;
+		intrinsic = (void *) jit_nfloat_abs;
+		name = "jit_nfloat_abs";
+		descr = &descr_D_D;
+		break;
+	default:
 		return 0;
 	}
 
-	result_type = jit_type_promote_int(jit_type_normalize(value1->type));
-	if(result_type == jit_type_int)
+	value = jit_insn_convert(func, value, type, 0);
+	if(!value)
 	{
-		oper = JIT_OP_IABS;
-		intrinsic = (void *)jit_int_abs;
-		name = "jit_int_abs";
-		descr = &descr_i_i;
+		return 0;
 	}
-	else if(result_type == jit_type_uint)
-	{
-		oper = 0;
-		intrinsic = (void *)0;
-		name = 0;
-		descr = 0;
-	}
-	else if(result_type == jit_type_long)
-	{
-		oper = JIT_OP_LABS;
-		intrinsic = (void *)jit_long_abs;
-		name = "jit_long_abs";
-		descr = &descr_l_l;
-	}
-	else if(result_type == jit_type_ulong)
-	{
-		oper = 0;
-		intrinsic = (void *)0;
-		name = 0;
-		descr = 0;
-	}
-	else if(result_type == jit_type_float32)
-	{
-		oper = JIT_OP_FABS;
-		intrinsic = (void *)jit_float32_abs;
-		name = "jit_float32_abs";
-		descr = &descr_f_f;
-	}
-	else if(result_type == jit_type_float64)
-	{
-		oper = JIT_OP_DABS;
-		intrinsic = (void *)jit_float64_abs;
-		name = "jit_float64_abs";
-		descr = &descr_d_d;
-	}
-	else
-	{
-		oper = JIT_OP_NFABS;
-		intrinsic = (void *)jit_nfloat_abs;
-		name = "jit_nfloat_abs";
-		descr = &descr_D_D;
-	}
-
-	value1 = jit_insn_convert(func, value1, result_type, 0);
 	if(!oper)
 	{
 		/* Absolute value of an unsigned value */
-		return value1;
+		return value;
 	}
-	if(_jit_opcode_is_supported(oper))
+	if(jit_value_is_constant(value))
 	{
-		return apply_unary(func, oper, value1, result_type);
+		jit_value_t result = _jit_opcode_apply_unary(func, oper, value, type);
+		if(result)
+		{
+			return result;
+		}
 	}
-	else
+
+	if(!_jit_opcode_is_supported(oper))
 	{
-		return jit_insn_call_intrinsic
-			(func, name, intrinsic, descr, value1, 0);
+		return jit_insn_call_intrinsic(func, name, intrinsic, descr, value, 0);
 	}
+	return apply_unary(func, oper, value, type);
 }
 
-jit_value_t jit_insn_min
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_min(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const min_descr = {
 		JIT_OP_IMIN,
@@ -3538,8 +3382,8 @@ jit_value_t jit_insn_min
 	return apply_arith(func, &min_descr, value1, value2, 0, 0, 0);
 }
 
-jit_value_t jit_insn_max
-		(jit_function_t func, jit_value_t value1, jit_value_t value2)
+jit_value_t
+jit_insn_max(jit_function_t func, jit_value_t value1, jit_value_t value2)
 {
 	static jit_opcode_descr const max_descr = {
 		JIT_OP_IMAX,
@@ -3560,79 +3404,85 @@ jit_value_t jit_insn_max
 	return apply_arith(func, &max_descr, value1, value2, 0, 0, 0);
 }
 
-jit_value_t jit_insn_sign(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_sign(jit_function_t func, jit_value_t value)
 {
 	int oper;
 	void *intrinsic;
 	const char *name;
-	jit_type_t result_type;
 	const jit_intrinsic_descr_t *descr;
+	jit_value_t zero;
 
-	/* Bail out if the parameters are invalid */
-	if(!value1)
+	jit_type_t type = jit_type_promote_int(jit_type_normalize(value->type));
+	switch (type->kind)
 	{
+	case JIT_TYPE_INT:
+		oper = JIT_OP_ISIGN;
+		intrinsic = (void *) jit_int_sign;
+		name = "jit_int_sign";
+		descr = &descr_i_i;
+		break;
+	case JIT_TYPE_UINT:
+		zero = jit_value_create_nint_constant(func, jit_type_uint, 0);
+		if(!zero)
+		{
+			return 0;
+		}
+		return jit_insn_ne(func, value, zero);
+	case JIT_TYPE_LONG:
+		oper = JIT_OP_LSIGN;
+		intrinsic = (void *) jit_long_sign;
+		name = "jit_long_sign";
+		descr = &descr_i_l;
+		break;
+	case JIT_TYPE_ULONG:
+		zero = jit_value_create_long_constant(func, jit_type_ulong, 0);
+		if(!zero)
+		{
+			return 0;
+		}
+		return jit_insn_ne(func, value, zero);
+	case JIT_TYPE_FLOAT32:
+		oper = JIT_OP_FSIGN;
+		intrinsic = (void *) jit_float32_sign;
+		name = "jit_float32_sign";
+		descr = &descr_i_f;
+		break;
+	case JIT_TYPE_FLOAT64:
+		oper = JIT_OP_DSIGN;
+		intrinsic = (void *) jit_float64_sign;
+		name = "jit_float64_sign";
+		descr = &descr_i_d;
+		break;
+	case JIT_TYPE_NFLOAT:
+		oper = JIT_OP_NFSIGN;
+		intrinsic = (void *) jit_nfloat_sign;
+		name = "jit_nfloat_sign";
+		descr = &descr_i_D;
+		break;
+	default:
 		return 0;
 	}
 
-	result_type = jit_type_promote_int(jit_type_normalize(value1->type));
-	if(result_type == jit_type_int)
+	value = jit_insn_convert(func, value, type, 0);
+	if(!value)
 	{
-		oper = JIT_OP_ISIGN;
-		intrinsic = (void *)jit_int_sign;
-		name = "jit_int_sign";
-		descr = &descr_i_i;
+		return 0;
 	}
-	else if(result_type == jit_type_uint)
+	if(jit_value_is_constant(value))
 	{
-		return jit_insn_ne
-			(func, value1,
-			 jit_value_create_nint_constant(func, jit_type_uint, 0));
-	}
-	else if(result_type == jit_type_long)
-	{
-		oper = JIT_OP_LSIGN;
-		intrinsic = (void *)jit_long_sign;
-		name = "jit_long_sign";
-		descr = &descr_i_l;
-	}
-	else if(result_type == jit_type_ulong)
-	{
-		return jit_insn_ne
-			(func, value1,
-			 jit_value_create_long_constant(func, jit_type_ulong, 0));
-	}
-	else if(result_type == jit_type_float32)
-	{
-		oper = JIT_OP_FSIGN;
-		intrinsic = (void *)jit_float32_sign;
-		name = "jit_float32_sign";
-		descr = &descr_i_f;
-	}
-	else if(result_type == jit_type_float64)
-	{
-		oper = JIT_OP_DSIGN;
-		intrinsic = (void *)jit_float64_sign;
-		name = "jit_float64_sign";
-		descr = &descr_i_d;
-	}
-	else
-	{
-		oper = JIT_OP_NFSIGN;
-		intrinsic = (void *)jit_nfloat_sign;
-		name = "jit_nfloat_sign";
-		descr = &descr_i_D;
+		jit_value_t result = _jit_opcode_apply_unary(func, oper, value, type);
+		if(result)
+		{
+			return result;
+		}
 	}
 
-	value1 = jit_insn_convert(func, value1, result_type, 0);
-	if(_jit_opcode_is_supported(oper))
+	if(!_jit_opcode_is_supported(oper))
 	{
-		return apply_unary(func, oper, value1, jit_type_int);
+		return jit_insn_call_intrinsic(func, name, intrinsic, descr, value, 0);
 	}
-	else
-	{
-		return jit_insn_call_intrinsic
-			(func, name, intrinsic, descr, value1, 0);
-	}
+	return apply_unary(func, oper, value, jit_type_int);
 }
 
 /*@
@@ -3641,65 +3491,9 @@ jit_value_t jit_insn_sign(jit_function_t func, jit_value_t value1)
  * to a specific label.  Returns zero if out of memory.
  * @end deftypefun
 @*/
-int jit_insn_branch(jit_function_t func, jit_label_t *label)
+int
+jit_insn_branch(jit_function_t func, jit_label_t *label)
 {
-	jit_insn_t insn;
-	if(!label)
-	{
-		return 0;
-	}
-	if(!_jit_function_ensure_builder(func))
-	{
-		return 0;
-	}
-	if(!jit_insn_flush_defer_pop(func, 0))
-	{
-		return 0;
-	}
-	insn = _jit_block_add_insn(func->builder->current_block);
-	if(!insn)
-	{
-		return 0;
-	}
-	if(*label == jit_label_undefined)
-	{
-		*label = (func->builder->next_label)++;
-	}
-	insn->opcode = (short)JIT_OP_BR;
-	insn->flags = JIT_INSN_DEST_IS_LABEL;
-	insn->dest = (jit_value_t)(*label);
-	func->builder->current_block->ends_in_dead = 1;
-	return jit_insn_new_block(func);
-}
-
-/*@
- * @deftypefun int jit_insn_branch_if (jit_function_t @var{func}, jit_value_t @var{value}, jit_label_t *@var{label})
- * Terminate the current block by branching to a specific label if
- * the specified value is non-zero.  Returns zero if out of memory.
- *
- * If @var{value} refers to a conditional expression that was created
- * by @code{jit_insn_eq}, @code{jit_insn_ne}, etc, then the conditional
- * expression will be replaced by an appropriate conditional branch
- * instruction.
- * @end deftypefun
-@*/
-int jit_insn_branch_if
-		(jit_function_t func, jit_value_t value, jit_label_t *label)
-{
-	jit_insn_t insn;
-	jit_insn_t prev;
-	jit_block_t block;
-	jit_type_t type;
-	int opcode;
-	jit_value_t value1;
-	jit_value_t value2;
-
-	/* Bail out if the parameters are invalid */
-	if(!value || !label)
-	{
-		return 0;
-	}
-
 	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
@@ -3715,7 +3509,53 @@ int jit_insn_branch_if
 	/* Allocate a new label identifier, if necessary */
 	if(*label == jit_label_undefined)
 	{
-		*label = (func->builder->next_label)++;
+		*label = func->builder->next_label++;
+	}
+
+	/* Add a new branch instruction */
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
+	if(!insn)
+	{
+		return 0;
+	}
+	insn->opcode = (short) JIT_OP_BR;
+	insn->flags = JIT_INSN_DEST_IS_LABEL;
+	insn->dest = (jit_value_t) *label;
+	func->builder->current_block->ends_in_dead = 1;
+
+	return jit_insn_new_block(func);
+}
+
+/*@
+ * @deftypefun int jit_insn_branch_if (jit_function_t @var{func}, jit_value_t @var{value}, jit_label_t *@var{label})
+ * Terminate the current block by branching to a specific label if
+ * the specified value is non-zero.  Returns zero if out of memory.
+ *
+ * If @var{value} refers to a conditional expression that was created
+ * by @code{jit_insn_eq}, @code{jit_insn_ne}, etc, then the conditional
+ * expression will be replaced by an appropriate conditional branch
+ * instruction.
+ * @end deftypefun
+@*/
+int
+jit_insn_branch_if(jit_function_t func, jit_value_t value, jit_label_t *label)
+{
+	/* Ensure that we have a function builder */
+	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+
+	/* Flush any stack pops that were deferred previously */
+	if(!jit_insn_flush_defer_pop(func, 0))
+	{
+		return 0;
+	}
+
+	/* Allocate a new label identifier, if necessary */
+	if(*label == jit_label_undefined)
+	{
+		*label = func->builder->next_label++;
 	}
 
 	/* If the condition is constant, then convert it into either
@@ -3733,8 +3573,11 @@ int jit_insn_branch_if
 	}
 
 	/* Determine if we can replace a previous comparison instruction */
-	block = func->builder->current_block;
-	prev = _jit_block_get_last(block);
+	int opcode;
+	jit_value_t value1;
+	jit_value_t value2;
+	jit_block_t block = func->builder->current_block;
+	jit_insn_t prev = _jit_block_get_last(block);
 	if(value->is_temporary && prev && prev->dest == value)
 	{
 		opcode = prev->opcode;
@@ -3742,142 +3585,151 @@ int jit_insn_branch_if
 		{
 			switch(opcode)
 			{
-				case JIT_OP_IEQ:		opcode = JIT_OP_BR_IEQ;      break;
-				case JIT_OP_INE:		opcode = JIT_OP_BR_INE;      break;
-				case JIT_OP_ILT:		opcode = JIT_OP_BR_ILT;      break;
-				case JIT_OP_ILT_UN:		opcode = JIT_OP_BR_ILT_UN;   break;
-				case JIT_OP_ILE:		opcode = JIT_OP_BR_ILE;      break;
-				case JIT_OP_ILE_UN:		opcode = JIT_OP_BR_ILE_UN;   break;
-				case JIT_OP_IGT:		opcode = JIT_OP_BR_IGT;      break;
-				case JIT_OP_IGT_UN:		opcode = JIT_OP_BR_IGT_UN;   break;
-				case JIT_OP_IGE:		opcode = JIT_OP_BR_IGE;      break;
-				case JIT_OP_IGE_UN:		opcode = JIT_OP_BR_IGE_UN;   break;
-				case JIT_OP_LEQ:		opcode = JIT_OP_BR_LEQ;      break;
-				case JIT_OP_LNE:		opcode = JIT_OP_BR_LNE;      break;
-				case JIT_OP_LLT:		opcode = JIT_OP_BR_LLT;      break;
-				case JIT_OP_LLT_UN:		opcode = JIT_OP_BR_LLT_UN;   break;
-				case JIT_OP_LLE:		opcode = JIT_OP_BR_LLE;      break;
-				case JIT_OP_LLE_UN:		opcode = JIT_OP_BR_LLE_UN;   break;
-				case JIT_OP_LGT:		opcode = JIT_OP_BR_LGT;      break;
-				case JIT_OP_LGT_UN:		opcode = JIT_OP_BR_LGT_UN;   break;
-				case JIT_OP_LGE:		opcode = JIT_OP_BR_LGE;      break;
-				case JIT_OP_LGE_UN:		opcode = JIT_OP_BR_LGE_UN;   break;
-				case JIT_OP_FEQ:		opcode = JIT_OP_BR_FEQ;      break;
-				case JIT_OP_FNE:		opcode = JIT_OP_BR_FNE;      break;
-				case JIT_OP_FLT:		opcode = JIT_OP_BR_FLT;      break;
-				case JIT_OP_FLE:		opcode = JIT_OP_BR_FLE;      break;
-				case JIT_OP_FGT:		opcode = JIT_OP_BR_FGT;      break;
-				case JIT_OP_FGE:		opcode = JIT_OP_BR_FGE;      break;
-				case JIT_OP_FLT_INV:	opcode = JIT_OP_BR_FLT_INV;  break;
-				case JIT_OP_FLE_INV:	opcode = JIT_OP_BR_FLE_INV;  break;
-				case JIT_OP_FGT_INV:	opcode = JIT_OP_BR_FGT_INV;  break;
-				case JIT_OP_FGE_INV:	opcode = JIT_OP_BR_FGE_INV;  break;
-				case JIT_OP_DEQ:		opcode = JIT_OP_BR_DEQ;      break;
-				case JIT_OP_DNE:		opcode = JIT_OP_BR_DNE;      break;
-				case JIT_OP_DLT:		opcode = JIT_OP_BR_DLT;      break;
-				case JIT_OP_DLE:		opcode = JIT_OP_BR_DLE;      break;
-				case JIT_OP_DGT:		opcode = JIT_OP_BR_DGT;      break;
-				case JIT_OP_DGE:		opcode = JIT_OP_BR_DGE;      break;
-				case JIT_OP_DLT_INV:	opcode = JIT_OP_BR_DLT_INV;  break;
-				case JIT_OP_DLE_INV:	opcode = JIT_OP_BR_DLE_INV;  break;
-				case JIT_OP_DGT_INV:	opcode = JIT_OP_BR_DGT_INV;  break;
-				case JIT_OP_DGE_INV:	opcode = JIT_OP_BR_DGE_INV;  break;
-				case JIT_OP_NFEQ:		opcode = JIT_OP_BR_NFEQ;     break;
-				case JIT_OP_NFNE:		opcode = JIT_OP_BR_NFNE;     break;
-				case JIT_OP_NFLT:		opcode = JIT_OP_BR_NFLT;     break;
-				case JIT_OP_NFLE:		opcode = JIT_OP_BR_NFLE;     break;
-				case JIT_OP_NFGT:		opcode = JIT_OP_BR_NFGT;     break;
-				case JIT_OP_NFGE:		opcode = JIT_OP_BR_NFGE;     break;
-				case JIT_OP_NFLT_INV:	opcode = JIT_OP_BR_NFLT_INV; break;
-				case JIT_OP_NFLE_INV:	opcode = JIT_OP_BR_NFLE_INV; break;
-				case JIT_OP_NFGT_INV:	opcode = JIT_OP_BR_NFGT_INV; break;
-				case JIT_OP_NFGE_INV:	opcode = JIT_OP_BR_NFGE_INV; break;
+			case JIT_OP_IEQ:	opcode = JIT_OP_BR_IEQ;      break;
+			case JIT_OP_INE:	opcode = JIT_OP_BR_INE;      break;
+			case JIT_OP_ILT:	opcode = JIT_OP_BR_ILT;      break;
+			case JIT_OP_ILT_UN:	opcode = JIT_OP_BR_ILT_UN;   break;
+			case JIT_OP_ILE:	opcode = JIT_OP_BR_ILE;      break;
+			case JIT_OP_ILE_UN:	opcode = JIT_OP_BR_ILE_UN;   break;
+			case JIT_OP_IGT:	opcode = JIT_OP_BR_IGT;      break;
+			case JIT_OP_IGT_UN:	opcode = JIT_OP_BR_IGT_UN;   break;
+			case JIT_OP_IGE:	opcode = JIT_OP_BR_IGE;      break;
+			case JIT_OP_IGE_UN:	opcode = JIT_OP_BR_IGE_UN;   break;
+			case JIT_OP_LEQ:	opcode = JIT_OP_BR_LEQ;      break;
+			case JIT_OP_LNE:	opcode = JIT_OP_BR_LNE;      break;
+			case JIT_OP_LLT:	opcode = JIT_OP_BR_LLT;      break;
+			case JIT_OP_LLT_UN:	opcode = JIT_OP_BR_LLT_UN;   break;
+			case JIT_OP_LLE:	opcode = JIT_OP_BR_LLE;      break;
+			case JIT_OP_LLE_UN:	opcode = JIT_OP_BR_LLE_UN;   break;
+			case JIT_OP_LGT:	opcode = JIT_OP_BR_LGT;      break;
+			case JIT_OP_LGT_UN:	opcode = JIT_OP_BR_LGT_UN;   break;
+			case JIT_OP_LGE:	opcode = JIT_OP_BR_LGE;      break;
+			case JIT_OP_LGE_UN:	opcode = JIT_OP_BR_LGE_UN;   break;
+			case JIT_OP_FEQ:	opcode = JIT_OP_BR_FEQ;      break;
+			case JIT_OP_FNE:	opcode = JIT_OP_BR_FNE;      break;
+			case JIT_OP_FLT:	opcode = JIT_OP_BR_FLT;      break;
+			case JIT_OP_FLE:	opcode = JIT_OP_BR_FLE;      break;
+			case JIT_OP_FGT:	opcode = JIT_OP_BR_FGT;      break;
+			case JIT_OP_FGE:	opcode = JIT_OP_BR_FGE;      break;
+			case JIT_OP_FLT_INV:	opcode = JIT_OP_BR_FLT_INV;  break;
+			case JIT_OP_FLE_INV:	opcode = JIT_OP_BR_FLE_INV;  break;
+			case JIT_OP_FGT_INV:	opcode = JIT_OP_BR_FGT_INV;  break;
+			case JIT_OP_FGE_INV:	opcode = JIT_OP_BR_FGE_INV;  break;
+			case JIT_OP_DEQ:	opcode = JIT_OP_BR_DEQ;      break;
+			case JIT_OP_DNE:	opcode = JIT_OP_BR_DNE;      break;
+			case JIT_OP_DLT:	opcode = JIT_OP_BR_DLT;      break;
+			case JIT_OP_DLE:	opcode = JIT_OP_BR_DLE;      break;
+			case JIT_OP_DGT:	opcode = JIT_OP_BR_DGT;      break;
+			case JIT_OP_DGE:	opcode = JIT_OP_BR_DGE;      break;
+			case JIT_OP_DLT_INV:	opcode = JIT_OP_BR_DLT_INV;  break;
+			case JIT_OP_DLE_INV:	opcode = JIT_OP_BR_DLE_INV;  break;
+			case JIT_OP_DGT_INV:	opcode = JIT_OP_BR_DGT_INV;  break;
+			case JIT_OP_DGE_INV:	opcode = JIT_OP_BR_DGE_INV;  break;
+			case JIT_OP_NFEQ:	opcode = JIT_OP_BR_NFEQ;     break;
+			case JIT_OP_NFNE:	opcode = JIT_OP_BR_NFNE;     break;
+			case JIT_OP_NFLT:	opcode = JIT_OP_BR_NFLT;     break;
+			case JIT_OP_NFLE:	opcode = JIT_OP_BR_NFLE;     break;
+			case JIT_OP_NFGT:	opcode = JIT_OP_BR_NFGT;     break;
+			case JIT_OP_NFGE:	opcode = JIT_OP_BR_NFGE;     break;
+			case JIT_OP_NFLT_INV:	opcode = JIT_OP_BR_NFLT_INV; break;
+			case JIT_OP_NFLE_INV:	opcode = JIT_OP_BR_NFLE_INV; break;
+			case JIT_OP_NFGT_INV:	opcode = JIT_OP_BR_NFGT_INV; break;
+			case JIT_OP_NFGE_INV:	opcode = JIT_OP_BR_NFGE_INV; break;
 			}
-			/* Add a new branch instruction */
+
 			/* Save the values from the previous insn because *prev might
 			   become invalid if the call to _jit_block_add_insn triggers
 			   a reallocation of the insns array. */
 			value1 = prev->value1;
 			value2 = prev->value2;
-			insn = _jit_block_add_insn(func->builder->current_block);
+
+			/* Add a new branch instruction */
+			jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 			if(!insn)
 			{
 				return 0;
 			}
-
-			jit_value_ref(func, value1);
-			jit_value_ref(func, value2);
-			insn->opcode = (short)opcode;
+			insn->opcode = (short) opcode;
 			insn->flags = JIT_INSN_DEST_IS_LABEL;
-			insn->dest = (jit_value_t)(*label);
+			insn->dest = (jit_value_t) *label;
 			insn->value1 = value1;
+			jit_value_ref(func, value1);
 			insn->value2 = value2;
+			jit_value_ref(func, value2);
+
 			goto add_block;
 		}
 	}
 
-	/* Coerce the result to something comparable and determine the opcode */
-	type = jit_type_promote_int(jit_type_normalize(value->type));
-	if(type == jit_type_int || type == jit_type_uint)
-	{
-		opcode = JIT_OP_BR_ITRUE;
-		value2 = 0;
-	}
-	else if(type == jit_type_long || type == jit_type_ulong)
-	{
-		opcode = JIT_OP_BR_LTRUE;
-		value2 = 0;
-	}
-	else if(type == jit_type_float32)
-	{
-		opcode = JIT_OP_BR_FNE;
-		value2 = jit_value_create_float32_constant
-			(func, jit_type_float32, (jit_float32)0.0);
-		if(!value2)
-		{
-			return 0;
-		}
-	}
-	else if(type == jit_type_float64)
-	{
-		opcode = JIT_OP_BR_DNE;
-		value2 = jit_value_create_float64_constant
-			(func, jit_type_float64, (jit_float64)0.0);
-		if(!value2)
-		{
-			return 0;
-		}
-	}
-	else
-	{
-		type = jit_type_nfloat;
-		opcode = JIT_OP_BR_NFNE;
-		value2 = jit_value_create_nfloat_constant
-			(func, jit_type_nfloat, (jit_nfloat)0.0);
-		if(!value2)
-		{
-			return 0;
-		}
-	}
+	/* Coerce the result to something comparable */
+	jit_type_t type = jit_type_promote_int(jit_type_normalize(value->type));
 	value = jit_insn_convert(func, value, type, 0);
 	if(!value)
 	{
 		return 0;
 	}
 
+	/* Determine the opcode */
+	switch(type->kind)
+	{
+	case JIT_TYPE_INT:
+	case JIT_TYPE_UINT:
+		opcode = JIT_OP_BR_ITRUE;
+		value2 = 0;
+		break;
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+		opcode = JIT_OP_BR_LTRUE;
+		value2 = 0;
+		break;
+	case JIT_TYPE_FLOAT32:
+		opcode = JIT_OP_BR_FNE;
+		value2 = jit_value_create_float32_constant(func, jit_type_float32,
+							   (jit_float32) 0.0);
+		if(!value2)
+		{
+			return 0;
+		}
+		break;
+	case JIT_TYPE_FLOAT64:
+		opcode = JIT_OP_BR_DNE;
+		value2 = jit_value_create_float64_constant(func, jit_type_float64,
+							   (jit_float64) 0.0);
+		if(!value2)
+		{
+			return 0;
+		}
+		break;
+	case JIT_TYPE_NFLOAT:
+		type = jit_type_nfloat;
+		opcode = JIT_OP_BR_NFNE;
+		value2 = jit_value_create_nfloat_constant(func, jit_type_nfloat,
+							  (jit_nfloat) 0.0);
+		if(!value2)
+		{
+			return 0;
+		}
+		break;
+	default:
+		return 0;
+	}
+
 	/* Add a new branch instruction */
-	insn = _jit_block_add_insn(func->builder->current_block);
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	jit_value_ref(func, value);
-	jit_value_ref(func, value2);
-	insn->opcode = (short)opcode;
+	insn->opcode = (short) opcode;
 	insn->flags = JIT_INSN_DEST_IS_LABEL;
-	insn->dest = (jit_value_t)(*label);
+	insn->dest = (jit_value_t) *label;
 	insn->value1 = value;
-	insn->value2 = value2;
+	jit_value_ref(func, value);
+	if(value2)
+	{
+		insn->value2 = value2;
+		jit_value_ref(func, value2);
+	}
 
 add_block:
 	/* Add a new block for the fall-through case */
@@ -3895,23 +3747,9 @@ add_block:
  * instruction, instead of a value load.
  * @end deftypefun
 @*/
-int jit_insn_branch_if_not
-		(jit_function_t func, jit_value_t value, jit_label_t *label)
+int
+jit_insn_branch_if_not(jit_function_t func, jit_value_t value, jit_label_t *label)
 {
-	jit_insn_t insn;
-	jit_insn_t prev;
-	jit_block_t block;
-	jit_type_t type;
-	int opcode;
-	jit_value_t value1;
-	jit_value_t value2;
-
-	/* Bail out if the parameters are invalid */
-	if(!value || !label)
-	{
-		return 0;
-	}
-
 	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
@@ -3927,7 +3765,7 @@ int jit_insn_branch_if_not
 	/* Allocate a new label identifier, if necessary */
 	if(*label == jit_label_undefined)
 	{
-		*label = (func->builder->next_label)++;
+		*label = func->builder->next_label++;
 	}
 
 	/* If the condition is constant, then convert it into either
@@ -3945,8 +3783,11 @@ int jit_insn_branch_if_not
 	}
 
 	/* Determine if we can duplicate a previous comparison instruction */
-	block = func->builder->current_block;
-	prev = _jit_block_get_last(block);
+	int opcode;
+	jit_value_t value1;
+	jit_value_t value2;
+	jit_block_t block = func->builder->current_block;	
+	jit_insn_t prev = _jit_block_get_last(block);
 	if(value->is_temporary && prev && prev->dest == value)
 	{
 		opcode = prev->opcode;
@@ -3954,143 +3795,150 @@ int jit_insn_branch_if_not
 		{
 			switch(opcode)
 			{
-				case JIT_OP_IEQ:		opcode = JIT_OP_BR_INE;      break;
-				case JIT_OP_INE:		opcode = JIT_OP_BR_IEQ;      break;
-				case JIT_OP_ILT:		opcode = JIT_OP_BR_IGE;      break;
-				case JIT_OP_ILT_UN:		opcode = JIT_OP_BR_IGE_UN;   break;
-				case JIT_OP_ILE:		opcode = JIT_OP_BR_IGT;      break;
-				case JIT_OP_ILE_UN:		opcode = JIT_OP_BR_IGT_UN;   break;
-				case JIT_OP_IGT:		opcode = JIT_OP_BR_ILE;      break;
-				case JIT_OP_IGT_UN:		opcode = JIT_OP_BR_ILE_UN;   break;
-				case JIT_OP_IGE:		opcode = JIT_OP_BR_ILT;      break;
-				case JIT_OP_IGE_UN:		opcode = JIT_OP_BR_ILT_UN;   break;
-				case JIT_OP_LEQ:		opcode = JIT_OP_BR_LNE;      break;
-				case JIT_OP_LNE:		opcode = JIT_OP_BR_LEQ;      break;
-				case JIT_OP_LLT:		opcode = JIT_OP_BR_LGE;      break;
-				case JIT_OP_LLT_UN:		opcode = JIT_OP_BR_LGE_UN;   break;
-				case JIT_OP_LLE:		opcode = JIT_OP_BR_LGT;      break;
-				case JIT_OP_LLE_UN:		opcode = JIT_OP_BR_LGT_UN;   break;
-				case JIT_OP_LGT:		opcode = JIT_OP_BR_LLE;      break;
-				case JIT_OP_LGT_UN:		opcode = JIT_OP_BR_LLE_UN;   break;
-				case JIT_OP_LGE:		opcode = JIT_OP_BR_LLT;      break;
-				case JIT_OP_LGE_UN:		opcode = JIT_OP_BR_LLT_UN;   break;
-				case JIT_OP_FEQ:		opcode = JIT_OP_BR_FNE;      break;
-				case JIT_OP_FNE:		opcode = JIT_OP_BR_FEQ;      break;
-				case JIT_OP_FLT:		opcode = JIT_OP_BR_FGE_INV;  break;
-				case JIT_OP_FLE:		opcode = JIT_OP_BR_FGT_INV;  break;
-				case JIT_OP_FGT:		opcode = JIT_OP_BR_FLE_INV;  break;
-				case JIT_OP_FGE:		opcode = JIT_OP_BR_FLT_INV;  break;
-				case JIT_OP_FLT_INV:	opcode = JIT_OP_BR_FGE;      break;
-				case JIT_OP_FLE_INV:	opcode = JIT_OP_BR_FGT;      break;
-				case JIT_OP_FGT_INV:	opcode = JIT_OP_BR_FLE;      break;
-				case JIT_OP_FGE_INV:	opcode = JIT_OP_BR_FLT;      break;
-				case JIT_OP_DEQ:		opcode = JIT_OP_BR_DNE;      break;
-				case JIT_OP_DNE:		opcode = JIT_OP_BR_DEQ;      break;
-				case JIT_OP_DLT:		opcode = JIT_OP_BR_DGE_INV;  break;
-				case JIT_OP_DLE:		opcode = JIT_OP_BR_DGT_INV;  break;
-				case JIT_OP_DGT:		opcode = JIT_OP_BR_DLE_INV;  break;
-				case JIT_OP_DGE:		opcode = JIT_OP_BR_DLT_INV;  break;
-				case JIT_OP_DLT_INV:	opcode = JIT_OP_BR_DGE;      break;
-				case JIT_OP_DLE_INV:	opcode = JIT_OP_BR_DGT;      break;
-				case JIT_OP_DGT_INV:	opcode = JIT_OP_BR_DLE;      break;
-				case JIT_OP_DGE_INV:	opcode = JIT_OP_BR_DLT;      break;
-				case JIT_OP_NFEQ:		opcode = JIT_OP_BR_NFNE;     break;
-				case JIT_OP_NFNE:		opcode = JIT_OP_BR_NFEQ;     break;
-				case JIT_OP_NFLT:		opcode = JIT_OP_BR_NFGE_INV; break;
-				case JIT_OP_NFLE:		opcode = JIT_OP_BR_NFGT_INV; break;
-				case JIT_OP_NFGT:		opcode = JIT_OP_BR_NFLE_INV; break;
-				case JIT_OP_NFGE:		opcode = JIT_OP_BR_NFLT_INV; break;
-				case JIT_OP_NFLT_INV:	opcode = JIT_OP_BR_NFGE;     break;
-				case JIT_OP_NFLE_INV:	opcode = JIT_OP_BR_NFGT;     break;
-				case JIT_OP_NFGT_INV:	opcode = JIT_OP_BR_NFLE;     break;
-				case JIT_OP_NFGE_INV:	opcode = JIT_OP_BR_NFLT;     break;
+			case JIT_OP_IEQ:	opcode = JIT_OP_BR_INE;      break;
+			case JIT_OP_INE:	opcode = JIT_OP_BR_IEQ;      break;
+			case JIT_OP_ILT:	opcode = JIT_OP_BR_IGE;      break;
+			case JIT_OP_ILT_UN:	opcode = JIT_OP_BR_IGE_UN;   break;
+			case JIT_OP_ILE:	opcode = JIT_OP_BR_IGT;      break;
+			case JIT_OP_ILE_UN:	opcode = JIT_OP_BR_IGT_UN;   break;
+			case JIT_OP_IGT:	opcode = JIT_OP_BR_ILE;      break;
+			case JIT_OP_IGT_UN:	opcode = JIT_OP_BR_ILE_UN;   break;
+			case JIT_OP_IGE:	opcode = JIT_OP_BR_ILT;      break;
+			case JIT_OP_IGE_UN:	opcode = JIT_OP_BR_ILT_UN;   break;
+			case JIT_OP_LEQ:	opcode = JIT_OP_BR_LNE;      break;
+			case JIT_OP_LNE:	opcode = JIT_OP_BR_LEQ;      break;
+			case JIT_OP_LLT:	opcode = JIT_OP_BR_LGE;      break;
+			case JIT_OP_LLT_UN:	opcode = JIT_OP_BR_LGE_UN;   break;
+			case JIT_OP_LLE:	opcode = JIT_OP_BR_LGT;      break;
+			case JIT_OP_LLE_UN:	opcode = JIT_OP_BR_LGT_UN;   break;
+			case JIT_OP_LGT:	opcode = JIT_OP_BR_LLE;      break;
+			case JIT_OP_LGT_UN:	opcode = JIT_OP_BR_LLE_UN;   break;
+			case JIT_OP_LGE:	opcode = JIT_OP_BR_LLT;      break;
+			case JIT_OP_LGE_UN:	opcode = JIT_OP_BR_LLT_UN;   break;
+			case JIT_OP_FEQ:	opcode = JIT_OP_BR_FNE;      break;
+			case JIT_OP_FNE:	opcode = JIT_OP_BR_FEQ;      break;
+			case JIT_OP_FLT:	opcode = JIT_OP_BR_FGE_INV;  break;
+			case JIT_OP_FLE:	opcode = JIT_OP_BR_FGT_INV;  break;
+			case JIT_OP_FGT:	opcode = JIT_OP_BR_FLE_INV;  break;
+			case JIT_OP_FGE:	opcode = JIT_OP_BR_FLT_INV;  break;
+			case JIT_OP_FLT_INV:	opcode = JIT_OP_BR_FGE;      break;
+			case JIT_OP_FLE_INV:	opcode = JIT_OP_BR_FGT;      break;
+			case JIT_OP_FGT_INV:	opcode = JIT_OP_BR_FLE;      break;
+			case JIT_OP_FGE_INV:	opcode = JIT_OP_BR_FLT;      break;
+			case JIT_OP_DEQ:	opcode = JIT_OP_BR_DNE;      break;
+			case JIT_OP_DNE:	opcode = JIT_OP_BR_DEQ;      break;
+			case JIT_OP_DLT:	opcode = JIT_OP_BR_DGE_INV;  break;
+			case JIT_OP_DLE:	opcode = JIT_OP_BR_DGT_INV;  break;
+			case JIT_OP_DGT:	opcode = JIT_OP_BR_DLE_INV;  break;
+			case JIT_OP_DGE:	opcode = JIT_OP_BR_DLT_INV;  break;
+			case JIT_OP_DLT_INV:	opcode = JIT_OP_BR_DGE;      break;
+			case JIT_OP_DLE_INV:	opcode = JIT_OP_BR_DGT;      break;
+			case JIT_OP_DGT_INV:	opcode = JIT_OP_BR_DLE;      break;
+			case JIT_OP_DGE_INV:	opcode = JIT_OP_BR_DLT;      break;
+			case JIT_OP_NFEQ:	opcode = JIT_OP_BR_NFNE;     break;
+			case JIT_OP_NFNE:	opcode = JIT_OP_BR_NFEQ;     break;
+			case JIT_OP_NFLT:	opcode = JIT_OP_BR_NFGE_INV; break;
+			case JIT_OP_NFLE:	opcode = JIT_OP_BR_NFGT_INV; break;
+			case JIT_OP_NFGT:	opcode = JIT_OP_BR_NFLE_INV; break;
+			case JIT_OP_NFGE:	opcode = JIT_OP_BR_NFLT_INV; break;
+			case JIT_OP_NFLT_INV:	opcode = JIT_OP_BR_NFGE;     break;
+			case JIT_OP_NFLE_INV:	opcode = JIT_OP_BR_NFGT;     break;
+			case JIT_OP_NFGT_INV:	opcode = JIT_OP_BR_NFLE;     break;
+			case JIT_OP_NFGE_INV:	opcode = JIT_OP_BR_NFLT;     break;
 			}
 
-			/* Add a new branch instruction */
 			/* Save the values from the previous insn because *prev might
 			   become invalid if the call to _jit_block_add_insn triggers
 			   a reallocation of the insns array. */
 			value1 = prev->value1;
 			value2 = prev->value2;
-			insn = _jit_block_add_insn(func->builder->current_block);
+
+			/* Add a new branch instruction */
+			jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 			if(!insn)
 			{
 				return 0;
 			}
-
-			jit_value_ref(func, value1);
-			jit_value_ref(func, value2);
-			insn->opcode = (short)opcode;
+			insn->opcode = (short) opcode;
 			insn->flags = JIT_INSN_DEST_IS_LABEL;
-			insn->dest = (jit_value_t)(*label);
+			insn->dest = (jit_value_t) *label;
 			insn->value1 = value1;
+			jit_value_ref(func, value1);
 			insn->value2 = value2;
+			jit_value_ref(func, value2);
+
 			goto add_block;
 		}
 	}
 
-	/* Coerce the result to something comparable and determine the opcode */
-	type = jit_type_promote_int(jit_type_normalize(value->type));
-	if(type == jit_type_int || type == jit_type_uint)
-	{
-		opcode = JIT_OP_BR_IFALSE;
-		value2 = 0;
-	}
-	else if(type == jit_type_long || type == jit_type_ulong)
-	{
-		opcode = JIT_OP_BR_LFALSE;
-		value2 = 0;
-	}
-	else if(type == jit_type_float32)
-	{
-		opcode = JIT_OP_BR_FEQ;
-		value2 = jit_value_create_float32_constant
-			(func, jit_type_float32, (jit_float32)0.0);
-		if(!value2)
-		{
-			return 0;
-		}
-	}
-	else if(type == jit_type_float64)
-	{
-		opcode = JIT_OP_BR_DEQ;
-		value2 = jit_value_create_float64_constant
-			(func, jit_type_float64, (jit_float64)0.0);
-		if(!value2)
-		{
-			return 0;
-		}
-	}
-	else
-	{
-		type = jit_type_nfloat;
-		opcode = JIT_OP_BR_NFEQ;
-		value2 = jit_value_create_nfloat_constant
-			(func, jit_type_nfloat, (jit_nfloat)0.0);
-		if(!value2)
-		{
-			return 0;
-		}
-	}
+	/* Coerce the result to something comparable */
+	jit_type_t type = jit_type_promote_int(jit_type_normalize(value->type));
 	value = jit_insn_convert(func, value, type, 0);
 	if(!value)
 	{
 		return 0;
 	}
 
+	/* Determine the opcode */
+	switch(type->kind)
+	{
+	case JIT_TYPE_INT:
+	case JIT_TYPE_UINT:
+		opcode = JIT_OP_BR_IFALSE;
+		value2 = 0;
+		break;
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+		opcode = JIT_OP_BR_LFALSE;
+		value2 = 0;
+		break;
+	case JIT_TYPE_FLOAT32:
+		opcode = JIT_OP_BR_FEQ;
+		value2 = jit_value_create_float32_constant(func, jit_type_float32,
+							   (jit_float32) 0.0);
+		if(!value2)
+		{
+			return 0;
+		}
+		break;
+	case JIT_TYPE_FLOAT64:
+		opcode = JIT_OP_BR_DEQ;
+		value2 = jit_value_create_float64_constant(func, jit_type_float64,
+							   (jit_float64) 0.0);
+		if(!value2)
+		{
+			return 0;
+		}
+		break;
+	case JIT_TYPE_NFLOAT:
+		opcode = JIT_OP_BR_NFEQ;
+		value2 = jit_value_create_nfloat_constant(func, jit_type_nfloat,
+							  (jit_nfloat) 0.0);
+		if(!value2)
+		{
+			return 0;
+		}
+		break;
+	default:
+		return 0;
+	}
+
 	/* Add a new branch instruction */
-	insn = _jit_block_add_insn(func->builder->current_block);
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	jit_value_ref(func, value);
-	jit_value_ref(func, value2);
-	insn->opcode = (short)opcode;
+	insn->opcode = (short) opcode;
 	insn->flags = JIT_INSN_DEST_IS_LABEL;
-	insn->dest = (jit_value_t)(*label);
+	insn->dest = (jit_value_t) *label;
 	insn->value1 = value;
-	insn->value2 = value2;
+	jit_value_ref(func, value);
+	if(value2)
+	{
+		insn->value2 = value2;
+		jit_value_ref(func, value2);
+	}
 
 add_block:
 	/* Add a new block for the fall-through case */
@@ -4105,18 +3953,12 @@ add_block:
  * replaced with a newly allocated label.
  * @end deftypefun
 @*/
-int jit_insn_jump_table
-	(jit_function_t func, jit_value_t value,
-	 jit_label_t *labels, unsigned int num_labels)
+int
+jit_insn_jump_table(jit_function_t func, jit_value_t value,
+		    jit_label_t *labels, unsigned int num_labels)
 {
-	jit_insn_t insn;
-	unsigned int index;
-	jit_label_t *new_labels;
-	jit_value_t value_labels;
-	jit_value_t value_num_labels;
-
 	/* Bail out if the parameters are invalid */
-	if(!value || !labels || !num_labels)
+	if(!num_labels)
 	{
 		return 0;
 	}
@@ -4134,11 +3976,12 @@ int jit_insn_jump_table
 	}
 
 	/* Allocate new label identifiers, if necessary */
+	unsigned int index;
 	for(index = 0; index < num_labels; index++)
 	{
 		if(labels[index] == jit_label_undefined)
 		{
-			labels[index] = (func->builder->next_label)++;
+			labels[index] = func->builder->next_label++;
 		}
 	}
 
@@ -4157,7 +4000,7 @@ int jit_insn_jump_table
 		}
 	}
 
-	new_labels = jit_malloc(num_labels * sizeof(jit_label_t));
+	jit_label_t *new_labels = jit_malloc(num_labels * sizeof(jit_label_t));
 	if(!new_labels)
 	{
 		return 0;
@@ -4167,7 +4010,8 @@ int jit_insn_jump_table
 		new_labels[index] = labels[index];
 	}
 
-	value_labels = jit_value_create_nint_constant(func, jit_type_void_ptr, (jit_nint) new_labels);
+	jit_value_t value_labels =
+		jit_value_create_nint_constant(func, jit_type_void_ptr, (jit_nint) new_labels);
 	if(!value_labels)
 	{
 		jit_free(new_labels);
@@ -4175,7 +4019,8 @@ int jit_insn_jump_table
 	}
 	value_labels->free_address = 1;
 
-	value_num_labels = jit_value_create_nint_constant(func, jit_type_uint, num_labels);
+	jit_value_t value_num_labels =
+		jit_value_create_nint_constant(func, jit_type_uint, num_labels);
 	if(!value_num_labels)
 	{
 		_jit_value_free(value_labels);
@@ -4183,16 +4028,15 @@ int jit_insn_jump_table
 	}
 
 	/* Add a new branch instruction */
-	insn = _jit_block_add_insn(func->builder->current_block);
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	jit_value_ref(func, value);
-
 	insn->opcode = JIT_OP_JUMP_TABLE;
 	insn->flags = JIT_INSN_DEST_IS_VALUE;
 	insn->dest = value;
+	jit_value_ref(func, value);
 	insn->value1 = value_labels;
 	insn->value2 = value_num_labels;
 
@@ -4205,25 +4049,20 @@ int jit_insn_jump_table
  * Get the address of a value into a new temporary.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_address_of(jit_function_t func, jit_value_t value1)
+jit_value_t
+jit_insn_address_of(jit_function_t func, jit_value_t value)
 {
-	jit_type_t type;
-	jit_value_t result;
-	if(!value1)
+	if(jit_value_is_constant(value))
 	{
 		return 0;
 	}
-	if(jit_value_is_constant(value1))
-	{
-		return 0;
-	}
-	type = jit_type_create_pointer(jit_value_get_type(value1), 1);
+	jit_type_t type = jit_type_create_pointer(jit_value_get_type(value), 1);
 	if(!type)
 	{
 		return 0;
 	}
-	jit_value_set_addressable(value1);
-	result = apply_unary(func, JIT_OP_ADDRESS_OF, value1, type);
+	jit_value_set_addressable(value);
+	jit_value_t result = apply_unary(func, JIT_OP_ADDRESS_OF, value, type);
 	jit_type_free(type);
 	return result;
 }
@@ -4235,37 +4074,41 @@ jit_value_t jit_insn_address_of(jit_function_t func, jit_value_t value1)
  * was actually thrown.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_address_of_label(jit_function_t func, jit_label_t *label)
+jit_value_t
+jit_insn_address_of_label(jit_function_t func, jit_label_t *label)
 {
-	jit_value_t dest;
-	jit_insn_t insn;
-	if(!_jit_function_ensure_builder(func) || !label)
+	/* Ensure that we have a function builder */
+	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
+
+	/* Allocate a new label identifier, if necessary */
 	if(*label == jit_label_undefined)
 	{
-		*label = (func->builder->next_label)++;
+		*label = func->builder->next_label++;
 	}
 	if(!_jit_block_record_label_flags(func, *label, JIT_LABEL_ADDRESS_OF))
 	{
 		return 0;
 	}
 
-	insn = _jit_block_add_insn(func->builder->current_block);
+	/* Add a new address-of-label instruction */
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	dest = jit_value_create(func, jit_type_void_ptr);
+	jit_value_t dest = jit_value_create(func, jit_type_void_ptr);
 	if(!dest)
 	{
 		return 0;
 	}
-	insn->opcode = (short)JIT_OP_ADDRESS_OF_LABEL;
+	insn->opcode = (short) JIT_OP_ADDRESS_OF_LABEL;
 	insn->flags = JIT_INSN_VALUE1_IS_LABEL;
 	insn->dest = dest;
-	insn->value1 = (jit_value_t)(*label);
+	insn->value1 = (jit_value_t) *label;
+
 	return dest;
 }
 
@@ -4274,16 +4117,17 @@ jit_value_t jit_insn_address_of_label(jit_function_t func, jit_label_t *label)
  */
 typedef struct jit_convert_info
 {
-	int			cvt1;
+	int		cvt1;
 	jit_type_t	type1;
-	int			cvt2;
+	int		cvt2;
 	jit_type_t	type2;
-	int			cvt3;
+	int		cvt3;
 	jit_type_t	type3;
 
 } jit_convert_info_t;
-#define	CVT(opcode,name) opcode, (jit_type_t)&_jit_type_##name##_def
-#define	CVT_NONE		 0, 0
+
+#define	CVT(opcode,name)	opcode, (jit_type_t) &_jit_type_##name##_def
+#define	CVT_NONE		0, 0
 
 /*
  * Intrinsic equivalents for the conversion opcodes.
@@ -4295,17 +4139,21 @@ typedef struct jit_convert_intrinsic
 	jit_intrinsic_descr_t descr;
 
 } jit_convert_intrinsic_t;
-#define	CVT_INTRINSIC_NULL	\
+
+#define	CVT_INTRINSIC_NULL				\
 	{0, 0, {0, 0, 0, 0}}
-#define	CVT_INTRINSIC(name,intype,outtype)	\
-	{#name, (void *)name, \
-	 {(jit_type_t)&_jit_type_##outtype##_def, 0, \
-	  (jit_type_t)&_jit_type_##intype##_def, 0}}
-#define	CVT_INTRINSIC_CHECK(name,intype,outtype)	\
-	{#name, (void *)name, \
-	 {(jit_type_t)&_jit_type_int_def, \
-	  (jit_type_t)&_jit_type_##outtype##_def, \
-	  (jit_type_t)&_jit_type_##intype##_def, 0}}
+
+#define	CVT_INTRINSIC(name, intype, outtype)		\
+	{ #name, (void *) name, 			\
+	  { (jit_type_t) &_jit_type_##outtype##_def, 0, \
+	    (jit_type_t) &_jit_type_##intype##_def, 0 } }
+
+#define	CVT_INTRINSIC_CHECK(name, intype, outtype)	\
+	{ #name, (void *) name,				\
+	  { (jit_type_t) &_jit_type_int_def,		\
+	    (jit_type_t) &_jit_type_##outtype##_def, 	\
+	    (jit_type_t) &_jit_type_##intype##_def, 0 } }
+
 static jit_convert_intrinsic_t const convert_intrinsics[] = {
 	CVT_INTRINSIC(jit_int_to_sbyte, int, int),
 	CVT_INTRINSIC(jit_int_to_ubyte, int, int),
@@ -4383,9 +4231,9 @@ static jit_convert_intrinsic_t const convert_intrinsics[] = {
 /*
  * Apply a unary conversion operator.
  */
-static jit_value_t apply_unary_conversion
-		(jit_function_t func, int oper, jit_value_t value1,
-		 jit_type_t result_type)
+static jit_value_t
+apply_conversion(jit_function_t func, int oper, jit_value_t value,
+		       jit_type_t result_type)
 {
 	/* Set the "may_throw" flag if the conversion may throw an exception */
 	if(convert_intrinsics[oper - 1].descr.ptr_result_type)
@@ -4396,14 +4244,14 @@ static jit_value_t apply_unary_conversion
 	/* Bail out early if the conversion opcode is supported by the back end */
 	if(_jit_opcode_is_supported(oper))
 	{
-		return apply_unary(func, oper, value1, result_type);
+		return apply_unary(func, oper, value, result_type);
 	}
 
 	/* Call the appropriate intrinsic method */
-	return jit_insn_call_intrinsic
-		(func, convert_intrinsics[oper - 1].name,
-		 convert_intrinsics[oper - 1].func,
-		 &(convert_intrinsics[oper - 1].descr), value1, 0);
+	return jit_insn_call_intrinsic(func, convert_intrinsics[oper - 1].name,
+				       convert_intrinsics[oper - 1].func,
+				       &convert_intrinsics[oper - 1].descr,
+				       value, 0);
 }
 
 /*@
@@ -4412,21 +4260,13 @@ static jit_value_t apply_unary_conversion
  * overflow checking.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
-			     jit_type_t type, int overflow_check)
+jit_value_t
+jit_insn_convert(jit_function_t func, jit_value_t value, jit_type_t type,
+		 int overflow_check)
 {
-	jit_type_t vtype;
-	const jit_convert_info_t *opcode_map;
-
-	/* Bail out if we previously ran out of memory on this function */
-	if(!value)
-	{
-		return 0;
-	}
-
 	/* Normalize the source and destination types */
+	jit_type_t vtype = jit_type_normalize(value->type);
 	type = jit_type_normalize(type);
-	vtype = jit_type_normalize(value->type);
 
 	/* If the types are identical, then return the source value as-is */
 	if(type == vtype)
@@ -4440,8 +4280,7 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 	{
 		jit_constant_t const_value;
 		const_value = jit_value_get_constant(value);
-		if(jit_constant_convert(&const_value, &const_value,
-					type, overflow_check))
+		if(jit_constant_convert(&const_value, &const_value, type, overflow_check))
 		{
 			return jit_value_create_constant(func, &const_value);
 		}
@@ -4452,717 +4291,722 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 	vtype = jit_type_promote_int(vtype);
 
 	/* Determine how to perform the conversion */
-	opcode_map = 0;
+	const jit_convert_info_t *opcode_map = 0;
 	switch(type->kind)
 	{
-		case JIT_TYPE_SBYTE:
-		{
-			/* Convert the value into a signed byte */
-			static jit_convert_info_t const to_sbyte[] = {
-				/* from signed byte */
-				/* from signed short */
-				/* from signed int */
-				{CVT(JIT_OP_TRUNC_SBYTE, sbyte),
-				 	CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_SBYTE, sbyte),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from unsigned byte */
-				/* from unsigned short */
-				/* from unsigned int */
-				{CVT(JIT_OP_TRUNC_SBYTE, sbyte),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_INT, int),
-				 	CVT(JIT_OP_CHECK_SBYTE, sbyte),
-					CVT_NONE},
-				/* from signed long */
-				{CVT(JIT_OP_LOW_WORD, int),
-					CVT(JIT_OP_TRUNC_SBYTE, sbyte),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
-				 	CVT(JIT_OP_CHECK_SBYTE, sbyte),
-					CVT_NONE},
-				/* from unsigned long */
-				{CVT(JIT_OP_LOW_WORD, int),
-					CVT(JIT_OP_TRUNC_SBYTE, sbyte),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
-				 	CVT(JIT_OP_CHECK_INT, int),
-					CVT(JIT_OP_CHECK_SBYTE, sbyte)},
-				/* from 32-bit float */
-				{CVT(JIT_OP_FLOAT32_TO_INT, int),
-					CVT(JIT_OP_TRUNC_SBYTE, sbyte),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT32_TO_INT, int),
-					CVT(JIT_OP_CHECK_SBYTE, sbyte),
-					CVT_NONE},
-				/* from 64-bit float */
-				{CVT(JIT_OP_FLOAT64_TO_INT, int),
-					CVT(JIT_OP_TRUNC_SBYTE, sbyte),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT64_TO_INT, int),
-					CVT(JIT_OP_CHECK_SBYTE, sbyte),
-					CVT_NONE},
-				/* from native float */
-				{CVT(JIT_OP_NFLOAT_TO_INT, int),
-					CVT(JIT_OP_TRUNC_SBYTE, sbyte),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
-				 	CVT(JIT_OP_CHECK_SBYTE, sbyte),
-					CVT_NONE}
-			};
-			opcode_map = to_sbyte;
-		}
-		break;
-
-		case JIT_TYPE_UBYTE:
-		{
-			/* Convert the value into an unsigned byte */
-			static jit_convert_info_t const to_ubyte[] = {
-				/* from signed byte */
-				/* from signed short */
-				/* from signed int */
-				{CVT(JIT_OP_TRUNC_UBYTE, ubyte),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_UBYTE, ubyte),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from unsigned byte */
-				/* from unsigned short */
-				/* from unsigned int */
-				{CVT(JIT_OP_TRUNC_UBYTE, ubyte),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_UBYTE, ubyte),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from signed long */
-				{CVT(JIT_OP_LOW_WORD, int),
-					CVT(JIT_OP_TRUNC_UBYTE, ubyte),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
-				 	CVT(JIT_OP_CHECK_UBYTE, ubyte),
-					CVT_NONE},
-				/* from unsigned long */
-				{CVT(JIT_OP_LOW_WORD, int),
-					CVT(JIT_OP_TRUNC_UBYTE, ubyte),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
-				 	CVT(JIT_OP_CHECK_UBYTE, ubyte),
-					CVT_NONE},
-				/* from 32-bit float */
-				{CVT(JIT_OP_FLOAT32_TO_INT, int),
-					CVT(JIT_OP_TRUNC_UBYTE, ubyte),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT32_TO_INT, int),
-					CVT(JIT_OP_CHECK_UBYTE, ubyte),
-					CVT_NONE},
-				/* from 64-bit float */
-				{CVT(JIT_OP_FLOAT64_TO_INT, int),
-					CVT(JIT_OP_TRUNC_UBYTE, ubyte),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT64_TO_INT, int),
-					CVT(JIT_OP_CHECK_UBYTE, ubyte),
-					CVT_NONE},
-				/* from native float */
-				{CVT(JIT_OP_NFLOAT_TO_INT, int),
-					CVT(JIT_OP_TRUNC_UBYTE, ubyte),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
-				 	CVT(JIT_OP_CHECK_UBYTE, ubyte),
-					CVT_NONE}
-			};
-			opcode_map = to_ubyte;
-		}
-		break;
-
-		case JIT_TYPE_SHORT:
-		{
-			/* Convert the value into a signed short */
-			static jit_convert_info_t const to_short[] = {
-				/* from signed byte */
-				/* from signed short */
-				/* from signed int */
-				{CVT(JIT_OP_TRUNC_SHORT, short),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_SHORT, short),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from unsigned byte */
-				/* from unsigned short */
-				/* from unsigned int */
-				{CVT(JIT_OP_TRUNC_SHORT, short),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_INT, int),
-				 	CVT(JIT_OP_CHECK_SHORT, short),
-					CVT_NONE},
-				/* from signed long */
-				{CVT(JIT_OP_LOW_WORD, int),
-					CVT(JIT_OP_TRUNC_SHORT, short),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
-				 	CVT(JIT_OP_CHECK_SHORT, short),
-					CVT_NONE},
-				/* from unsigned long */
-				{CVT(JIT_OP_LOW_WORD, int),
-					CVT(JIT_OP_TRUNC_SHORT, short),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
-				 	CVT(JIT_OP_CHECK_INT, int),
-					CVT(JIT_OP_CHECK_SHORT, short)},
-				/* from 32-bit float */
-				{CVT(JIT_OP_FLOAT32_TO_INT, int),
-					CVT(JIT_OP_TRUNC_SHORT, short),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT32_TO_INT, int),
-					CVT(JIT_OP_CHECK_SHORT, short),
-					CVT_NONE},
-				/* from 64-bit float */
-				{CVT(JIT_OP_FLOAT64_TO_INT, int),
-					CVT(JIT_OP_TRUNC_SHORT, short),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT64_TO_INT, int),
-					CVT(JIT_OP_CHECK_SHORT, short),
-					CVT_NONE},
-				/* from native float */
-				{CVT(JIT_OP_NFLOAT_TO_INT, int),
-					CVT(JIT_OP_TRUNC_SHORT, short),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
-				 	CVT(JIT_OP_CHECK_SHORT, short),
-					CVT_NONE}
-			};
-			opcode_map = to_short;
-		}
-		break;
-
-		case JIT_TYPE_USHORT:
-		{
-			/* Convert the value into an unsigned short */
-			static jit_convert_info_t const to_ushort[] = {
-				/* from signed byte */
-				/* from signed short */
-				/* from signed int */
-				{CVT(JIT_OP_TRUNC_USHORT, ushort),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_USHORT, ushort),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from unsigned byte */
-				/* from unsigned short */
-				/* from unsigned int */
-				{CVT(JIT_OP_TRUNC_USHORT, ushort),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_USHORT, ushort),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from signed long */
-				{CVT(JIT_OP_LOW_WORD, int),
-					CVT(JIT_OP_TRUNC_USHORT, ushort),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
-				 	CVT(JIT_OP_CHECK_USHORT, ushort),
-					CVT_NONE},
-				/* from unsigned long */
-				{CVT(JIT_OP_LOW_WORD, int),
-					CVT(JIT_OP_TRUNC_USHORT, ushort),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
-				 	CVT(JIT_OP_CHECK_USHORT, ushort),
-					CVT_NONE},
-				/* from 32-bit float */
-				{CVT(JIT_OP_FLOAT32_TO_INT, int),
-					CVT(JIT_OP_TRUNC_USHORT, ushort),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT32_TO_INT, int),
-					CVT(JIT_OP_CHECK_USHORT, ushort),
-					CVT_NONE},
-				/* from 64-bit float */
-				{CVT(JIT_OP_FLOAT64_TO_INT, int),
-					CVT(JIT_OP_TRUNC_USHORT, ushort),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT64_TO_INT, int),
-					CVT(JIT_OP_CHECK_USHORT, ushort),
-					CVT_NONE},
-				/* from native float */
-				{CVT(JIT_OP_NFLOAT_TO_INT, int),
-					CVT(JIT_OP_TRUNC_USHORT, ushort),
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
-				 	CVT(JIT_OP_CHECK_USHORT, ushort),
-					CVT_NONE}
-			};
-			opcode_map = to_ushort;
-		}
-		break;
-
-		case JIT_TYPE_INT:
-		{
-			/* Convert the value into a signed int */
-			static jit_convert_info_t const to_int[] = {
-				/* from signed byte */
-				/* from signed short */
-				/* from signed int */
-				{CVT(JIT_OP_COPY_INT, int),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_COPY_INT, int),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from unsigned byte */
-				/* from unsigned short */
-				/* from unsigned int */
-			#ifndef JIT_NATIVE_INT32
-				{CVT(JIT_OP_TRUNC_INT, int),
-			#else
-				{CVT(JIT_OP_COPY_INT, int),
-			#endif
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_INT, int),
-					CVT_NONE,
-					CVT_NONE},
-				/* from signed long */
-				{CVT(JIT_OP_LOW_WORD, int),
-			#ifndef JIT_NATIVE_INT32
-					CVT(JIT_OP_TRUNC_INT, int),
-			#else
-					CVT_NONE,
-			#endif
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from unsigned long */
-				{CVT(JIT_OP_LOW_WORD, int),
-			#ifndef JIT_NATIVE_INT32
-					CVT(JIT_OP_TRUNC_INT, int),
-			#else
-					CVT_NONE,
-			#endif
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
-				 	CVT(JIT_OP_CHECK_INT, int),
-					CVT_NONE},
-				/* from 32-bit float */
-				{CVT(JIT_OP_FLOAT32_TO_INT, int),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT32_TO_INT, int),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from 64-bit float */
-				{CVT(JIT_OP_FLOAT64_TO_INT, int),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT64_TO_INT, int),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from native float */
-				{CVT(JIT_OP_NFLOAT_TO_INT, int),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
-				 	CVT_NONE,
-					CVT_NONE}
-			};
-			opcode_map = to_int;
-		}
-		break;
-
-		case JIT_TYPE_UINT:
-		{
-			/* Convert the value into an unsigned int */
-			static jit_convert_info_t const to_uint[] = {
-				/* from signed byte */
-				/* from signed short */
-				/* from signed int */
-			#ifndef JIT_NATIVE_INT32
-				{CVT(JIT_OP_TRUNC_UINT, uint),
-			#else
-				{CVT(JIT_OP_COPY_INT, uint),
-			#endif
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_UINT, uint),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from unsigned byte */
-				/* from unsigned short */
-				/* from unsigned int */
-				{CVT(JIT_OP_COPY_INT, uint),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_COPY_INT, uint),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from signed long */
-				{CVT(JIT_OP_LOW_WORD, uint),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from unsigned long */
-				{CVT(JIT_OP_LOW_WORD, uint),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_LOW_WORD, uint),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from 32-bit float */
-				{CVT(JIT_OP_FLOAT32_TO_UINT, uint),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT32_TO_UINT, uint),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from 64-bit float */
-				{CVT(JIT_OP_FLOAT64_TO_UINT, uint),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT64_TO_UINT, uint),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from native float */
-				{CVT(JIT_OP_NFLOAT_TO_UINT, uint),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_NFLOAT_TO_UINT, uint),
-				 	CVT_NONE,
-					CVT_NONE}
-			};
-			opcode_map = to_uint;
-		}
-		break;
-
-		case JIT_TYPE_LONG:
-		{
-			/* Convert the value into a signed long */
-			static jit_convert_info_t const to_long[] = {
-				/* from signed byte */
-				/* from signed short */
-				/* from signed int */
-				{CVT(JIT_OP_EXPAND_INT, long),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_EXPAND_INT, long),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from unsigned byte */
-				/* from unsigned short */
-				/* from unsigned int */
-				{CVT(JIT_OP_EXPAND_UINT, long),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_EXPAND_UINT, long),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from signed long */
-				{CVT(JIT_OP_COPY_LONG, long),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_COPY_LONG, long),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from unsigned long */
-				{CVT(JIT_OP_COPY_LONG, long),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_LONG, long),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from 32-bit float */
-				{CVT(JIT_OP_FLOAT32_TO_LONG, long),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT32_TO_LONG, long),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from 64-bit float */
-				{CVT(JIT_OP_FLOAT64_TO_LONG, long),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT64_TO_LONG, long),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from native float */
-				{CVT(JIT_OP_NFLOAT_TO_LONG, long),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_NFLOAT_TO_LONG, long),
-				 	CVT_NONE,
-					CVT_NONE}
-			};
-			opcode_map = to_long;
-		}
-		break;
-
-		case JIT_TYPE_ULONG:
-		{
-			/* Convert the value into an unsigned long */
-			static jit_convert_info_t const to_ulong[] = {
-				/* from signed byte */
-				/* from signed short */
-				/* from signed int */
-				{CVT(JIT_OP_EXPAND_INT, ulong),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_UINT, uint),
-				 	CVT(JIT_OP_EXPAND_UINT, ulong),
-					CVT_NONE},
-				/* from unsigned byte */
-				/* from unsigned short */
-				/* from unsigned int */
-				{CVT(JIT_OP_EXPAND_UINT, ulong),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_EXPAND_UINT, ulong),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from signed long */
-				{CVT(JIT_OP_COPY_LONG, ulong),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_ULONG, ulong),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from unsigned long */
-				{CVT(JIT_OP_COPY_LONG, ulong),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_COPY_LONG, ulong),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from 32-bit float */
-				{CVT(JIT_OP_FLOAT32_TO_ULONG, ulong),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT32_TO_ULONG, ulong),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from 64-bit float */
-				{CVT(JIT_OP_FLOAT64_TO_ULONG, ulong),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_FLOAT64_TO_ULONG, ulong),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from native float */
-				{CVT(JIT_OP_NFLOAT_TO_ULONG, ulong),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_CHECK_NFLOAT_TO_ULONG, ulong),
-				 	CVT_NONE,
-					CVT_NONE}
-			};
-			opcode_map = to_ulong;
-		}
-		break;
-
-		case JIT_TYPE_FLOAT32:
-		{
-			/* Convert the value into a 32-bit float */
-			static jit_convert_info_t const to_float32[] = {
-				/* from signed byte */
-				/* from signed short */
-				/* from signed int */
-				{CVT(JIT_OP_INT_TO_FLOAT32, float32),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_INT_TO_FLOAT32, float32),
-				 	CVT_NONE,
-					CVT_NONE},
-				/* from unsigned byte */
-				/* from unsigned short */
-				/* from unsigned int */
-				{CVT(JIT_OP_UINT_TO_FLOAT32, float32),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_UINT_TO_FLOAT32, float32),
-					CVT_NONE,
-					CVT_NONE},
-				/* from signed long */
-				{CVT(JIT_OP_LONG_TO_FLOAT32, float32),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_LONG_TO_FLOAT32, float32),
-					CVT_NONE,
-					CVT_NONE},
-				/* from unsigned long */
-				{CVT(JIT_OP_ULONG_TO_FLOAT32, float32),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_ULONG_TO_FLOAT32, float32),
-					CVT_NONE,
-					CVT_NONE},
-				/* from 32-bit float */
-				{CVT(JIT_OP_COPY_FLOAT32, float32),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_COPY_FLOAT32, float32),
-					CVT_NONE,
-					CVT_NONE},
-				/* from 64-bit float */
-				{CVT(JIT_OP_FLOAT64_TO_FLOAT32, float32),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_FLOAT64_TO_FLOAT32, float32),
-					CVT_NONE,
-					CVT_NONE},
-				/* from native float */
-				{CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
-					CVT_NONE,
-					CVT_NONE}
-			};
-			opcode_map = to_float32;
-		}
-		break;
-
-		case JIT_TYPE_FLOAT64:
-		{
-			/* Convert the value into a 64-bit float */
-			static jit_convert_info_t const to_float64[] = {
-				/* from signed byte */
-				/* from signed short */
-				/* from signed int */
-				{CVT(JIT_OP_INT_TO_FLOAT64, float64),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_INT_TO_FLOAT64, float64),
-					CVT_NONE,
-					CVT_NONE},
-				/* from unsigned byte */
-				/* from unsigned short */
-				/* from unsigned int */
-				{CVT(JIT_OP_UINT_TO_FLOAT64, float64),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_UINT_TO_FLOAT64, float64),
-					CVT_NONE,
-					CVT_NONE},
-				/* from signed long */
-				{CVT(JIT_OP_LONG_TO_FLOAT64, float64),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_LONG_TO_FLOAT64, float64),
-					CVT_NONE,
-					CVT_NONE},
-				/* from unsigned long */
-				{CVT(JIT_OP_ULONG_TO_FLOAT64, float64),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_ULONG_TO_FLOAT64, float64),
-					CVT_NONE,
-					CVT_NONE},
-				/* from 32-bit float */
-				{CVT(JIT_OP_FLOAT32_TO_FLOAT64, float64),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_FLOAT32_TO_FLOAT64, float64),
-					CVT_NONE,
-					CVT_NONE},
-				/* from 64-bit float */
-				{CVT(JIT_OP_COPY_FLOAT64, float64),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_COPY_FLOAT64, float64),
-					CVT_NONE,
-					CVT_NONE},
-				/* from native float */
-				{CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
-					CVT_NONE,
-					CVT_NONE}
-			};
-			opcode_map = to_float64;
-		}
-		break;
-
-		case JIT_TYPE_NFLOAT:
-		{
-			/* Convert the value into a native floating-point value */
-			static jit_convert_info_t const to_nfloat[] = {
-				/* from signed byte */
-				/* from signed short */
-				/* from signed int */
-				{CVT(JIT_OP_INT_TO_NFLOAT, nfloat),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_INT_TO_NFLOAT, nfloat),
-					CVT_NONE,
-					CVT_NONE},
-				/* from unsigned byte */
-				/* from unsigned short */
-				/* from unsigned int */
-				{CVT(JIT_OP_UINT_TO_NFLOAT, nfloat),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_UINT_TO_NFLOAT, nfloat),
-					CVT_NONE,
-					CVT_NONE},
-				/* from signed long */
-				{CVT(JIT_OP_LONG_TO_NFLOAT, nfloat),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_LONG_TO_NFLOAT, nfloat),
-					CVT_NONE,
-					CVT_NONE},
-				/* from unsigned long */
-				{CVT(JIT_OP_ULONG_TO_NFLOAT, nfloat),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_ULONG_TO_NFLOAT, nfloat),
-					CVT_NONE,
-					CVT_NONE},
-				/* from 32-bit float */
-				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
-					CVT_NONE,
-					CVT_NONE},
-				/* from 64-bit float */
-				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
-					CVT_NONE,
-					CVT_NONE},
-				/* from native float */
-				{CVT(JIT_OP_COPY_NFLOAT, nfloat),
-					CVT_NONE,
-					CVT_NONE},
-				{CVT(JIT_OP_COPY_NFLOAT, nfloat),
-					CVT_NONE,
-					CVT_NONE}
-			};
-			opcode_map = to_nfloat;
-		}
+	case JIT_TYPE_SBYTE:
+	{
+		/* Convert the value into a signed byte */
+		static jit_convert_info_t const to_sbyte[] = {
+			/* from signed byte */
+			/* from signed short */
+			/* from signed int */
+			{ CVT(JIT_OP_TRUNC_SBYTE, sbyte),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_SBYTE, sbyte),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned byte */
+			/* from unsigned short */
+			/* from unsigned int */
+			{ CVT(JIT_OP_TRUNC_SBYTE, sbyte),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_INT, int),
+			  CVT(JIT_OP_CHECK_SBYTE, sbyte),
+			  CVT_NONE },
+			/* from signed long */
+			{ CVT(JIT_OP_LOW_WORD, int),
+			  CVT(JIT_OP_TRUNC_SBYTE, sbyte),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
+			  CVT(JIT_OP_CHECK_SBYTE, sbyte),
+			  CVT_NONE },
+			/* from unsigned long */
+			{ CVT(JIT_OP_LOW_WORD, int),
+			  CVT(JIT_OP_TRUNC_SBYTE, sbyte),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_LOW_WORD, uint),
+			  CVT(JIT_OP_CHECK_INT, int),
+			  CVT(JIT_OP_CHECK_SBYTE, sbyte) },
+			/* from 32-bit float */
+			{ CVT(JIT_OP_FLOAT32_TO_INT, int),
+			  CVT(JIT_OP_TRUNC_SBYTE, sbyte),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT32_TO_INT, int),
+			  CVT(JIT_OP_CHECK_SBYTE, sbyte),
+			  CVT_NONE },
+			/* from 64-bit float */
+			{ CVT(JIT_OP_FLOAT64_TO_INT, int),
+			  CVT(JIT_OP_TRUNC_SBYTE, sbyte),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT64_TO_INT, int),
+			  CVT(JIT_OP_CHECK_SBYTE, sbyte),
+			  CVT_NONE },
+			/* from native float */
+			{ CVT(JIT_OP_NFLOAT_TO_INT, int),
+			  CVT(JIT_OP_TRUNC_SBYTE, sbyte),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
+			  CVT(JIT_OP_CHECK_SBYTE, sbyte),
+			  CVT_NONE }
+		};
+		opcode_map = to_sbyte;
 		break;
 	}
+
+	case JIT_TYPE_UBYTE:
+	{
+		/* Convert the value into an unsigned byte */
+		static jit_convert_info_t const to_ubyte[] = {
+			/* from signed byte */
+			/* from signed short */
+			/* from signed int */
+			{ CVT(JIT_OP_TRUNC_UBYTE, ubyte),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_UBYTE, ubyte),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned byte */
+			/* from unsigned short */
+			/* from unsigned int */
+			{ CVT(JIT_OP_TRUNC_UBYTE, ubyte),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_UBYTE, ubyte),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from signed long */
+			{ CVT(JIT_OP_LOW_WORD, int),
+			  CVT(JIT_OP_TRUNC_UBYTE, ubyte),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
+			  CVT(JIT_OP_CHECK_UBYTE, ubyte),
+			  CVT_NONE },
+			/* from unsigned long */
+			{ CVT(JIT_OP_LOW_WORD, int),
+			  CVT(JIT_OP_TRUNC_UBYTE, ubyte),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_LOW_WORD, uint),
+			  CVT(JIT_OP_CHECK_UBYTE, ubyte),
+			  CVT_NONE },
+			/* from 32-bit float */
+			{ CVT(JIT_OP_FLOAT32_TO_INT, int),
+			  CVT(JIT_OP_TRUNC_UBYTE, ubyte),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT32_TO_INT, int),
+			  CVT(JIT_OP_CHECK_UBYTE, ubyte),
+			  CVT_NONE },
+			/* from 64-bit float */
+			{ CVT(JIT_OP_FLOAT64_TO_INT, int),
+			  CVT(JIT_OP_TRUNC_UBYTE, ubyte),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT64_TO_INT, int),
+			  CVT(JIT_OP_CHECK_UBYTE, ubyte),
+			  CVT_NONE },
+			/* from native float */
+			{ CVT(JIT_OP_NFLOAT_TO_INT, int),
+			  CVT(JIT_OP_TRUNC_UBYTE, ubyte),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
+			  CVT(JIT_OP_CHECK_UBYTE, ubyte),
+			  CVT_NONE }
+		};
+		opcode_map = to_ubyte;
+		break;
+	}
+
+	case JIT_TYPE_SHORT:
+	{
+		/* Convert the value into a signed short */
+		static jit_convert_info_t const to_short[] = {
+			/* from signed byte */
+			/* from signed short */
+			/* from signed int */
+			{ CVT(JIT_OP_TRUNC_SHORT, short),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_SHORT, short),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned byte */
+			/* from unsigned short */
+			/* from unsigned int */
+			{ CVT(JIT_OP_TRUNC_SHORT, short),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_INT, int),
+			  CVT(JIT_OP_CHECK_SHORT, short),
+			  CVT_NONE },
+			/* from signed long */
+			{ CVT(JIT_OP_LOW_WORD, int),
+			  CVT(JIT_OP_TRUNC_SHORT, short),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
+			  CVT(JIT_OP_CHECK_SHORT, short),
+			  CVT_NONE },
+			/* from unsigned long */
+			{ CVT(JIT_OP_LOW_WORD, int),
+			  CVT(JIT_OP_TRUNC_SHORT, short),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_LOW_WORD, uint),
+			  CVT(JIT_OP_CHECK_INT, int),
+			  CVT(JIT_OP_CHECK_SHORT, short)},
+			/* from 32-bit float */
+			{ CVT(JIT_OP_FLOAT32_TO_INT, int),
+			  CVT(JIT_OP_TRUNC_SHORT, short),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT32_TO_INT, int),
+			  CVT(JIT_OP_CHECK_SHORT, short),
+			  CVT_NONE },
+			/* from 64-bit float */
+			{ CVT(JIT_OP_FLOAT64_TO_INT, int),
+			  CVT(JIT_OP_TRUNC_SHORT, short),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT64_TO_INT, int),
+			  CVT(JIT_OP_CHECK_SHORT, short),
+			  CVT_NONE },
+			/* from native float */
+			{ CVT(JIT_OP_NFLOAT_TO_INT, int),
+			  CVT(JIT_OP_TRUNC_SHORT, short),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
+			  CVT(JIT_OP_CHECK_SHORT, short),
+			  CVT_NONE }
+		};
+		opcode_map = to_short;
+		break;
+	}
+
+	case JIT_TYPE_USHORT:
+	{
+		/* Convert the value into an unsigned short */
+		static jit_convert_info_t const to_ushort[] = {
+			/* from signed byte */
+			/* from signed short */
+			/* from signed int */
+			{ CVT(JIT_OP_TRUNC_USHORT, ushort),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_USHORT, ushort),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned byte */
+			/* from unsigned short */
+			/* from unsigned int */
+			{ CVT(JIT_OP_TRUNC_USHORT, ushort),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_USHORT, ushort),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from signed long */
+			{ CVT(JIT_OP_LOW_WORD, int),
+			  CVT(JIT_OP_TRUNC_USHORT, ushort),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
+			  CVT(JIT_OP_CHECK_USHORT, ushort),
+			  CVT_NONE },
+			/* from unsigned long */
+			{ CVT(JIT_OP_LOW_WORD, int),
+			  CVT(JIT_OP_TRUNC_USHORT, ushort),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_LOW_WORD, uint),
+			  CVT(JIT_OP_CHECK_USHORT, ushort),
+			  CVT_NONE },
+			/* from 32-bit float */
+			{ CVT(JIT_OP_FLOAT32_TO_INT, int),
+			  CVT(JIT_OP_TRUNC_USHORT, ushort),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT32_TO_INT, int),
+			  CVT(JIT_OP_CHECK_USHORT, ushort),
+			  CVT_NONE },
+			/* from 64-bit float */
+			{ CVT(JIT_OP_FLOAT64_TO_INT, int),
+			  CVT(JIT_OP_TRUNC_USHORT, ushort),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT64_TO_INT, int),
+			  CVT(JIT_OP_CHECK_USHORT, ushort),
+			  CVT_NONE },
+			/* from native float */
+			{ CVT(JIT_OP_NFLOAT_TO_INT, int),
+			  CVT(JIT_OP_TRUNC_USHORT, ushort),
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
+			  CVT(JIT_OP_CHECK_USHORT, ushort),
+			  CVT_NONE }
+		};
+		opcode_map = to_ushort;
+		break;
+	}
+
+	case JIT_TYPE_INT:
+	{
+		/* Convert the value into a signed int */
+		static jit_convert_info_t const to_int[] = {
+			/* from signed byte */
+			/* from signed short */
+			/* from signed int */
+			{ CVT(JIT_OP_COPY_INT, int),
+			  CVT_NONE,
+			  CVT_NONE},
+			{ CVT(JIT_OP_COPY_INT, int),
+			  CVT_NONE,
+			  CVT_NONE},
+			/* from unsigned byte */
+			/* from unsigned short */
+			/* from unsigned int */
+#ifndef JIT_NATIVE_INT32
+			{ CVT(JIT_OP_TRUNC_INT, int),
+			  CVT_NONE,
+			  CVT_NONE},
+#else
+			{ CVT(JIT_OP_COPY_INT, int),
+			  CVT_NONE,
+			  CVT_NONE},
+#endif
+			{ CVT(JIT_OP_CHECK_INT, int),
+			  CVT_NONE,
+			  CVT_NONE},
+			/* from signed long */
+			{ CVT(JIT_OP_LOW_WORD, int),
+#ifndef JIT_NATIVE_INT32
+			  CVT(JIT_OP_TRUNC_INT, int),
+#else
+			  CVT_NONE,
+#endif
+			  CVT_NONE},
+			{ CVT(JIT_OP_CHECK_SIGNED_LOW_WORD, int),
+			  CVT_NONE,
+			  CVT_NONE},
+			/* from unsigned long */
+			{ CVT(JIT_OP_LOW_WORD, int),
+#ifndef JIT_NATIVE_INT32
+			  CVT(JIT_OP_TRUNC_INT, int),
+#else
+			  CVT_NONE,
+#endif
+			  CVT_NONE},
+			{ CVT(JIT_OP_CHECK_LOW_WORD, uint),
+			  CVT(JIT_OP_CHECK_INT, int),
+			  CVT_NONE },
+			/* from 32-bit float */
+			{ CVT(JIT_OP_FLOAT32_TO_INT, int),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT32_TO_INT, int),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from 64-bit float */
+			{ CVT(JIT_OP_FLOAT64_TO_INT, int),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT64_TO_INT, int),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from native float */
+			{ CVT(JIT_OP_NFLOAT_TO_INT, int),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_NFLOAT_TO_INT, int),
+			  CVT_NONE,
+			  CVT_NONE }
+		};
+		opcode_map = to_int;
+		break;
+	}
+
+	case JIT_TYPE_UINT:
+	{
+		/* Convert the value into an unsigned int */
+		static jit_convert_info_t const to_uint[] = {
+			/* from signed byte */
+			/* from signed short */
+			/* from signed int */
+#ifndef JIT_NATIVE_INT32
+			{ CVT(JIT_OP_TRUNC_UINT, uint),
+			  CVT_NONE,
+			  CVT_NONE },
+#else
+			{ CVT(JIT_OP_COPY_INT, uint),
+			  CVT_NONE,
+			  CVT_NONE },
+#endif
+			{ CVT(JIT_OP_CHECK_UINT, uint),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned byte */
+			/* from unsigned short */
+			/* from unsigned int */
+			{ CVT(JIT_OP_COPY_INT, uint),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_COPY_INT, uint),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from signed long */
+			{ CVT(JIT_OP_LOW_WORD, uint),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_LOW_WORD, uint),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned long */
+			{ CVT(JIT_OP_LOW_WORD, uint),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_LOW_WORD, uint),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from 32-bit float */
+			{ CVT(JIT_OP_FLOAT32_TO_UINT, uint),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT32_TO_UINT, uint),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from 64-bit float */
+			{ CVT(JIT_OP_FLOAT64_TO_UINT, uint),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT64_TO_UINT, uint),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from native float */
+			{ CVT(JIT_OP_NFLOAT_TO_UINT, uint),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_NFLOAT_TO_UINT, uint),
+			  CVT_NONE,
+			  CVT_NONE }
+		};
+		opcode_map = to_uint;
+		break;
+	}
+
+	case JIT_TYPE_LONG:
+	{
+		/* Convert the value into a signed long */
+		static jit_convert_info_t const to_long[] = {
+			/* from signed byte */
+			/* from signed short */
+			/* from signed int */
+			{ CVT(JIT_OP_EXPAND_INT, long),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_EXPAND_INT, long),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned byte */
+			/* from unsigned short */
+			/* from unsigned int */
+			{ CVT(JIT_OP_EXPAND_UINT, long),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_EXPAND_UINT, long),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from signed long */
+			{ CVT(JIT_OP_COPY_LONG, long),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_COPY_LONG, long),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned long */
+			{ CVT(JIT_OP_COPY_LONG, long),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_LONG, long),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from 32-bit float */
+			{ CVT(JIT_OP_FLOAT32_TO_LONG, long),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT32_TO_LONG, long),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from 64-bit float */
+			{ CVT(JIT_OP_FLOAT64_TO_LONG, long),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT64_TO_LONG, long),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from native float */
+			{ CVT(JIT_OP_NFLOAT_TO_LONG, long),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_NFLOAT_TO_LONG, long),
+			  CVT_NONE,
+			  CVT_NONE }
+		};
+		opcode_map = to_long;
+		break;
+	}
+
+	case JIT_TYPE_ULONG:
+	{
+		/* Convert the value into an unsigned long */
+		static jit_convert_info_t const to_ulong[] = {
+			/* from signed byte */
+			/* from signed short */
+			/* from signed int */
+			{ CVT(JIT_OP_EXPAND_INT, ulong),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_UINT, uint),
+			  CVT(JIT_OP_EXPAND_UINT, ulong),
+			  CVT_NONE },
+			/* from unsigned byte */
+			/* from unsigned short */
+			/* from unsigned int */
+			{ CVT(JIT_OP_EXPAND_UINT, ulong),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_EXPAND_UINT, ulong),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from signed long */
+			{ CVT(JIT_OP_COPY_LONG, ulong),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_ULONG, ulong),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned long */
+			{ CVT(JIT_OP_COPY_LONG, ulong),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_COPY_LONG, ulong),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from 32-bit float */
+			{ CVT(JIT_OP_FLOAT32_TO_ULONG, ulong),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT32_TO_ULONG, ulong),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from 64-bit float */
+			{ CVT(JIT_OP_FLOAT64_TO_ULONG, ulong),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_FLOAT64_TO_ULONG, ulong),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from native float */
+			{ CVT(JIT_OP_NFLOAT_TO_ULONG, ulong),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_CHECK_NFLOAT_TO_ULONG, ulong),
+			  CVT_NONE,
+			  CVT_NONE }
+		};
+		opcode_map = to_ulong;
+		break;
+	}
+
+	case JIT_TYPE_FLOAT32:
+	{
+		/* Convert the value into a 32-bit float */
+		static jit_convert_info_t const to_float32[] = {
+			/* from signed byte */
+			/* from signed short */
+			/* from signed int */
+			{ CVT(JIT_OP_INT_TO_FLOAT32, float32),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_INT_TO_FLOAT32, float32),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned byte */
+			/* from unsigned short */
+			/* from unsigned int */
+			{ CVT(JIT_OP_UINT_TO_FLOAT32, float32),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_UINT_TO_FLOAT32, float32),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from signed long */
+			{ CVT(JIT_OP_LONG_TO_FLOAT32, float32),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_LONG_TO_FLOAT32, float32),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned long */
+			{ CVT(JIT_OP_ULONG_TO_FLOAT32, float32),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_ULONG_TO_FLOAT32, float32),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from 32-bit float */
+			{ CVT(JIT_OP_COPY_FLOAT32, float32),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_COPY_FLOAT32, float32),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from 64-bit float */
+			{ CVT(JIT_OP_FLOAT64_TO_FLOAT32, float32),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_FLOAT64_TO_FLOAT32, float32),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from native float */
+			{ CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_NFLOAT_TO_FLOAT32, float32),
+			  CVT_NONE,
+			  CVT_NONE }
+		};
+		opcode_map = to_float32;
+		break;
+	}
+
+	case JIT_TYPE_FLOAT64:
+	{
+		/* Convert the value into a 64-bit float */
+		static jit_convert_info_t const to_float64[] = {
+			/* from signed byte */
+			/* from signed short */
+			/* from signed int */
+			{ CVT(JIT_OP_INT_TO_FLOAT64, float64),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_INT_TO_FLOAT64, float64),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned byte */
+			/* from unsigned short */
+			/* from unsigned int */
+			{ CVT(JIT_OP_UINT_TO_FLOAT64, float64),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_UINT_TO_FLOAT64, float64),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from signed long */
+			{ CVT(JIT_OP_LONG_TO_FLOAT64, float64),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_LONG_TO_FLOAT64, float64),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned long */
+			{ CVT(JIT_OP_ULONG_TO_FLOAT64, float64),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_ULONG_TO_FLOAT64, float64),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from 32-bit float */
+			{ CVT(JIT_OP_FLOAT32_TO_FLOAT64, float64),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_FLOAT32_TO_FLOAT64, float64),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from 64-bit float */
+			{ CVT(JIT_OP_COPY_FLOAT64, float64),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_COPY_FLOAT64, float64),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from native float */
+			{ CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_NFLOAT_TO_FLOAT64, float64),
+			  CVT_NONE,
+			  CVT_NONE }
+		};
+		opcode_map = to_float64;
+		break;
+	}
+
+	case JIT_TYPE_NFLOAT:
+	{
+		/* Convert the value into a native floating-point value */
+		static jit_convert_info_t const to_nfloat[] = {
+			/* from signed byte */
+			/* from signed short */
+			/* from signed int */
+			{ CVT(JIT_OP_INT_TO_NFLOAT, nfloat),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_INT_TO_NFLOAT, nfloat),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned byte */
+			/* from unsigned short */
+			/* from unsigned int */
+			{ CVT(JIT_OP_UINT_TO_NFLOAT, nfloat),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_UINT_TO_NFLOAT, nfloat),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from signed long */
+			{ CVT(JIT_OP_LONG_TO_NFLOAT, nfloat),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_LONG_TO_NFLOAT, nfloat),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from unsigned long */
+			{ CVT(JIT_OP_ULONG_TO_NFLOAT, nfloat),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_ULONG_TO_NFLOAT, nfloat),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from 32-bit float */
+			{ CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_FLOAT32_TO_NFLOAT, nfloat),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from 64-bit float */
+			{ CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_FLOAT64_TO_NFLOAT, nfloat),
+			  CVT_NONE,
+			  CVT_NONE },
+			/* from native float */
+			{ CVT(JIT_OP_COPY_NFLOAT, nfloat),
+			  CVT_NONE,
+			  CVT_NONE },
+			{ CVT(JIT_OP_COPY_NFLOAT, nfloat),
+			  CVT_NONE,
+			  CVT_NONE }
+		};
+		opcode_map = to_nfloat;
+		break;
+	}
+	}
+
 	if(opcode_map)
 	{
 		switch(vtype->kind)
 		{
-			case JIT_TYPE_UINT:		opcode_map += 2; break;
-			case JIT_TYPE_LONG:		opcode_map += 4; break;
-			case JIT_TYPE_ULONG:	opcode_map += 6; break;
-			case JIT_TYPE_FLOAT32:	opcode_map += 8; break;
-			case JIT_TYPE_FLOAT64:	opcode_map += 10; break;
-			case JIT_TYPE_NFLOAT:	opcode_map += 12; break;
+		case JIT_TYPE_UINT:	opcode_map += 2; break;
+		case JIT_TYPE_LONG:	opcode_map += 4; break;
+		case JIT_TYPE_ULONG:	opcode_map += 6; break;
+		case JIT_TYPE_FLOAT32:	opcode_map += 8; break;
+		case JIT_TYPE_FLOAT64:	opcode_map += 10; break;
+		case JIT_TYPE_NFLOAT:	opcode_map += 12; break;
 		}
 		if(overflow_check)
 		{
@@ -5170,18 +5014,18 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 		}
 		if(opcode_map->cvt1)
 		{
-			value = apply_unary_conversion
-				(func, opcode_map->cvt1, value, opcode_map->type1);
+			value = apply_conversion(func, opcode_map->cvt1, value,
+						 opcode_map->type1);
 		}
-		if(opcode_map->cvt2)
+		if(opcode_map->cvt2 && value)
 		{
-			value = apply_unary_conversion
-				(func, opcode_map->cvt2, value, opcode_map->type2);
+			value = apply_conversion(func, opcode_map->cvt2, value,
+						 opcode_map->type2);
 		}
-		if(opcode_map->cvt3)
+		if(opcode_map->cvt3 && value)
 		{
-			value = apply_unary_conversion
-				(func, opcode_map->cvt3, value, opcode_map->type3);
+			value = apply_conversion(func, opcode_map->cvt3, value,
+						 opcode_map->type3);
 		}
 	}
 	return value;
@@ -5190,17 +5034,19 @@ jit_value_t jit_insn_convert(jit_function_t func, jit_value_t value,
 /*
  * Convert the parameters for a function call into their final types.
  */
-static int convert_call_parameters
-	(jit_function_t func, jit_type_t signature,
-	 jit_value_t *args, unsigned int num_args,
-	 jit_value_t *new_args)
+static int
+convert_call_parameters(jit_function_t func, jit_type_t signature,
+			jit_value_t *args, unsigned int num_args,
+			jit_value_t *new_args)
 {
 	unsigned int param;
 	for(param = 0; param < num_args; ++param)
 	{
-		new_args[param] = jit_insn_convert
-			(func, args[param],
-			 jit_type_get_param(signature, param), 0);
+		new_args[param] = jit_insn_convert(func, args[param],
+						   jit_type_get_param(signature, param),
+						   0);
+		if (!new_args[param])
+			return 0;
 	}
 	return 1;
 }
@@ -5208,7 +5054,8 @@ static int convert_call_parameters
 /*
  * Set up the exception frame information before a function call out.
  */
-static int setup_eh_frame_for_call(jit_function_t func, int flags)
+static int
+setup_eh_frame_for_call(jit_function_t func, int flags)
 {
 #if !defined(JIT_BACKEND_INTERP)
 	jit_type_t type;
@@ -5218,15 +5065,14 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 	/* If "tail" is set, then we need to pop the "setjmp" context */
 	if((flags & JIT_CALL_TAIL) != 0 && func->has_try)
 	{
-		type = jit_type_create_signature
-			(jit_abi_cdecl, jit_type_void, 0, 0, 1);
+		type = jit_type_create_signature(jit_abi_cdecl, jit_type_void, 0, 0, 1);
 		if(!type)
 		{
 			return 0;
 		}
-		jit_insn_call_native
-			(func, "_jit_unwind_pop_setjmp",
-			 (void *)_jit_unwind_pop_setjmp, type, 0, 0, JIT_CALL_NOTHROW);
+		jit_insn_call_native(func, "_jit_unwind_pop_setjmp",
+				     (void *) _jit_unwind_pop_setjmp, type,
+				     0, 0, JIT_CALL_NOTHROW);
 		jit_type_free(type);
 	}
 
@@ -5252,8 +5098,9 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 			{
 				return 0;
 			}
-			jit_type_set_size_and_alignment
-				(type, sizeof(struct jit_backtrace), sizeof(void *));
+			jit_type_set_size_and_alignment(type,
+							sizeof(struct jit_backtrace),
+							sizeof(void *));
 			eh_frame_info = jit_value_create(func, type);
 			jit_type_free(type);
 			if(!eh_frame_info)
@@ -5265,7 +5112,7 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 
 		/* Output an instruction to load the "pc" into a value */
 		args[1] = jit_value_create(func, jit_type_void_ptr);
-		if(!(args[1]))
+		if(!args[1])
 		{
 			return 0;
 		}
@@ -5274,13 +5121,12 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 		{
 			return 0;
 		}
-		jit_value_ref(func, args[1]);
 		insn->opcode = JIT_OP_LOAD_PC;
 		insn->dest = args[1];
 
 		/* Load the address of "eh_frame_info" into another value */
 		args[0] = jit_insn_address_of(func, eh_frame_info);
-		if(!(args[0]))
+		if(!args[0])
 		{
 			return 0;
 		}
@@ -5288,17 +5134,16 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 		/* Create a signature for the prototype "void (void *, void *)" */
 		params[0] = jit_type_void_ptr;
 		params[1] = jit_type_void_ptr;
-		type = jit_type_create_signature
-			(jit_abi_cdecl, jit_type_void, params, 2, 1);
+		type = jit_type_create_signature(jit_abi_cdecl, jit_type_void, params, 2, 1);
 		if(!type)
 		{
 			return 0;
 		}
 
 		/* Call the "_jit_backtrace_push" function */
-		jit_insn_call_native
-			(func, "_jit_backtrace_push",
-			 (void *)_jit_backtrace_push, type, args, 2, JIT_CALL_NOTHROW);
+		jit_insn_call_native(func, "_jit_backtrace_push",
+				     (void *) _jit_backtrace_push, type,
+				     args, 2, JIT_CALL_NOTHROW);
 		jit_type_free(type);
 	}
 #endif
@@ -5307,21 +5152,25 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 	if(func->builder->setjmp_value != 0)
 	{
 		args[0] = jit_value_create(func, jit_type_void_ptr);
-		if(!(args[0]))
+		if(!args[0])
 		{
 			return 0;
 		}
+
 		insn = _jit_block_add_insn(func->builder->current_block);
 		if(!insn)
 		{
 			return 0;
 		}
-		jit_value_ref(func, args[0]);
 		insn->opcode = JIT_OP_LOAD_PC;
 		insn->dest = args[0];
-		if(!jit_insn_store_relative
-			(func, jit_insn_address_of(func, func->builder->setjmp_value),
-			 jit_jmp_catch_pc_offset, args[0]))
+
+		jit_value_t addr = jit_insn_address_of(func, func->builder->setjmp_value);
+		if(!addr)
+		{
+			return 0;
+		}
+		if(!jit_insn_store_relative(func, addr, jit_jmp_catch_pc_offset, args[0]))
 		{
 			return 0;
 		}
@@ -5342,11 +5191,10 @@ static int setup_eh_frame_for_call(jit_function_t func, int flags)
 /*
  * Restore the exception handling frame after a function call.
  */
-static int restore_eh_frame_after_call(jit_function_t func, int flags)
+static int
+restore_eh_frame_after_call(jit_function_t func, int flags)
 {
 #if !defined(JIT_BACKEND_INTERP)
-	jit_value_t value;
-
 	/* If the "nothrow", "noreturn", or "tail" flags are set, then we
 	   don't need to worry about this */
 	if((flags & (JIT_CALL_NOTHROW | JIT_CALL_NORETURN | JIT_CALL_TAIL)) != 0)
@@ -5355,36 +5203,30 @@ static int restore_eh_frame_after_call(jit_function_t func, int flags)
 	}
 
 #if JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
+	/* Create the signature prototype "void (void)" */
+	jit_type_t type = jit_type_create_signature(jit_abi_cdecl, jit_type_void, 0, 0, 0);
+	if(!type)
 	{
-		jit_type_t type;
-
-		/* Create the signature prototype "void (void)" */
-		type = jit_type_create_signature
-			(jit_abi_cdecl, jit_type_void, 0, 0, 0);
-		if(!type)
-		{
-			return 0;
-		}
-
-		/* Call the "_jit_backtrace_pop" function */
-		jit_insn_call_native
-			(func, "_jit_backtrace_pop",
-			 (void *)_jit_backtrace_pop, type, 0, 0, JIT_CALL_NOTHROW);
-		jit_type_free(type);
+		return 0;
 	}
+
+	/* Call the "_jit_backtrace_pop" function */
+	jit_insn_call_native(func, "_jit_backtrace_pop",
+			     (void *) _jit_backtrace_pop, type,
+			     0, 0, JIT_CALL_NOTHROW);
+	jit_type_free(type);
 #endif
 
 	/* Clear the "catch_pc" value for the current context */
 	if(func->builder->setjmp_value != 0)
 	{
-		value = jit_value_create_nint_constant(func, jit_type_void_ptr, 0);
-		if(!value)
+		jit_value_t null = jit_value_create_nint_constant(func, jit_type_void_ptr, 0);
+		jit_value_t addr = jit_insn_address_of(func, func->builder->setjmp_value);
+		if(!null || !addr)
 		{
 			return 0;
 		}
-		if(!jit_insn_store_relative
-			(func, jit_insn_address_of(func, func->builder->setjmp_value),
-			 jit_jmp_catch_pc_offset, value))
+		if(!jit_insn_store_relative(func, addr, jit_jmp_catch_pc_offset, null))
 		{
 			return 0;
 		}
@@ -5401,10 +5243,9 @@ static int restore_eh_frame_after_call(jit_function_t func, int flags)
 /*
  * Determine if two signatures are identical for the purpose of tail calls.
  */
-static int signature_identical(jit_type_t type1, jit_type_t type2)
+static int
+signature_identical(jit_type_t type1, jit_type_t type2)
 {
-	unsigned int param;
-
 	/* Handle the easy case first */
 	if(type1 == type2)
 	{
@@ -5448,7 +5289,7 @@ static int signature_identical(jit_type_t type1, jit_type_t type2)
 	if(type1->kind == JIT_TYPE_STRUCT || type1->kind == JIT_TYPE_UNION)
 	{
 		return (jit_type_get_size(type1) == jit_type_get_size(type2) &&
-				jit_type_get_alignment(type1) == jit_type_get_alignment(type2));
+			jit_type_get_alignment(type1) == jit_type_get_alignment(type2));
 	}
 
 	/* Signature types must be compared component-by-component */
@@ -5466,10 +5307,12 @@ static int signature_identical(jit_type_t type1, jit_type_t type2)
 		{
 			return 0;
 		}
+
+		unsigned int param;
 		for(param = 0; param < type1->num_components; ++param)
 		{
 			if(!signature_identical(type1->components[param].type,
-									type2->components[param].type))
+						type2->components[param].type))
 			{
 				return 0;
 			}
@@ -5483,13 +5326,14 @@ static int signature_identical(jit_type_t type1, jit_type_t type2)
 /*
  * Create call setup instructions, taking tail calls into effect.
  */
-static int create_call_setup_insns
-	(jit_function_t func, jit_function_t callee, jit_type_t signature,
-	 jit_value_t *args, unsigned int num_args,
-	 int is_nested, int nesting_level, jit_value_t *struct_return, int flags)
+static int
+create_call_setup_insns(jit_function_t func, jit_function_t callee,
+			jit_type_t signature,
+			jit_value_t *args, unsigned int num_args,
+			int is_nested, int nesting_level,
+			jit_value_t *struct_return, int flags)
 {
 	jit_value_t *new_args;
-	jit_value_t value;
 	unsigned int arg_num;
 
 	/* If we are performing a tail call, then duplicate the argument
@@ -5497,10 +5341,10 @@ static int create_call_setup_insns
 	   situations like func(x, y) -> func(y, x) */
 	if((flags & JIT_CALL_TAIL) != 0 && num_args > 0)
 	{
-		new_args = (jit_value_t *)alloca(sizeof(jit_value_t) * num_args);
+		new_args = (jit_value_t *) alloca(sizeof(jit_value_t) * num_args);
 		for(arg_num = 0; arg_num < num_args; ++arg_num)
 		{
-			value = args[arg_num];
+			jit_value_t value = args[arg_num];
 			if(value && value->is_parameter)
 			{
 				value = jit_insn_dup(func, value);
@@ -5520,7 +5364,7 @@ static int create_call_setup_insns
 		for(arg_num = 0; arg_num < num_args; ++arg_num)
 		{
 			if(!jit_insn_store(func, jit_value_get_param(func, arg_num),
-							   args[arg_num]))
+					   args[arg_num]))
 			{
 				return 0;
 			}
@@ -5530,9 +5374,9 @@ static int create_call_setup_insns
 	}
 
 	/* Let the back end do the work */
-	return _jit_create_call_setup_insns
-		(func, signature, args, num_args,
-		 is_nested, nesting_level, struct_return, flags);
+	return _jit_create_call_setup_insns(func, signature, args, num_args,
+					    is_nested, nesting_level, struct_return,
+					    flags);
 }
 
 static jit_value_t
@@ -5573,11 +5417,8 @@ handle_return(jit_function_t func,
 	/* Create the instructions necessary to move the return value into place */
 	if((flags & JIT_CALL_TAIL) == 0)
 	{
-		if(!_jit_create_call_return_insns(func,
-						  signature,
-						  args, num_args,
-						  return_value,
-						  is_nested))
+		if(!_jit_create_call_return_insns(func, signature, args, num_args,
+						  return_value, is_nested))
 		{
 			return 0;
 		}
@@ -5631,21 +5472,20 @@ handle_return(jit_function_t func,
  * it is up to the caller to determine when the flags may be appropriate.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_call
-	(jit_function_t func, const char *name, jit_function_t jit_func,
-	 jit_type_t signature, jit_value_t *args, unsigned int num_args, int flags)
+jit_value_t
+jit_insn_call(jit_function_t func, const char *name, jit_function_t jit_func,
+	      jit_type_t signature, jit_value_t *args, unsigned int num_args,
+	      int flags)
 {
 	int is_nested;
 	int nesting_level;
 	jit_function_t temp_func;
-	jit_value_t *new_args;
 	jit_value_t return_value;
-	jit_insn_t insn;
 	jit_label_t entry_point;
 	jit_label_t label_end;
 
-	/* Bail out if there is something wrong with the parameters */
-	if(!_jit_function_ensure_builder(func) || !jit_func)
+	/* Ensure that we have a function builder */
+	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
@@ -5704,9 +5544,10 @@ jit_value_t jit_insn_call
 	}
 
 	/* Convert the arguments to the actual parameter types */
+	jit_value_t *new_args;
 	if(num_args > 0)
 	{
-		new_args = (jit_value_t *)alloca(sizeof(jit_value_t) * num_args);
+		new_args = (jit_value_t *) alloca(sizeof(jit_value_t) * num_args);
 		if(!convert_call_parameters(func, signature, args, num_args, new_args))
 		{
 			return 0;
@@ -5734,9 +5575,8 @@ jit_value_t jit_insn_call
 	}
 
 	/* Create the instructions to push the parameters onto the stack */
-	if(!create_call_setup_insns
-			(func, jit_func, signature, new_args, num_args,
-			 is_nested, nesting_level, &return_value, flags))
+	if(!create_call_setup_insns(func, jit_func, signature, new_args, num_args,
+				    is_nested, nesting_level, &return_value, flags))
 	{
 		return 0;
 	}
@@ -5771,7 +5611,7 @@ jit_value_t jit_insn_call
 		func->builder->non_leaf = 1;
 
 		/* Performing a regular call, or a tail call to someone else */
-		insn = _jit_block_add_insn(func->builder->current_block);
+		jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 		if(!insn)
 		{
 			return 0;
@@ -5786,13 +5626,12 @@ jit_value_t jit_insn_call
 			insn->opcode = JIT_OP_CALL;
 		}
 		insn->flags = JIT_INSN_DEST_IS_FUNCTION | JIT_INSN_VALUE1_IS_NAME;
-		insn->dest = (jit_value_t)jit_func;
-		insn->value1 = (jit_value_t)name;
+		insn->dest = (jit_value_t) jit_func;
+		insn->value1 = (jit_value_t) name;
 	}
 
 	/* Handle return to the caller */
-	return handle_return(func, signature, flags, is_nested,
-			     new_args, num_args, return_value);
+	return handle_return(func, signature, flags, is_nested, new_args, num_args, return_value);
 }
 
 /*@
@@ -5800,16 +5639,12 @@ jit_value_t jit_insn_call
  * Call a function via an indirect pointer.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_call_indirect
-		(jit_function_t func, jit_value_t value, jit_type_t signature,
-		 jit_value_t *args, unsigned int num_args, int flags)
+jit_value_t
+jit_insn_call_indirect(jit_function_t func, jit_value_t value, jit_type_t signature,
+		       jit_value_t *args, unsigned int num_args, int flags)
 {
-	jit_value_t *new_args;
-	jit_value_t return_value;
-	jit_insn_t insn;
-
-	/* Bail out if there is something wrong with the parameters */
-	if(!_jit_function_ensure_builder(func) || !value || !signature)
+	/* Ensure that we have a function builder */
+	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
@@ -5835,9 +5670,10 @@ jit_value_t jit_insn_call_indirect
 	flags |= JIT_CALL_NATIVE;
 
 	/* Convert the arguments to the actual parameter types */
+	jit_value_t *new_args;
 	if(num_args > 0)
 	{
-		new_args = (jit_value_t *)alloca(sizeof(jit_value_t) * num_args);
+		new_args = (jit_value_t *) alloca(sizeof(jit_value_t) * num_args);
 		if(!convert_call_parameters(func, signature, args, num_args, new_args))
 		{
 			return 0;
@@ -5855,8 +5691,9 @@ jit_value_t jit_insn_call_indirect
 	}
 
 	/* Create the instructions to push the parameters onto the stack */
-	if(!create_call_setup_insns
-		(func, 0, signature, new_args, num_args, 0, 0, &return_value, flags))
+	jit_value_t return_value;
+	if(!create_call_setup_insns(func, 0, signature, new_args, num_args, 0, 0,
+				    &return_value, flags))
 	{
 		return 0;
 	}
@@ -5871,12 +5708,11 @@ jit_value_t jit_insn_call_indirect
 	func->builder->non_leaf = 1;
 
 	/* Output the "call_indirect" instruction */
-	insn = _jit_block_add_insn(func->builder->current_block);
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	jit_value_ref(func, value);
 	if((flags & JIT_CALL_TAIL) != 0)
 	{
 		func->builder->has_tail_call = 1;
@@ -5888,11 +5724,11 @@ jit_value_t jit_insn_call_indirect
 	}
 	insn->flags = JIT_INSN_VALUE2_IS_SIGNATURE;
 	insn->value1 = value;
-	insn->value2 = (jit_value_t)jit_type_copy(signature);
+	jit_value_ref(func, value);
+	insn->value2 = (jit_value_t) jit_type_copy(signature);
 
 	/* Handle return to the caller */
-	return handle_return(func, signature, flags, 0,
-			     new_args, num_args, return_value);
+	return handle_return(func, signature, flags, 0, new_args, num_args, return_value);
 }
 
 /*@
@@ -5904,16 +5740,12 @@ jit_value_t jit_insn_call_indirect
  * calls may be more efficient on some platforms than regular indirect calls.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_call_indirect_vtable
-	(jit_function_t func, jit_value_t value, jit_type_t signature,
-	 jit_value_t *args, unsigned int num_args, int flags)
+jit_value_t
+jit_insn_call_indirect_vtable(jit_function_t func, jit_value_t value, jit_type_t signature,
+			      jit_value_t *args, unsigned int num_args, int flags)
 {
-	jit_value_t *new_args;
-	jit_value_t return_value;
-	jit_insn_t insn;
-
-	/* Bail out if there is something wrong with the parameters */
-	if(!_jit_function_ensure_builder(func) || !value || !signature)
+	/* Ensure that we have a function builder */
+	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
@@ -5932,9 +5764,10 @@ jit_value_t jit_insn_call_indirect_vtable
 	}
 
 	/* Convert the arguments to the actual parameter types */
+	jit_value_t *new_args;
 	if(num_args > 0)
 	{
-		new_args = (jit_value_t *)alloca(sizeof(jit_value_t) * num_args);
+		new_args = (jit_value_t *) alloca(sizeof(jit_value_t) * num_args);
 		if(!convert_call_parameters(func, signature, args, num_args, new_args))
 		{
 			return 0;
@@ -5952,8 +5785,9 @@ jit_value_t jit_insn_call_indirect_vtable
 	}
 
 	/* Create the instructions to push the parameters onto the stack */
-	if(!create_call_setup_insns
-		(func, 0, signature, new_args, num_args, 0, 0, &return_value, flags))
+	jit_value_t return_value;
+	if(!create_call_setup_insns(func, 0, signature, new_args, num_args,
+				    0, 0, &return_value, flags))
 	{
 		return 0;
 	}
@@ -5968,12 +5802,11 @@ jit_value_t jit_insn_call_indirect_vtable
 	func->builder->non_leaf = 1;
 
 	/* Output the "call_vtable_ptr" instruction */
-	insn = _jit_block_add_insn(func->builder->current_block);
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	jit_value_ref(func, value);
 	if((flags & JIT_CALL_TAIL) != 0)
 	{
 		func->builder->has_tail_call = 1;
@@ -5984,10 +5817,10 @@ jit_value_t jit_insn_call_indirect_vtable
 		insn->opcode = JIT_OP_CALL_VTABLE_PTR;
 	}
 	insn->value1 = value;
+	jit_value_ref(func, value);
 
 	/* Handle return to the caller */
-	return handle_return(func, signature, flags, 0,
-			     new_args, num_args, return_value);
+	return handle_return(func, signature, flags, 0, new_args, num_args, return_value);
 }
 
 /*@
@@ -5997,17 +5830,11 @@ jit_value_t jit_insn_call_indirect_vtable
  * @end deftypefun
 @*/
 jit_value_t
-jit_insn_call_native(jit_function_t func, const char *name,
-		     void *native_func, jit_type_t signature,
-		     jit_value_t *args, unsigned int num_args, int flags)
+jit_insn_call_native(jit_function_t func, const char *name, void *native_func,
+		     jit_type_t signature, jit_value_t *args, unsigned int num_args, int flags)
 {
-	jit_value_t *new_args;
-	jit_value_t return_value;
-	jit_insn_t insn;
-	jit_type_t return_type;
-
-	/* Bail out if there is something wrong with the parameters */
-	if(!_jit_function_ensure_builder(func) || !native_func || !signature)
+	/* Ensure that we have a function builder */
+	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
@@ -6033,9 +5860,10 @@ jit_insn_call_native(jit_function_t func, const char *name,
 	flags |= JIT_CALL_NATIVE;
 
 	/* Convert the arguments to the actual parameter types */
+	jit_value_t *new_args;
 	if(num_args > 0)
 	{
-		new_args = (jit_value_t *)alloca(sizeof(jit_value_t) * num_args);
+		new_args = (jit_value_t *) alloca(sizeof(jit_value_t) * num_args);
 		if(!convert_call_parameters(func, signature, args, num_args, new_args))
 		{
 			return 0;
@@ -6053,6 +5881,7 @@ jit_insn_call_native(jit_function_t func, const char *name,
 	}
 
 	/* Create the instructions to push the parameters onto the stack */
+	jit_value_t return_value;
 	if(!create_call_setup_insns(func, 0, signature, new_args, num_args,
 				    0, 0, &return_value, flags))
 	{
@@ -6063,7 +5892,7 @@ jit_insn_call_native(jit_function_t func, const char *name,
 	func->builder->non_leaf = 1;
 
 	/* Output the "call_external" instruction */
-	insn = _jit_block_add_insn(func->builder->current_block);
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
@@ -6078,40 +5907,39 @@ jit_insn_call_native(jit_function_t func, const char *name,
 		insn->opcode = JIT_OP_CALL_EXTERNAL;
 	}
 	insn->flags = JIT_INSN_DEST_IS_NATIVE | JIT_INSN_VALUE1_IS_NAME;
-	insn->dest = (jit_value_t)native_func;
-	insn->value1 = (jit_value_t)name;
+	insn->dest = (jit_value_t) native_func;
+	insn->value1 = (jit_value_t) name;
 #ifdef JIT_BACKEND_INTERP
 	insn->flags |= JIT_INSN_VALUE2_IS_SIGNATURE;
-	insn->value2 = (jit_value_t)jit_type_copy(signature);
+	insn->value2 = (jit_value_t) jit_type_copy(signature);
 #endif
 
 	/* Handle return to the caller */
-	return_value = handle_return(func, signature, flags, 0,
-				     new_args, num_args, return_value);
+	return_value = handle_return(func, signature, flags, 0, new_args, num_args, return_value);
 
 	/* Make sure that returned byte / short values get zero / sign extended */
-	return_type = jit_type_remove_tags(return_value->type);
+	jit_type_t return_type = jit_type_remove_tags(return_value->type);
 	switch(return_type->kind)
 	{
 	case JIT_TYPE_SBYTE:
 		/* Force sbyte sign extension to int */
-		return_value = apply_unary_conversion(func, JIT_OP_TRUNC_SBYTE,
-						      return_value, return_type);
+		return_value = apply_conversion(func, JIT_OP_TRUNC_SBYTE, return_value,
+						return_type);
 		break;
 	case JIT_TYPE_UBYTE:
 		/* Force ubyte zero extension to uint */
-		return_value = apply_unary_conversion(func, JIT_OP_TRUNC_UBYTE,
-						      return_value, return_type);
+		return_value = apply_conversion(func, JIT_OP_TRUNC_UBYTE, return_value,
+						return_type);
 		break;
 	case JIT_TYPE_SHORT:
 		/* Force short sign extension to int */
-		return_value = apply_unary_conversion(func, JIT_OP_TRUNC_SHORT,
-						      return_value, return_type);
+		return_value = apply_conversion(func, JIT_OP_TRUNC_SHORT, return_value,
+						return_type);
 		break;
 	case JIT_TYPE_USHORT:
 		/* Force ushort zero extension to uint */
-		return_value = apply_unary_conversion(func, JIT_OP_TRUNC_USHORT,
-						      return_value, return_type);
+		return_value = apply_conversion(func, JIT_OP_TRUNC_USHORT, return_value,
+						return_type);
 		break;
 	}
 
@@ -6147,15 +5975,14 @@ jit_insn_call_native(jit_function_t func, const char *name,
  * The @var{name} is for diagnostic purposes only, and can be NULL.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_call_intrinsic
-		(jit_function_t func, const char *name, void *intrinsic_func,
-		 const jit_intrinsic_descr_t *descriptor,
-		 jit_value_t arg1, jit_value_t arg2)
+jit_value_t
+jit_insn_call_intrinsic(jit_function_t func, const char *name, void *intrinsic_func,
+			const jit_intrinsic_descr_t *descriptor, jit_value_t arg1,
+			jit_value_t arg2)
 {
 	jit_type_t signature;
 	jit_type_t param_types[3];
 	jit_value_t param_values[3];
-	unsigned int num_params;
 	jit_value_t return_value;
 	jit_value_t temp_value;
 	jit_value_t cond_value;
@@ -6202,7 +6029,7 @@ jit_value_t jit_insn_call_intrinsic
 	}
 
 	/* Construct the signature for the intrinsic */
-	num_params = 0;
+	unsigned int num_params = 0;
 	if(return_value)
 	{
 		/* Pass a pointer to "return_value" as the first argument */
@@ -6224,16 +6051,17 @@ jit_value_t jit_insn_call_intrinsic
 		param_values[num_params] = arg2;
 		++num_params;
 	}
-	signature = jit_type_create_signature
-		(jit_abi_cdecl, descriptor->return_type, param_types, num_params, 1);
+	signature = jit_type_create_signature(jit_abi_cdecl, descriptor->return_type,
+					      param_types, num_params, 1);
 	if(!signature)
 	{
 		return 0;
 	}
 
 	/* If the arguments are constant, then invoke the intrinsic now */
-	if(jit_value_is_constant(arg1) && (!arg2 || jit_value_is_constant(arg2)) &&
-	   !jit_context_get_meta_numeric(func->context, JIT_OPTION_DONT_FOLD))
+	if(jit_value_is_constant(arg1)
+	   && (!arg2 || jit_value_is_constant(arg2))
+	   && !jit_context_get_meta_numeric(func->context, JIT_OPTION_DONT_FOLD))
 	{
 		const1 = jit_value_get_constant(arg1);
 		const2 = jit_value_get_constant(arg2);
@@ -6245,8 +6073,8 @@ jit_value_t jit_insn_call_intrinsic
 			apply_args[0] = &temp_const.un;
 			apply_args[1] = &const1.un;
 			apply_args[2] = &const2.un;
-			jit_apply(signature, intrinsic_func, apply_args,
-					  num_params, &result);
+			jit_apply(signature, intrinsic_func, apply_args, num_params,
+				  &result);
 			if(result >= 1)
 			{
 				/* No exception occurred, so return the constant value */
@@ -6259,17 +6087,16 @@ jit_value_t jit_insn_call_intrinsic
 			return_const.type = descriptor->return_type;
 			apply_args[0] = &const1.un;
 			apply_args[1] = &const2.un;
-			jit_apply(signature, intrinsic_func, apply_args,
-					  num_params, &return_const.un);
+			jit_apply(signature, intrinsic_func, apply_args, num_params,
+				  &return_const.un);
 			jit_type_free(signature);
 			return jit_value_create_constant(func, &return_const);
 		}
 	}
 
 	/* Call the intrinsic as a native function */
-	temp_value = jit_insn_call_native
-		(func, name, intrinsic_func, signature, param_values,
-		 num_params, JIT_CALL_NOTHROW);
+	temp_value = jit_insn_call_native(func, name, intrinsic_func, signature,
+					  param_values, num_params, JIT_CALL_NOTHROW);
 	if(!temp_value)
 	{
 		jit_type_free(signature);
@@ -6284,8 +6111,8 @@ jit_value_t jit_insn_call_intrinsic
 	}
 
 	/* Determine if an exception was reported */
-	cond_value = jit_insn_ge(func, temp_value,
-		jit_value_create_nint_constant(func, jit_type_int, 1));
+	cond_value = jit_value_create_nint_constant(func, jit_type_int, 1);
+	cond_value = jit_insn_ge(func, temp_value, cond_value);
 	if(!cond_value)
 	{
 		return 0;
@@ -6298,17 +6125,16 @@ jit_value_t jit_insn_call_intrinsic
 
 	/* Call the "jit_exception_builtin" function to report the exception */
 	param_types[0] = jit_type_int;
-	signature = jit_type_create_signature
-		(jit_abi_cdecl, jit_type_void, param_types, 1, 1);
+	signature = jit_type_create_signature(jit_abi_cdecl, jit_type_void,
+					      param_types, 1, 1);
 	if(!signature)
 	{
 		return 0;
 	}
 	param_values[0] = temp_value;
-	jit_insn_call_native
-		(func, "jit_exception_builtin",
-		 (void *)jit_exception_builtin, signature, param_values, 1,
-		 JIT_CALL_NORETURN);
+	jit_insn_call_native(func, "jit_exception_builtin",
+			     (void *) jit_exception_builtin, signature,
+			     param_values, 1, JIT_CALL_NORETURN);
 	jit_type_free(signature);
 
 	/* Execution continues here if there was no exception */
@@ -6331,15 +6157,19 @@ jit_value_t jit_insn_call_intrinsic
  * values of registers on return from a subroutine call.
  * @end deftypefun
 @*/
-int jit_insn_incoming_reg(jit_function_t func, jit_value_t value, int reg)
+int
+jit_insn_incoming_reg(jit_function_t func, jit_value_t value, int reg)
 {
-	if(value && value->is_parameter)
+	jit_value_t reg_value = jit_value_create_nint_constant(func, jit_type_int, reg);
+	if(!reg_value)
+	{
+		return 0;
+	}
+	if(value->is_parameter)
 	{
 		value->is_reg_parameter = 1;
 	}
-	return create_note(func, JIT_OP_INCOMING_REG, value,
-					   jit_value_create_nint_constant
-					   		(func, jit_type_int, (jit_nint)reg));
+	return create_note(func, JIT_OP_INCOMING_REG, value, reg_value);
 }
 
 /*@
@@ -6352,12 +6182,17 @@ int jit_insn_incoming_reg(jit_function_t func, jit_value_t value, int reg)
  * by the CPU back ends to set up the function's entry frame.
  * @end deftypefun
 @*/
-int jit_insn_incoming_frame_posn
-		(jit_function_t func, jit_value_t value, jit_nint frame_offset)
+int
+jit_insn_incoming_frame_posn(jit_function_t func, jit_value_t value,
+			     jit_nint frame_offset)
 {
-	return create_note(func, JIT_OP_INCOMING_FRAME_POSN, value,
-					   jit_value_create_nint_constant
-					   		(func, jit_type_int, frame_offset));
+	jit_value_t frame_offset_value
+		= jit_value_create_nint_constant(func, jit_type_int, frame_offset);
+	if(!frame_offset_value)
+	{
+		return 0;
+	}
+	return create_note(func, JIT_OP_INCOMING_FRAME_POSN, value, frame_offset_value);
 }
 
 /*@
@@ -6370,11 +6205,15 @@ int jit_insn_incoming_frame_posn
  * by the CPU back ends to set up the registers for a subroutine call.
  * @end deftypefun
 @*/
-int jit_insn_outgoing_reg(jit_function_t func, jit_value_t value, int reg)
+int
+jit_insn_outgoing_reg(jit_function_t func, jit_value_t value, int reg)
 {
-	return create_note(func, JIT_OP_OUTGOING_REG, value,
-					   jit_value_create_nint_constant
-					   		(func, jit_type_int, (jit_nint)reg));
+	jit_value_t reg_value = jit_value_create_nint_constant(func, jit_type_int, reg);
+	if(!reg_value)
+	{
+		return 0;
+	}
+	return create_note(func, JIT_OP_OUTGOING_REG, value, reg_value);
 }
 
 /*@
@@ -6387,12 +6226,17 @@ int jit_insn_outgoing_reg(jit_function_t func, jit_value_t value, int reg)
  * by the CPU back ends to set up an outgoing frame for tail calls.
  * @end deftypefun
 @*/
-int jit_insn_outgoing_frame_posn
-		(jit_function_t func, jit_value_t value, jit_nint frame_offset)
+int
+jit_insn_outgoing_frame_posn(jit_function_t func, jit_value_t value,
+			     jit_nint frame_offset)
 {
-	return create_note(func, JIT_OP_OUTGOING_FRAME_POSN, value,
-					   jit_value_create_nint_constant
-					   		(func, jit_type_int, frame_offset));
+	jit_value_t frame_offset_value
+		= jit_value_create_nint_constant(func, jit_type_int, frame_offset);
+	if(!frame_offset_value)
+	{
+		return 0;
+	}
+	return create_note(func, JIT_OP_OUTGOING_FRAME_POSN, value, frame_offset_value);
 }
 
 /*@
@@ -6406,11 +6250,15 @@ int jit_insn_outgoing_frame_posn
  * by the CPU back ends to handle returns from subroutine calls.
  * @end deftypefun
 @*/
-int jit_insn_return_reg(jit_function_t func, jit_value_t value, int reg)
+int
+jit_insn_return_reg(jit_function_t func, jit_value_t value, int reg)
 {
-	return create_note(func, JIT_OP_RETURN_REG, value,
-					   jit_value_create_nint_constant
-					   		(func, jit_type_int, (jit_nint)reg));
+	jit_value_t reg_value = jit_value_create_nint_constant(func, jit_type_int, reg);
+	if(!reg_value)
+	{
+		return 0;
+	}
+	return create_note(func, JIT_OP_RETURN_REG, value, reg_value);
 }
 
 /*@
@@ -6426,24 +6274,27 @@ int jit_insn_return_reg(jit_function_t func, jit_value_t value, int reg)
  * CPU back ends to set up the parameters for a nested subroutine call.
  * @end deftypefun
 @*/
-int jit_insn_setup_for_nested(jit_function_t func, int nested_level, int reg)
+int
+jit_insn_setup_for_nested(jit_function_t func, int nested_level, int reg)
 {
+	jit_value_t reg_value = jit_value_create_nint_constant(func, jit_type_int, reg);
+	if(!reg_value)
+	{
+		return 0;
+	}
+
 	if(nested_level < 0)
 	{
-		return create_unary_note
-			(func, JIT_OP_SETUP_FOR_NESTED,
-			 jit_value_create_nint_constant
-				 (func, jit_type_int, (jit_nint)reg));
+		return create_unary_note(func, JIT_OP_SETUP_FOR_NESTED, reg_value);
 	}
-	else
+
+	jit_value_t nested_level_value =
+		jit_value_create_nint_constant(func, jit_type_int, nested_level);
+	if(!nested_level_value)
 	{
-		return create_note
-			(func, JIT_OP_SETUP_FOR_SIBLING,
-			 jit_value_create_nint_constant
-				 (func, jit_type_int, (jit_nint)nested_level),
-			 jit_value_create_nint_constant
-				 (func, jit_type_int, (jit_nint)reg));
+		return 0;
 	}
+	return create_note(func, JIT_OP_SETUP_FOR_SIBLING, nested_level_value, reg_value);
 }
 
 /*@
@@ -6454,7 +6305,8 @@ int jit_insn_setup_for_nested(jit_function_t func, int nested_level, int reg)
  * structure returns from functions.
  * @end deftypefun
 @*/
-int jit_insn_flush_struct(jit_function_t func, jit_value_t value)
+int
+jit_insn_flush_struct(jit_function_t func, jit_value_t value)
 {
 	if(value)
 	{
@@ -6471,28 +6323,25 @@ int jit_insn_flush_struct(jit_function_t func, jit_value_t value)
  * parent, grandparent, or other ancestor of @var{func}.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_import(jit_function_t func, jit_value_t value)
+jit_value_t
+jit_insn_import(jit_function_t func, jit_value_t value)
 {
-	jit_function_t value_func;
-	jit_function_t current_func;
-	int level;
-
-	/* Make sure that we have a builder before we start */
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
 
 	/* If the value is already local, then return the local address */
-	value_func = jit_value_get_function(value);
+	jit_function_t value_func = jit_value_get_function(value);
 	if(value_func == func)
 	{
 		return jit_insn_address_of(func, value);
 	}
 
 	/* Find the nesting level of the value, where 1 is our parent */
-	level = 1;
-	current_func = func->nested_parent;
+	int level = 1;
+	jit_function_t current_func = func->nested_parent;
 	while(current_func != 0 && current_func != value_func)
 	{
 		++level;
@@ -6506,10 +6355,12 @@ jit_value_t jit_insn_import(jit_function_t func, jit_value_t value)
 
 	/* Output the relevant import instruction, which will also cause
 	   it to be marked as a non-local addressable by "jit_value_ref" */
-	return apply_binary
-		(func, JIT_OP_IMPORT, value,
-		 jit_value_create_nint_constant(func, jit_type_int, (jit_nint)level),
-		 jit_type_void_ptr);
+	jit_value_t level_value = jit_value_create_nint_constant(func, jit_type_int, level);
+	if(!level_value)
+	{
+		return 0;
+	}
+	return apply_binary(func, JIT_OP_IMPORT, value, level_value, jit_type_void_ptr);
 }
 
 /*@
@@ -6519,68 +6370,49 @@ jit_value_t jit_insn_import(jit_function_t func, jit_value_t value)
  * by the CPU back ends to set up the stack for a subroutine call.
  * @end deftypefun
 @*/
-int jit_insn_push(jit_function_t func, jit_value_t value)
+int
+jit_insn_push(jit_function_t func, jit_value_t value)
 {
-	jit_type_t type;
-	if(!value)
-	{
-		return 0;
-	}
-	type = jit_type_promote_int(jit_type_normalize(jit_value_get_type(value)));
+	jit_type_t type = jit_value_get_type(value);
+	type = jit_type_promote_int(jit_type_normalize(type));
+
+	jit_value_t size_value;
 	switch(type->kind)
 	{
-		case JIT_TYPE_SBYTE:
-		case JIT_TYPE_UBYTE:
-		case JIT_TYPE_SHORT:
-		case JIT_TYPE_USHORT:
-		case JIT_TYPE_INT:
-		case JIT_TYPE_UINT:
-		{
-			return create_unary_note(func, JIT_OP_PUSH_INT, value);
-		}
-		/* Not reached */
+	case JIT_TYPE_SBYTE:
+	case JIT_TYPE_UBYTE:
+	case JIT_TYPE_SHORT:
+	case JIT_TYPE_USHORT:
+	case JIT_TYPE_INT:
+	case JIT_TYPE_UINT:
+		return create_unary_note(func, JIT_OP_PUSH_INT, value);
 
-		case JIT_TYPE_LONG:
-		case JIT_TYPE_ULONG:
-		{
-			return create_unary_note(func, JIT_OP_PUSH_LONG, value);
-		}
-		/* Not reached */
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+		return create_unary_note(func, JIT_OP_PUSH_LONG, value);
 
-		case JIT_TYPE_FLOAT32:
-		{
-			return create_unary_note(func, JIT_OP_PUSH_FLOAT32, value);
-		}
-		/* Not reached */
+	case JIT_TYPE_FLOAT32:
+		return create_unary_note(func, JIT_OP_PUSH_FLOAT32, value);
 
-		case JIT_TYPE_FLOAT64:
-		{
-			return create_unary_note(func, JIT_OP_PUSH_FLOAT64, value);
-		}
-		/* Not reached */
+	case JIT_TYPE_FLOAT64:
+		return create_unary_note(func, JIT_OP_PUSH_FLOAT64, value);
 
-		case JIT_TYPE_NFLOAT:
-		{
-			return create_unary_note(func, JIT_OP_PUSH_NFLOAT, value);
-		}
-		/* Not reached */
+	case JIT_TYPE_NFLOAT:
+		return create_unary_note(func, JIT_OP_PUSH_NFLOAT, value);
 
-		case JIT_TYPE_STRUCT:
-		case JIT_TYPE_UNION:
+	case JIT_TYPE_STRUCT:
+	case JIT_TYPE_UNION:
+		/* We need the address of the value for "push_struct" */
+		value = jit_insn_address_of(func, value);
+		size_value = jit_value_create_nint_constant(func, jit_type_nint,
+							    jit_type_get_size(type));
+		if(!value || !size_value)
 		{
-			/* We need the address of the value for "push_struct" */
-			value = jit_insn_address_of(func, value);
-			if(!value)
-			{
-				return 0;
-			}
-			return create_note
-				(func, JIT_OP_PUSH_STRUCT, value,
-				 jit_value_create_nint_constant
-				 	(func, jit_type_nint, (jit_nint)jit_type_get_size(type)));
+			return 0;
 		}
-		/* Not reached */
+		return create_note(func, JIT_OP_PUSH_STRUCT, value, size_value);
 	}
+
 	return 1;
 }
 
@@ -6598,24 +6430,28 @@ int jit_insn_push(jit_function_t func, jit_value_t value)
 int
 jit_insn_push_ptr(jit_function_t func, jit_value_t value, jit_type_t type)
 {
-	if(!value || !type)
-	{
-		return 0;
-	}
+	jit_value_t size_value;
 	switch(jit_type_remove_tags(type)->kind)
 	{
 	case JIT_TYPE_STRUCT:
 	case JIT_TYPE_UNION:
 		/* Push the structure onto the stack by address */
-		return create_note(func, JIT_OP_PUSH_STRUCT, value,
-				   jit_value_create_nint_constant(
-					   func, jit_type_nint,
-					   (jit_nint) jit_type_get_size(type)));
+		size_value = jit_value_create_nint_constant(func, jit_type_nint,
+							    jit_type_get_size(type));
+		if(!size_value)
+		{
+			return 0;
+		}
+		return create_note(func, JIT_OP_PUSH_STRUCT, value, size_value);
 
 	default:
 		/* Load the value from the address and push it normally */
-		return jit_insn_push(func,
-				     jit_insn_load_relative(func, value, 0, type));
+		value = jit_insn_load_relative(func, value, 0, type);
+		if(!value)
+		{
+			return 0;
+		}
+		return jit_insn_push(func, value);
 	}
 }
 
@@ -6631,115 +6467,92 @@ jit_insn_push_ptr(jit_function_t func, jit_value_t value, jit_type_t type)
  * by the CPU back ends to set up the stack for a subroutine call.
  * @end deftypefun
 @*/
-int jit_insn_set_param(jit_function_t func, jit_value_t value, jit_nint offset)
+int
+jit_insn_set_param(jit_function_t func, jit_value_t value, jit_nint offset)
 {
-	jit_type_t type;
-	if(!value)
+	jit_type_t type = jit_value_get_type(value);
+	type = jit_type_promote_int(jit_type_normalize(type));
+
+	jit_value_t offset_value, size_value;
+	offset_value = jit_value_create_nint_constant(func, jit_type_nint, offset);
+	if(!offset_value)
 	{
 		return 0;
 	}
-	type = jit_type_promote_int(jit_type_normalize(jit_value_get_type(value)));
+
 	switch(type->kind)
 	{
-		case JIT_TYPE_SBYTE:
-		case JIT_TYPE_UBYTE:
-		case JIT_TYPE_SHORT:
-		case JIT_TYPE_USHORT:
-		case JIT_TYPE_INT:
-		case JIT_TYPE_UINT:
-		{
-			return create_note(func, JIT_OP_SET_PARAM_INT, value,
-							   jit_value_create_nint_constant
-							   		(func, jit_type_nint, offset));
-		}
-		/* Not reached */
+	case JIT_TYPE_SBYTE:
+	case JIT_TYPE_UBYTE:
+	case JIT_TYPE_SHORT:
+	case JIT_TYPE_USHORT:
+	case JIT_TYPE_INT:
+	case JIT_TYPE_UINT:
+		return create_note(func, JIT_OP_SET_PARAM_INT, value, offset_value);
 
-		case JIT_TYPE_LONG:
-		case JIT_TYPE_ULONG:
-		{
-			return create_note(func, JIT_OP_SET_PARAM_LONG, value,
-							   jit_value_create_nint_constant
-							   		(func, jit_type_nint, offset));
-		}
-		/* Not reached */
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+		return create_note(func, JIT_OP_SET_PARAM_LONG, value, offset_value);
 
-		case JIT_TYPE_FLOAT32:
-		{
-			return create_note(func, JIT_OP_SET_PARAM_FLOAT32, value,
-							   jit_value_create_nint_constant
-							   		(func, jit_type_nint, offset));
-		}
-		/* Not reached */
+	case JIT_TYPE_FLOAT32:
+		return create_note(func, JIT_OP_SET_PARAM_FLOAT32, value, offset_value);
 
-		case JIT_TYPE_FLOAT64:
-		{
-			return create_note(func, JIT_OP_SET_PARAM_FLOAT64, value,
-							   jit_value_create_nint_constant
-							   		(func, jit_type_nint, offset));
-		}
-		/* Not reached */
+	case JIT_TYPE_FLOAT64:
+		return create_note(func, JIT_OP_SET_PARAM_FLOAT64, value, offset_value);
 
-		case JIT_TYPE_NFLOAT:
-		{
-			return create_note(func, JIT_OP_SET_PARAM_NFLOAT, value,
-							   jit_value_create_nint_constant
-							   		(func, jit_type_nint, offset));
-		}
-		/* Not reached */
+	case JIT_TYPE_NFLOAT:
+		return create_note(func, JIT_OP_SET_PARAM_NFLOAT, value, offset_value);
 
-		case JIT_TYPE_STRUCT:
-		case JIT_TYPE_UNION:
+	case JIT_TYPE_STRUCT:
+	case JIT_TYPE_UNION:
+		/* We need the address of the value for "push_struct" */
+		value = jit_insn_address_of(func, value);
+		size_value = jit_value_create_nint_constant(func, jit_type_nint,
+							    jit_type_get_size(type));
+		if(!value || !size_value)
 		{
-			/* We need the address of the value for "push_struct" */
-			value = jit_insn_address_of(func, value);
-			if(!value)
-			{
-				return 0;
-			}
-			return apply_ternary
-				(func, JIT_OP_SET_PARAM_STRUCT,
-				 jit_value_create_nint_constant(func, jit_type_nint, offset),
-				 value,
-				 jit_value_create_nint_constant
-				 	(func, jit_type_nint, (jit_nint)jit_type_get_size(type)));
+			return 0;
 		}
-		/* Not reached */
+		return apply_ternary(func, JIT_OP_SET_PARAM_STRUCT, offset_value, value,
+				     size_value);
 	}
 	return 1;
 }
 
 /*@
  * @deftypefun int jit_insn_set_param_ptr (jit_function_t @var{func}, jit_value_t @var{value}, jit_type_t @var{type}, jit_nint @var{offset})
- * Same as @code{jit_insn_set_param_ptr}, except that the parameter is
+ * Same as @code{jit_insn_set_param}, except that the parameter is
  * at @code{*@var{value}}.
  * @end deftypefun
 @*/
 int
-jit_insn_set_param_ptr(jit_function_t func, jit_value_t value,
-		       jit_type_t type, jit_nint offset)
+jit_insn_set_param_ptr(jit_function_t func, jit_value_t value, jit_type_t type,
+		       jit_nint offset)
 {
-	if(!value || !type)
-	{
-		return 0;
-	}
+	jit_value_t offset_value, size_value;
 	switch(jit_type_remove_tags(type)->kind)
 	{
 	case JIT_TYPE_STRUCT:
 	case JIT_TYPE_UNION:
 		/* Set the structure into the parameter area by address */
-		return apply_ternary(func, JIT_OP_SET_PARAM_STRUCT,
-				     jit_value_create_nint_constant(
-					     func, jit_type_nint, offset),
-				     value,
-				     jit_value_create_nint_constant(
-					     func, jit_type_nint,
-					     (jit_nint) jit_type_get_size(type)));
+		offset_value = jit_value_create_nint_constant(func, jit_type_nint, offset);
+		size_value = jit_value_create_nint_constant(func, jit_type_nint,
+							    jit_type_get_size(type));
+		if(!offset_value || !size_value)
+		{
+			return 0;
+		}
+		return apply_ternary(func, JIT_OP_SET_PARAM_STRUCT, offset_value, value,
+				     size_value);
 
 	default:
 		/* Load the value from the address and set it normally */
-		return jit_insn_set_param(func,
-					  jit_insn_load_relative(func, value, 0, type),
-					  offset);
+		value = jit_insn_load_relative(func, value, 0, type);
+		if(!value)
+		{
+			return 0;
+		}
+		return jit_insn_set_param(func, value, offset);
 	}
 }
 
@@ -6750,7 +6563,8 @@ jit_insn_set_param_ptr(jit_function_t func, jit_value_t value,
  * by the CPU back ends to set up the stack for a subroutine call.
  * @end deftypefun
 @*/
-int jit_insn_push_return_area_ptr(jit_function_t func)
+int
+jit_insn_push_return_area_ptr(jit_function_t func)
 {
 	return create_noarg_note(func, JIT_OP_PUSH_RETURN_AREA_PTR);
 }
@@ -6763,11 +6577,11 @@ int jit_insn_push_return_area_ptr(jit_function_t func)
  * to the back end (it could be bytes, words, or some other measurement).
  * @end deftypefun
 @*/
-int jit_insn_pop_stack(jit_function_t func, jit_nint num_items)
+int
+jit_insn_pop_stack(jit_function_t func, jit_nint num_items)
 {
-	return create_unary_note
-		(func, JIT_OP_POP_STACK,
-		 jit_value_create_nint_constant(func, jit_type_nint, num_items));
+	jit_value_t num_value = jit_value_create_nint_constant(func, jit_type_nint, num_items);
+	return create_unary_note(func, JIT_OP_POP_STACK, num_value);
 }
 
 /*@
@@ -6779,12 +6593,15 @@ int jit_insn_pop_stack(jit_function_t func, jit_nint num_items)
  * call this yourself - it is used by CPU back ends.
  * @end deftypefun
 @*/
-int jit_insn_defer_pop_stack(jit_function_t func, jit_nint num_items)
+int
+jit_insn_defer_pop_stack(jit_function_t func, jit_nint num_items)
 {
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
+
 	func->builder->deferred_items += num_items;
 	return 1;
 }
@@ -6800,19 +6617,22 @@ int jit_insn_defer_pop_stack(jit_function_t func, jit_nint num_items)
  * all deferred items.
  * @end deftypefun
 @*/
-int jit_insn_flush_defer_pop(jit_function_t func, jit_nint num_items)
+int
+jit_insn_flush_defer_pop(jit_function_t func, jit_nint num_items)
 {
-	jit_nint current_items;
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-	current_items = func->builder->deferred_items;
+
+	jit_nint current_items = func->builder->deferred_items;
 	if(current_items >= num_items && current_items > 0)
 	{
 		func->builder->deferred_items = 0;
 		return jit_insn_pop_stack(func, current_items);
 	}
+
 	return 1;
 }
 
@@ -6824,11 +6644,10 @@ int jit_insn_flush_defer_pop(jit_function_t func, jit_nint num_items)
  * the value into the memory at the structure return address.
  * @end deftypefun
 @*/
-int jit_insn_return(jit_function_t func, jit_value_t value)
+int
+jit_insn_return(jit_function_t func, jit_value_t value)
 {
-	jit_type_t type;
-
-	/* Ensure that we have a builder for this function */
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
@@ -6838,15 +6657,14 @@ int jit_insn_return(jit_function_t func, jit_value_t value)
 	/* We need to pop the "setjmp" context */
 	if(func->has_try)
 	{
-		type = jit_type_create_signature
-			(jit_abi_cdecl, jit_type_void, 0, 0, 1);
+		jit_type_t type = jit_type_create_signature(jit_abi_cdecl, jit_type_void, 0, 0, 1);
 		if(!type)
 		{
 			return 0;
 		}
-		jit_insn_call_native
-			(func, "_jit_unwind_pop_setjmp",
-			 (void *)_jit_unwind_pop_setjmp, type, 0, 0, JIT_CALL_NOTHROW);
+		jit_insn_call_native(func, "_jit_unwind_pop_setjmp",
+				     (void *) _jit_unwind_pop_setjmp, type,
+				     0, 0, JIT_CALL_NOTHROW);
 		jit_type_free(type);
 	}
 #endif
@@ -6855,8 +6673,8 @@ int jit_insn_return(jit_function_t func, jit_value_t value)
 	func->builder->ordinary_return = 1;
 
 	/* Output an appropriate instruction to return to the caller */
-	type = jit_type_normalize(jit_type_get_return(func->signature));
-	type = jit_type_promote_int(type);
+	jit_type_t type = jit_type_get_return(func->signature);
+	type = jit_type_promote_int(jit_type_normalize(type));
 	if(!value || type == jit_type_void)
 	{
 		/* This function returns "void" */
@@ -6875,103 +6693,83 @@ int jit_insn_return(jit_function_t func, jit_value_t value)
 		}
 
 		/* Create the "return" instruction */
+		jit_value_t return_ptr, value_addr, size_value;
 		switch(type->kind)
 		{
-			case JIT_TYPE_SBYTE:
-			case JIT_TYPE_UBYTE:
-			case JIT_TYPE_SHORT:
-			case JIT_TYPE_USHORT:
-			case JIT_TYPE_INT:
-			case JIT_TYPE_UINT:
+		case JIT_TYPE_SBYTE:
+		case JIT_TYPE_UBYTE:
+		case JIT_TYPE_SHORT:
+		case JIT_TYPE_USHORT:
+		case JIT_TYPE_INT:
+		case JIT_TYPE_UINT:
+			if(!create_unary_note(func, JIT_OP_RETURN_INT, value))
 			{
-				if(!create_unary_note(func, JIT_OP_RETURN_INT, value))
+				return 0;
+			}
+			break;
+
+		case JIT_TYPE_LONG:
+		case JIT_TYPE_ULONG:
+			if(!create_unary_note(func, JIT_OP_RETURN_LONG, value))
+			{
+				return 0;
+			}
+			break;
+
+		case JIT_TYPE_FLOAT32:
+			if(!create_unary_note(func, JIT_OP_RETURN_FLOAT32, value))
+			{
+				return 0;
+			}
+			break;
+
+		case JIT_TYPE_FLOAT64:
+			if(!create_unary_note(func, JIT_OP_RETURN_FLOAT64, value))
+			{
+				return 0;
+			}
+			break;
+
+		case JIT_TYPE_NFLOAT:
+			if(!create_unary_note(func, JIT_OP_RETURN_NFLOAT, value))
+			{
+				return 0;
+			}
+			break;
+
+		case JIT_TYPE_STRUCT:
+		case JIT_TYPE_UNION:
+			value_addr = jit_insn_address_of(func, value);
+			size_value = jit_value_create_nint_constant(func, jit_type_nint,
+								    jit_type_get_size(type));
+			if(!value_addr || !size_value)
+			{
+				return 0;
+			}
+
+			/* Determine the kind of structure return to use */
+			return_ptr = jit_value_get_struct_pointer(func);
+			if(return_ptr)
+			{
+				/* Copy the structure's contents to the supplied
+				   pointer */
+				if(!jit_insn_memcpy(func, return_ptr, value_addr, size_value))
+				{
+					return 0;
+				}
+				/* Output a regular return for the function */
+				if(!create_noarg_note(func, JIT_OP_RETURN))
 				{
 					return 0;
 				}
 			}
-			break;
-
-			case JIT_TYPE_LONG:
-			case JIT_TYPE_ULONG:
+			else
 			{
-				if(!create_unary_note(func, JIT_OP_RETURN_LONG, value))
+				/* Return the structure via registers */
+				if(!create_note(func, JIT_OP_RETURN_SMALL_STRUCT, value_addr,
+						size_value))
 				{
 					return 0;
-				}
-			}
-			break;
-
-			case JIT_TYPE_FLOAT32:
-			{
-				if(!create_unary_note(func, JIT_OP_RETURN_FLOAT32, value))
-				{
-					return 0;
-				}
-			}
-			break;
-
-			case JIT_TYPE_FLOAT64:
-			{
-				if(!create_unary_note(func, JIT_OP_RETURN_FLOAT64, value))
-				{
-					return 0;
-				}
-			}
-			break;
-
-			case JIT_TYPE_NFLOAT:
-			{
-				if(!create_unary_note(func, JIT_OP_RETURN_NFLOAT, value))
-				{
-					return 0;
-				}
-			}
-			break;
-
-			case JIT_TYPE_STRUCT:
-			case JIT_TYPE_UNION:
-			{
-				jit_value_t return_ptr = jit_value_get_struct_pointer(func);
-				jit_value_t value_addr;
-				if(return_ptr)
-				{
-					/* Copy the structure's contents to the supplied pointer */
-					value_addr = jit_insn_address_of(func, value);
-					if(!value_addr)
-					{
-						return 0;
-					}
-					if(!jit_insn_memcpy
-						   (func, return_ptr, value_addr,
-						    jit_value_create_nint_constant
-								(func, jit_type_nint,
-								 (jit_nint)(jit_type_get_size(type)))))
-					{
-						return 0;
-					}
-
-					/* Output a regular return for the function */
-					if(!create_noarg_note(func, JIT_OP_RETURN))
-					{
-						return 0;
-					}
-				}
-				else
-				{
-					/* Return the structure via registers */
-					value_addr = jit_insn_address_of(func, value);
-					if(!value_addr)
-					{
-						return 0;
-					}
-					if(!create_note
-						(func, JIT_OP_RETURN_SMALL_STRUCT, value_addr,
-				     	 jit_value_create_nint_constant
-							(func, jit_type_nint,
-						 	 (jit_nint)(jit_type_get_size(type)))))
-					{
-						break;
-					}
 				}
 			}
 			break;
@@ -6996,9 +6794,7 @@ int jit_insn_return(jit_function_t func, jit_value_t value)
 int
 jit_insn_return_ptr(jit_function_t func, jit_value_t value, jit_type_t type)
 {
-	jit_value_t return_ptr;
-
-	/* Ensure that we have a builder for this function */
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
@@ -7008,8 +6804,7 @@ jit_insn_return_ptr(jit_function_t func, jit_value_t value, jit_type_t type)
 	/* We need to pop the "setjmp" context */
 	if(func->has_try)
 	{
-		type = jit_type_create_signature(jit_abi_cdecl, jit_type_void,
-						 0, 0, 1);
+		type = jit_type_create_signature(jit_abi_cdecl, jit_type_void, 0, 0, 1);
 		if(!type)
 		{
 			return 0;
@@ -7032,23 +6827,27 @@ jit_insn_return_ptr(jit_function_t func, jit_value_t value, jit_type_t type)
 	}
 
 	/* Determine how to return the value, based on the pointed-to type */
+	jit_value_t return_ptr, size_value;
 	switch(jit_type_remove_tags(type)->kind)
 	{
 	case JIT_TYPE_STRUCT:
 	case JIT_TYPE_UNION:
+		size_value = jit_value_create_nint_constant(func, jit_type_nint,
+							    jit_type_get_size(type));
+		if(!size_value)
+		{
+			return 0;
+		}
+
 		/* Determine the kind of structure return to use */
 		return_ptr = jit_value_get_struct_pointer(func);
 		if(return_ptr)
 		{
 			/* Copy the structure's contents to the supplied pointer */
-			if(!jit_insn_memcpy(func, return_ptr, value,
-					    jit_value_create_nint_constant(
-						    func, jit_type_nint,
-						    (jit_nint) jit_type_get_size(type))))
+			if(!jit_insn_memcpy(func, return_ptr, value, size_value))
 			{
 				return 0;
 			}
-
 			/* Output a regular return for the function */
 			if(!create_noarg_note(func, JIT_OP_RETURN))
 			{
@@ -7058,19 +6857,21 @@ jit_insn_return_ptr(jit_function_t func, jit_value_t value, jit_type_t type)
 		else
 		{
 			/* Return the structure via registers */
-			if(!create_note(func, JIT_OP_RETURN_SMALL_STRUCT, value,
-					jit_value_create_nint_constant(
-						func, jit_type_nint,
-						(jit_nint) jit_type_get_size(type))))
+			if(!create_note(func, JIT_OP_RETURN_SMALL_STRUCT, value, size_value))
 			{
-				break;
+				return 0;
 			}
 		}
 		break;
 
 	default:
 		/* Everything else uses the normal return logic */
-		return jit_insn_return(func, jit_insn_load_relative(func, value, 0, type));
+		value = jit_insn_load_relative(func, value, 0, type);
+		if(!value)
+		{
+			return 0;
+		}
+		return jit_insn_return(func, value);
 	}
 
 	/* Mark the current block as "ends in dead" */
@@ -7092,9 +6893,10 @@ jit_insn_return_ptr(jit_function_t func, jit_value_t value, jit_type_t type)
  * has occurred and the function should be abandoned.
  * @end deftypefun
 @*/
-int jit_insn_default_return(jit_function_t func)
+int
+jit_insn_default_return(jit_function_t func)
 {
-	/* Ensure that we have a builder for this function */
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
@@ -7118,12 +6920,15 @@ int jit_insn_default_return(jit_function_t func)
  * interested in handling the exception.
  * @end deftypefun
 @*/
-int jit_insn_throw(jit_function_t func, jit_value_t value)
+int
+jit_insn_throw(jit_function_t func, jit_value_t value)
 {
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
+
 	func->builder->may_throw = 1;
 	func->builder->non_leaf = 1;	/* May have to call out to throw */
 	if(!create_unary_note(func, JIT_OP_THROW, value))
@@ -7143,23 +6948,21 @@ int jit_insn_throw(jit_function_t func, jit_value_t value)
  * the location of the exception that is being thrown.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_get_call_stack(jit_function_t func)
+jit_value_t
+jit_insn_get_call_stack(jit_function_t func)
 {
-	jit_type_t type;
-	jit_value_t value;
-
 	/* Create a signature prototype for "void *()" */
-	type = jit_type_create_signature
-		(jit_abi_cdecl, jit_type_void_ptr, 0, 0, 1);
+	jit_type_t type = jit_type_create_signature(jit_abi_cdecl, jit_type_void_ptr, 0, 0, 1);
 	if(!type)
 	{
 		return 0;
 	}
 
 	/* Call "jit_exception_get_stack_trace" to obtain the stack trace */
-	value = jit_insn_call_native
-		(func, "jit_exception_get_stack_trace",
-		 (void *)jit_exception_get_stack_trace, type, 0, 0, 0);
+	jit_value_t value
+		= jit_insn_call_native(func, "jit_exception_get_stack_trace",
+				       (void *) jit_exception_get_stack_trace,
+				       type, 0, 0, 0);
 
 	/* Clean up and exit */
 	jit_type_free(type);
@@ -7172,13 +6975,16 @@ jit_value_t jit_insn_get_call_stack(jit_function_t func)
  * typically used in @code{catch} clauses.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_thrown_exception(jit_function_t func)
+jit_value_t
+jit_insn_thrown_exception(jit_function_t func)
 {
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-	if(!(func->builder->thrown_exception))
+
+	if(!func->builder->thrown_exception)
 	{
 		func->builder->thrown_exception =
 			jit_value_create(func, jit_type_void_ptr);
@@ -7190,23 +6996,23 @@ jit_value_t jit_insn_thrown_exception(jit_function_t func)
  * Initialize the "setjmp" setup block that is needed to catch exceptions
  * thrown back to this level of execution.  The block looks like this:
  *
- *		jit_jmp_buf jbuf;
- *		void *catcher;
+ *	jit_jmp_buf jbuf;
+ *	void *catcher;
  *
- *      _jit_unwind_push_setjmp(&jbuf);
- *      if(setjmp(&jbuf.buf))
+ *	_jit_unwind_push_setjmp(&jbuf);
+ *	if(setjmp(&jbuf.buf))
+ *	{
+ *		catch_pc = jbuf.catch_pc;
+ *		if(catch_pc)
  *		{
- *			catch_pc = jbuf.catch_pc;
- *			if(catch_pc)
- *			{
- *				jbuf.catch_pc = 0;
- *				goto *catcher;
- *			}
- *			else
- *			{
- *				_jit_unwind_pop_and_rethrow();
- *			}
+ *			jbuf.catch_pc = 0;
+ *			goto *catcher;
  *		}
+ *		else
+ *		{
+ *			_jit_unwind_pop_and_rethrow();
+ *		}
+ *     	}
  *
  * The field "jbuf.catch_pc" will be set to the address of the relevant
  * "catch" block just before a subroutine call that may involve exceptions.
@@ -7216,14 +7022,14 @@ jit_value_t jit_insn_thrown_exception(jit_function_t func)
  * "_jit_unwind_pop_setjmp()" just before "return" instructions if the
  * "has_try" flag is set on the function.
  */
-static int initialize_setjmp_block(jit_function_t func)
+static int
+initialize_setjmp_block(jit_function_t func)
 {
 #if !defined(JIT_BACKEND_INTERP)
 	jit_label_t start_label = jit_label_undefined;
 	jit_label_t end_label = jit_label_undefined;
 	jit_label_t code_label = jit_label_undefined;
 	jit_label_t rethrow_label = jit_label_undefined;
-	jit_type_t type;
 	jit_value_t args[2];
 	jit_value_t value;
 
@@ -7241,14 +7047,14 @@ static int initialize_setjmp_block(jit_function_t func)
 	}
 
 	/* Create a value to hold an item of type "jit_jmp_buf" */
-	type = jit_type_create_struct(0, 0, 1);
+	jit_type_t type = jit_type_create_struct(0, 0, 1);
 	if(!type)
 	{
 		return 0;
 	}
-	jit_type_set_size_and_alignment
-		(type, sizeof(jit_jmp_buf), JIT_BEST_ALIGNMENT);
-	if((func->builder->setjmp_value = jit_value_create(func, type)) == 0)
+	jit_type_set_size_and_alignment(type, sizeof(jit_jmp_buf), JIT_BEST_ALIGNMENT);
+	func->builder->setjmp_value = jit_value_create(func, type);
+	if(!func->builder->setjmp_value)
 	{
 		jit_type_free(type);
 		return 0;
@@ -7257,16 +7063,19 @@ static int initialize_setjmp_block(jit_function_t func)
 
 	/* Call "_jit_unwind_push_setjmp" with "&setjmp_value" as its argument */
 	type = jit_type_void_ptr;
-	type = jit_type_create_signature
-		(jit_abi_cdecl, jit_type_void, &type, 1, 1);
+	type = jit_type_create_signature(jit_abi_cdecl, jit_type_void, &type, 1, 1);
 	if(!type)
 	{
 		return 0;
 	}
 	args[0] = jit_insn_address_of(func, func->builder->setjmp_value);
-	jit_insn_call_native
-		(func, "_jit_unwind_push_setjmp",
-		 (void *)_jit_unwind_push_setjmp, type, args, 1, JIT_CALL_NOTHROW);
+	if(!args[0])
+	{
+		return 0;
+	}
+	jit_insn_call_native(func, "_jit_unwind_push_setjmp",
+			     (void *) _jit_unwind_push_setjmp, type,
+			     args, 1, JIT_CALL_NOTHROW);
 	jit_type_free(type);
 
 	/* Call "__sigsetjmp" or "setjmp" with "&setjmp_value" as its argument.
@@ -7276,23 +7085,25 @@ static int initialize_setjmp_block(jit_function_t func)
 		jit_type_t params[2];
 		params[0] = jit_type_void_ptr;
 		params[1] = jit_type_sys_int;
-		type = jit_type_create_signature
-			(jit_abi_cdecl, jit_type_int, params, 2, 1);
-	}
-	if(!type)
-	{
-		return 0;
+		type = jit_type_create_signature(jit_abi_cdecl, jit_type_int, params, 2, 1);
+		if(!type)
+		{
+			return 0;
+		}
 	}
 	args[0] = jit_insn_address_of(func, func->builder->setjmp_value);
 	args[1] = jit_value_create_nint_constant(func, jit_type_sys_int, 1);
+	if(!args[0] || !args[1])
+	{
+		jit_type_free(type);
+		return 0;
+	}
 #if defined(HAVE___SIGSETJMP)
-	value = jit_insn_call_native
-		(func, "__sigsetjmp", (void *)__sigsetjmp,
-		 type, args, 2, JIT_CALL_NOTHROW);
+	value = jit_insn_call_native(func, "__sigsetjmp", (void *) __sigsetjmp,
+				     type, args, 2, JIT_CALL_NOTHROW);
 #else
-	value = jit_insn_call_native
-		(func, "sigsetjmp", (void *)sigsetjmp,
-		 type, args, 2, JIT_CALL_NOTHROW);
+	value = jit_insn_call_native(func, "sigsetjmp", (void *) sigsetjmp,
+				     type, args, 2, JIT_CALL_NOTHROW);
 #endif
 	jit_type_free(type);
 	if(!value)
@@ -7301,21 +7112,24 @@ static int initialize_setjmp_block(jit_function_t func)
 	}
 #else	/* !HAVE_SIGSETJMP */
 	type = jit_type_void_ptr;
-	type = jit_type_create_signature
-		(jit_abi_cdecl, jit_type_int, &type, 1, 1);
+	type = jit_type_create_signature(jit_abi_cdecl, jit_type_int, &type, 1, 1);
 	if(!type)
 	{
 		return 0;
 	}
 	args[0] = jit_insn_address_of(func, func->builder->setjmp_value);
-
+	if(!args[0])
+	{
+		jit_type_free(type);
+		return 0;
+	}
 #if defined(HAVE__SETJMP)
-	value = jit_insn_call_native
-		(func, "_setjmp", (void *)_setjmp, type, args, 1, JIT_CALL_NOTHROW);
+	value = jit_insn_call_native(func, "_setjmp", (void *) _setjmp,
+				     type, args, 1, JIT_CALL_NOTHROW);
 
 #else
-	value = jit_insn_call_native
-		(func, "setjmp", (void *)setjmp, type, args, 1, JIT_CALL_NOTHROW);
+	value = jit_insn_call_native(func, "setjmp", (void *) setjmp,
+				     type, args, 1, JIT_CALL_NOTHROW);
 #endif
 
 	jit_type_free(type);
@@ -7332,17 +7146,20 @@ static int initialize_setjmp_block(jit_function_t func)
 	}
 
 	/* We need a value to hold the location of the thrown exception */
-	if((func->builder->thrown_pc =
-			jit_value_create(func, jit_type_void_ptr)) == 0)
+	func->builder->thrown_pc = jit_value_create(func, jit_type_void_ptr);
+	if(func->builder->thrown_pc == 0)
 	{
 		return 0;
 	}
 
 	/* Get the value of "catch_pc" from within "setjmp_value" and store it
 	   into the current frame.  This indicates where the exception occurred */
-	value = jit_insn_load_relative
-		(func, jit_insn_address_of(func, func->builder->setjmp_value),
-		 jit_jmp_catch_pc_offset, jit_type_void_ptr);
+	value = jit_insn_address_of(func, func->builder->setjmp_value);
+	if(!value)
+	{
+		return 0;
+	}
+	value = jit_insn_load_relative(func, value, jit_jmp_catch_pc_offset, jit_type_void_ptr);
 	if(!value)
 	{
 		return 0;
@@ -7357,16 +7174,19 @@ static int initialize_setjmp_block(jit_function_t func)
 	}
 
 	/* Clear the original "catch_pc" value within "setjmp_value" */
-	if(!jit_insn_store_relative
-		(func, jit_insn_address_of(func, func->builder->setjmp_value),
-		 jit_jmp_catch_pc_offset, jit_value_create_nint_constant
-		 	(func, jit_type_void_ptr, 0)))
+	jit_value_t null = jit_value_create_nint_constant(func, jit_type_void_ptr, 0);
+	value = jit_insn_address_of(func, func->builder->setjmp_value);
+	if(!null || !value)
+	{
+		return 0;
+	}
+	if(!jit_insn_store_relative(func, value, jit_jmp_catch_pc_offset, null))
 	{
 		return 0;
 	}
 
 	/* Jump to this function's exception catcher */
-	if(!jit_insn_branch(func, &(func->builder->catcher_label)))
+	if(!jit_insn_branch(func, &func->builder->catcher_label))
 	{
 		return 0;
 	}
@@ -7384,10 +7204,9 @@ static int initialize_setjmp_block(jit_function_t func)
 	{
 		return 0;
 	}
-	jit_insn_call_native
-		(func, "_jit_unwind_pop_and_rethrow",
-		 (void *)_jit_unwind_pop_and_rethrow, type, 0, 0,
-		 JIT_CALL_NOTHROW | JIT_CALL_NORETURN);
+	jit_insn_call_native(func, "_jit_unwind_pop_and_rethrow",
+			     (void *) _jit_unwind_pop_and_rethrow, type, 0, 0,
+			     JIT_CALL_NOTHROW | JIT_CALL_NORETURN);
 	jit_type_free(type);
 
 	/* Insert the target to jump to the normal code. */
@@ -7420,12 +7239,15 @@ static int initialize_setjmp_block(jit_function_t func)
  * ideally at the start of the function output process.
  * @end deftypefun
 @*/
-int jit_insn_uses_catcher(jit_function_t func)
+int
+jit_insn_uses_catcher(jit_function_t func)
 {
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
+
 	if(func->has_try)
 	{
 		return 1;
@@ -7445,22 +7267,20 @@ int jit_insn_uses_catcher(jit_function_t func)
  * that was thrown.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_start_catcher(jit_function_t func)
+jit_value_t
+jit_insn_start_catcher(jit_function_t func)
 {
-	jit_value_t value;
-#if !defined(JIT_BACKEND_INTERP)
-	jit_value_t last_exception;
-	jit_type_t type;
-#endif
+	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-	if(!jit_insn_label_tight(func, &(func->builder->catcher_label)))
+
+	if(!jit_insn_label_tight(func, &func->builder->catcher_label))
 	{
 		return 0;
 	}
-	value = jit_insn_thrown_exception(func);
+	jit_value_t value = jit_insn_thrown_exception(func);
 	if(!value)
 	{
 		return 0;
@@ -7473,14 +7293,15 @@ jit_value_t jit_insn_start_catcher(jit_function_t func)
 		return 0;
 	}
 #else
-	type = jit_type_create_signature(jit_abi_cdecl, jit_type_void_ptr, 0, 0, 1);
+	jit_type_t type = jit_type_create_signature(jit_abi_cdecl, jit_type_void_ptr, 0, 0, 1);
 	if(!type)
 	{
 		return 0;
 	}
-	last_exception = jit_insn_call_native(
-		func, "jit_exception_get_last",
-		(void *)jit_exception_get_last, type, 0, 0, JIT_CALL_NOTHROW);
+	jit_value_t last_exception
+		= jit_insn_call_native(func, "jit_exception_get_last",
+				       (void *) jit_exception_get_last,
+				       type, 0, 0, JIT_CALL_NOTHROW);
 	jit_insn_store(func, value, last_exception);
 	jit_type_free(type);
 #endif
@@ -7493,19 +7314,16 @@ jit_value_t jit_insn_start_catcher(jit_function_t func)
  * does not fall between @var{start_label} and @var{end_label}.
  * @end deftypefun
 @*/
-int jit_insn_branch_if_pc_not_in_range
-	(jit_function_t func, jit_label_t start_label,
-	 jit_label_t end_label, jit_label_t *label)
+int
+jit_insn_branch_if_pc_not_in_range(jit_function_t func, jit_label_t start_label,
+				   jit_label_t end_label, jit_label_t *label)
 {
-	jit_value_t value1;
-	jit_value_t value2;
-
 	/* Ensure that we have a function builder and a try block */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
-	if(!(func->has_try))
+	if(!func->has_try)
 	{
 		return 0;
 	}
@@ -7518,10 +7336,9 @@ int jit_insn_branch_if_pc_not_in_range
 
 	/* Get the location where the exception occurred in this function */
 #if defined(JIT_BACKEND_INTERP)
-	value1 = create_dest_note
-		(func, JIT_OP_LOAD_EXCEPTION_PC, jit_type_void_ptr);
+	jit_value_t value1 = create_dest_note(func, JIT_OP_LOAD_EXCEPTION_PC, jit_type_void_ptr);
 #else
-	value1 = func->builder->thrown_pc;
+	jit_value_t value1 = func->builder->thrown_pc;
 #endif
 	if(!value1)
 	{
@@ -7529,12 +7346,13 @@ int jit_insn_branch_if_pc_not_in_range
 	}
 
 	/* Compare the location against the start and end labels */
-	value2 = jit_insn_address_of_label(func, &start_label);
+	jit_value_t value2 = jit_insn_address_of_label(func, &start_label);
 	if(!value2)
 	{
 		return 0;
 	}
-	if(!jit_insn_branch_if(func, jit_insn_lt(func, value1, value2), label))
+	value2 = jit_insn_lt(func, value1, value2);
+	if(!value2 || !jit_insn_branch_if(func, value2, label))
 	{
 		return 0;
 	}
@@ -7543,7 +7361,8 @@ int jit_insn_branch_if_pc_not_in_range
 	{
 		return 0;
 	}
-	if(!jit_insn_branch_if(func, jit_insn_ge(func, value1, value2), label))
+	value2 = jit_insn_ge(func, value1, value2);
+	if(!value2 || !jit_insn_branch_if(func, value2, label))
 	{
 		return 0;
 	}
@@ -7563,13 +7382,9 @@ int jit_insn_branch_if_pc_not_in_range
  * should be used for that purpose.
  * @end deftypefun
 @*/
-int jit_insn_rethrow_unhandled(jit_function_t func)
+int
+jit_insn_rethrow_unhandled(jit_function_t func)
 {
-	jit_value_t value;
-#if !defined(JIT_BACKEND_INTERP)
-	jit_type_t type;
-#endif
-
 	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
@@ -7577,7 +7392,7 @@ int jit_insn_rethrow_unhandled(jit_function_t func)
 	}
 
 	/* Get the current exception value to be thrown */
-	value = jit_insn_thrown_exception(func);
+	jit_value_t value = jit_insn_thrown_exception(func);
 	if(!value)
 	{
 		return 0;
@@ -7594,33 +7409,26 @@ int jit_insn_rethrow_unhandled(jit_function_t func)
 #else /* !JIT_BACKEND_INTERP */
 
 	/* Call "_jit_unwind_pop_setjmp" to remove the current exception catcher */
-	if(!_jit_function_ensure_builder(func))
-	{
-		return 0;
-	}
-	type = jit_type_create_signature
-		(jit_abi_cdecl, jit_type_void, 0, 0, 1);
+	jit_type_t type = jit_type_create_signature(jit_abi_cdecl, jit_type_void, 0, 0, 1);
 	if(!type)
 	{
 		return 0;
 	}
-	jit_insn_call_native
-		(func, "_jit_unwind_pop_setjmp",
-		 (void *)_jit_unwind_pop_setjmp, type, 0, 0, JIT_CALL_NOTHROW);
+	jit_insn_call_native(func, "_jit_unwind_pop_setjmp",
+			     (void *) _jit_unwind_pop_setjmp, type, 0, 0,
+			     JIT_CALL_NOTHROW);
 	jit_type_free(type);
 
 	/* Call the "jit_exception_throw" function to effect the rethrow */
 	type = jit_type_void_ptr;
-	type = jit_type_create_signature
-		(jit_abi_cdecl, jit_type_void, &type, 1, 1);
+	type = jit_type_create_signature(jit_abi_cdecl, jit_type_void, &type, 1, 1);
 	if(!type)
 	{
 		return 0;
 	}
-	jit_insn_call_native
-		(func, "jit_exception_throw",
-		 (void *)jit_exception_throw, type, &value, 1,
-		 JIT_CALL_NOTHROW | JIT_CALL_NORETURN);
+	jit_insn_call_native(func, "jit_exception_throw",
+			     (void *) jit_exception_throw, type, &value, 1,
+			     JIT_CALL_NOTHROW | JIT_CALL_NORETURN);
 	jit_type_free(type);
 
 #endif /* !JIT_BACKEND_INTERP */
@@ -7651,7 +7459,8 @@ jit_insn_start_finally(jit_function_t func, jit_label_t *finally_label)
  * This is usually the last instruction in a @code{finally} clause.
  * @end deftypefun
 @*/
-int jit_insn_return_from_finally(jit_function_t func)
+int
+jit_insn_return_from_finally(jit_function_t func)
 {
 	/* Flush any deferred stack pops before we return */
 	if(!jit_insn_flush_defer_pop(func, 0))
@@ -7677,10 +7486,9 @@ int jit_insn_return_from_finally(jit_function_t func)
  * Call a @code{finally} clause.
  * @end deftypefun
 @*/
-int jit_insn_call_finally(jit_function_t func, jit_label_t *finally_label)
+int
+jit_insn_call_finally(jit_function_t func, jit_label_t *finally_label)
 {
-	jit_insn_t insn;
-
 	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
@@ -7696,7 +7504,7 @@ int jit_insn_call_finally(jit_function_t func, jit_label_t *finally_label)
 	/* Allocate the label number if necessary */
 	if(*finally_label == jit_label_undefined)
 	{
-		*finally_label = (func->builder->next_label)++;
+		*finally_label = func->builder->next_label++;
 	}
 
 	/* Calling a finally handler makes the function not a leaf because
@@ -7704,14 +7512,14 @@ int jit_insn_call_finally(jit_function_t func, jit_label_t *finally_label)
 	func->builder->non_leaf = 1;
 
 	/* Add a new branch instruction to branch to the finally handler */
-	insn = _jit_block_add_insn(func->builder->current_block);
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	insn->opcode = (short)JIT_OP_CALL_FINALLY;
+	insn->opcode = (short) JIT_OP_CALL_FINALLY;
 	insn->flags = JIT_INSN_DEST_IS_LABEL;
-	insn->dest = (jit_value_t)(*finally_label);
+	insn->dest = (jit_value_t) *finally_label;
 
 	/* Create a new block for the following code */
 	return jit_insn_new_block(func);
@@ -7750,7 +7558,8 @@ jit_insn_start_filter(jit_function_t func, jit_label_t *label, jit_type_t type)
  * its result.
  * @end deftypefun
 @*/
-int jit_insn_return_from_filter(jit_function_t func, jit_value_t value)
+int
+jit_insn_return_from_filter(jit_function_t func, jit_value_t value)
 {
 	/* Flush any deferred stack pops before we return */
 	if(!jit_insn_flush_defer_pop(func, 0))
@@ -7778,12 +7587,10 @@ int jit_insn_return_from_filter(jit_function_t func, jit_value_t value)
  * @var{type}, indicating the filter's result.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_call_filter
-	(jit_function_t func, jit_label_t *label,
-	 jit_value_t value, jit_type_t type)
+jit_value_t
+jit_insn_call_filter(jit_function_t func, jit_label_t *label,
+		     jit_value_t value, jit_type_t type)
 {
-	jit_insn_t insn;
-
 	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
@@ -7799,7 +7606,7 @@ jit_value_t jit_insn_call_filter
 	/* Allocate the label number if necessary */
 	if(*label == jit_label_undefined)
 	{
-		*label = (func->builder->next_label)++;
+		*label = func->builder->next_label++;
 	}
 
 	/* Calling a filter makes the function not a leaf because we may
@@ -7807,16 +7614,16 @@ jit_value_t jit_insn_call_filter
 	func->builder->non_leaf = 1;
 
 	/* Add a new branch instruction to branch to the filter */
-	insn = _jit_block_add_insn(func->builder->current_block);
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
 	if(!insn)
 	{
 		return 0;
 	}
-	jit_value_ref(func, value);
-	insn->opcode = (short)JIT_OP_CALL_FILTER;
+	insn->opcode = (short) JIT_OP_CALL_FILTER;
 	insn->flags = JIT_INSN_DEST_IS_LABEL;
-	insn->dest = (jit_value_t)(*label);
+	insn->dest = (jit_value_t) *label;
 	insn->value1 = value;
+	jit_value_ref(func, value);
 
 	/* Create a new block, and add the filter return logic to it */
 	if(!jit_insn_new_block(func))
@@ -7832,11 +7639,14 @@ jit_value_t jit_insn_call_filter
  * It is assumed that the source and destination do not overlap.
  * @end deftypefun
 @*/
-int jit_insn_memcpy
-	(jit_function_t func, jit_value_t dest,
-	 jit_value_t src, jit_value_t size)
+int
+jit_insn_memcpy(jit_function_t func, jit_value_t dest, jit_value_t src, jit_value_t size)
 {
 	size = jit_insn_convert(func, size, jit_type_nint, 0);
+	if(!size)
+	{
+		return 0;
+	}
 	return apply_ternary(func, JIT_OP_MEMCPY, dest, src, size);
 }
 
@@ -7846,11 +7656,14 @@ int jit_insn_memcpy
  * This is save to use if the source and destination overlap.
  * @end deftypefun
 @*/
-int jit_insn_memmove
-	(jit_function_t func, jit_value_t dest,
-	 jit_value_t src, jit_value_t size)
+int
+jit_insn_memmove(jit_function_t func, jit_value_t dest, jit_value_t src, jit_value_t size)
 {
 	size = jit_insn_convert(func, size, jit_type_nint, 0);
+	if(!size)
+	{
+		return 0;
+	}
 	return apply_ternary(func, JIT_OP_MEMMOVE, dest, src, size);
 }
 
@@ -7859,12 +7672,15 @@ int jit_insn_memmove
  * Set the @var{size} bytes at @var{dest} to @var{value}.
  * @end deftypefun
 @*/
-int jit_insn_memset
-	(jit_function_t func, jit_value_t dest,
-	 jit_value_t value, jit_value_t size)
+int
+jit_insn_memset(jit_function_t func, jit_value_t dest, jit_value_t value, jit_value_t size)
 {
 	value = jit_insn_convert(func, value, jit_type_int, 0);
 	size = jit_insn_convert(func, size, jit_type_nint, 0);
+	if(!value || !size)
+	{
+		return 0;
+	}
 	return apply_ternary(func, JIT_OP_MEMSET, dest, value, size);
 }
 
@@ -7873,7 +7689,8 @@ int jit_insn_memset
  * Allocate @var{size} bytes of memory from the stack.
  * @end deftypefun
 @*/
-jit_value_t jit_insn_alloca(jit_function_t func, jit_value_t size)
+jit_value_t
+jit_insn_alloca(jit_function_t func, jit_value_t size)
 {
 	/* Make sure that all deferred pops have been done */
 	if(!jit_insn_flush_defer_pop(func, 0))
@@ -7883,12 +7700,24 @@ jit_value_t jit_insn_alloca(jit_function_t func, jit_value_t size)
 
 	/* Round the size to the best alignment boundary on this platform */
 	size = jit_insn_convert(func, size, jit_type_nuint, 0);
-	size = jit_insn_add
-		(func, size, jit_value_create_nint_constant
-			(func, jit_type_nuint, JIT_BEST_ALIGNMENT - 1));
-	size = jit_insn_and
-		(func, size, jit_value_create_nint_constant
-			(func, jit_type_nuint, ~((jit_nint)(JIT_BEST_ALIGNMENT - 1))));
+	jit_value_t addon = jit_value_create_nint_constant(
+		func, jit_type_nuint, JIT_BEST_ALIGNMENT - 1);
+	jit_value_t mask = jit_value_create_nint_constant(
+		func, jit_type_nuint, ~((jit_nint) (JIT_BEST_ALIGNMENT - 1)));
+	if(!size || !addon || !mask)
+	{
+		return 0;
+	}
+	size = jit_insn_add(func, size, addon);
+	if(!size)
+	{
+		return 0;
+	}
+	size = jit_insn_and(func, size, mask);
+	if(!size)
+	{
+		return 0;
+	}
 
 	/* Allocate "size" bytes of memory from the stack */
 	return apply_unary(func, JIT_OP_ALLOCA, size, jit_type_void_ptr);
@@ -7903,11 +7732,10 @@ jit_value_t jit_insn_alloca(jit_function_t func, jit_value_t size)
  * efficiently.
  * @end deftypefun
 @*/
-int jit_insn_move_blocks_to_end
-	(jit_function_t func, jit_label_t from_label, jit_label_t to_label)
+int
+jit_insn_move_blocks_to_end(jit_function_t func, jit_label_t from_label,
+			    jit_label_t to_label)
 {
-	jit_block_t first, last, block;
-
 	/* Make sure that deferred stack pops are flushed */
 	if(!jit_insn_flush_defer_pop(func, 0))
 	{
@@ -7915,23 +7743,25 @@ int jit_insn_move_blocks_to_end
 	}
 
 	/* Find the first block that needs to be moved */
-	first = jit_block_from_label(func, from_label);
+	jit_block_t first = jit_block_from_label(func, from_label);
 	if(!first)
 	{
 		return 0;
 	}
 
 	/* Find the last block that needs to be moved */
-	last = jit_block_from_label(func, to_label);
+	jit_block_t last = jit_block_from_label(func, to_label);
 	if(!last)
 	{
 		return 0;
 	}
 
 	/* Sanity check -- the last block has to be after the first */
+	jit_block_t block;
 	for(block = first->next; block != last; block = block->next)
 	{
-		if (!block) {
+		if(!block)
+		{
 			return 0;
 		}
 	}
@@ -7956,11 +7786,9 @@ int jit_insn_move_blocks_to_end
  * of the function.
  * @end deftypefun
 @*/
-int jit_insn_move_blocks_to_start
-	(jit_function_t func, jit_label_t from_label, jit_label_t to_label)
+int
+jit_insn_move_blocks_to_start(jit_function_t func, jit_label_t from_label, jit_label_t to_label)
 {
-	jit_block_t init, first, last, block;
-
 	/* Make sure that deferred stack pops are flushed */
 	if(!jit_insn_flush_defer_pop(func, 0))
 	{
@@ -7968,33 +7796,36 @@ int jit_insn_move_blocks_to_start
 	}
 
 	/* Find the first block that needs to be moved */
-	first = jit_block_from_label(func, from_label);
+	jit_block_t first = jit_block_from_label(func, from_label);
 	if(!first)
 	{
 		return 0;
 	}
 
 	/* Find the last block that needs to be moved */
-	last = jit_block_from_label(func, to_label);
+	jit_block_t last = jit_block_from_label(func, to_label);
 	if(!last)
 	{
 		return 0;
 	}
 
 	/* Init block */
-	init = func->builder->init_block;
+	jit_block_t init = func->builder->init_block;
 
 	/* Sanity check -- the first block has to be after the init */
+	jit_block_t block;
 	for(block = init->next; block != first; block = block->next)
 	{
-		if (!block) {
+		if(!block)
+		{
 			return 0;
 		}
 	}
 	/* Sanity check -- the last block has to be after the first */
 	for(block = first->next; block != last; block = block->next)
 	{
-		if (!block) {
+		if(!block)
+		{
 			return 0;
 		}
 	}
@@ -8024,20 +7855,17 @@ int jit_insn_move_blocks_to_start
  * code positions with source line numbers.
  * @end deftypefun
 @*/
-int jit_insn_mark_offset(jit_function_t func, jit_int offset)
+int
+jit_insn_mark_offset(jit_function_t func, jit_int offset)
 {
-	jit_block_t block;
-	jit_insn_t last;
-	jit_value_t value;
-
 	/* Ensure that we have a builder for this function */
 	if(!_jit_function_ensure_builder(func))
 	{
 		return 0;
 	}
 
-	value = jit_value_create_nint_constant(func, jit_type_int, offset);
-	if (!value)
+	jit_value_t value = jit_value_create_nint_constant(func, jit_type_int, offset);
+	if(!value)
 	{
 		return 0;
 	}
@@ -8046,9 +7874,9 @@ int jit_insn_mark_offset(jit_function_t func, jit_int offset)
 	   then just replace the offset value in place --
 	   we are not interested in bytecodes that produce
 	   no real code. */
-	block = func->builder->current_block;
-	last = _jit_block_get_last(block);
-	if (last && last->opcode == JIT_OP_MARK_OFFSET)
+	jit_block_t block = func->builder->current_block;
+	jit_insn_t last = _jit_block_get_last(block);
+	if(last && last->opcode == JIT_OP_MARK_OFFSET)
 	{
 		last->value1 = value;
 		return 1;
@@ -8058,8 +7886,8 @@ int jit_insn_mark_offset(jit_function_t func, jit_int offset)
 }
 
 /* Documentation is in jit-debugger.c */
-int jit_insn_mark_breakpoint_variable
-	(jit_function_t func, jit_value_t data1, jit_value_t data2)
+int
+jit_insn_mark_breakpoint_variable(jit_function_t func, jit_value_t data1, jit_value_t data2)
 {
 #if defined(JIT_BACKEND_INTERP)
 	/* Use the "mark_breakpoint" instruction for the interpreter */
@@ -8076,45 +7904,41 @@ int jit_insn_mark_breakpoint_variable
 	params[0] = jit_type_void_ptr;
 	params[1] = jit_type_nint;
 	params[2] = jit_type_nint;
-	signature = jit_type_create_signature
-		(jit_abi_cdecl, jit_type_void, params, 3, 0);
+	signature = jit_type_create_signature(jit_abi_cdecl, jit_type_void, params, 3, 0);
 	if(!signature)
 	{
 		return 0;
 	}
-	if((values[0] = jit_value_create_nint_constant
-			(func, jit_type_void_ptr, (jit_nint)func)) == 0)
+	values[0] = jit_value_create_nint_constant(func, jit_type_void_ptr, (jit_nint) func);
+	if(!values[0])
 	{
 		jit_type_free(signature);
 		return 0;
 	}
 	values[1] = data1;
 	values[2] = data2;
-	jit_insn_call_native(func, "_jit_debugger_hook", (void *)_jit_debugger_hook,
-						 signature, values, 3, JIT_CALL_NOTHROW);
+	jit_insn_call_native(func, "_jit_debugger_hook", (void *) _jit_debugger_hook,
+			     signature, values, 3, JIT_CALL_NOTHROW);
 	jit_type_free(signature);
 	return 1;
 #endif
 }
 
 /* Documentation is in jit-debugger.c */
-int jit_insn_mark_breakpoint
-	(jit_function_t func, jit_nint data1, jit_nint data2)
+int
+jit_insn_mark_breakpoint(jit_function_t func, jit_nint data1, jit_nint data2)
 {
 	jit_value_t value1;
 	jit_value_t value2;
 
 	value1 = jit_value_create_nint_constant(func, jit_type_nint, data1);
 	value2 = jit_value_create_nint_constant(func, jit_type_nint, data2);
-
-	if(value1 && value2)
-	{
-		return jit_insn_mark_breakpoint_variable(func, value1, value2);
-	}
-	else
+	if(!value1 || !value2)
 	{
 		return 0;
 	}
+
+	return jit_insn_mark_breakpoint_variable(func, value1, value2);
 }
 
 /*@
@@ -8152,7 +7976,7 @@ jit_insn_iter_next(jit_insn_iter_t *iter)
 {
 	if(iter->posn < iter->block->num_insns)
 	{
-		return &iter->block->insns[(iter->posn)++];
+		return &iter->block->insns[iter->posn++];
 	}
 	else
 	{
@@ -8171,7 +7995,7 @@ jit_insn_iter_previous(jit_insn_iter_t *iter)
 {
 	if(iter->posn > 0)
 	{
-		return &iter->block->insns[--(iter->posn)];
+		return &iter->block->insns[--iter->posn];
 	}
 	else
 	{

@@ -664,8 +664,8 @@ _jit_opcode_apply_helper(jit_function_t func, jit_uint opcode, jit_type_t type,
 }
 
 jit_value_t
-_jit_opcode_apply_unary(jit_function_t func, jit_uint opcode, jit_type_t type,
-			jit_value_t value)
+_jit_opcode_apply_unary(jit_function_t func, jit_uint opcode, jit_value_t value,
+		jit_type_t type)
 {
 	if(opcode >= JIT_OP_NUM_OPCODES)
 	{
@@ -679,8 +679,8 @@ _jit_opcode_apply_unary(jit_function_t func, jit_uint opcode, jit_type_t type,
 }
 
 jit_value_t
-_jit_opcode_apply(jit_function_t func, jit_uint opcode, jit_type_t type,
-		  jit_value_t value1, jit_value_t value2)
+_jit_opcode_apply(jit_function_t func, jit_uint opcode, jit_value_t value1,
+		  jit_value_t value2, jit_type_t type)
 {
 	if(opcode >= JIT_OP_NUM_OPCODES)
 	{

@@ -754,8 +754,7 @@ int _jit_insn_check_is_redundant(const jit_insn_iter_t *iter);
  * "ushort", "int", "long", "float32", "float64", "nfloat",
  * and "struct".
  */
-int _jit_load_opcode(int base_opcode, jit_type_t type,
-					 jit_value_t value, int no_temps);
+int _jit_load_opcode(int base_opcode, jit_type_t type);
 
 /*
  * Get the correct opcode to use for a "store" instruction.
@@ -913,11 +912,11 @@ extern _jit_intrinsic_info_t const _jit_intrinsics[JIT_OP_NUM_OPCODES];
  * opcode or a tagged type of the correct destination type.
  */
 jit_value_t
-_jit_opcode_apply_unary(jit_function_t func, jit_uint opcode, jit_type_t type,
-			jit_value_t value);
+_jit_opcode_apply_unary(jit_function_t func, jit_uint opcode, jit_value_t value,
+			jit_type_t type);
 jit_value_t
-_jit_opcode_apply(jit_function_t func, jit_uint opcode, jit_type_t type,
-		  jit_value_t value1, jit_value_t value2);
+_jit_opcode_apply(jit_function_t func, jit_uint opcode, jit_value_t value1,
+		  jit_value_t value2, jit_type_t type);
 
 /*
  * Extra call flags for internal use.

@@ -248,7 +248,6 @@ public:
 
 	jit_value insn_load(const jit_value& value);
 	jit_value insn_dup(const jit_value& value);
-	jit_value insn_load_small(const jit_value& value);
 	void store(const jit_value& dest, const jit_value& value);
 	jit_value insn_load_relative
 		(const jit_value& value, jit_nint offset, jit_type_t type);

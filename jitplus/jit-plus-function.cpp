@@ -689,11 +689,6 @@ jit_value jit_function::insn_dup(const jit_value& value)
 	value_wrap(jit_insn_dup(func, value.raw()));
 }
 
-jit_value jit_function::insn_load_small(const jit_value& value)
-{
-	value_wrap(jit_insn_load_small(func, value.raw()));
-}
-
 void jit_function::store(const jit_value& dest, const jit_value& value)
 {
 	if(!jit_insn_store(func, dest.raw(), value.raw()))

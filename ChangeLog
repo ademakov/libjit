@@ -1,3 +1,14 @@
+2017-08-27  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-insn.c: massive changes in coding style and conventions.
+	Most notably drop checks for null value and insn arguments. It is
+	now caller's responsibility to provide valid pointers.
+
+2017-08-24  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-insn.c (jit_insn_load_small): remove function.
+	* jitplus/jit-plus-function.cpp (insn_load_small): likewise.
+
 2017-08-22  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-opcode-apply.c (_jit_opcode_apply_unary): add function

@@ -75,8 +75,6 @@ int jit_insn_new_block(jit_function_t func) JIT_NOTHROW;
 
 jit_value_t jit_insn_load(jit_function_t func, jit_value_t value) JIT_NOTHROW;
 jit_value_t jit_insn_dup(jit_function_t func, jit_value_t value) JIT_NOTHROW;
-jit_value_t jit_insn_load_small
-	(jit_function_t func, jit_value_t value) JIT_NOTHROW;
 int jit_insn_store
 	(jit_function_t func, jit_value_t dest, jit_value_t value) JIT_NOTHROW;
 jit_value_t jit_insn_load_relative
