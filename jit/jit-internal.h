@@ -463,6 +463,9 @@ struct _jit_function
 
 	/* Containing function in a nested context */
 	jit_function_t		nested_parent;
+	jit_value_t		parent_frame;
+	jit_function_t		cached_parent;
+	jit_value_t		cached_parent_frame;
 
 	/* Metadata that survives once the builder is discarded */
 	jit_meta_t		meta;

@@ -222,6 +222,15 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 			break;
 #endif
 
+		case JIT_OP_IMPORT:
+			_jit_gen_fix_value(insn->value2);
+			insn->opcode = JIT_OP_ADD_RELATIVE;
+			insn->value2 = jit_value_create_nint_constant(func, jit_type_nint,
+				insn->value2->frame_offset);
+
+			_jit_gen_insn(gen, func, block, insn);
+			break;
+
 #ifndef JIT_BACKEND_INTERP
 		case JIT_OP_INCOMING_REG:
 			/* Assign a register to an incoming value */
@@ -463,7 +472,7 @@ memory_start(_jit_compile_t *state)
 
 	/* Store the bounds of the available space */
 	state->gen.mem_start = _jit_memory_get_break(state->gen.context);
-	state->gen.mem_limit = _jit_memory_get_limit(state->gen.context); 
+	state->gen.mem_limit = _jit_memory_get_limit(state->gen.context);
 
 	/* Align the function code start as required */
 	state->gen.ptr = state->gen.mem_start;

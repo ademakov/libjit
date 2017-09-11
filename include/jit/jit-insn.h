@@ -255,6 +255,9 @@ int jit_insn_return_reg
 int jit_insn_setup_for_nested
 	(jit_function_t func, int nested_level, int reg) JIT_NOTHROW;
 int jit_insn_flush_struct(jit_function_t func, jit_value_t value) JIT_NOTHROW;
+jit_value_t jit_insn_get_frame_pointer(jit_function_t func) JIT_NOTHROW;
+jit_value_t jit_insn_get_parent_frame_of
+	(jit_function_t func, jit_value_t frame_pointer) JIT_NOTHROW;
 jit_value_t jit_insn_import
 	(jit_function_t func, jit_value_t value) JIT_NOTHROW;
 int jit_insn_push(jit_function_t func, jit_value_t value) JIT_NOTHROW;

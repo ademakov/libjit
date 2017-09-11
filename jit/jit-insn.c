@@ -23,6 +23,7 @@
 #include "jit-internal.h"
 #include "jit-rules.h"
 #include "jit-setjmp.h"
+#include "jit-apply-rules.h"
 #if HAVE_STDLIB_H
 # include <stdlib.h>
 #endif
@@ -3786,7 +3787,7 @@ jit_insn_branch_if_not(jit_function_t func, jit_value_t value, jit_label_t *labe
 	int opcode;
 	jit_value_t value1;
 	jit_value_t value2;
-	jit_block_t block = func->builder->current_block;	
+	jit_block_t block = func->builder->current_block;
 	jit_insn_t prev = _jit_block_get_last(block);
 	if(value->is_temporary && prev && prev->dest == value)
 	{
@@ -6316,6 +6317,43 @@ jit_insn_flush_struct(jit_function_t func, jit_value_t value)
 }
 
 /*@
+ * @deftypefun jit_value_t jit_insn_get_frame_pointer (jit_function_t @var{func})
+ * Retrieve the frame pointer of function @var{func}
+ * Returns NULL if out of memory.
+ * @end deftypefun
+@*/
+jit_value_t
+jit_insn_get_frame_pointer(jit_function_t func)
+{
+	jit_value_t dummy;
+
+	dummy = jit_value_create(func, jit_type_sbyte);
+	if(!dummy)
+	{
+		return 0;
+	}
+	jit_value_set_addressable(dummy);
+
+	jit_insn_incoming_frame_posn(func, dummy, 0);
+	return jit_insn_address_of(func, dummy);
+}
+
+/*@
+ * @deftypefun jit_value_t jit_insn_get_parent_frame_of (jit_function_t @var{func}, jit_value_t @var{frame_pointer})
+ * Retrieve the parent frame of @var{frame_pointer}. Using this function
+ * multiple times allows importing values from grandparents. The initial
+ * @var{frame_pointer} can be obtained from @code{jit_insn_get_frame_pointer}.
+ * Returns NULL if out of memory.
+ * @end deftypefun
+@*/
+jit_value_t
+jit_insn_get_parent_frame_of(jit_function_t func, jit_value_t frame_pointer)
+{
+	return jit_insn_load_relative(func, frame_pointer,
+		JIT_APPLY_PARENT_FRAME_OFFSET, jit_type_void_ptr);
+}
+
+/*@
  * @deftypefun jit_value_t jit_insn_import (jit_function_t @var{func}, jit_value_t @var{value})
  * Import @var{value} from an outer nested scope into @var{func}.  Returns
  * the effective address of the value for local access via a pointer.
@@ -6339,12 +6377,21 @@ jit_insn_import(jit_function_t func, jit_value_t value)
 		return jit_insn_address_of(func, value);
 	}
 
-	/* Find the nesting level of the value, where 1 is our parent */
-	int level = 1;
+	/* Often there are multiple values imported from the same ancestor in a row,
+	   thats why the last ancestor a value was imported from is cached so its
+	   frame can be reused as finding it would require multiple memory loads */
+	if(value_func == func->cached_parent)
+	{
+		return apply_binary(func, JIT_OP_IMPORT, func->cached_parent_frame,
+			value, jit_type_void_ptr);
+	}
+
+	/* Find the frame of the ancestor the value is from */
+	jit_value_t current_frame = func->parent_frame;
 	jit_function_t current_func = func->nested_parent;
 	while(current_func != 0 && current_func != value_func)
 	{
-		++level;
+		current_frame = jit_insn_get_parent_frame_of(func, current_frame);
 		current_func = current_func->nested_parent;
 	}
 	if(!current_func)
@@ -6355,12 +6402,8 @@ jit_insn_import(jit_function_t func, jit_value_t value)
 
 	/* Output the relevant import instruction, which will also cause
 	   it to be marked as a non-local addressable by "jit_value_ref" */
-	jit_value_t level_value = jit_value_create_nint_constant(func, jit_type_int, level);
-	if(!level_value)
-	{
-		return 0;
-	}
-	return apply_binary(func, JIT_OP_IMPORT, value, level_value, jit_type_void_ptr);
+	return apply_binary(func, JIT_OP_IMPORT, current_frame, value,
+		jit_type_void_ptr);
 }
 
 /*@
