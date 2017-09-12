@@ -876,7 +876,7 @@ throw_builtin(unsigned char *inst, jit_function_t func, int type)
 		_jit_gen_fix_value(func->builder->setjmp_value);
 
 		x86_64_lea_membase_size(inst, X86_64_RDI, X86_64_RIP, 0, 8);
-		x86_64_mov_membase_reg_size(inst, X86_64_RBP, 
+		x86_64_mov_membase_reg_size(inst, X86_64_RBP,
 					func->builder->setjmp_value->frame_offset
 					+ jit_jmp_catch_pc_offset, X86_64_RDI, 8);
 	}
@@ -1925,7 +1925,7 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 
 					ptr = _jit_gen_alloc(gen, sizeof(jit_nfloat));
 					jit_memcpy(ptr, &nfloat_value, sizeof(nfloat_value));
-					offset = (jit_nint)ptr - 
+					offset = (jit_nint)ptr -
 								((jit_nint)inst + (xmm_reg > 7 ? 9 : 8));
 					if((offset >= jit_min_int) && (offset <= jit_max_int))
 					{
@@ -2952,9 +2952,9 @@ return_struct(unsigned char *inst, jit_function_t func, int ptr_reg)
 										return_type))
 		{
 			/* It's an error so simply return insn */
-			return inst;	
+			return inst;
 		}
-		
+
 		size = jit_type_get_size(return_type);
 		if(size <= 8)
 		{
@@ -3072,7 +3072,7 @@ flush_return_struct(unsigned char *inst, jit_value_t value)
 		if(!_jit_classify_struct_return(&passing, &return_param, return_type))
 		{
 			/* It's an error so simply return insn */
-			return inst;	
+			return inst;
 		}
 
 		return_param.value = value;
@@ -3488,7 +3488,7 @@ _jit_setup_incoming_param(jit_function_t func, _jit_param_t *param,
 					{
 						if(size <= 4)
 						{
-							if(!(param->un.reg_info[1].value = 
+							if(!(param->un.reg_info[1].value =
 									jit_value_create(func, jit_type_int)))
 							{
 								return 0;
@@ -3597,7 +3597,7 @@ _jit_setup_return_value(jit_function_t func, jit_value_t return_value,
 		if(!_jit_classify_struct_return(&passing, &return_param, return_type))
 		{
 			/* It's an error so simply return insn */
-			return 0;	
+			return 0;
 		}
 
 		if(return_param.arg_class == 1)
@@ -3687,6 +3687,9 @@ _jit_create_entry_insns(jit_function_t func)
 		{
 			return 0;
 		}
+
+		nested_param.value = jit_value_create(func, jit_type_void_ptr);
+		jit_function_set_parent_frame(func, nested_param.value);
 	}
 
 	/* Allocate the structure return pointer */
@@ -3709,7 +3712,7 @@ _jit_create_entry_insns(jit_function_t func)
 
 		param_type = jit_type_get_param(signature, current_param);
 		param_type = jit_type_normalize(param_type);
-		
+
 		if(!(_jit_classify_param(&passing, &(passing.params[current_param]),
 								 param_type)))
 		{
@@ -3744,6 +3747,14 @@ _jit_create_entry_insns(jit_function_t func)
 		}
 	}
 
+	if(func->nested_parent)
+	{
+		if(!_jit_setup_incoming_param(func, &nested_param, jit_type_void_ptr))
+		{
+			return 0;
+		}
+	}
+
 	/* Now we flush the incoming structs passed in registers */
 	for(current_param = 0; current_param < num_args; current_param++)
 	{
@@ -3766,7 +3777,8 @@ _jit_create_entry_insns(jit_function_t func)
 int _jit_create_call_setup_insns
 	(jit_function_t func, jit_type_t signature,
 	 jit_value_t *args, unsigned int num_args,
-	 int is_nested, int nesting_level, jit_value_t *struct_return, int flags)
+	 int is_nested, jit_value_t parent_frame,
+	 jit_value_t *struct_return, int flags)
 {
 	int abi = jit_type_get_abi(signature);
 	jit_type_t return_type;
@@ -3788,19 +3800,7 @@ int _jit_create_call_setup_insns
 	/* Let the specific backend initialize it's part of the params */
 	_jit_init_args(abi, &passing);
 
-	/* Determine how many parameters are going to end up in word registers,
-	   and compute the largest stack size needed to pass stack parameters */
-	if(is_nested)
-	{
-		jit_memset(&nested_param, 0, sizeof(_jit_param_t));
-		if(!(_jit_classify_param(&passing, &nested_param,
-								 jit_type_void_ptr)))
-		{
-			return 0;
-		}
-	}
-
-	/* Determine if we need an extra hidden parameter for returning a 
+	/* Determine if we need an extra hidden parameter for returning a
 	   structure */
 	return_type = jit_type_get_return(signature);
 	if(jit_type_return_via_pointer(return_type))
@@ -3830,6 +3830,20 @@ int _jit_create_call_setup_insns
 		return_ptr = 0;
 	}
 
+	/* Determine how many parameters are going to end up in word registers,
+	   and compute the largest stack size needed to pass stack parameters */
+	if(is_nested)
+	{
+		jit_memset(&nested_param, 0, sizeof(_jit_param_t));
+		if(!(_jit_classify_param(&passing, &nested_param,
+								 jit_type_void_ptr)))
+		{
+			return 0;
+		}
+
+		nested_param.value = parent_frame;
+	}
+
 	/* Let the backend classify the parameters */
 	for(current_param = 0; current_param < num_args; current_param++)
 	{
@@ -3837,7 +3851,7 @@ int _jit_create_call_setup_insns
 
 		param_type = jit_type_get_param(signature, current_param);
 		param_type = jit_type_normalize(param_type);
-		
+
 		if(!(_jit_classify_param(&passing, &(passing.params[current_param]),
 								 param_type)))
 		{
@@ -3887,6 +3901,19 @@ int _jit_create_call_setup_insns
 		}
 	}
 
+	/* Handle the parent's frame pointer if it's passed on the stack */
+	if(is_nested)
+	{
+		if(nested_param.arg_class == JIT_ARG_CLASS_STACK)
+		{
+			if(!_jit_setup_outgoing_param(func, &nested_param,
+										  jit_type_void_ptr))
+			{
+				return 0;
+			}
+		}
+	}
+
 	/* Handle the structure return pointer if it's passed on the stack */
 	if(return_ptr)
 	{
@@ -3918,6 +3945,19 @@ int _jit_create_call_setup_insns
 		}
 	}
 
+	/* Handle the parent's frame pointer if required */
+	if(is_nested)
+	{
+		if(nested_param.arg_class != JIT_ARG_CLASS_STACK)
+		{
+			if(!_jit_setup_reg_param(func, &nested_param,
+									 jit_type_void_ptr))
+			{
+				return 0;
+			}
+		}
+	}
+
 	/* Handle the structure return pointer if required */
 	if(return_ptr)
 	{
@@ -3943,6 +3983,19 @@ int _jit_create_call_setup_insns
 			param_type = jit_type_get_param(signature, current_param);
 			if(!_jit_setup_outgoing_param(func, &(param[current_param]),
 										  param_type))
+			{
+				return 0;
+			}
+		}
+	}
+
+	/* Handle the parent's frame pointer if required */
+	if(is_nested)
+	{
+		if(nested_param.arg_class != JIT_ARG_CLASS_STACK)
+		{
+			if(!_jit_setup_outgoing_param(func, &nested_param,
+									 jit_type_void_ptr))
 			{
 				return 0;
 			}
@@ -4006,7 +4059,7 @@ _jit_create_call_return_insns(jit_function_t func, jit_type_t signature,
 		}
 	}
 
-	/* Determine if we need an extra hidden parameter for returning a 
+	/* Determine if we need an extra hidden parameter for returning a
 	   structure */
 	if(ptr_return)
 	{
@@ -4025,7 +4078,7 @@ _jit_create_call_return_insns(jit_function_t func, jit_type_t signature,
 
 		param_type = jit_type_get_param(signature, current_param);
 		param_type = jit_type_normalize(param_type);
-		
+
 		if(!(_jit_classify_param(&passing, &(passing.params[current_param]),
 								 param_type)))
 		{

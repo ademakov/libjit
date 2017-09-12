@@ -5330,7 +5330,7 @@ static int
 create_call_setup_insns(jit_function_t func, jit_function_t callee,
 			jit_type_t signature,
 			jit_value_t *args, unsigned int num_args,
-			int is_nested, int nesting_level,
+			int is_nested, jit_value_t parent_frame,
 			jit_value_t *struct_return, int flags)
 {
 	jit_value_t *new_args;
@@ -5375,7 +5375,7 @@ create_call_setup_insns(jit_function_t func, jit_function_t callee,
 
 	/* Let the back end do the work */
 	return _jit_create_call_setup_insns(func, signature, args, num_args,
-					    is_nested, nesting_level, struct_return,
+					    is_nested, parent_frame, struct_return,
 					    flags);
 }
 
@@ -5478,8 +5478,7 @@ jit_insn_call(jit_function_t func, const char *name, jit_function_t jit_func,
 	      int flags)
 {
 	int is_nested;
-	int nesting_level;
-	jit_function_t temp_func;
+	jit_value_t parent_frame;
 	jit_value_t return_value;
 	jit_label_t entry_point;
 	jit_label_t label_end;
@@ -5515,32 +5514,18 @@ jit_insn_call(jit_function_t func, const char *name, jit_function_t jit_func,
 	if(jit_func->nested_parent)
 	{
 		is_nested = 1;
-		if(jit_func->nested_parent == func)
+		parent_frame = jit_insn_get_parent_frame_pointer_of(func, jit_func);
+
+		if(!parent_frame)
 		{
-			/* We are calling one of our children */
-			nesting_level = -1;
-		}
-		else if(jit_func->nested_parent == func->nested_parent)
-		{
-			/* We are calling one of our direct siblings */
-			nesting_level = 0;
-		}
-		else
-		{
-			/* Search up to find the actual nesting level */
-			temp_func = func->nested_parent;
-			nesting_level = 1;
-			while(temp_func != 0 && temp_func != jit_func)
-			{
-				++nesting_level;
-				temp_func = temp_func->nested_parent;
-			}
+			/* TODO should we return 0 instead? */
+			jit_exception_builtin(JIT_RESULT_CALLED_NESTED);
 		}
 	}
 	else
 	{
 		is_nested = 0;
-		nesting_level = 0;
+		parent_frame = 0;
 	}
 
 	/* Convert the arguments to the actual parameter types */
@@ -5576,7 +5561,7 @@ jit_insn_call(jit_function_t func, const char *name, jit_function_t jit_func,
 
 	/* Create the instructions to push the parameters onto the stack */
 	if(!create_call_setup_insns(func, jit_func, signature, new_args, num_args,
-				    is_nested, nesting_level, &return_value, flags))
+				    is_nested, parent_frame, &return_value, flags))
 	{
 		return 0;
 	}
@@ -6381,8 +6366,8 @@ find_frame_of(jit_function_t func, jit_function_t target,
 
 /*@
  * @deftypefun jit_value_t jit_insn_get_parent_frame_pointer_of (jit_function_t @var{func}, jit_function_t @var{target})
- * Retrieve the frame pointer of the parent of @var{target}. This only works
- * when @var{target} is a sibling, an ancestor, or a sibling of one of the
+ * Retrieve the frame pointer of the parent of @var{target}. Returns NULL when
+ * @var{target} is not a sibling, an ancestor, or a sibling of one of the
  * ancestors of @var{func}.
  * Returns NULL if out of memory.
  * @end deftypefun

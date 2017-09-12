@@ -212,7 +212,7 @@ int _jit_create_entry_insns(jit_function_t func);
 int _jit_create_call_setup_insns
 	(jit_function_t func, jit_type_t signature,
 	 jit_value_t *args, unsigned int num_args,
-	 int is_nested, int nesting_level, jit_value_t *struct_return, int flags);
+	 int is_nested, jit_value_t parent_frame, jit_value_t *struct_return, int flags);
 int _jit_setup_indirect_pointer(jit_function_t func, jit_value_t value);
 int _jit_create_call_return_insns
 	(jit_function_t func, jit_type_t signature,

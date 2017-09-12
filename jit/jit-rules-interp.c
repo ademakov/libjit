@@ -370,7 +370,7 @@ int _jit_create_entry_insns(jit_function_t func)
 }
 
 /*@
- * @deftypefun int _jit_create_call_setup_insns (jit_function_t @var{func}, jit_type_t @var{signature}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{is_nested}, int @var{nested_level}, jit_value_t *@var{struct_return}, int @var{flags})
+ * @deftypefun int _jit_create_call_setup_insns (jit_function_t @var{func}, jit_type_t @var{signature}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{is_nested}, jit_value_t @var{parent_frame}, jit_value_t *@var{struct_return}, int @var{flags})
  * Create instructions within @var{func} necessary to set up for a
  * function call to a function with the specified @var{signature}.
  * Use @code{jit_insn_push} to push values onto the system stack,
@@ -378,10 +378,8 @@ int _jit_create_entry_insns(jit_function_t func)
  *
  * If @var{is_nested} is non-zero, then it indicates that we are calling a
  * nested function within the current function's nested relationship tree.
- * The @var{nested_level} value will be -1 to call a child, zero to call a
- * sibling of @var{func}, 1 to call a sibling of the parent, 2 to call
- * a sibling of the grandparent, etc.  The @code{jit_insn_setup_for_nested}
- * instruction should be used to create the nested function setup code.
+ * The @var{parent_frame} value will be a pointer to the start of the frame
+ * of the parent of the callee.
  *
  * If the function returns a structure by pointer, then @var{struct_return}
  * must be set to a new local variable that will contain the returned
@@ -391,7 +389,8 @@ int _jit_create_entry_insns(jit_function_t func)
 int _jit_create_call_setup_insns
 	(jit_function_t func, jit_type_t signature,
 	 jit_value_t *args, unsigned int num_args,
-	 int is_nested, int nested_level, jit_value_t *struct_return, int flags)
+	 int is_nested, jit_value_t parent_frame,
+	 jit_value_t *struct_return, int flags)
 {
 	jit_type_t type;
 	jit_type_t vtype;
@@ -429,6 +428,15 @@ int _jit_create_call_setup_insns
 			}
 		}
 
+		/* Do we need to add nested function scope information? */
+		if(is_nested)
+		{
+			if(!jit_insn_push(func, parent_frame))
+			{
+				return 0;
+			}
+		}
+
 		/* Do we need to add a structure return pointer argument? */
 		type = jit_type_get_return(signature);
 		if(jit_type_return_via_pointer(type))
@@ -461,15 +469,6 @@ int _jit_create_call_setup_insns
 		else
 		{
 			*struct_return = 0;
-		}
-
-		/* Do we need to add nested function scope information? */
-		if(is_nested)
-		{
-			if(!jit_insn_setup_for_nested(func, nested_level, -1))
-			{
-				return 0;
-			}
 		}
 	}
 	else
