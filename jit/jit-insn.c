@@ -6247,42 +6247,6 @@ jit_insn_return_reg(jit_function_t func, jit_value_t value, int reg)
 }
 
 /*@
- * @deftypefun int jit_insn_setup_for_nested (jit_function_t @var{func}, int @var{nested_level}, int @var{reg})
- * Output an instruction to set up for a nested function call.
- * The @var{nested_level} value will be -1 to call a child, zero to call a
- * sibling of @var{func}, 1 to call a sibling of the parent, 2 to call
- * a sibling of the grandparent, etc.  If @var{reg} is not -1, then
- * it indicates the register to receive the parent frame information.
- * If @var{reg} is -1, then the frame information will be pushed on the stack.
- *
- * You normally wouldn't call this yourself - it is used internally by the
- * CPU back ends to set up the parameters for a nested subroutine call.
- * @end deftypefun
-@*/
-int
-jit_insn_setup_for_nested(jit_function_t func, int nested_level, int reg)
-{
-	jit_value_t reg_value = jit_value_create_nint_constant(func, jit_type_int, reg);
-	if(!reg_value)
-	{
-		return 0;
-	}
-
-	if(nested_level < 0)
-	{
-		return create_unary_note(func, JIT_OP_SETUP_FOR_NESTED, reg_value);
-	}
-
-	jit_value_t nested_level_value =
-		jit_value_create_nint_constant(func, jit_type_int, nested_level);
-	if(!nested_level_value)
-	{
-		return 0;
-	}
-	return create_note(func, JIT_OP_SETUP_FOR_SIBLING, nested_level_value, reg_value);
-}
-
-/*@
  * @deftypefun int jit_insn_flush_struct (jit_function_t @var{func}, jit_value_t @var{value})
  * Flush a small structure return value out of registers and back
  * into the local variable frame.  You normally wouldn't call this
@@ -6411,8 +6375,10 @@ jit_insn_import(jit_function_t func, jit_value_t value)
 	   frame can be reused as finding it would require multiple memory loads */
 	if(value_func == func->cached_parent)
 	{
-		return apply_binary(func, JIT_OP_IMPORT, func->cached_parent_frame,
-			value, jit_type_void_ptr);
+		jit_value_ref(func, value);
+		_jit_gen_fix_value(value);
+		return jit_insn_add_relative(func, func->cached_parent_frame,
+			value->frame_offset);
 	}
 
 	jit_value_t value_frame = find_frame_of(func, value_func,

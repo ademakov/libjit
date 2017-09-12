@@ -19,7 +19,7 @@
  * License along with the libjit library.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
- 
+
 %regclass reg x86_reg
 %regclass breg x86_breg
 %regclass freg x86_freg
@@ -123,7 +123,7 @@ JIT_OP_LOW_WORD:
 			x86_mov_reg_reg(inst, $1, $2, 4);
 		}
 	}
-	
+
 JIT_OP_EXPAND_INT:
 	[=lreg, reg] -> {
 		if($1 != $2)
@@ -1800,89 +1800,6 @@ JIT_OP_RETURN_SMALL_STRUCT: note
 		inst = jump_to_epilog(gen, inst, block);
 	}
 
-JIT_OP_SETUP_FOR_NESTED: branch
-	[] -> {
-		jit_nint nest_reg = jit_value_get_nint_constant(insn->value1);
-		if(nest_reg == -1)
-		{
-			x86_push_reg(inst, X86_EBP);
-		}
-		else
-		{
-			x86_mov_reg_reg(inst, _jit_reg_info[nest_reg].cpu_reg,
-							X86_EBP, sizeof(void *));
-		}
-	}
-
-JIT_OP_SETUP_FOR_SIBLING: branch
-	[] -> {
-		jit_value_t parent;
-		jit_nint level = jit_value_get_nint_constant(insn->value1);
-		jit_nint nest_reg = jit_value_get_nint_constant(insn->value2);
-		int cpu_reg;
-		if(nest_reg == -1)
-		{
-			cpu_reg = X86_EAX;
-		}
-		else
-		{
-			cpu_reg = _jit_reg_info[nest_reg].cpu_reg;
-		}
-		parent = func->builder->parent_frame;
-		if(parent->in_register)
-		{
-			x86_mov_reg_reg(inst, cpu_reg,
-							_jit_reg_info[parent->reg].cpu_reg,
-							sizeof(void *));
-		}
-		else if(parent->in_global_register)
-		{
-			x86_mov_reg_reg(inst, cpu_reg,
-							_jit_reg_info[parent->global_reg].cpu_reg,
-							sizeof(void *));
-		}
-		else
-		{
-			_jit_gen_fix_value(parent);
-			x86_mov_reg_membase(inst, cpu_reg, X86_EBP,
-							    parent->frame_offset, sizeof(void *));
-		}
-		while(level > 0)
-		{
-			gen->ptr = inst;
-			_jit_gen_check_space(gen, 16);
-			x86_mov_reg_membase(inst, cpu_reg, cpu_reg, 0, sizeof(void *));
-			--level;
-		}
-		if(nest_reg == -1)
-		{
-			x86_push_reg(inst, cpu_reg);
-		}
-	}
-
-JIT_OP_IMPORT: manual
-	[] -> {
-		unsigned char *inst;
-		int reg;
-		jit_nint level = jit_value_get_nint_constant(insn->value2);
-		_jit_gen_fix_value(insn->value1);
-		reg = _jit_regs_load_value
-			(gen, func->builder->parent_frame, 1, 0);
-		inst = gen->ptr;
-		_jit_gen_check_space(gen, 32 + level * 8);
-		reg = _jit_reg_info[reg].cpu_reg;
-		while(level > 0)
-		{
-			x86_mov_reg_membase(inst, reg, reg, 0, sizeof(void *));
-			--level;
-		}
-		if(insn->value1->frame_offset != 0)
-		{
-			x86_alu_reg_imm(inst, X86_ADD, reg, insn->value1->frame_offset);
-		}
-		gen->ptr = inst;
-	}
-
 /*
  * Exception handling.
  */
@@ -2266,7 +2183,7 @@ JIT_OP_LOAD_RELATIVE_FLOAT64:
 	[=freg, reg, imm] -> {
 		x86_fld_membase(inst, $2, $3, 1);
 	}
-	
+
 JIT_OP_LOAD_RELATIVE_NFLOAT:
 	[=freg, reg, imm, if("sizeof(jit_nfloat) != sizeof(jit_float64)")] -> {
 		x86_fld80_membase(inst, $2, $3);

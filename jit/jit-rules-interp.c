@@ -1254,39 +1254,6 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		jit_cache_native(gen, jit_value_get_nint_constant(insn->value2));
 		break;
 
-	case JIT_OP_SETUP_FOR_NESTED:
-		/* TODO!!! */
-		/* Set up to call a nested child */
-		jit_cache_opcode(gen, insn->opcode);
-		adjust_working(gen, 2);
-		break;
-
-	case JIT_OP_SETUP_FOR_SIBLING:
-		/* TODO!!! */
-		/* Set up to call a nested sibling */
-		jit_cache_opcode(gen, insn->opcode);
-		jit_cache_native(gen, jit_value_get_nint_constant(insn->value1));
-		adjust_working(gen, 2);
-		break;
-
-	case JIT_OP_IMPORT:
-		/* Import a local variable from an outer nested scope */
-		_jit_gen_fix_value(insn->value1);
-		if(insn->value1->frame_offset >= 0)
-		{
-			jit_cache_opcode(gen, JIT_INTERP_OP_IMPORT_LOCAL);
-			jit_cache_native(gen, insn->value1->frame_offset);
-			jit_cache_native(gen, jit_value_get_nint_constant(insn->value2));
-		}
-		else
-		{
-			jit_cache_opcode(gen, JIT_INTERP_OP_IMPORT_ARG);
-			jit_cache_native(gen, -(insn->value1->frame_offset + 1));
-			jit_cache_native(gen, jit_value_get_nint_constant(insn->value2));
-		}
-		store_value(gen, insn->dest);
-		break;
-
 	case JIT_OP_THROW:
 		/* Throw an exception */
 		load_value(gen, insn->value1, 1);
