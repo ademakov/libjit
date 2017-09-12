@@ -23,7 +23,6 @@
 #include "jit-internal.h"
 #include "jit-rules.h"
 #include "jit-setjmp.h"
-#include "jit-apply-rules.h"
 #if HAVE_STDLIB_H
 # include <stdlib.h>
 #endif
@@ -6338,19 +6337,64 @@ jit_insn_get_frame_pointer(jit_function_t func)
 	return jit_insn_address_of(func, dummy);
 }
 
+static jit_value_t
+find_frame_of(jit_function_t func, jit_function_t target,
+	jit_function_t func_start, jit_value_t frame_start)
+{
+	/* Find the nesting level */
+	int nesting_level = 0;
+	jit_function_t current_func = func_start;
+	while(current_func != 0 && current_func != target)
+	{
+		if(!current_func->parent_frame)
+		{
+			/* One of the ancestors is not correctly set up */
+			return 0;
+		}
+
+		current_func = current_func->nested_parent;
+		nesting_level++;
+	}
+	if(!current_func)
+	{
+		/* The value is not accessible from this scope */
+		return 0;
+	}
+
+	current_func = func_start;
+	while(frame_start != 0 && nesting_level-- > 0)
+	{
+		jit_value_ref(func, current_func->parent_frame);
+		_jit_gen_fix_value(current_func->parent_frame);
+		frame_start = jit_insn_load_relative(func, frame_start,
+			current_func->parent_frame->frame_offset, jit_type_void_ptr);
+
+		current_func = current_func->nested_parent;
+	}
+	if(!frame_start)
+	{
+		return 0;
+	}
+
+	return frame_start;
+}
+
 /*@
- * @deftypefun jit_value_t jit_insn_get_parent_frame_of (jit_function_t @var{func}, jit_value_t @var{frame_pointer})
- * Retrieve the parent frame of @var{frame_pointer}. Using this function
- * multiple times allows importing values from grandparents. The initial
- * @var{frame_pointer} can be obtained from @code{jit_insn_get_frame_pointer}.
+ * @deftypefun jit_value_t jit_insn_get_parent_frame_pointer_of (jit_function_t @var{func}, jit_function_t @var{target})
+ * Retrieve the frame pointer of the parent of @var{target}. This only works
+ * when @var{target} is a sibling, an ancestor, or a sibling of one of the
+ * ancestors of @var{func}.
  * Returns NULL if out of memory.
  * @end deftypefun
 @*/
 jit_value_t
-jit_insn_get_parent_frame_of(jit_function_t func, jit_value_t frame_pointer)
+jit_insn_get_parent_frame_pointer_of(jit_function_t func, jit_function_t target)
 {
-	return jit_insn_load_relative(func, frame_pointer,
-		JIT_APPLY_PARENT_FRAME_OFFSET, jit_type_void_ptr);
+	if(func == target->nested_parent)
+		return jit_insn_get_frame_pointer(func);
+	else
+		return find_frame_of(func, target->nested_parent,
+			func->nested_parent, func->parent_frame);
 }
 
 /*@
@@ -6386,24 +6430,13 @@ jit_insn_import(jit_function_t func, jit_value_t value)
 			value, jit_type_void_ptr);
 	}
 
-	/* Find the frame of the ancestor the value is from */
-	jit_value_t current_frame = func->parent_frame;
-	jit_function_t current_func = func->nested_parent;
-	while(current_func != 0 && current_func != value_func)
-	{
-		current_frame = jit_insn_get_parent_frame_of(func, current_frame);
-		current_func = current_func->nested_parent;
-	}
-	if(!current_func)
-	{
-		/* The value is not accessible from this scope */
-		return 0;
-	}
+	jit_value_t value_frame = find_frame_of(func, value_func,
+		func->nested_parent, func->parent_frame);
 
-	/* Output the relevant import instruction, which will also cause
-	   it to be marked as a non-local addressable by "jit_value_ref" */
-	return apply_binary(func, JIT_OP_IMPORT, current_frame, value,
-		jit_type_void_ptr);
+	jit_value_ref(func, value);
+	_jit_gen_fix_value(value);
+
+	return jit_insn_add_relative(func, value_frame, value->frame_offset);
 }
 
 /*@
