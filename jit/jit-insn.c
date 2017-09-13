@@ -6295,6 +6295,12 @@ find_frame_of(jit_function_t func, jit_function_t target,
 	jit_function_t current_func = func_start;
 	while(current_func != 0 && current_func != target)
 	{
+		/* Ensure that current_func has a function builder */
+		if(!_jit_function_ensure_builder(current_func))
+		{
+			return 0;
+		}
+
 		if(!current_func->parent_frame)
 		{
 			/* One of the ancestors is not correctly set up */
@@ -6340,10 +6346,18 @@ jit_value_t
 jit_insn_get_parent_frame_pointer_of(jit_function_t func, jit_function_t target)
 {
 	if(func == target->nested_parent)
+	{
+		/* target is a child of the current function. We just need return
+		 * our frame pointer */
 		return jit_insn_get_frame_pointer(func);
+	}
 	else
+	{
+		/* target is a sibling or a sibling of one of the ancestors of func.
+		 * We need to find the parent of target in the ancestor tree of func */
 		return find_frame_of(func, target->nested_parent,
 			func->nested_parent, func->parent_frame);
+	}
 }
 
 /*@
@@ -6383,6 +6397,10 @@ jit_insn_import(jit_function_t func, jit_value_t value)
 
 	jit_value_t value_frame = find_frame_of(func, value_func,
 		func->nested_parent, func->parent_frame);
+	if(!value_frame)
+	{
+		return 0;
+	}
 
 	jit_value_ref(func, value);
 	_jit_gen_fix_value(value);
