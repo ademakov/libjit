@@ -3272,6 +3272,10 @@ JIT_OP_MEMCPY: ternary
 
 JIT_OP_MEMSET: ternary
 	[any, any, imm, if("$3 <= 0")] -> { }
+	[reg, imm, imm, scratch xreg,
+		if("$2 == 0 && $3 <= _JIT_MAX_MEMSET_INLINE && $3 % 16 == 0")] -> {
+		inst = small_block_set(gen, inst, $1, 0, $2, $3, 0, $4, 0, 1);
+	}
 	[reg, imm, imm, scratch reg,
 		if("$3 <= _JIT_MAX_MEMSET_INLINE && $3 < 32")] -> {
 		inst = small_block_set(gen, inst, $1, 0, $2, $3, $4, 0, 0, 0);

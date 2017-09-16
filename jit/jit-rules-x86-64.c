@@ -2748,17 +2748,35 @@ small_block_set(jit_gencode_t gen, unsigned char *inst,
 {
 	jit_nint offset = 0;
 
-	for(int i = 0; i < 8; i++)
+	if(val == 0)
 	{
-		val = (val << 8) | (val & 0xff);
+		if(!use_sse || size % 16 != 0)
+		{
+			x86_64_clear_reg(inst, scratch_reg);
+		}
 	}
-	x86_64_mov_reg_imm_size(inst, scratch_reg, val, 8);
+	else
+	{
+		for(int i = 0; i < 8; i++)
+		{
+			val = (val << 8) | (val & 0xff);
+		}
+		x86_64_mov_reg_imm_size(inst, scratch_reg, val, 8);
+	}
 
 	/* Set all 16 byte blocks */
 	if(use_sse)
 	{
-		x86_64_movq_xreg_reg(inst, scratch_xreg, scratch_reg);
-		x86_64_movlhps(inst, scratch_xreg, scratch_xreg);
+		if(val == 0)
+		{
+			x86_64_clear_xreg(inst, scratch_xreg);
+		}
+		else
+		{
+			x86_64_movq_xreg_reg(inst, scratch_xreg, scratch_reg);
+			x86_64_movlhps(inst, scratch_xreg, scratch_xreg);
+		}
+
 		while(size >= 16)
 		{
 			if(is_aligned)
