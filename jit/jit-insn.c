@@ -5625,9 +5625,12 @@ jit_insn_call(jit_function_t func, const char *name, jit_function_t jit_func,
  * @end deftypefun
 @*/
 jit_value_t
-jit_insn_call_indirect(jit_function_t func, jit_value_t value, jit_type_t signature,
-		       jit_value_t *args, unsigned int num_args, int flags)
+jit_insn_call_nested_indirect(jit_function_t func, jit_value_t value,
+	jit_value_t parent_frame, jit_type_t signature, jit_value_t *args,
+	unsigned int num_args, int flags)
 {
+	int is_nested = parent_frame != NULL;
+
 	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
@@ -5640,7 +5643,7 @@ jit_insn_call_indirect(jit_function_t func, jit_value_t value, jit_type_t signat
 #else
 	if((flags & JIT_CALL_TAIL) != 0)
 	{
-		if(func->nested_parent)
+		if(is_nested || func->nested_parent)
 		{
 			flags &= ~JIT_CALL_TAIL;
 		}
@@ -5677,8 +5680,8 @@ jit_insn_call_indirect(jit_function_t func, jit_value_t value, jit_type_t signat
 
 	/* Create the instructions to push the parameters onto the stack */
 	jit_value_t return_value;
-	if(!create_call_setup_insns(func, 0, signature, new_args, num_args, 0, 0,
-				    &return_value, flags))
+	if(!create_call_setup_insns(func, 0, signature, new_args, num_args,
+		is_nested, parent_frame, &return_value, flags))
 	{
 		return 0;
 	}
@@ -5713,7 +5716,23 @@ jit_insn_call_indirect(jit_function_t func, jit_value_t value, jit_type_t signat
 	insn->value2 = (jit_value_t) jit_type_copy(signature);
 
 	/* Handle return to the caller */
-	return handle_return(func, signature, flags, 0, new_args, num_args, return_value);
+	return handle_return(func, signature, flags, is_nested, new_args, num_args,
+		return_value);
+}
+
+/*@
+ * @deftypefun jit_value_t jit_insn_call_nested_indirect (jit_function_t @var{func}, jit_value_t @var{value}, jit_value_t @var{parent_frame}, jit_type_t @var{signature}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{flags})
+ * Call a jit function that is nested via an indirect pointer.
+ * @var{parent_frame} should be a pointer to the frame of the parent of *value.
+ * @end deftypefun
+@*/
+jit_value_t
+jit_insn_call_indirect(jit_function_t func, jit_value_t value,
+	jit_type_t signature, jit_value_t *args,
+	unsigned int num_args, int flags)
+{
+	return jit_insn_call_nested_indirect(func, value, 0, signature,
+		args, num_args, flags);
 }
 
 /*@

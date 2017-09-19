@@ -231,6 +231,10 @@ jit_value_t jit_insn_call
 jit_value_t jit_insn_call_indirect
 	(jit_function_t func, jit_value_t value, jit_type_t signature,
 	 jit_value_t *args, unsigned int num_args, int flags) JIT_NOTHROW;
+jit_value_t jit_insn_call_nested_indirect
+	(jit_function_t func, jit_value_t value, jit_value_t parent_frame,
+	 jit_type_t signature, jit_value_t *args, unsigned int num_args,
+	 int flags) JIT_NOTHROW;
 jit_value_t jit_insn_call_indirect_vtable
 	(jit_function_t func, jit_value_t value, jit_type_t signature,
 	 jit_value_t *args, unsigned int num_args, int flags) JIT_NOTHROW;
