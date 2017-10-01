@@ -2742,13 +2742,13 @@ memory_copy(jit_gencode_t gen, unsigned char *inst,
 static unsigned char *
 small_block_set(jit_gencode_t gen, unsigned char *inst,
 				int dreg, jit_nint doffset,
-				jit_nint val, jit_nint size,
+				jit_nuint val, jit_nint size,
 				int scratch_reg, int scratch_xreg,
 				int is_aligned, int use_sse)
 {
 	jit_nint offset = 0;
 
-	if(val == 0)
+	if(val & 0xff == 0)
 	{
 		if(!use_sse || size % 16 != 0)
 		{
