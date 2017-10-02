@@ -1,4 +1,8 @@
-2017-10-01  Jakob Löw <jakob@m4gnus.de>
+2017-10-02  Ketmar Dark  <ketmar@ketmar.no-ip.org>
+
+	* jit/jit-thread.c (_jit_thread_init): fix thread init on windows.
+
+2017-10-01  Jakob Löw  <jakob@m4gnus.de>
 
 	* jit/jit-gen-x86-64.h: add the movlhps and movhlps instructions
 	* jit/jit-rules-x86-64.ins
