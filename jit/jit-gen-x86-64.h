@@ -932,7 +932,7 @@ typedef union
 		*(inst)++ = (unsigned char)(opc1); \
 		x86_64_membase_emit((inst), (r), (basereg), (disp)); \
 	} while(0)
-	
+
 #define x86_64_alu1_memindex(inst, opc1, r, basereg, disp, indexreg, shift) \
 	do { \
 		x86_64_rex_emit((inst), 0, 0, (indexreg), (basereg)); \
@@ -983,7 +983,7 @@ typedef union
 		x86_64_opcode1_emit((inst), (opc1), (size)); \
 		x86_64_membase_emit((inst), (r), (basereg), (disp)); \
 	} while(0)
-	
+
 #define x86_64_alu1_memindex_size(inst, opc1, r, basereg, disp, indexreg, shift, size) \
 	do { \
 		if((size) == 2) \
@@ -1038,7 +1038,7 @@ typedef union
 		*(inst)++ = (unsigned char)(opc1); \
 		x86_64_membase_emit((inst), (dreg), (basereg), (disp)); \
 	} while(0)
-	
+
 #define x86_64_alu1_reg_memindex_size(inst, opc1, dreg, basereg, disp, indexreg, shift, size) \
 	do { \
 		if((size) == 2) \
@@ -1097,7 +1097,7 @@ typedef union
 		*(inst)++ = (unsigned char)(opc2); \
 		x86_64_membase_emit((inst), (dreg), (basereg), (disp)); \
 	} while(0)
-	
+
 #define x86_64_alu2_reg_memindex_size(inst, opc1, opc2, dreg, basereg, disp, indexreg, shift, size) \
 	do { \
 		if((size) == 2) \
@@ -1850,7 +1850,7 @@ typedef union
 	} while(0)
 
 /*
- * neg 
+ * neg
  */
 #define x86_64_neg_reg_size(inst, reg, size) \
 	do { \
@@ -3342,7 +3342,7 @@ typedef union
 	do { \
 		x86_64_alu1_membase((inst), 0xff, 2, (basereg), (disp)); \
 	} while(0)
-	
+
 #define x86_64_call_memindex(inst, basereg, disp, indexreg, shift) \
 	do { \
 		x86_64_alu1_memindex((inst), 0xff, 2, (basereg), (disp), (indexreg), (shift)); \
@@ -3389,7 +3389,7 @@ typedef union
 	do { \
 		x86_64_alu1_membase((inst), 0xff, 4, (basereg), (disp)); \
 	} while(0)
-	
+
 #define x86_64_jmp_memindex(inst, basereg, disp, indexreg, shift) \
 	do { \
 		x86_64_alu1_memindex((inst), 0xff, 4, (basereg), (disp), (indexreg), (shift)); \
@@ -3916,6 +3916,19 @@ typedef union
 #define x86_64_movups_reg_memindex(inst, dreg, basereg, disp, indexreg, shift) \
 	do { \
 		x86_64_xmm2_reg_memindex((inst), 0x0f, 0x10, (dreg), (basereg), (disp), (indexreg), (shift)); \
+	} while(0)
+
+/*
+ * movlhps: Move lower 64bit of sreg to higher 64bit of dreg
+ * movhlps: Move higher 64bit of sreg to lower 64bit of dreg
+ */
+#define x86_64_movlhps(inst, dreg, sreg) \
+	do { \
+		x86_64_xmm2_reg_reg((inst), 0x0f, 0x16, (dreg), (sreg)); \
+	} while(0)
+#define x86_64_movhlps(inst, dreg, sreg) \
+	do { \
+		x86_64_xmm2_reg_reg((inst), 0x0f, 0x12, (dreg), (sreg)); \
 	} while(0)
 
 /*

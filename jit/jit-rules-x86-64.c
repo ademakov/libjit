@@ -140,6 +140,11 @@ do { \
 #define _JIT_MAX_MEMCPY_INLINE	0x40
 
 /*
+ * The maximum block size set inline
+ */
+#define _JIT_MAX_MEMSET_INLINE 0x80
+
+/*
  * va_list type as specified in x86_64 sysv abi version 0.99
  * Figure 3.34
  */
@@ -2610,8 +2615,9 @@ small_block_copy(jit_gencode_t gen, unsigned char *inst,
 				 int sreg, jit_nint soffset, jit_int size,
 				 int scratch_reg, int scratch_xreg, int is_aligned)
 {
-	int offset = 0;
+	jit_nint offset = 0;
 
+	/* Copy all 16 byte blocks of the struct */
 	while(size >= 16)
 	{
 		if(is_aligned)
@@ -2631,42 +2637,17 @@ small_block_copy(jit_gencode_t gen, unsigned char *inst,
 		size -= 16;
 		offset += 16;
 	}
+
 	/* Now copy the rest of the struct */
-	if(size >= 8)
+	for(int i = 8; i > 0; i /= 2)
 	{
-		x86_64_mov_reg_membase_size(inst, scratch_reg,
-									sreg, soffset + offset, 8);
-		x86_64_mov_membase_reg_size(inst, dreg, doffset + offset,
-									scratch_reg, 8);
-		size -= 8;
-		offset += 8;
-	}
-	if(size >= 4)
-	{
-		x86_64_mov_reg_membase_size(inst, scratch_reg,
-									sreg, soffset + offset, 4);
-		x86_64_mov_membase_reg_size(inst, dreg, doffset + offset,
-									scratch_reg, 4);
-		size -= 4;
-		offset += 4;
-	}
-	if(size >= 2)
-	{
-		x86_64_mov_reg_membase_size(inst, scratch_reg,
-									sreg, soffset + offset, 2);
-		x86_64_mov_membase_reg_size(inst, dreg, doffset + offset,
-									scratch_reg, 2);
-		size -= 2;
-		offset += 2;
-	}
-	if(size >= 1)
-	{
-		x86_64_mov_reg_membase_size(inst, scratch_reg,
-									sreg, soffset + offset, 1);
-		x86_64_mov_membase_reg_size(inst, dreg, doffset + offset,
-									scratch_reg, 1);
-		size -= 1;
-		offset += 1;
+		if(size >= i)
+		{
+			x86_64_mov_membase_reg_size(inst, dreg, doffset + offset,
+										scratch_reg, i);
+			size -= i;
+			offset += i;
+		}
 	}
 	return inst;
 }
@@ -2746,6 +2727,84 @@ memory_copy(jit_gencode_t gen, unsigned char *inst,
 		x86_64_add_reg_imm_size(inst, X86_64_RDI, doffset, 8);
 	}
 	inst = x86_64_call_code(inst, (jit_nint)jit_memcpy);
+	return inst;
+}
+
+/*
+ * Set a small block. This code will be inlined.
+ * Set is_aligned to 0 if you don't know if the source and target locations
+ * are aligned on a 16byte boundary and != 0 if you know that both blocks are
+ * aligned.
+ * Set use_sse to 0 if you don't want to use SSE. Setting this to non-zero
+ * will make this function ignore src_xreg
+ * We assume that offset + size is in the range -2GB ... +2GB.
+ */
+static unsigned char *
+small_block_set(jit_gencode_t gen, unsigned char *inst,
+				int dreg, jit_nint doffset,
+				jit_nuint val, jit_nint size,
+				int scratch_reg, int scratch_xreg,
+				int is_aligned, int use_sse)
+{
+	jit_nint offset = 0;
+
+	if(val & 0xff == 0)
+	{
+		if(!use_sse || size % 16 != 0)
+		{
+			x86_64_clear_reg(inst, scratch_reg);
+		}
+	}
+	else
+	{
+		for(int i = 0; i < 8; i++)
+		{
+			val = (val << 8) | (val & 0xff);
+		}
+		x86_64_mov_reg_imm_size(inst, scratch_reg, val, 8);
+	}
+
+	/* Set all 16 byte blocks */
+	if(use_sse)
+	{
+		if(val == 0)
+		{
+			x86_64_clear_xreg(inst, scratch_xreg);
+		}
+		else
+		{
+			x86_64_movq_xreg_reg(inst, scratch_xreg, scratch_reg);
+			x86_64_movlhps(inst, scratch_xreg, scratch_xreg);
+		}
+
+		while(size >= 16)
+		{
+			if(is_aligned)
+			{
+				x86_64_movaps_membase_reg(inst, dreg, doffset + offset,
+										  scratch_xreg);
+			}
+			else
+			{
+				x86_64_movups_membase_reg(inst, dreg, doffset + offset,
+										  scratch_xreg);
+			}
+			size -= 16;
+			offset += 16;
+		}
+	}
+
+	/* Now set the rest */
+	for(int i = 8; i > 0; i /= 2)
+	{
+		while(size >= i)
+		{
+			x86_64_mov_membase_reg_size(inst, dreg, doffset + offset,
+										scratch_reg, i);
+			size -= i;
+			offset += i;
+		}
+	}
 	return inst;
 }
 

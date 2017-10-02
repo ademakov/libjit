@@ -1,3 +1,10 @@
+2017-10-01  Jakob Löw <jakob@m4gnus.de>
+
+	* jit/jit-gen-x86-64.h: add the movlhps and movhlps instructions
+	* jit/jit-rules-x86-64.ins
+	* jit/jit-rules-x86-64.c: Inline memset instructions when value and size
+	are known during compilation.
+
 2017-08-28  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-value.c (jit_value_create_long_constant): on 64-bit

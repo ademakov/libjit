@@ -19,7 +19,7 @@
  * License along with the libjit library.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
- 
+
 %regclass reg x86_64_reg
 %regclass creg x86_64_creg
 %regclass dreg x86_64_dreg
@@ -27,7 +27,7 @@
 %regclass sreg x86_64_sreg
 %regclass freg x86_64_freg
 %regclass xreg x86_64_xreg
- 
+
 /*
  * Conversion opcodes.
  */
@@ -81,7 +81,7 @@ JIT_OP_LOW_WORD:
 			x86_64_mov_reg_reg_size(inst, $1, $2, 4);
 		}
 	}
-	
+
 JIT_OP_EXPAND_INT:
 	[=reg, reg] -> {
 		x86_64_movsx32_reg_reg_size(inst, $1, $2, 8);
@@ -758,11 +758,11 @@ JIT_OP_LOAD_RELATIVE_FLOAT64:
 			x86_64_movsd_reg_regp(inst, $1, $2);
 		}
 		else
-		{		
+		{
 			x86_64_movsd_reg_membase(inst, $1, $2, $3);
 		}
 	}
-	
+
 JIT_OP_LOAD_RELATIVE_NFLOAT:
 	[=freg, reg, imm, if("sizeof(jit_nfloat) != sizeof(jit_float64)")] -> {
 		x86_64_fld_membase_size(inst, $2, $3, 10);
@@ -887,7 +887,7 @@ JIT_OP_STORE_RELATIVE_FLOAT32: ternary
 			x86_64_movss_regp_reg(inst, $1, $2);
 		}
 		else
-		{	
+		{
 			x86_64_movss_membase_reg(inst, $1, $3, $2);
 		}
 	}
@@ -903,7 +903,7 @@ JIT_OP_STORE_RELATIVE_FLOAT64: ternary
 			x86_64_movsd_regp_reg(inst, $1, $2);
 		}
 		else
-		{	
+		{
 			x86_64_movsd_membase_reg(inst, $1, $3, $2);
 		}
 	}
@@ -3271,6 +3271,19 @@ JIT_OP_MEMCPY: ternary
 	}
 
 JIT_OP_MEMSET: ternary
+	[any, any, imm, if("$3 <= 0")] -> { }
+	[reg, imm, imm, scratch xreg,
+		if("$2 == 0 && $3 <= _JIT_MAX_MEMSET_INLINE && $3 % 16 == 0")] -> {
+		inst = small_block_set(gen, inst, $1, 0, $2, $3, 0, $4, 0, 1);
+	}
+	[reg, imm, imm, scratch reg,
+		if("$3 <= _JIT_MAX_MEMSET_INLINE && $3 < 32")] -> {
+		inst = small_block_set(gen, inst, $1, 0, $2, $3, $4, 0, 0, 0);
+	}
+	[reg, imm, imm, scratch reg, scratch xreg,
+		if("$3 <= _JIT_MAX_MEMSET_INLINE")] -> {
+		inst = small_block_set(gen, inst, $1, 0, $2, $3, $4, $5, 0, 1);
+	}
 	[reg("rdi"), reg("rsi"), reg("rdx"), clobber(creg), clobber(xreg)] -> {
 		inst = x86_64_call_code(inst, (jit_nint)jit_memset);
 	}
