@@ -2748,7 +2748,7 @@ small_block_set(jit_gencode_t gen, unsigned char *inst,
 {
 	jit_nint offset = 0;
 
-	if(val & 0xff == 0)
+	if((val & 0xff) == 0)
 	{
 		if(!use_sse || size % 16 != 0)
 		{
@@ -2767,7 +2767,7 @@ small_block_set(jit_gencode_t gen, unsigned char *inst,
 	/* Set all 16 byte blocks */
 	if(use_sse)
 	{
-		if(val == 0)
+		if((val & 0xff) == 0)
 		{
 			x86_64_clear_xreg(inst, scratch_xreg);
 		}
