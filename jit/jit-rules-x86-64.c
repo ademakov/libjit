@@ -2603,10 +2603,12 @@ _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 }
 
 /*
- * Copy a small block. This code will be inlined.
- * Set is_aligned to 0 if you don't know if the source and target locations
- * are aligned on a 16byte boundary and != 0 if you know that both blocks are
+ * Copy a small block. This generates inlined code.
+ *
+ * Set is_aligned to zero if the source or target locations might be not
+ * aligned on a 16-byte boundary and to non-zero if both blocks are always
  * aligned.
+ *
  * We assume that offset + size is in the range -2GB ... +2GB.
  */
 static unsigned char *
@@ -2731,12 +2733,14 @@ memory_copy(jit_gencode_t gen, unsigned char *inst,
 }
 
 /*
- * Set a small block. This code will be inlined.
- * Set is_aligned to 0 if you don't know if the source and target locations
- * are aligned on a 16byte boundary and != 0 if you know that both blocks are
- * aligned.
- * Set use_sse to 0 if you don't want to use SSE. Setting this to non-zero
- * will make this function ignore src_xreg
+ * Fill a small block. This generates inlined code.
+ *
+ * Set is_aligned to zero if the target location might be not aligned on a
+ * 16-byte boundary and to non-zero if the block is always aligned.
+ *
+ * Set use_sse to zero to disable SSE instructions use (it will make this
+ * function ignore scratch_xreg). Set it to non-zero otherwise.
+ *
  * We assume that offset + size is in the range -2GB ... +2GB.
  */
 static unsigned char *
@@ -2748,23 +2752,26 @@ small_block_set(jit_gencode_t gen, unsigned char *inst,
 {
 	jit_nint offset = 0;
 
-	if(val & 0xff == 0)
+	/* Make sure only the least significant byte serves as the filler. */
+	val &= 0xff;
+
+	/* Load the filler into a register. */
+	if(val == 0)
 	{
-		if(!use_sse || size % 16 != 0)
+		if(!use_sse || (size % 16) != 0)
 		{
 			x86_64_clear_reg(inst, scratch_reg);
 		}
 	}
 	else
 	{
-		for(int i = 0; i < 8; i++)
-		{
-			val = (val << 8) | (val & 0xff);
-		}
+		val |= val << 8;
+		val |= val << 16;
+		val |= val << 32;
 		x86_64_mov_reg_imm_size(inst, scratch_reg, val, 8);
 	}
 
-	/* Set all 16 byte blocks */
+	/* Fill all 16 byte blocks */
 	if(use_sse)
 	{
 		if(val == 0)
@@ -2794,7 +2801,7 @@ small_block_set(jit_gencode_t gen, unsigned char *inst,
 		}
 	}
 
-	/* Now set the rest */
+	/* Now fill the rest */
 	for(int i = 8; i > 0; i /= 2)
 	{
 		while(size >= i)

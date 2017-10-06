@@ -1,3 +1,7 @@
+2017-10-07  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86-64.c (small_block_set): fix a bug.
+
 2017-10-02  Ketmar Dark  <ketmar@ketmar.no-ip.org>
 
 	* jit/jit-thread.c (_jit_thread_init): fix thread init on windows.
@@ -6,7 +10,7 @@
 
 	* jit/jit-gen-x86-64.h: add the movlhps and movhlps instructions
 	* jit/jit-rules-x86-64.ins
-	* jit/jit-rules-x86-64.c: Inline memset instructions when value and size
+	* jit/jit-rules-x86-64.c: inline memset instructions when value and size
 	are known during compilation.
 
 2017-08-28  Aleksey Demakov  <ademakov@gmail.com>
