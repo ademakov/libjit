@@ -1875,10 +1875,6 @@ JIT_OP_STORE_ELEMENT_FLOAT64: ternary
 */
 JIT_OP_ALLOCA:
 [reg] -> {
-	//The ARM stack must always be 4-byte aligned and must be 8-byte aligned at a public interface.
-	//Since we don't know when this function will be called, let's align to 8 bytes.
-	arm_alu_reg_imm(inst, ARM_ADD, $1, $1, 7);
-	arm_alu_reg_imm(inst, ARM_AND, $1, $1, ~7);
 	arm_alu_reg_reg(inst, ARM_SUB, ARM_SP, ARM_SP, $1);
 	arm_mov_reg_reg(inst, $1, ARM_SP);
 	gen->stack_changed = 1;
