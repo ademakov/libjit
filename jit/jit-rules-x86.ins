@@ -2653,8 +2653,6 @@ JIT_OP_MEMSET: ternary
 
 JIT_OP_ALLOCA:
 	[reg] -> {
-		x86_alu_reg_imm(inst, X86_ADD, $1, 15);
-		x86_alu_reg_imm(inst, X86_AND, $1, ~15);
 		x86_alu_reg_reg(inst, X86_SUB, X86_ESP, $1);
 		x86_mov_reg_reg(inst, $1, X86_ESP, 4);
 		gen->stack_changed = 1;
