@@ -638,7 +638,7 @@ apply_unary_arith(jit_function_t func, const jit_opcode_descr *descr,
 	}
 	if(jit_value_is_constant(value))
 	{
-		jit_value_t result = _jit_opcode_apply_unary(func, oper, value, type);
+		jit_value_t result = _jit_opcode_apply_unary(func, oper, value);
 		if(result)
 		{
 			return result;
@@ -710,7 +710,7 @@ apply_arith(jit_function_t func, const jit_opcode_descr *descr,
 	}
 	if(jit_value_is_constant(value1) && jit_value_is_constant(value2))
 	{
-		jit_value_t result = _jit_opcode_apply(func, oper, value1, value2, type);
+		jit_value_t result = _jit_opcode_apply(func, oper, value1, value2);
 		if(result)
 		{
 			return result;
@@ -770,7 +770,7 @@ apply_shift(jit_function_t func, const jit_opcode_descr *descr,
 	}
 	if(jit_value_is_constant(value1) && jit_value_is_constant(value2))
 	{
-		jit_value_t result = _jit_opcode_apply(func, oper, value1, value2, type);
+		jit_value_t result = _jit_opcode_apply(func, oper, value1, value2);
 		if(result)
 		{
 			return result;
@@ -829,7 +829,7 @@ apply_compare(jit_function_t func, const jit_opcode_descr *descr,
 	}
 	if(jit_value_is_constant(value1) && jit_value_is_constant(value2))
 	{
-		jit_value_t result = _jit_opcode_apply(func, oper, value1, value2, jit_type_int);
+		jit_value_t result = _jit_opcode_apply(func, oper, value1, value2);
 		if(result)
 		{
 			return result;
@@ -2156,7 +2156,7 @@ jit_insn_neg(jit_function_t func, jit_value_t value)
 	}
 	if(jit_value_is_constant(value))
 	{
-		jit_value_t result = _jit_opcode_apply_unary(func, oper, value, type);
+		jit_value_t result = _jit_opcode_apply_unary(func, oper, value);
 		if(result)
 		{
 			return result;
@@ -3346,7 +3346,7 @@ jit_insn_abs(jit_function_t func, jit_value_t value)
 	}
 	if(jit_value_is_constant(value))
 	{
-		jit_value_t result = _jit_opcode_apply_unary(func, oper, value, type);
+		jit_value_t result = _jit_opcode_apply_unary(func, oper, value);
 		if(result)
 		{
 			return result;
@@ -3471,7 +3471,7 @@ jit_insn_sign(jit_function_t func, jit_value_t value)
 	}
 	if(jit_value_is_constant(value))
 	{
-		jit_value_t result = _jit_opcode_apply_unary(func, oper, value, type);
+		jit_value_t result = _jit_opcode_apply_unary(func, oper, value);
 		if(result)
 		{
 			return result;
@@ -3786,7 +3786,7 @@ jit_insn_branch_if_not(jit_function_t func, jit_value_t value, jit_label_t *labe
 	int opcode;
 	jit_value_t value1;
 	jit_value_t value2;
-	jit_block_t block = func->builder->current_block;	
+	jit_block_t block = func->builder->current_block;
 	jit_insn_t prev = _jit_block_get_last(block);
 	if(value->is_temporary && prev && prev->dest == value)
 	{

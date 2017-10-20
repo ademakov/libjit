@@ -59,7 +59,7 @@ typedef jit_int (*jit_cf_i_D_func)(jit_nfloat value);
 typedef jit_int (*jit_cf_i_DD_func)(jit_nfloat value1, jit_nfloat value2);
 
 /*
- * NOTE: The result type is already set in the result struct.
+ * NOTE: The result type is already set in the result struct. (uhm, nope, not anymore..)
  */
 static int
 apply_conv(jit_constant_t *result, jit_value_t value, int overflow_check)
@@ -120,6 +120,7 @@ static int
 apply_i_i(jit_constant_t *result, jit_value_t value,
 	  jit_cf_i_i_func intrinsic)
 {
+	result->type = jit_type_int;
 	result->un.int_value = intrinsic(value->address);
 	return 1;
 }
@@ -129,6 +130,7 @@ apply_i_ii(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_i_ii_func intrinsic)
 {
+	result->type = jit_type_int;
 	result->un.int_value = intrinsic(value1->address, value2->address);
 	return 1;
 }
@@ -138,6 +140,7 @@ apply_i_piii(jit_constant_t *result,
 	     jit_value_t value1, jit_value_t value2,
 	     jit_cf_i_piii_func intrinsic)
 {
+	result->type = jit_type_int;
 	return intrinsic(&result->un.int_value,
 			 value1->address, value2->address);
 }
@@ -147,6 +150,7 @@ apply_i_iI(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_i_iI_func intrinsic)
 {
+	result->type = jit_type_int;
 	result->un.int_value = intrinsic(value1->address, value2->address);
 	return 1;
 }
@@ -156,6 +160,7 @@ apply_i_II(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_i_II_func intrinsic)
 {
+	result->type = jit_type_int;
 	result->un.int_value = intrinsic(value1->address, value2->address);
 	return 1;
 }
@@ -164,6 +169,7 @@ static int
 apply_I_I(jit_constant_t *result, jit_value_t value,
 	  jit_cf_I_I_func intrinsic)
 {
+	result->type = jit_type_uint;
 	result->un.uint_value = intrinsic(value->address);
 	return 1;
 }
@@ -173,6 +179,7 @@ apply_I_II(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_I_II_func intrinsic)
 {
+	result->type = jit_type_uint;
 	result->un.uint_value = intrinsic(value1->address, value2->address);
 	return 1;
 }
@@ -182,6 +189,7 @@ apply_i_pIII(jit_constant_t *result,
 	     jit_value_t value1, jit_value_t value2,
 	     jit_cf_i_pIII_func intrinsic)
 {
+	result->type = jit_type_uint;
 	return intrinsic(&result->un.uint_value,
 			 value1->address, value2->address);
 }
@@ -190,6 +198,7 @@ static int
 apply_l_l(jit_constant_t *result, jit_value_t value1,
 	  jit_cf_l_l_func intrinsic)
 {
+	result->type = jit_type_long;
 #ifdef JIT_NATIVE_INT64
 	result->un.long_value = intrinsic(value1->address);
 #else
@@ -203,6 +212,7 @@ apply_l_ll(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_l_ll_func intrinsic)
 {
+	result->type = jit_type_long;
 #ifdef JIT_NATIVE_INT64
 	result->un.long_value = intrinsic(value1->address, value2->address);
 #else
@@ -217,6 +227,7 @@ apply_i_plll(jit_constant_t *result,
 	     jit_value_t value1, jit_value_t value2,
 	     jit_cf_i_plll_func intrinsic)
 {
+	result->type = jit_type_long;
 #ifdef JIT_NATIVE_INT64
 	return intrinsic(&result->un.long_value,
 			 value1->address, value2->address);
@@ -231,6 +242,7 @@ static int
 apply_i_l(jit_constant_t *result,
 	  jit_value_t value, jit_cf_i_l_func intrinsic)
 {
+	result->type = jit_type_int;
 #ifdef JIT_NATIVE_INT64
 	result->un.int_value = intrinsic(value->address);
 #else
@@ -244,6 +256,7 @@ apply_i_ll(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_i_ll_func intrinsic)
 {
+	result->type = jit_type_int;
 #ifdef JIT_NATIVE_INT64
 	result->un.int_value = intrinsic(value1->address, value2->address);
 #else
@@ -258,6 +271,7 @@ apply_l_lI(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_l_lI_func intrinsic)
 {
+	result->type = jit_type_long;
 #ifdef JIT_NATIVE_INT64
 	result->un.long_value = intrinsic(value1->address, value2->address);
 #else
@@ -271,6 +285,7 @@ static int
 apply_L_L(jit_constant_t *result, jit_value_t value,
 	  jit_cf_L_L_func intrinsic)
 {
+	result->type = jit_type_ulong;
 #ifdef JIT_NATIVE_INT64
 	result->un.ulong_value = intrinsic(value->address);
 #else
@@ -284,6 +299,7 @@ apply_L_LL(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_L_LL_func intrinsic)
 {
+	result->type = jit_type_ulong;
 #ifdef JIT_NATIVE_INT64
 	result->un.ulong_value = intrinsic(value1->address, value2->address);
 #else
@@ -298,6 +314,7 @@ apply_i_pLLL(jit_constant_t *result,
 	     jit_value_t value1, jit_value_t value2,
 	     jit_cf_i_pLLL_func intrinsic)
 {
+	result->type = jit_type_ulong;
 #ifdef JIT_NATIVE_INT64
 	return intrinsic(&result->un.ulong_value,
 			 value1->address, value2->address);
@@ -313,6 +330,7 @@ apply_i_LL(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_i_LL_func intrinsic)
 {
+	result->type = jit_type_int;
 #ifdef JIT_NATIVE_INT64
 	result->un.int_value = intrinsic(value1->address, value2->address);
 #else
@@ -327,6 +345,7 @@ apply_L_LI(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_L_LI_func intrinsic)
 {
+	result->type = jit_type_ulong;
 #ifdef JIT_NATIVE_INT64
 	result->un.ulong_value = intrinsic(value1->address, value2->address);
 #else
@@ -340,6 +359,7 @@ static int
 apply_f_f(jit_constant_t *result, jit_value_t value,
 	  jit_cf_f_f_func intrinsic)
 {
+	result->type = jit_type_float32;
 	result->un.float32_value = intrinsic(*((jit_float32 *) value->address));
 	return 1;
 }
@@ -349,6 +369,7 @@ apply_f_ff(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_f_ff_func intrinsic)
 {
+	result->type = jit_type_float32;
 	result->un.float32_value = intrinsic(*((jit_float32 *) value1->address),
 					     *((jit_float32 *) value2->address));
 	return 1;
@@ -358,6 +379,7 @@ static int
 apply_i_f(jit_constant_t *result, jit_value_t value,
 	  jit_cf_i_f_func intrinsic)
 {
+	result->type = jit_type_int;
 	result->un.int_value = intrinsic(*((jit_float32 *) value->address));
 	return 1;
 }
@@ -367,6 +389,7 @@ apply_i_ff(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_i_ff_func intrinsic)
 {
+	result->type = jit_type_int;
 	result->un.int_value = intrinsic(*((jit_float32 *) value1->address),
 					 *((jit_float32 *) value2->address));
 	return 1;
@@ -376,6 +399,7 @@ static int
 apply_d_d(jit_constant_t *result, jit_value_t value,
 	  jit_cf_d_d_func intrinsic)
 {
+	result->type = jit_type_float64;
 	result->un.float64_value = intrinsic(*((jit_float64 *) value->address));
 	return 1;
 }
@@ -385,6 +409,7 @@ apply_d_dd(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_d_dd_func intrinsic)
 {
+	result->type = jit_type_float64;
 	result->un.float64_value = intrinsic(*((jit_float64 *) value1->address),
 					     *((jit_float64 *) value2->address));
 	return 1;
@@ -394,6 +419,7 @@ static int
 apply_i_d(jit_constant_t *result, jit_value_t value,
 	  jit_cf_i_d_func intrinsic)
 {
+	result->type = jit_type_int;
 	result->un.int_value = intrinsic(*((jit_float64 *) value->address));
 	return 1;
 }
@@ -403,6 +429,7 @@ apply_i_dd(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_i_dd_func intrinsic)
 {
+	result->type = jit_type_int;
 	result->un.int_value = intrinsic(*((jit_float64 *) value1->address),
 					 *((jit_float64 *) value2->address));
 	return 1;
@@ -412,6 +439,7 @@ static int
 apply_D_D(jit_constant_t *result, jit_value_t value,
 	  jit_cf_D_D_func intrinsic)
 {
+	result->type = jit_type_nfloat;
 	result->un.nfloat_value = intrinsic(*((jit_nfloat *) value->address));
 	return 1;
 }
@@ -421,6 +449,7 @@ apply_D_DD(jit_constant_t *result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_D_DD_func intrinsic)
 {
+	result->type = jit_type_nfloat;
 	result->un.nfloat_value = intrinsic(*((jit_nfloat *) value1->address),
 					    *((jit_nfloat *) value2->address));
 	return 1;
@@ -430,6 +459,7 @@ static int
 apply_i_D(jit_constant_t *result,
 	  jit_value_t value, jit_cf_i_D_func intrinsic)
 {
+	result->type = jit_type_nfloat;
 	result->un.int_value = intrinsic(*((jit_nfloat *) value->address));
 	return 1;
 }
@@ -439,6 +469,7 @@ apply_i_DD(jit_constant_t *const_result,
 	   jit_value_t value1, jit_value_t value2,
 	   jit_cf_i_DD_func intrinsic)
 {
+	result->type = jit_type_int;
 	const_result->un.int_value = intrinsic(*((jit_nfloat *) value1->address),
 					       *((jit_nfloat *) value2->address));
 	return 1;
@@ -446,12 +477,11 @@ apply_i_DD(jit_constant_t *const_result,
 
 static jit_value_t
 apply_opcode(jit_function_t func, const _jit_intrinsic_info_t *opcode_info,
-	     jit_type_t type, jit_value_t value1, jit_value_t value2)
+	     jit_value_t value1, jit_value_t value2)
 {
 	int success = 0;
 
 	jit_constant_t result;
-	result.type = type;
 	switch(opcode_info->signature)
 	{
 	case JIT_SIG_i_i:
@@ -627,8 +657,8 @@ apply_opcode(jit_function_t func, const _jit_intrinsic_info_t *opcode_info,
 }
 
 static jit_value_t
-_jit_opcode_apply_helper(jit_function_t func, jit_uint opcode, jit_type_t type,
-			 jit_value_t value1, jit_value_t value2)
+_jit_opcode_apply_helper(jit_function_t func, jit_uint opcode, jit_value_t value1,
+	     jit_value_t value2)
 {
 	const _jit_intrinsic_info_t *opcode_info = &_jit_intrinsics[opcode];
 
@@ -647,8 +677,7 @@ _jit_opcode_apply_helper(jit_function_t func, jit_uint opcode, jit_type_t type,
 		}
 
 		opcode_info = &_jit_intrinsics[opcode];
-		jit_value_t value = apply_opcode(func, opcode_info, type,
-						 value1, value2);
+		jit_value_t value = apply_opcode(func, opcode_info, value1, value2);
 		if(value)
 		{
 			/*
@@ -660,12 +689,11 @@ _jit_opcode_apply_helper(jit_function_t func, jit_uint opcode, jit_type_t type,
 		return value;
 	}
 
-	return apply_opcode(func, opcode_info, type, value1, value2);
+	return apply_opcode(func, opcode_info, value1, value2);
 }
 
 jit_value_t
-_jit_opcode_apply_unary(jit_function_t func, jit_uint opcode, jit_value_t value,
-		jit_type_t type)
+_jit_opcode_apply_unary(jit_function_t func, jit_uint opcode, jit_value_t value)
 {
 	if(opcode >= JIT_OP_NUM_OPCODES)
 	{
@@ -675,12 +703,12 @@ _jit_opcode_apply_unary(jit_function_t func, jit_uint opcode, jit_value_t value,
 	{
 		return 0;
 	}
-	return _jit_opcode_apply_helper(func, opcode, type, value, value);
+	return _jit_opcode_apply_helper(func, opcode, value, value);
 }
 
 jit_value_t
 _jit_opcode_apply(jit_function_t func, jit_uint opcode, jit_value_t value1,
-		  jit_value_t value2, jit_type_t type)
+		  jit_value_t value2)
 {
 	if(opcode >= JIT_OP_NUM_OPCODES)
 	{
@@ -690,5 +718,5 @@ _jit_opcode_apply(jit_function_t func, jit_uint opcode, jit_value_t value1,
 	{
 		return 0;
 	}
-	return _jit_opcode_apply_helper(func, opcode, type, value1, value2);
+	return _jit_opcode_apply_helper(func, opcode, value1, value2);
 }
