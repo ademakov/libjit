@@ -829,7 +829,7 @@ apply_compare(jit_function_t func, const jit_opcode_descr *descr,
 	}
 	if(jit_value_is_constant(value1) && jit_value_is_constant(value2))
 	{
-		jit_value_t result = _jit_opcode_apply(func, oper, value1, value2, type);
+		jit_value_t result = _jit_opcode_apply(func, oper, value1, value2, jit_type_int);
 		if(result)
 		{
 			return result;
