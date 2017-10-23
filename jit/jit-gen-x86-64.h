@@ -571,11 +571,36 @@ typedef union
 	} while(0)
 
 /*
- * The immediate value has to be at most 32 bit wide.
+ * The immediate value has to be at most 32 bit wide unless it can be sign
+ * extended from a 8 bit or 32 bit wide value.
  */
 #define x86_64_alu_reg_imm_size(inst, opc, dreg, imm, size) \
 	do { \
-		if((dreg) == X86_64_RAX) \
+		if(x86_is_imm8((imm)) && ((size) != 1 || (dreg) != X86_64_RAX)) \
+		{ \
+			switch(size) \
+			{ \
+				case 1: \
+				{ \
+					x86_64_rex_emit(inst, size, 0, 0, (dreg)); \
+					*(inst)++ = (unsigned char)0x80; \
+				} \
+				break; \
+				case 2: \
+				{ \
+					*(inst)++ = (unsigned char)0x66; \
+				} \
+				case 4: \
+				case 8: \
+				{ \
+					x86_64_rex_emit(inst, size, 0, 0, (dreg)); \
+					*(inst)++ = (unsigned char)0x83; \
+				} \
+			} \
+			x86_64_reg_emit((inst), (opc), (dreg)); \
+			x86_imm_emit8((inst), (imm)); \
+		} \
+		else if((dreg) == X86_64_RAX) \
 		{ \
 			switch(size) \
 			{ \
@@ -600,30 +625,6 @@ typedef union
 					x86_imm_emit32((inst), (imm)); \
 				} \
 			} \
-		} \
-		else if(x86_is_imm8((imm))) \
-		{ \
-			switch(size) \
-			{ \
-				case 1: \
-				{ \
-					x86_64_rex_emit(inst, size, 0, 0, (dreg)); \
-					*(inst)++ = (unsigned char)0x80; \
-				} \
-				break; \
-				case 2: \
-				{ \
-					*(inst)++ = (unsigned char)0x66; \
-				} \
-				case 4: \
-				case 8: \
-				{ \
-					x86_64_rex_emit(inst, size, 0, 0, (dreg)); \
-					*(inst)++ = (unsigned char)0x83; \
-				} \
-			} \
-			x86_64_reg_emit((inst), (opc), (dreg)); \
-			x86_imm_emit8((inst), (imm)); \
 		} \
 		else \
 		{ \
