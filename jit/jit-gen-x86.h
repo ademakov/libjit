@@ -260,8 +260,8 @@ typedef union {
 	} while (0)
 #define x86_imm_emit16(inst,imm)     do { *(short*)(inst) = (imm); (inst) += 2; } while (0)
 #define x86_imm_emit8(inst,imm)      do { *(inst) = (unsigned char)((imm) & 0xff); ++(inst); } while (0)
-#define x86_is_imm8(imm)             (((int)(imm) >= -128 && (int)(imm) <= 127))
-#define x86_is_imm16(imm)            (((int)(imm) >= -(1<<16) && (int)(imm) <= ((1<<16)-1)))
+#define x86_is_imm8(imm)             (((jit_nint)(imm) >= -128 && (jit_nint)(imm) <= 127))
+#define x86_is_imm16(imm)            (((jit_nint)(imm) >= -(1<<16) && (jit_nint)(imm) <= ((1<<16)-1)))
 
 #define x86_reg_emit(inst,r,regno)   do { x86_address_byte ((inst), 3, (r), (regno)); } while (0)
 #define x86_reg8_emit(inst,r,regno,is_rh,is_rnoh)   do {x86_address_byte ((inst), 3, (is_rh)?((r)|4):(r), (is_rnoh)?((regno)|4):(regno));} while (0)

@@ -1,3 +1,10 @@
+2017-10-09  Jakob Löw  <jakob@m4gnus.de>
+
+	* jit/jit-gen-x86.h
+	* jit/jit-gen-x86-64.h: Always use the 8 bit sign extended alu instruction
+	encoding when possible, reducing code size by two bytes when the target
+	register is rax or eax
+
 2017-10-21  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-insn.c (apply_compare): fix (perhaps) constant comparison
