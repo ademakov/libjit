@@ -1,9 +1,8 @@
 2017-10-09  Jakob Löw  <jakob@m4gnus.de>
 
-	* jit/jit-gen-x86.h
-	* jit/jit-gen-x86-64.h: Always use the 8 bit sign extended alu instruction
-	encoding when possible, reducing code size by two bytes when the target
-	register is rax or eax
+	* jit/jit-gen-x86.h, jit/jit-gen-x86-64.h: Always use the 8 bit sign
+	extended alu instruction encoding when possible, reducing code size
+	by two bytes when the target register is rax or eax
 
 2017-10-21  Aleksey Demakov  <ademakov@gmail.com>
 
@@ -12,8 +11,7 @@
 
 2017-10-09  Jakob Löw  <jakob@m4gnus.de>
 
-	* jit/jit-rules-arm.ins
-	* jit/jit-rules-x86.ins
+	* jit/jit-rules-arm.ins, jit/jit-rules-x86.ins
 	* jit/jit-rules-x86-64.ins: don't align the size of an alloca
 	instruction as the frontend already handles that.
 
@@ -28,9 +26,8 @@
 2017-10-01  Jakob Löw  <jakob@m4gnus.de>
 
 	* jit/jit-gen-x86-64.h: add the movlhps and movhlps instructions
-	* jit/jit-rules-x86-64.ins
-	* jit/jit-rules-x86-64.c: inline memset instructions when value and size
-	are known during compilation.
+	* jit/jit-rules-x86-64.ins, jit/jit-rules-x86-64.c: inline memset
+	instructions when value and size are known during compilation.
 
 2017-08-28  Aleksey Demakov  <ademakov@gmail.com>
 
@@ -94,10 +91,9 @@
 
 2016-10-22  Aleksey Demakov  <ademakov@gmail.com>
 
-	* tools/gen-apply-helper.h
-	* tools/gen-apply-helper.c: move register detection functions to
-	separate files to avoid inter-procedural constant propagation in
-	modern compilers (e.g. gcc-6.*).
+	* tools/gen-apply-helper.h, tools/gen-apply-helper.c: move register
+	detection functions to separate files to avoid inter-procedural
+	constant propagation in modern compilers (e.g. gcc-6.*).
 
 2016-04-08  Aleksey Demakov  <ademakov@gmail.com>
 
