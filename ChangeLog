@@ -1,3 +1,8 @@
+2017-11-23  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-rules-x86-64.ins (JIT_OP_JUMP_TABLE): Fix space check problen
+	found by David Meyer <pdox@fb.com>.
+
 2017-10-09  Jakob Löw  <jakob@m4gnus.de>
 
 	* jit/jit-gen-x86.h, jit/jit-gen-x86-64.h: Always use the 8 bit sign

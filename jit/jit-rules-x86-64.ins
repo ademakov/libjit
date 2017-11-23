@@ -3297,7 +3297,7 @@ JIT_OP_ALLOCA:
 }
 
 JIT_OP_JUMP_TABLE: ternary, branch
-	[reg, imm, imm, scratch reg, space("64")] -> {
+	[reg, imm, imm, scratch reg, space("64 + sizeof(void *) * $3")] -> {
 		unsigned char *patch_jump_table;
 		unsigned char *patch_fall_through;
 		int index;
