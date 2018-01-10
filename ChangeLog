@@ -1,3 +1,8 @@
+2018-01-10  David Meyer  <pdox@alum.mit.edu>
+
+	* jit/jit-apply.c (jit_apply_builder_add_arguments): fix a bug with
+	nint, ptr and long arguments. Found by abo_junghichi@yahoo.co.jp.
+
 2017-11-23  Aleksey Demakov  <ademakov@gmail.com>
 
 	* jit/jit-rules-x86-64.ins (JIT_OP_JUMP_TABLE): Fix space check problen

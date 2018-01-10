@@ -165,7 +165,7 @@ jit_apply_builder_add_arguments(jit_apply_builder *builder, jit_type_t signature
 		switch(type->kind)
 		{
 		case JIT_TYPE_SBYTE:
-			jit_apply_builder_add_sbyte(builder,*((jit_sbyte *) arg));
+			jit_apply_builder_add_sbyte(builder, *((jit_sbyte *) arg));
 			break;
 
 		case JIT_TYPE_UBYTE:
@@ -191,7 +191,7 @@ jit_apply_builder_add_arguments(jit_apply_builder *builder, jit_type_t signature
 		case JIT_TYPE_NINT:
 		case JIT_TYPE_PTR:
 		case JIT_TYPE_SIGNATURE:
-			jit_apply_builder_add_nint(builder, *((jit_nint *) args));
+			jit_apply_builder_add_nint(builder, *((jit_nint *) arg));
 			break;
 
 		case JIT_TYPE_NUINT:
@@ -199,7 +199,7 @@ jit_apply_builder_add_arguments(jit_apply_builder *builder, jit_type_t signature
 			break;
 
 		case JIT_TYPE_LONG:
-			jit_apply_builder_add_long(builder, *((jit_long *) args));
+			jit_apply_builder_add_long(builder, *((jit_long *) arg));
 			break;
 
 		case JIT_TYPE_ULONG:
