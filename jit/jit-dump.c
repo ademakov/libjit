@@ -38,6 +38,10 @@
 
 @cindex jit-dump.h
 
+The library provides some functions for dumping various objects to a
+stream.  These functions are declared in the header
+@code{<jit/jit-dump.h>}.
+
 @*/
 
 /*@

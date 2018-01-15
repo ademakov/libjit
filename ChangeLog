@@ -1,3 +1,7 @@
+2018-01-15  Tom Tromey  <tom@tromey.com>
+
+	* jit/jit-dump.c: Document the need for jit-dump.h.
+
 2018-01-10  David Meyer  <pdox@alum.mit.edu>
 
 	* jit/jit-apply.c (jit_apply_builder_add_arguments): fix a bug with
