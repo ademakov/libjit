@@ -17,6 +17,8 @@ dnl Set the version number for the shared libraries.
 AC_SUBST(LIBJIT_VERSION)
 LIBJIT_VERSION=0:1:0
 
+PKG_INSTALLDIR
+
 dnl Determine the architecture.
 AC_MSG_CHECKING([architecture])
 AC_SUBST(JIT_ARCH)
@@ -489,8 +491,11 @@ AC_CONFIG_FILES([
   include/jit/jit-defs.h
   tools/Makefile
   jit/Makefile
+  jit/libjit.pc
   jitdynamic/Makefile
+  jitdynamic/libjitdynamic.pc
   jitplus/Makefile
+  jitplus/libjitplus.pc
   dpas/Makefile
   tutorial/Makefile
   tests/Makefile

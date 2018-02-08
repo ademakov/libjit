@@ -1,6 +1,8 @@
 
 lib_LTLIBRARIES = libjitdynamic.la
 
+pkgconfig_DATA = libjitdynamic.pc
+
 libjitdynamic_la_SOURCES = \
 		jit-dynlib.c \
 		jit-cpp-mangle.c

@@ -2,6 +2,8 @@ BUILT_SOURCES = jit-opcode.c jit-interp-opcode.h jit-interp-opcode.c
 
 lib_LTLIBRARIES = libjit.la
 
+pkgconfig_DATA = libjit.pc
+
 libjit_la_SOURCES = \
 	jit-alloc.c \
 	jit-apply.c \

@@ -1,6 +1,8 @@
 
 lib_LTLIBRARIES = libjitplus.la
 
+pkgconfig_DATA = libjitplus.pc
+
 libjitplus_la_SOURCES = \
 		jit-plus-context.cpp \
 		jit-plus-function.cpp \
