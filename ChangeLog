@@ -1,3 +1,10 @@
+2018-02-07  Tom Tromey  <tom@tromey.com>
+
+	* jit/libjit.pc.in, jitplus/libjitplus.pc.in:
+	* jitdynamic/libjitdynamic.pc.in: add new files.
+	* configure.ac, jit/Makefile.am, jitplus/Makefile.am
+	* jitdynamic/Makefile.am: use them.
+
 2018-01-15  Tom Tromey  <tom@tromey.com>
 
 	* jit/jit-dump.c: Document the need for jit-dump.h.
