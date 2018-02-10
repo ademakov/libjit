@@ -73,7 +73,7 @@ gensel_error(char *filename, long linenum, char *msg)
  * Report error messages from the parser.
  */
 static void
-yyerror(char *msg)
+yyerror(const char *msg)
 {
 	gensel_error_message(gensel_filename, gensel_linenum, msg);
 }
