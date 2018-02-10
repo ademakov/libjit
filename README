@@ -5,7 +5,7 @@ libjit
 This library in this distribution implements Just-In-Time compilation
 functionality.  Unlike other JIT's, this one is designed to be independent
 of any particular virtual machine bytecode format or language.  The hope
-is that Free Software projects can get a leg-up on proprietry VM vendors
+is that Free Software projects can get a leg-up on proprietary VM vendors
 by using this library rather than spending large amounts of time writing
 their own JIT from scratch.
 
@@ -35,8 +35,8 @@ build, and install, you would do the following:
 
 To build libjit from the repository tree you will also need autotools:
 autoconf, automake, and libtool.  These tools let you create ./configure
-script which is miising in the repository.  To run autotools you would
-just do the followoing:
+script which is missing in the repository.  To run autotools you would
+just do the following:
 
 	./bootstrap
 
