@@ -2645,6 +2645,8 @@ small_block_copy(jit_gencode_t gen, unsigned char *inst,
 	{
 		if(size >= i)
 		{
+			x86_64_mov_reg_membase_size(inst, scratch_reg, sreg,
+										soffset + offset, i);
 			x86_64_mov_membase_reg_size(inst, dreg, doffset + offset,
 										scratch_reg, i);
 			size -= i;
