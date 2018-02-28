@@ -21,6 +21,7 @@
  */
 
 #include "jit-internal.h"
+#include <stdlib.h>
 
 /*@
 
@@ -762,6 +763,66 @@ _jit_block_build_cfg(jit_function_t func)
 	build_edges(func, 1);
 }
 
+static int
+_jit_invert_condition (int opcode)
+{
+	switch(opcode)
+	{
+	case JIT_OP_BR_IEQ:	opcode = JIT_OP_BR_INE;      break;
+	case JIT_OP_BR_INE:	opcode = JIT_OP_BR_IEQ;      break;
+	case JIT_OP_BR_ILT:	opcode = JIT_OP_BR_IGE;      break;
+	case JIT_OP_BR_ILT_UN:	opcode = JIT_OP_BR_IGE_UN;   break;
+	case JIT_OP_BR_ILE:	opcode = JIT_OP_BR_IGT;      break;
+	case JIT_OP_BR_ILE_UN:	opcode = JIT_OP_BR_IGT_UN;   break;
+	case JIT_OP_BR_IGT:	opcode = JIT_OP_BR_ILE;      break;
+	case JIT_OP_BR_IGT_UN:	opcode = JIT_OP_BR_ILE_UN;   break;
+	case JIT_OP_BR_IGE:	opcode = JIT_OP_BR_ILT;      break;
+	case JIT_OP_BR_IGE_UN:	opcode = JIT_OP_BR_ILT_UN;   break;
+	case JIT_OP_BR_LEQ:	opcode = JIT_OP_BR_LNE;      break;
+	case JIT_OP_BR_LNE:	opcode = JIT_OP_BR_LEQ;      break;
+	case JIT_OP_BR_LLT:	opcode = JIT_OP_BR_LGE;      break;
+	case JIT_OP_BR_LLT_UN:	opcode = JIT_OP_BR_LGE_UN;   break;
+	case JIT_OP_BR_LLE:	opcode = JIT_OP_BR_LGT;      break;
+	case JIT_OP_BR_LLE_UN:	opcode = JIT_OP_BR_LGT_UN;   break;
+	case JIT_OP_BR_LGT:	opcode = JIT_OP_BR_LLE;      break;
+	case JIT_OP_BR_LGT_UN:	opcode = JIT_OP_BR_LLE_UN;   break;
+	case JIT_OP_BR_LGE:	opcode = JIT_OP_BR_LLT;      break;
+	case JIT_OP_BR_LGE_UN:	opcode = JIT_OP_BR_LLT_UN;   break;
+	case JIT_OP_BR_FEQ:	opcode = JIT_OP_BR_FNE;      break;
+	case JIT_OP_BR_FNE:	opcode = JIT_OP_BR_FEQ;      break;
+	case JIT_OP_BR_FLT:	opcode = JIT_OP_BR_FGE_INV;      break;
+	case JIT_OP_BR_FLE:	opcode = JIT_OP_BR_FGT_INV;      break;
+	case JIT_OP_BR_FGT:	opcode = JIT_OP_BR_FLE_INV;      break;
+	case JIT_OP_BR_FGE:	opcode = JIT_OP_BR_FLT_INV;      break;
+	case JIT_OP_BR_FLT_INV:	opcode = JIT_OP_BR_FGE;  break;
+	case JIT_OP_BR_FLE_INV:	opcode = JIT_OP_BR_FGT;  break;
+	case JIT_OP_BR_FGT_INV:	opcode = JIT_OP_BR_FLE;  break;
+	case JIT_OP_BR_FGE_INV:	opcode = JIT_OP_BR_FLT;  break;
+	case JIT_OP_BR_DEQ:	opcode = JIT_OP_BR_DNE;      break;
+	case JIT_OP_BR_DNE:	opcode = JIT_OP_BR_DEQ;      break;
+	case JIT_OP_BR_DLT:	opcode = JIT_OP_BR_DGE_INV;      break;
+	case JIT_OP_BR_DLE:	opcode = JIT_OP_BR_DGT_INV;      break;
+	case JIT_OP_BR_DGT:	opcode = JIT_OP_BR_DLE_INV;      break;
+	case JIT_OP_BR_DGE:	opcode = JIT_OP_BR_DLT_INV;      break;
+	case JIT_OP_BR_DLT_INV:	opcode = JIT_OP_BR_DGE;  break;
+	case JIT_OP_BR_DLE_INV:	opcode = JIT_OP_BR_DGT;  break;
+	case JIT_OP_BR_DGT_INV:	opcode = JIT_OP_BR_DLE;  break;
+	case JIT_OP_BR_DGE_INV:	opcode = JIT_OP_BR_DLT;  break;
+	case JIT_OP_BR_NFEQ:	opcode = JIT_OP_BR_NFNE;     break;
+	case JIT_OP_BR_NFNE:	opcode = JIT_OP_BR_NFEQ;     break;
+	case JIT_OP_BR_NFLT:	opcode = JIT_OP_BR_NFGE_INV;     break;
+	case JIT_OP_BR_NFLE:	opcode = JIT_OP_BR_NFGT_INV;     break;
+	case JIT_OP_BR_NFGT:	opcode = JIT_OP_BR_NFLE_INV;     break;
+	case JIT_OP_BR_NFGE:	opcode = JIT_OP_BR_NFLT_INV;     break;
+	case JIT_OP_BR_NFLT_INV:	opcode = JIT_OP_BR_NFGE; break;
+	case JIT_OP_BR_NFLE_INV:	opcode = JIT_OP_BR_NFGT; break;
+	case JIT_OP_BR_NFGT_INV:	opcode = JIT_OP_BR_NFLE; break;
+	case JIT_OP_BR_NFGE_INV:	opcode = JIT_OP_BR_NFLT; break;
+	default:		abort();
+	}
+	return opcode;
+}
+
 void
 _jit_block_clean_cfg(jit_function_t func)
 {
@@ -854,6 +915,48 @@ _jit_block_clean_cfg(jit_function_t func)
 				insn->opcode = JIT_OP_BR;
 				block->ends_in_dead = 1;
 				delete_edge(func, block->succs[1]);
+			}
+			else if(block->num_succs == 2
+				&& is_empty_block(block->next)
+				&& block->next->num_succs == 1
+				/* This transformation is not safe if
+				   the block we're rewriting has other
+				   predecessors, or has had its
+				   address taken.  */
+				&& block->next->num_preds == 1
+				&& block->next->address_of == 0
+				&& block->next->succs[0]->flags == _JIT_EDGE_BRANCH
+				&& block->succs[0]->dst == block->next->next)
+			{
+				/* We have a conditional branch, that
+				   branches around the next block, and
+				   the next block consists of just a
+				   jump, like:
+
+					if l7 != 3 then goto .L0
+					goto .L1
+					.L0:
+
+				   In this case we can invert the
+				   condition and retarget the jump,
+				   resulting in:
+				   
+					if l7 == 3 then goto .L1
+					nop
+					.L0:
+				*/
+				insn->opcode = _jit_invert_condition(insn->opcode);
+				detach_edge_dst(block->succs[0]);
+				attach_edge_dst(block->succs[0], block->next->succs[0]->dst);
+				insn->dest = (jit_value_t) block->next->succs[0]->dst->label;
+				detach_edge_dst(block->next->succs[0]);
+				attach_edge_dst(block->next->succs[0], block->next->next);
+				block->next->succs[0]->flags = _JIT_EDGE_FALLTHRU;
+				/* Rewrite the last instruction of the
+				   unnecessary block to be a NOP.  */
+				block->next->insns[block->next->num_insns - 1].opcode = JIT_OP_NOP;
+				block->next->ends_in_dead = 0;
+				changed = 1;
 			}
 		}
 
