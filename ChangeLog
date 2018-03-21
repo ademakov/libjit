@@ -1,9 +1,11 @@
 2018-03-22  Aleksey Demakov  <ademakov@gmail.com>
 
-	* tests/misc/minimal.c: add David Meyer's test for global register
+	* tests/misc/minimal.c: add David Meyer's test for a global register
 	assignment bug on recompilation.
 	* tests/misc/Makefile.am: add new file.
 	* configure.ac: and use it.
+
+	* jit/jit-compile.c (reset_value): fix that bug.
 
 2018-03-01  Jakob Löw  <jakob@m4gnus.de>
 

@@ -307,7 +307,7 @@ reset_value(jit_value_t value)
 {
 	value->reg = -1;
 	value->in_register = 0;
-	value->in_global_register = 0;
+	value->in_global_register = value->has_global_register;
 	value->in_frame = 0;
 }
 
