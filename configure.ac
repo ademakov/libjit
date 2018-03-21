@@ -499,5 +499,6 @@ AC_CONFIG_FILES([
   dpas/Makefile
   tutorial/Makefile
   tests/Makefile
+  tests/misc/Makefile
   doc/Makefile])
 AC_OUTPUT
