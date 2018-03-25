@@ -210,7 +210,7 @@ static struct genops_opcode_list *opcode_header = 0;
  * Report error message.
  */
 static void
-genops_error_message(char *filename, long linenum, char *msg)
+genops_error_message(const char *filename, long linenum, const char *msg)
 {
 	fprintf(stderr, "%s(%ld): %s\n", filename, linenum, msg);
 }
@@ -219,7 +219,7 @@ genops_error_message(char *filename, long linenum, char *msg)
  * Report error messages from the parser.
  */
 static void
-yyerror(char *msg)
+yyerror(const char *msg)
 {
 	genops_error_message(genops_filename, genops_linenum, msg);
 }
@@ -296,7 +296,7 @@ static int
 genops_output_flag(const char *flag, int needs_or)
 {
 	if(needs_or) printf(" | ");
-	printf(flag);
+	printf("%s", flag);
 	return 1;
 }
 
