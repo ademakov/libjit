@@ -239,6 +239,8 @@ static void
 jit_apply_builder_get_return(jit_apply_builder *builder, void *rv,
 			     jit_type_t type, jit_apply_return *result)
 {
+	unsigned int size;
+
 	switch(type->kind)
 	{
 	case JIT_TYPE_SBYTE:
