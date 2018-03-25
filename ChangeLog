@@ -16,6 +16,9 @@
 
 	* README: fix some typos.
 
+	* tools/gen-rules-parser.y, tools/gen-ops-parser.y: use const char* for
+	yyerror, to allow building with -Werror=format-security.
+
 2018-02-07  Tom Tromey  <tom@tromey.com>
 
 	* jit/libjit.pc.in, jitplus/libjitplus.pc.in:
