@@ -224,6 +224,16 @@ struct _jit_edge
 #define _JIT_EDGE_EXCEPT	3
 
 /*
+ * Value list used in jit-live.c for live_out computation
+ */
+typedef struct _jit_value_list *_jit_value_list_t;
+struct _jit_value_list
+{
+	struct _jit_value *value;
+	_jit_value_list_t next;
+};
+
+/*
  * Internal structure of a basic block.
  */
 struct _jit_block
@@ -247,6 +257,15 @@ struct _jit_block
 	/* Edges to predecessor blocks in control flow graph */
 	_jit_edge_t		*preds;
 	int			num_preds;
+
+	/* Values which the block uses before setting them */
+	_jit_value_list_t upward_exposes;
+
+	/* Values which the block sets */
+	_jit_value_list_t var_kills;
+
+	/* Values which are used by sucessors */
+	_jit_value_list_t live_out;
 
 	/* Control flow flags */
 	unsigned		visited : 1;
@@ -386,7 +405,7 @@ struct _jit_builder
 	/* The list of deleted blocks */
 	jit_block_t		deleted_blocks;
 
-	/* Blocks sorted in order required by an optimization pass */
+	/* Blocks sorted in postorder */
 	jit_block_t		*block_order;
 	int			num_block_order;
 
