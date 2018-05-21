@@ -221,11 +221,10 @@ detach_edge_src(_jit_edge_t edge)
 	{
 		if(block->succs[index] == edge)
 		{
-			for(block->num_succs--; index < block->num_succs; index++)
-			{
-				block->succs[index] = block->succs[index + 1];
-			}
-			block->succs = jit_realloc(block->succs, block->num_succs * sizeof(_jit_edge_t));
+			--block->num_succs;
+			block->succs[index] = block->succs[block->num_succs];
+			block->succs = jit_realloc(block->succs,
+				block->num_succs * sizeof(_jit_edge_t));
 			return;
 		}
 	}
@@ -242,12 +241,10 @@ detach_edge_dst(_jit_edge_t edge)
 	{
 		if(block->preds[index] == edge)
 		{
-			for(block->num_preds--; index < block->num_preds; index++)
-			{
-				block->preds[index] = block->preds[index + 1];
-			}
+			--block->num_preds;
+			block->preds[index] = block->preds[block->num_preds];
 			block->preds = jit_realloc(block->preds,
-						   block->num_preds * sizeof(_jit_edge_t));
+				block->num_preds * sizeof(_jit_edge_t));
 			return;
 		}
 	}
