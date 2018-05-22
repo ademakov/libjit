@@ -115,6 +115,14 @@ compute_kills_and_upward_exposes(jit_block_t block)
 	}
 }
 
+/* Computes the LiveOut set of @var{block}
+ *
+ * LiveIn(m) is the list of all variables used before set in m
+ * and all variables in LiveOut(m) which are never set in m.
+ *
+ * LiveOut(i) is the union of all of i's successor blocks LiveIn lists.
+ * i.e. LiveOut(i) = union(LiveIn(m) foreach m in successors(i))
+ */
 static int
 compute_live_out(jit_block_t block)
 {
@@ -155,6 +163,7 @@ _jit_function_compute_live_out(jit_function_t func)
 	int i;
 	int changed = 1;
 
+	/* Compute the UEVar and VarKill sets for each block */
 	for(i = 0; i < func->builder->num_block_order; i++)
 	{
 		block = func->builder->block_order[i];
@@ -163,6 +172,7 @@ _jit_function_compute_live_out(jit_function_t func)
 		compute_kills_and_upward_exposes(block);
 	}
 
+	/* Compute LiveOut sets for each block */
 	while(changed)
 	{
 		changed = 0;
@@ -182,4 +192,13 @@ _jit_block_free_live_out(jit_block_t block)
 	value_list_free(block->upward_exposes);
 	value_list_free(block->var_kills);
 	value_list_free(block->live_out);
+}
+
+int
+_jit_value_in_live_out(jit_block_t block, jit_value_t value)
+{
+	if(block->has_live_out)
+		return value_list_has(block->live_out, value);
+	else
+		return 1;
 }

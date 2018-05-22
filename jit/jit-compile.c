@@ -71,11 +71,20 @@ optimize(jit_function_t func)
 		return;
 	}
 
-	/* Build control flow graph */
-	_jit_block_build_cfg(func);
+	if(func->optimization_level > 0)
+	{
+		/* Build control flow graph */
+		_jit_block_build_cfg(func);
 
-	/* Eliminate useless control flow */
-	_jit_block_clean_cfg(func);
+		/* Eliminate useless control flow */
+		_jit_block_clean_cfg(func);
+
+		if(func->optimization_level > 1)
+		{
+			/* Compute LiveOut set for each block */
+			_jit_function_compute_live_out(func);
+		}
+	}
 
 	/* Optimization is done */
 	func->is_optimized = 1;

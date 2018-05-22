@@ -90,7 +90,7 @@ jit_function_create(jit_context_t context, jit_type_t signature)
 	/* Initialize the function block */
 	func->context = context;
 	func->signature = jit_type_copy(signature);
-	func->optimization_level = JIT_OPTLEVEL_NORMAL;
+	func->optimization_level = JIT_OPTLEVEL_MAX;
 
 #if !defined(JIT_BACKEND_INTERP) && defined(jit_redirector_size)
 	/* If we aren't using interpretation, then point the function's
@@ -1015,7 +1015,7 @@ jit_function_get_optimization_level(jit_function_t func)
 unsigned int
 jit_function_get_max_optimization_level(void)
 {
-	return JIT_OPTLEVEL_NORMAL;
+	return JIT_OPTLEVEL_MAX;
 }
 
 /*@

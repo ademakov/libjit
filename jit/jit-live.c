@@ -510,17 +510,18 @@ backward_propagation(jit_block_t block)
 
 /* Reset value liveness flags. */
 static void
-reset_value_liveness(jit_value_t value)
+reset_value_liveness(jit_block_t block, jit_value_t value)
 {
 	if(value)
 	{
-		if (!value->is_constant && !value->is_temporary)
+		if(value->is_constant || value->is_temporary
+			|| !_jit_value_in_live_out(block, value))
 		{
-			value->live = 1;
+			value->live = 0;
 		}
 		else
 		{
-			value->live = 0;
+			value->live = 1;
 		}
 		value->next_use = 0;
 	}
@@ -543,18 +544,19 @@ reset_liveness_flags(jit_block_t block, int reset_all)
 		flags = insn->flags;
 		if((flags & JIT_INSN_DEST_OTHER_FLAGS) == 0)
 		{
-			reset_value_liveness(insn->dest);
+			reset_value_liveness(block, insn->dest);
 		}
 		if((flags & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
 		{
-			reset_value_liveness(insn->value1);
+			reset_value_liveness(block, insn->value1);
 		}
 		if((flags & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
 		{
-			reset_value_liveness(insn->value2);
+			reset_value_liveness(block, insn->value2);
 		}
 		if(reset_all)
 		{
+			/* TODO: this has no effect, should it be insn->flags &= ...? */
 			flags &= ~(JIT_INSN_DEST_LIVE | JIT_INSN_DEST_NEXT_USE
 				   |JIT_INSN_VALUE1_LIVE | JIT_INSN_VALUE1_NEXT_USE
 				   |JIT_INSN_VALUE2_LIVE | JIT_INSN_VALUE2_NEXT_USE);
