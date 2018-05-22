@@ -997,6 +997,7 @@ _jit_block_destroy(jit_block_t block)
 	   not freed) separately. However succs and preds arrays are freed,
 	   these contain pointers to edges, not edges themselves. */
 	jit_meta_destroy(&block->meta);
+	_jit_block_free_live_out(block);
 	jit_free(block->succs);
 	jit_free(block->preds);
 	jit_free(block->insns);

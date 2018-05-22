@@ -229,7 +229,7 @@ struct _jit_edge
 typedef struct _jit_value_list *_jit_value_list_t;
 struct _jit_value_list
 {
-	struct _jit_value *value;
+	jit_value_t value;
 	_jit_value_list_t next;
 };
 
@@ -266,6 +266,7 @@ struct _jit_block
 
 	/* Values which are used by sucessors */
 	_jit_value_list_t live_out;
+	unsigned		has_live_out : 1;
 
 	/* Control flow flags */
 	unsigned		visited : 1;
@@ -544,6 +545,21 @@ void _jit_function_free_builder(jit_function_t func);
  * Destroy all memory associated with a function.
  */
 void _jit_function_destroy(jit_function_t func);
+
+/*
+ * Compute LiveOut sets for a function.
+ */
+void _jit_function_compute_live_out(jit_function_t func);
+
+/*
+ * Free LiveOut and corresponding fields of @var{block}
+ */
+void _jit_block_free_live_out(jit_block_t block);
+
+/*
+ * Check if @var{value} is in LiveOut of @var{block}
+ */
+int _jit_value_in_live_out(jit_block_t block, jit_value_t value);
 
 /*
  * Compute value liveness and "next use" information for a function.

@@ -54,6 +54,19 @@ value_list_add(_jit_value_list_t *list, jit_value_t value)
 }
 
 static void
+value_list_free(_jit_value_list_t list)
+{
+	_jit_value_list_t next;
+
+	while(list)
+	{
+		next = list->next;
+		jit_free(list);
+		list = next;
+	}
+}
+
+static void
 compute_kills_and_upward_exposes(jit_block_t block)
 {
 	jit_insn_iter_t iter;
@@ -145,6 +158,8 @@ _jit_function_compute_live_out(jit_function_t func)
 	for(i = 0; i < func->builder->num_block_order; i++)
 	{
 		block = func->builder->block_order[i];
+		block->has_live_out = 1;
+
 		compute_kills_and_upward_exposes(block);
 	}
 
@@ -159,4 +174,12 @@ _jit_function_compute_live_out(jit_function_t func)
 				changed = 1;
 		}
 	}
+}
+
+void
+_jit_block_free_live_out(jit_block_t block)
+{
+	value_list_free(block->upward_exposes);
+	value_list_free(block->var_kills);
+	value_list_free(block->live_out);
 }
