@@ -505,6 +505,7 @@ struct _jit_function
 	unsigned		no_throw : 1;
 	unsigned		no_return : 1;
 	unsigned		has_try : 1;
+	unsigned		computed_liveness : 1;
 	unsigned		optimization_level : 8;
 
 	/* Flag set once the function is compiled */
@@ -564,7 +565,7 @@ int _jit_value_in_live_out(jit_block_t block, jit_value_t value);
 /*
  * Compute value liveness and "next use" information for a function.
  */
-void _jit_function_compute_liveness(jit_function_t func);
+int _jit_function_compute_liveness(jit_function_t func);
 
 /*
  * Compile a function on-demand.  Returns the entry point.
@@ -712,7 +713,7 @@ void _jit_block_build_cfg(jit_function_t func);
 /*
  * Eliminate useless control flow between blocks in a function.
  */
-void _jit_block_clean_cfg(jit_function_t func);
+int _jit_block_clean_cfg(jit_function_t func);
 
 /*
  * Compute block postorder for control flow graph depth first traversal.

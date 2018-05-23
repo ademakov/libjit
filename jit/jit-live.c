@@ -29,7 +29,7 @@
 /*
  * Compute liveness information for a basic block.
  */
-static void
+static int
 compute_liveness_for_block(jit_block_t block)
 {
 	jit_insn_iter_t iter;
@@ -38,6 +38,7 @@ compute_liveness_for_block(jit_block_t block)
 	jit_value_t value1;
 	jit_value_t value2;
 	int flags;
+	int optimized = 0;
 
 	/* Scan backwards to compute the liveness flags */
 	jit_insn_iter_init_last(&iter, block);
@@ -143,6 +144,7 @@ compute_liveness_for_block(jit_block_t block)
 					printf("'\n");
 #endif
 					insn->opcode = (short)JIT_OP_NOP;
+					optimized = 1;
 					continue;
 				}
 				dest->live = 0;
@@ -169,6 +171,8 @@ compute_liveness_for_block(jit_block_t block)
 			value2->next_use = 1;
 		}
 	}
+
+	return optimized;
 }
 
 #if defined(USE_FORWARD_PROPAGATION) || defined(USE_BACKWARD_PROPAGATION)
@@ -564,21 +568,28 @@ reset_liveness_flags(jit_block_t block, int reset_all)
 	}
 }
 
-void _jit_function_compute_liveness(jit_function_t func)
+int _jit_function_compute_liveness(jit_function_t func)
 {
+	int optimized = 0;
 	jit_block_t block = func->builder->entry_block;
 	while(block != 0)
 	{
 #ifdef USE_FORWARD_PROPAGATION
 		/* Perform forward copy propagation for the block */
-		forward_propagation(block);
+		if(forward_propagation(block))
+		{
+			optimized = 1;
+		}
 #endif
 
 		/* Reset the liveness flags for the next block */
 		reset_liveness_flags(block, 0);
 
 		/* Compute the liveness flags for the block */
-		compute_liveness_for_block(block);
+		if(compute_liveness_for_block(block))
+		{
+			optimized = 1;
+		}
 
 #ifdef USE_BACKWARD_PROPAGATION
 		/* Perform backward copy propagation for the block */
@@ -587,10 +598,14 @@ void _jit_function_compute_liveness(jit_function_t func)
 			/* Reset the liveness flags and compute them again */
 			reset_liveness_flags(block, 1);
 			compute_liveness_for_block(block);
+
+			optimized = 1;
 		}
 #endif
 
 		/* Move on to the next block in the function */
 		block = block->next;
 	}
+
+	return optimized;
 }

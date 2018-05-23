@@ -65,25 +65,43 @@ internal_exception_handler(int exception_type)
 static void
 optimize(jit_function_t func)
 {
+	int optimized;
+
 	if(func->is_optimized || func->optimization_level == JIT_OPTLEVEL_NONE)
 	{
 		/* The function is already optimized or does not need optimization */
 		return;
 	}
 
-	if(func->optimization_level > 0)
+	while(true)
 	{
-		/* Build control flow graph */
-		_jit_block_build_cfg(func);
-
-		/* Eliminate useless control flow */
-		_jit_block_clean_cfg(func);
-
-		if(func->optimization_level > 1)
+		if(func->optimization_level > 0)
 		{
-			/* Compute LiveOut set for each block */
-			_jit_function_compute_live_out(func);
+			/* Build control flow graph */
+			_jit_block_build_cfg(func);
+
+			/* Eliminate useless control flow */
+			if(_jit_block_clean_cfg(func))
+			{
+				continue;
+			}
+
+			if(func->optimization_level > 1)
+			{
+				/* Compute LiveOut set for each block */
+				_jit_function_compute_live_out(func);
+
+				/* Compute liveness and "next use" information for this function */
+				optimized = _jit_function_compute_liveness(func);
+				func->computed_liveness = 1;
+				if(optimized)
+				{
+					continue;
+				}
+			}
 		}
+
+		break;
 	}
 
 	/* Optimization is done */
@@ -616,8 +634,10 @@ codegen_prepare(_jit_compile_t *state)
 		state->func->no_return = 1;
 	}
 
-	/* Compute liveness and "next use" information for this function */
-	_jit_function_compute_liveness(state->func);
+	if(!state->func->computed_liveness)
+	{
+		_jit_function_compute_liveness(state->func);
+	}
 
 	/* Allocate global registers to variables within the function */
 #ifndef JIT_BACKEND_INTERP

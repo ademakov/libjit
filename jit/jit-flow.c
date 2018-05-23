@@ -167,9 +167,13 @@ _jit_function_compute_live_out(jit_function_t func)
 	for(i = 0; i < func->builder->num_block_order; i++)
 	{
 		block = func->builder->block_order[i];
-		block->has_live_out = 1;
+		if(block->has_live_out)
+		{
+			_jit_block_free_live_out(block);
+		}
 
 		compute_kills_and_upward_exposes(block);
+		block->has_live_out = 1;
 	}
 
 	/* Compute LiveOut sets for each block */
@@ -192,6 +196,10 @@ _jit_block_free_live_out(jit_block_t block)
 	value_list_free(block->upward_exposes);
 	value_list_free(block->var_kills);
 	value_list_free(block->live_out);
+
+	block->upward_exposes = 0;
+	block->var_kills = 0;
+	block->live_out = 0;
 }
 
 int

@@ -759,10 +759,10 @@ _jit_block_build_cfg(jit_function_t func)
 	build_edges(func, 1);
 }
 
-void
+int
 _jit_block_clean_cfg(jit_function_t func)
 {
-	int index, changed;
+	int index, changed, optimized;
 	jit_block_t block;
 	jit_insn_t insn;
 
@@ -784,6 +784,8 @@ _jit_block_clean_cfg(jit_function_t func)
 
 	set_address_of(func);
 	eliminate_unreachable(func);
+
+	optimized = 0;
 
  loop:
 	changed = 0;
@@ -893,8 +895,12 @@ _jit_block_clean_cfg(jit_function_t func)
 			jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 		}
 		clear_visited(func);
+
+		optimized = 1;
 		goto loop;
 	}
+
+	return optimized;
 }
 
 int
