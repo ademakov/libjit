@@ -974,6 +974,100 @@ _jit_block_compute_postorder(jit_function_t func)
 	return 1;
 }
 
+static void
+value_to_local_or_temporary(jit_block_t block, jit_value_t value)
+{
+	if(!value)
+	{
+		return;
+	}
+
+	value->usage_count++;
+
+	if(value->is_constant)
+	{
+		return;
+	}
+
+	/* If first_used_in is 0 this is the first time we use value
+	   if it was already used in a different block its a local
+	   not a temporary value */
+	if(!value->first_used_in)
+	{
+		value->first_used_in = block;
+	}
+	else if(value->first_used_in != block)
+	{
+		value->is_temporary = 0;
+		value->is_local = 1;
+	}
+}
+
+void
+_jit_block_locals_to_temporaries(jit_function_t func)
+{
+	int i;
+	int flags;
+	jit_block_t block;
+	jit_insn_iter_t iter;
+	jit_insn_t insn;
+	jit_value_t value;
+	jit_pool_block_t memblock = func->builder->value_pool.blocks;
+	int num = (int)(func->builder->value_pool.elems_per_block);
+
+	while(memblock != 0)
+	{
+		if(!(memblock->next))
+		{
+			num = (int)(func->builder->value_pool.elems_in_last);
+		}
+
+		for(i = 0; i < num; ++i)
+		{
+			value = (jit_value_t)(memblock->data + i * sizeof(struct _jit_value));
+
+			value->usage_count = 0;
+			if(!value->is_constant)
+			{
+				/* Reset value temproary/local flags and usage count */
+				value->is_temporary = 1;
+				value->is_local = 0;
+				value->first_used_in = 0;
+			}
+		}
+		memblock = memblock->next;
+	}
+
+	for(block = func->builder->entry_block; block; block = block->next)
+	{
+		jit_insn_iter_init_last(&iter, block);
+		while((insn = jit_insn_iter_previous(&iter)) != 0)
+		{
+			/* Skip NOP instructions, which may have arguments left
+			   over from when the instruction was replaced, but which
+			   are not used in this block */
+			if(insn->opcode == JIT_OP_NOP)
+			{
+				continue;
+			}
+
+			flags = insn->flags;
+			if((flags & JIT_INSN_DEST_OTHER_FLAGS) == 0)
+			{
+				value_to_local_or_temporary(block, insn->dest);
+			}
+			if((flags & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
+			{
+				value_to_local_or_temporary(block, insn->value1);
+			}
+			if((flags & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
+			{
+				value_to_local_or_temporary(block, insn->value2);
+			}
+		}
+	}
+}
+
 jit_block_t
 _jit_block_create(jit_function_t func)
 {

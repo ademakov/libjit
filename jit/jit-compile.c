@@ -73,32 +73,39 @@ optimize(jit_function_t func)
 		return;
 	}
 
-	while(true)
+	while(1)
 	{
-		if(func->optimization_level > 0)
+		/* Recalculate which values are local and which are temporary
+		   and recalculate usage count. This is needed when other
+		   optimizations remove blocks or turn instructions into NOPs */
+		_jit_block_locals_to_temporaries(func);
+
+		/* Optimization level 1 */
+
+		/* Build control flow graph */
+		_jit_block_build_cfg(func);
+
+		/* Eliminate useless control flow */
+		if(_jit_block_clean_cfg(func))
 		{
-			/* Build control flow graph */
-			_jit_block_build_cfg(func);
+			continue;
+		}
 
-			/* Eliminate useless control flow */
-			if(_jit_block_clean_cfg(func))
-			{
-				continue;
-			}
+		/* Optimization level 2 */
+		if(func->optimization_level < 2)
+		{
+			break;
+		}
 
-			if(func->optimization_level > 1)
-			{
-				/* Compute LiveOut set for each block */
-				_jit_function_compute_live_out(func);
+		/* Compute LiveOut set for each block */
+		_jit_function_compute_live_out(func);
 
-				/* Compute liveness and "next use" information for this function */
-				optimized = _jit_function_compute_liveness(func);
-				func->computed_liveness = 1;
-				if(optimized)
-				{
-					continue;
-				}
-			}
+		/* Compute liveness and "next use" information for this function */
+		optimized = _jit_function_compute_liveness(func);
+		func->computed_liveness = 1;
+		if(optimized)
+		{
+			continue;
 		}
 
 		break;

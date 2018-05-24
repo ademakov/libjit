@@ -288,6 +288,7 @@ struct _jit_block
 struct _jit_value
 {
 	jit_block_t		block;
+	jit_block_t		first_used_in;
 	jit_type_t		type;
 	unsigned		is_temporary : 1;
 	unsigned		is_local : 1;
