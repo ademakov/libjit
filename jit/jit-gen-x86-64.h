@@ -3445,6 +3445,14 @@ typedef union
 	} while(0)
 
 /*
+ * leave
+ */
+#define x86_64_leave(inst) \
+	do { \
+		x86_leave((inst)); \
+	} while(0)
+
+/*
  * ret
  */
 #define x86_64_ret(inst) \
