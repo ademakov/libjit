@@ -3101,9 +3101,8 @@ JIT_OP_CALL:
 JIT_OP_CALL_TAIL:
 	[] -> {
 		jit_function_t func = (jit_function_t)(insn->dest);
-		x86_64_mov_reg_reg_size(inst, X86_64_RSP, X86_64_RBP, 8);
-		x86_64_pop_reg_size(inst, X86_64_RBP, 8);
-		x86_64_jump_to_code(inst, (jit_nint)jit_function_to_closure(func));
+		inst = x86_64_prepare_for_return(inst, gen, func);
+		inst = x86_64_jump_to_code(inst, (jit_nint)jit_function_to_closure(func));
 	}
 
 JIT_OP_CALL_INDIRECT:
@@ -3114,8 +3113,7 @@ JIT_OP_CALL_INDIRECT:
 
 JIT_OP_CALL_INDIRECT_TAIL:
 	[] -> {
-		x86_64_mov_reg_reg_size(inst, X86_64_RSP, X86_64_RBP, 8);
-		x86_64_pop_reg_size(inst, X86_64_RBP, 8);
+		inst = x86_64_prepare_for_return(inst, gen, func);
 		x86_64_jmp_reg(inst, X86_64_SCRATCH);
 	}
 
@@ -3127,8 +3125,7 @@ JIT_OP_CALL_VTABLE_PTR:
 
 JIT_OP_CALL_VTABLE_PTR_TAIL:
 	[] -> {
-		x86_64_mov_reg_reg_size(inst, X86_64_RSP, X86_64_RBP, 8);
-		x86_64_pop_reg_size(inst, X86_64_RBP, 8);
+		inst = x86_64_prepare_for_return(inst, gen, func);
 		x86_64_jmp_reg(inst, X86_64_SCRATCH);
 	}
 
@@ -3139,9 +3136,8 @@ JIT_OP_CALL_EXTERNAL:
 
 JIT_OP_CALL_EXTERNAL_TAIL:
 	[] -> {
-		x86_64_mov_reg_reg_size(inst, X86_64_RSP, X86_64_RBP, 8);
-		x86_64_pop_reg_size(inst, X86_64_RBP, 8);
-		x86_64_jump_to_code(inst, (jit_nint)(insn->dest));
+		inst = x86_64_prepare_for_return(inst, gen, func);
+		inst = x86_64_jump_to_code(inst, (jit_nint)(insn->dest));
 	}
 
 

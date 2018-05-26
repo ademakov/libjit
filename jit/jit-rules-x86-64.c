@@ -2495,52 +2495,14 @@ _jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 	return (void *)(((unsigned char *)buf) + JIT_PROLOG_SIZE - reg);
 }
 
-void
-_jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
+unsigned char *
+x86_64_prepare_for_return(unsigned char *inst, jit_gencode_t gen, jit_function_t func)
 {
-	unsigned char *inst;
 	int reg;
+	int base_reg;
 	int frame_size;
 	int regs_to_restore;
-	int base_reg;
 	int current_offset;
-	jit_int *fixup;
-	jit_int *next;
-
-	/* Bail out if there is insufficient space for the epilog */
-	_jit_gen_check_space(gen, 48);
-
-	inst = gen->ptr;
-
-	/* Perform fixups on any blocks that jump to the epilog */
-	fixup = (jit_int *)(gen->epilog_fixup);
-	while(fixup != 0)
-	{
-		if(DEBUG_FIXUPS)
-		{
-			fprintf(stderr, "Fixup Address: %lx, Value: %x\n",
-					(jit_nint)fixup, fixup[0]);
-		}
-		next = (jit_int *)_JIT_CALC_NEXT_FIXUP(fixup, fixup[0]);
-		fixup[0] = (jit_int)(((jit_nint)inst) - ((jit_nint)fixup) - 4);
-		fixup = next;
-	}
-	gen->epilog_fixup = 0;
-
-	/* Perform fixups on any alloca calls */
-	fixup = (jit_int *)(gen->alloca_fixup);
-	while (fixup != 0)
-	{
-		next = (jit_int *)_JIT_CALC_NEXT_FIXUP(fixup, fixup[0]);
-		fixup[0] = func->builder->param_area_size;
-		if(DEBUG_FIXUPS)
-		{
-			fprintf(stderr, "Fixup Param Area Size: %lx, Value: %x\n",
-					(jit_nint)fixup, fixup[0]);
-		}
-		fixup = next;
-	}
-	gen->alloca_fixup = 0;
 
 	frame_size = calculate_frame_size(gen, func, &regs_to_restore);
 
@@ -2586,8 +2548,55 @@ _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	else if(!HAVE_RED_ZONE || frame_size > RED_ZONE_SIZE || func->builder->non_leaf)
 	{
 		/* Increment stack pointer */
-		x86_64_add_reg_imm_size(inst, X86_64_REG_RSP, frame_size, 8);
+		x86_64_add_reg_imm_size(inst, X86_64_RSP, frame_size, 8);
 	}
+
+	return inst;
+}
+
+void
+_jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
+{
+	unsigned char *inst;
+	jit_int *fixup;
+	jit_int *next;
+
+	/* Bail out if there is insufficient space for the epilog */
+	_jit_gen_check_space(gen, 48);
+
+	inst = gen->ptr;
+
+	/* Perform fixups on any blocks that jump to the epilog */
+	fixup = (jit_int *)(gen->epilog_fixup);
+	while(fixup != 0)
+	{
+		if(DEBUG_FIXUPS)
+		{
+			fprintf(stderr, "Fixup Address: %lx, Value: %x\n",
+					(jit_nint)fixup, fixup[0]);
+		}
+		next = (jit_int *)_JIT_CALC_NEXT_FIXUP(fixup, fixup[0]);
+		fixup[0] = (jit_int)(((jit_nint)inst) - ((jit_nint)fixup) - 4);
+		fixup = next;
+	}
+	gen->epilog_fixup = 0;
+
+	/* Perform fixups on any alloca calls */
+	fixup = (jit_int *)(gen->alloca_fixup);
+	while (fixup != 0)
+	{
+		next = (jit_int *)_JIT_CALC_NEXT_FIXUP(fixup, fixup[0]);
+		fixup[0] = func->builder->param_area_size;
+		if(DEBUG_FIXUPS)
+		{
+			fprintf(stderr, "Fixup Param Area Size: %lx, Value: %x\n",
+					(jit_nint)fixup, fixup[0]);
+		}
+		fixup = next;
+	}
+	gen->alloca_fixup = 0;
+
+	inst = x86_64_prepare_for_return(inst, gen, func);
 
 	/* Return */
 	x86_64_ret(inst);
