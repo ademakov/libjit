@@ -106,11 +106,21 @@ compute_kills_and_upward_exposes(jit_block_t block)
 			}
 		}
 
-		/* If dest is a value add it to VarKill */
+		/* If dest is a destination value add it to VarKill
+		   If it's a sourcevalue and not in VarKill add it to UEVar */
 		if((flags & JIT_INSN_DEST_OTHER_FLAGS) == 0 && insn->dest
 			&& !insn->dest->is_constant && insn->dest->is_local)
 		{
-			value_list_add(&block->var_kills, insn->dest);
+			if((flags & JIT_INSN_DEST_IS_VALUE) == 0)
+			{
+				value_list_add(&block->var_kills, insn->dest);
+			}
+			else if(!value_list_has(block->var_kills, insn->dest))
+			{
+				/* The destination is actually a source value for this
+				   instruction (e.g. JIT_OP_STORE_RELATIVE_*) */
+				value_list_add(&block->upward_exposes, insn->dest);
+			}
 		}
 	}
 }
