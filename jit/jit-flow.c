@@ -28,41 +28,12 @@
  * by Keith D. Cooper and Linda Torczon.
 */
 
-static int
-value_list_has(_jit_value_list_t list, jit_value_t value)
-{
-	for(; list; list = list->next)
-	{
-		if(list->value == value)
-			return 1;
-	}
-
-	return 0;
-}
-
-static int
-value_list_add(_jit_value_list_t *list, jit_value_t value)
-{
-	if(value_list_has(*list, value))
-		return 0;
-
-	_jit_value_list_t entry = jit_malloc(sizeof(_jit_value_list_t));
-	entry->value = value;
-	entry->next = *list;
-	*list = entry;
-	return 1;
-}
-
 static void
-value_list_free(_jit_value_list_t list)
+handle_source_value(jit_block_t block, jit_value_t value)
 {
-	_jit_value_list_t next;
-
-	while(list)
+	if(!_jit_bitset_test_bit(&block->var_kills, value->index))
 	{
-		next = list->next;
-		jit_free(list);
-		list = next;
+		_jit_bitset_set_bit(&block->upward_exposes, value->index);
 	}
 }
 
@@ -90,20 +61,14 @@ compute_kills_and_upward_exposes(jit_block_t block)
 		if((flags & JIT_INSN_VALUE1_OTHER_FLAGS) == 0 && insn->value1
 			&& !insn->value1->is_constant && insn->value1->is_local)
 		{
-			if(!value_list_has(block->var_kills, insn->value1))
-			{
-				value_list_add(&block->upward_exposes, insn->value1);
-			}
+			handle_source_value(block, insn->value1);
 		}
 
 		/* If value2 is a value not in VarKill add it to UEVar */
 		if((flags & JIT_INSN_VALUE2_OTHER_FLAGS) == 0 && insn->value2
 			&& !insn->value2->is_constant && insn->value2->is_local)
 		{
-			if(!value_list_has(block->var_kills, insn->value2))
-			{
-				value_list_add(&block->upward_exposes, insn->value2);
-			}
+			handle_source_value(block, insn->value2);
 		}
 
 		/* If dest is a destination value add it to VarKill
@@ -113,15 +78,29 @@ compute_kills_and_upward_exposes(jit_block_t block)
 		{
 			if((flags & JIT_INSN_DEST_IS_VALUE) == 0)
 			{
-				value_list_add(&block->var_kills, insn->dest);
+				_jit_bitset_set_bit(&block->var_kills, insn->dest->index);
 			}
-			else if(!value_list_has(block->var_kills, insn->dest))
+			else
 			{
 				/* The destination is actually a source value for this
 				   instruction (e.g. JIT_OP_STORE_RELATIVE_*) */
-				value_list_add(&block->upward_exposes, insn->dest);
+				handle_source_value(block, insn->dest);
 			}
 		}
+	}
+}
+
+static void
+compute_initial_live_out(jit_block_t block)
+{
+	int i;
+	jit_block_t succ;
+
+	for(i = 0; i < block->num_succs; i++)
+	{
+		succ = block->succs[i]->dst;
+
+		_jit_bitset_add(&block->live_out, &succ->upward_exposes);
 	}
 }
 
@@ -134,32 +113,23 @@ compute_kills_and_upward_exposes(jit_block_t block)
  * i.e. LiveOut(i) = union(LiveIn(m) foreach m in successors(i))
  */
 static int
-compute_live_out(jit_block_t block)
+compute_live_out(jit_block_t block, _jit_bitset_t *tmp)
 {
 	int i;
 	int changed = 0;
 	jit_block_t succ;
-	_jit_value_list_t curr;
 
 	for(i = 0; i < block->num_succs; i++)
 	{
 		succ = block->succs[i]->dst;
 
-		for(curr = succ->upward_exposes; curr; curr = curr->next)
-		{
-			if(value_list_add(&block->live_out, curr->value))
-			{
-				changed = 1;
-			}
-		}
+		_jit_bitset_copy(tmp, &succ->live_out);
+		_jit_bitset_sub(tmp, &succ->var_kills);
 
-		for(curr = succ->live_out; curr; curr = curr->next)
+		if(!_jit_bitset_contains(&block->live_out, tmp))
 		{
-			if(!value_list_has(succ->var_kills, curr->value)
-				&& value_list_add(&block->live_out, curr->value))
-			{
-				changed = 1;
-			}
+			changed = 1;
+			_jit_bitset_add(&block->live_out, tmp);
 		}
 	}
 
@@ -170,21 +140,67 @@ void
 _jit_function_compute_live_out(jit_function_t func)
 {
 	jit_block_t block;
+	jit_value_t value;
+	_jit_bitset_t tmp;
 	int i;
 	int changed = 1;
+	int value_count = 0;
+	jit_pool_block_t memblock = func->builder->value_pool.blocks;
+	int num = (int)(func->builder->value_pool.elems_per_block);
+
+	/* Give each value it's own index */
+	while(memblock != 0)
+	{
+		if(!(memblock->next))
+		{
+			num = (int)(func->builder->value_pool.elems_in_last);
+		}
+
+		for(i = 0; i < num; ++i)
+		{
+			value = (jit_value_t)(memblock->data + i * sizeof(struct _jit_value));
+
+			value->index = value_count;
+			++value_count;
+		}
+		memblock = memblock->next;
+	}
 
 	/* Compute the UEVar and VarKill sets for each block */
 	for(i = 0; i < func->builder->num_block_order; i++)
 	{
 		block = func->builder->block_order[i];
-		if(block->has_live_out)
+		if(_jit_bitset_is_allocated(&block->live_out))
 		{
-			_jit_block_free_live_out(block);
+			if(_jit_bitset_size(&block->live_out) == value_count)
+			{
+				_jit_bitset_clear(&block->upward_exposes);
+				_jit_bitset_clear(&block->var_kills);
+				_jit_bitset_clear(&block->live_out);
+			}
+			else
+			{
+				_jit_block_free_live_out(block);
+			}
+		}
+
+		if(!_jit_bitset_is_allocated(&block->live_out))
+		{
+			_jit_bitset_allocate(&block->upward_exposes, value_count);
+			_jit_bitset_allocate(&block->var_kills, value_count);
+			_jit_bitset_allocate(&block->live_out, value_count);
 		}
 
 		compute_kills_and_upward_exposes(block);
-		block->has_live_out = 1;
 	}
+
+	for(i = 0; i < func->builder->num_block_order; i++)
+	{
+		block = func->builder->block_order[i];
+		compute_initial_live_out(block);
+	}
+
+	_jit_bitset_allocate(&tmp, value_count);
 
 	/* Compute LiveOut sets for each block */
 	while(changed)
@@ -194,29 +210,27 @@ _jit_function_compute_live_out(jit_function_t func)
 		{
 			block = func->builder->block_order[i];
 			
-			if(compute_live_out(block))
+			if(compute_live_out(block, &tmp))
 				changed = 1;
 		}
 	}
+
+	_jit_bitset_free(&tmp);
 }
 
 void
 _jit_block_free_live_out(jit_block_t block)
 {
-	value_list_free(block->upward_exposes);
-	value_list_free(block->var_kills);
-	value_list_free(block->live_out);
-
-	block->upward_exposes = 0;
-	block->var_kills = 0;
-	block->live_out = 0;
+	_jit_bitset_free(&block->upward_exposes);
+	_jit_bitset_free(&block->var_kills);
+	_jit_bitset_free(&block->live_out);
 }
 
 int
 _jit_value_in_live_out(jit_block_t block, jit_value_t value)
 {
-	if(block->has_live_out)
-		return value_list_has(block->live_out, value);
+	if(_jit_bitset_is_allocated(&block->live_out))
+		return _jit_bitset_test_bit(&block->live_out, value->index);
 	else
 		return 1;
 }

@@ -77,6 +77,11 @@
  */
 #include "jit-varint.h"
 
+/*
+ * Include bitset for live_out data
+ */
+#include "jit-bitset.h"
+
 #ifdef	__cplusplus
 extern	"C" {
 #endif
@@ -224,16 +229,6 @@ struct _jit_edge
 #define _JIT_EDGE_EXCEPT	3
 
 /*
- * Value list used in jit-live.c for live_out computation
- */
-typedef struct _jit_value_list *_jit_value_list_t;
-struct _jit_value_list
-{
-	jit_value_t value;
-	_jit_value_list_t next;
-};
-
-/*
  * Internal structure of a basic block.
  */
 struct _jit_block
@@ -259,14 +254,13 @@ struct _jit_block
 	int			num_preds;
 
 	/* Values which the block uses before setting them */
-	_jit_value_list_t upward_exposes;
+	_jit_bitset_t upward_exposes;
 
 	/* Values which the block sets */
-	_jit_value_list_t var_kills;
+	_jit_bitset_t var_kills;
 
 	/* Values which are used by sucessors */
-	_jit_value_list_t live_out;
-	unsigned		has_live_out : 1;
+	_jit_bitset_t live_out;
 
 	/* Control flow flags */
 	unsigned		visited : 1;
@@ -280,6 +274,19 @@ struct _jit_block
 	void			*address;
 	void			*fixup_list;
 	void			*fixup_absolute_list;
+};
+
+/*
+ * Represents the live range of @var{value} in @var{block}. If it spans over the
+ * full block @var{}
+ */
+typedef struct _jit_live_range *_jit_live_range_t;
+struct _jit_live_range
+{
+	jit_value_t value;
+	jit_insn_t first;
+	jit_insn_t last;
+	_jit_live_range_t next;
 };
 
 /*
