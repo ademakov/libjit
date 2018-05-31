@@ -279,17 +279,38 @@ struct _jit_block
 	void			*fixup_absolute_list;
 };
 
+typedef struct _jit_insn_list *_jit_insn_list_t;
+struct _jit_insn_list
+{
+	jit_block_t block;
+	jit_insn_t insn;
+	_jit_insn_list_t next;
+};
+
 /*
- * Represents the live range of @var{value} in @var{block}. If it spans over the
- * full block @var{}
+ * Represents a live range of @var{value}
  */
 typedef struct _jit_live_range *_jit_live_range_t;
 struct _jit_live_range
 {
+	/* Value for which this live range is */
 	jit_value_t value;
-	jit_insn_t first;
-	jit_insn_t last;
-	_jit_live_range_t next;
+
+	/* List of instructions where the live range starts/ends */
+	_jit_insn_list_t starts;
+	_jit_insn_list_t ends;
+
+	/* One bit for each block set if the range is alive at the start of the block */
+	_jit_bitset_t touched_block_starts;
+
+	/* One bit for each block set if the range is alive at the end of the block */
+	_jit_bitset_t touched_block_ends;
+
+	/* Next live range of @var{value} */
+	_jit_live_range_t value_next;
+
+	/* Next live range of the function */
+	_jit_live_range_t func_next;
 };
 
 /*
@@ -300,6 +321,7 @@ struct _jit_value
 	jit_block_t		block;
 	jit_block_t		first_used_in;
 	jit_type_t		type;
+	_jit_live_range_t live_ranges;
 	unsigned		is_temporary : 1;
 	unsigned		is_local : 1;
 	unsigned		is_volatile : 1;
@@ -515,6 +537,9 @@ struct _jit_function
 
 	/* Cookie value for this function */
 	void			*cookie;
+
+	/* Live ranges in this function */
+	_jit_live_range_t live_ranges;
 
 	/* Flag bits for this function */
 	unsigned		is_recompilable : 1;

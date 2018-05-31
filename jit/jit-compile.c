@@ -108,6 +108,9 @@ optimize(jit_function_t func)
 			continue;
 		}
 
+		_jit_function_compute_live_ranges(func);
+		//TODO use the generated live ranges (e.g. for register allocation)
+
 		break;
 	}
 
