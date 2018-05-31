@@ -140,36 +140,14 @@ void
 _jit_function_compute_live_out(jit_function_t func)
 {
 	jit_block_t block;
-	jit_value_t value;
 	_jit_bitset_t tmp;
 	int i;
 	int changed = 1;
-	int value_count = 0;
-	jit_pool_block_t memblock = func->builder->value_pool.blocks;
-	int num = (int)(func->builder->value_pool.elems_per_block);
-
-	/* Give each value it's own index */
-	while(memblock != 0)
-	{
-		if(!(memblock->next))
-		{
-			num = (int)(func->builder->value_pool.elems_in_last);
-		}
-
-		for(i = 0; i < num; ++i)
-		{
-			value = (jit_value_t)(memblock->data + i * sizeof(struct _jit_value));
-
-			value->index = value_count;
-			++value_count;
-		}
-		memblock = memblock->next;
-	}
+	int value_count = func->builder->value_count;
 
 	/* Compute the UEVar and VarKill sets for each block */
-	for(i = 0; i < func->builder->num_block_order; i++)
+	for(block = func->builder->entry_block; block; block = block->next)
 	{
-		block = func->builder->block_order[i];
 		if(_jit_bitset_is_allocated(&block->live_out))
 		{
 			if(_jit_bitset_size(&block->live_out) == value_count)
@@ -194,9 +172,8 @@ _jit_function_compute_live_out(jit_function_t func)
 		compute_kills_and_upward_exposes(block);
 	}
 
-	for(i = 0; i < func->builder->num_block_order; i++)
+	for(block = func->builder->entry_block; block; block = block->next)
 	{
-		block = func->builder->block_order[i];
 		compute_initial_live_out(block);
 	}
 

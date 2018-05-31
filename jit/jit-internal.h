@@ -267,6 +267,9 @@ struct _jit_block
 	unsigned		ends_in_dead : 1;
 	unsigned		address_of : 1;
 
+	/* Unique index of the block */
+	unsigned index;
+
 	/* Metadata */
 	jit_meta_t		meta;
 
@@ -343,6 +346,7 @@ struct _jit_insn
 {
 	short			opcode;
 	short			flags;
+	unsigned		index;
 	jit_value_t		dest;
 	jit_value_t		value1;
 	jit_value_t		value2;
@@ -473,8 +477,13 @@ struct _jit_builder
 	/* Size of the outgoing parameter area in the frame */
 	jit_nint		param_area_size;
 
+	/* Count of values in the function */
+	jit_nuint		value_count;
+
+	/* Count of blocks in the function */
+	jit_nuint		block_count;
+
 #ifdef _JIT_COMPILE_DEBUG
-	int			block_count;
 	int			insn_count;
 #endif
 };

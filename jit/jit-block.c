@@ -975,7 +975,7 @@ _jit_block_compute_postorder(jit_function_t func)
 }
 
 static void
-value_to_local_or_temporary(jit_block_t block, jit_value_t value)
+update_common_properties(jit_block_t block, jit_value_t value)
 {
 	if(!value)
 	{
@@ -1004,7 +1004,7 @@ value_to_local_or_temporary(jit_block_t block, jit_value_t value)
 }
 
 void
-_jit_block_locals_to_temporaries(jit_function_t func)
+_jit_block_recompute_common_properties(jit_function_t func)
 {
 	int i;
 	int flags;
@@ -1012,9 +1012,12 @@ _jit_block_locals_to_temporaries(jit_function_t func)
 	jit_insn_iter_t iter;
 	jit_insn_t insn;
 	jit_value_t value;
+	jit_nuint count;
+	jit_nuint insn_count;
 	jit_pool_block_t memblock = func->builder->value_pool.blocks;
 	int num = (int)(func->builder->value_pool.elems_per_block);
 
+	count = 0;
 	while(memblock != 0)
 	{
 		if(!(memblock->next))
@@ -1027,9 +1030,12 @@ _jit_block_locals_to_temporaries(jit_function_t func)
 			value = (jit_value_t)(memblock->data + i * sizeof(struct _jit_value));
 
 			value->usage_count = 0;
+			value->index = count;
+			++count;
+
 			if(!value->is_constant)
 			{
-				/* Reset value temproary/local flags and usage count */
+				/* Reset value temproary/local flags */
 				value->is_temporary = 1;
 				value->is_local = 0;
 				value->first_used_in = 0;
@@ -1038,11 +1044,21 @@ _jit_block_locals_to_temporaries(jit_function_t func)
 		memblock = memblock->next;
 	}
 
+	func->builder->value_count = count;
+	count = 0;
+	insn_count = 0;
+
 	for(block = func->builder->entry_block; block; block = block->next)
 	{
+		block->index = count;
+		++count;
+
 		jit_insn_iter_init_last(&iter, block);
 		while((insn = jit_insn_iter_previous(&iter)) != 0)
 		{
+			insn->index = insn_count;
+			++insn_count;
+
 			/* Skip NOP instructions, which may have arguments left
 			   over from when the instruction was replaced, but which
 			   are not used in this block */
@@ -1054,18 +1070,20 @@ _jit_block_locals_to_temporaries(jit_function_t func)
 			flags = insn->flags;
 			if((flags & JIT_INSN_DEST_OTHER_FLAGS) == 0)
 			{
-				value_to_local_or_temporary(block, insn->dest);
+				update_common_properties(block, insn->dest);
 			}
 			if((flags & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
 			{
-				value_to_local_or_temporary(block, insn->value1);
+				update_common_properties(block, insn->value1);
 			}
 			if((flags & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
 			{
-				value_to_local_or_temporary(block, insn->value2);
+				update_common_properties(block, insn->value2);
 			}
 		}
 	}
+
+	func->builder->block_count = count;
 }
 
 jit_block_t

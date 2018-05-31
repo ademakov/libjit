@@ -75,10 +75,10 @@ optimize(jit_function_t func)
 
 	while(1)
 	{
-		/* Recalculate which values are local and which are temporary
-		   and recalculate usage count. This is needed when other
-		   optimizations remove blocks or turn instructions into NOPs */
-		_jit_block_locals_to_temporaries(func);
+		/* Recalculate value properties like usage count, local or temporary,
+		   index. This is needed when other optimizations remove blocks or
+		   turn instructions into NOPs */
+		_jit_block_recompute_common_properties(func);
 
 		/* Optimization level 1 */
 
