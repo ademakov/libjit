@@ -272,8 +272,11 @@ create_live_range(jit_function_t func, jit_value_t value)
 	range->func_next = func->live_ranges;
 	func->live_ranges = range;
 
+	_jit_bitset_init(&range->touched_block_starts);
 	_jit_bitset_allocate(&range->touched_block_starts,
 		func->builder->block_count);
+
+	_jit_bitset_init(&range->touched_block_ends);
 	_jit_bitset_allocate(&range->touched_block_ends,
 		func->builder->block_count);
 
@@ -471,8 +474,8 @@ void _jit_function_compute_live_ranges(jit_function_t func)
 		while((insn = jit_insn_iter_previous(&iter)) != 0)
 		{
 			/* Skip NOP instructions, which may have arguments left
-			over from when the instruction was replaced, but which
-			are not relevant to our data flow analysis */
+			   over from when the instruction was replaced, but which
+			   are not relevant to our data flow analysis */
 			if(insn->opcode == JIT_OP_NOP)
 			{
 				continue;
@@ -499,7 +502,7 @@ void _jit_function_compute_live_ranges(jit_function_t func)
 				else
 				{
 					/* The destination is actually a source value for this
-					instruction (e.g. JIT_OP_STORE_RELATIVE_*) */
+					   instruction (e.g. JIT_OP_STORE_RELATIVE_*) */
 					handle_live_range_use(block, insn, insn->dest);
 				}
 			}
