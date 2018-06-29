@@ -136,16 +136,6 @@ do { \
 #define DEBUG_FIXUPS 0
 
 /*
- * The maximum block size copied inline
- */
-#define _JIT_MAX_MEMCPY_INLINE	0x40
-
-/*
- * The maximum block size set inline
- */
-#define _JIT_MAX_MEMSET_INLINE 0x80
-
-/*
  * va_list type as specified in x86_64 sysv abi version 0.99
  * Figure 3.34
  */

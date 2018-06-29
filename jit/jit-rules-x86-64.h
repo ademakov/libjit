@@ -134,6 +134,16 @@ extern	"C" {
  */
 #define JIT_USE_PARAM_AREA
 
+/*
+ * The maximum block size copied inline
+ */
+#define _JIT_MAX_MEMCPY_INLINE	0x40
+
+/*
+ * The maximum block size set inline
+ */
+#define _JIT_MAX_MEMSET_INLINE 0x80
+
 #ifdef	__cplusplus
 };
 #endif

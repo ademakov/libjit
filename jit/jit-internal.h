@@ -306,6 +306,13 @@ struct _jit_live_range
 	/* One bit for each block set if the range is alive at the end of the block */
 	_jit_bitset_t touched_block_ends;
 
+	/* Amount of registers required by this range
+	   0 means @var{colors} is constant and shall not be changed. */
+	unsigned register_count;
+
+	/* Bitset of registers used */
+	jit_nuint colors;
+
 	/* Next live range of @var{value} */
 	_jit_live_range_t value_next;
 

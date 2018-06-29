@@ -21,10 +21,16 @@
  */
 
 #include "jit-internal.h"
+#include "jit-rules.h"
+#include "jit-reg-alloc.h"
+#include "jit-setjmp.h"
 
 #ifdef _JIT_FLOW_DEBUG
 #include <jit/jit-dump.h>
 #endif
+
+#define _JIT_REG_USAGE_UNNUSED -2
+#define _JIT_REG_USAGE_UNNAMED -1
 
 static void
 handle_source_value(jit_block_t block, jit_value_t value)
@@ -266,11 +272,21 @@ create_live_range(jit_function_t func, jit_value_t value)
 	range->value = value;
 	range->starts = 0;
 	range->ends = 0;
+	range->register_count = 1;
+	range->colors = 0;
 
-	range->value_next = value->live_ranges;
-	value->live_ranges = range;
 	range->func_next = func->live_ranges;
 	func->live_ranges = range;
+
+	if(value)
+	{
+		range->value_next = value->live_ranges;
+		value->live_ranges = range;
+	}
+	else
+	{
+		range->value_next = 0;
+	}
 
 	_jit_bitset_init(&range->touched_block_starts);
 	_jit_bitset_allocate(&range->touched_block_starts,
@@ -344,8 +360,6 @@ static void
 handle_live_range_use(jit_block_t block, jit_insn_t insn, jit_value_t value)
 {
 	_jit_live_range_t range;
-	jit_block_t pred;
-	int i;
 
 	if(!value || value->is_constant)
 	{
@@ -402,9 +416,7 @@ static void
 handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
 {
 	_jit_live_range_t range;
-	jit_block_t succ;
 	jit_insn_t end;
-	int i;
 
 	if(!value || value->is_constant)
 	{
@@ -456,17 +468,55 @@ handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
 	}
 }
 
+#ifdef _JIT_FLOW_DEBUG
+static void
+dump_live_ranges(jit_function_t func)
+{
+	_jit_live_range_t range;
+	_jit_insn_list_t curr;
+	int i;
+
+	i = 0;
+	for(range = func->live_ranges; range; range = range->func_next)
+	{
+		printf("Live range %d:\n    Value: ", i++);
+
+		if(range->value)
+		{
+			jit_dump_value(stdout, func, range->value, NULL);
+		}
+		else
+		{
+			printf("<internal>");
+		}
+
+		printf("\n    Register Count: %d", range->register_count);
+		printf("\n    Colors: 0x%lx", range->colors);
+		printf("\n    Starts:");
+		for(curr = range->starts; curr; curr = curr->next)
+		{
+			printf("\n        ");
+			jit_dump_insn(stdout, func, curr->insn);
+		}
+		printf("\n");
+
+		printf("    Ends:");
+		for(curr = range->ends; curr; curr = curr->next)
+		{
+			printf("\n        ");
+			jit_dump_insn(stdout, func, curr->insn);
+		}
+		printf("\n\n");
+	}
+}
+#endif
+
 void _jit_function_compute_live_ranges(jit_function_t func)
 {
 	jit_block_t block;
 	jit_insn_iter_t iter;
 	jit_insn_t insn;
 	int flags;
-#ifdef _JIT_FLOW_DEBUG
-	_jit_live_range_t range;
-	_jit_insn_list_t curr;
-	int i;
-#endif
 
 	for(block = func->builder->entry_block; block; block = block->next)
 	{
@@ -510,27 +560,126 @@ void _jit_function_compute_live_ranges(jit_function_t func)
 	}
 
 #ifdef _JIT_FLOW_DEBUG
-	i = 0;
-	for(range = func->live_ranges; range; range = range->func_next)
+	puts("Live ranges after _jit_function_compute_live_ranges:");
+	dump_live_ranges(func);
+#endif
+}
+
+void _jit_function_add_instruction_live_ranges(jit_function_t func)
+{
+	jit_block_t block;
+	jit_insn_iter_t iter;
+	jit_insn_t insn;
+	jit_insn_t prev;
+	_jit_live_range_t range;
+	int i;
+
+	//TODO remove
+#define JIT_NUM_REG_CLASSES 7
+	struct
 	{
-		printf("Live range %d for value ", i++);
-		jit_dump_value(stdout, func, range->value, NULL);
+		jit_nuint clobber;
+		jit_nuint early_clobber;
+		unsigned clobbered_classes;
+		int dest;
+		int value1;
+		int value2;
+		int dest_other;
+		int value1_other;
+		int value2_other;
+		unsigned unnamed[JIT_NUM_REG_CLASSES];
+	} regmap;
 
-		printf("\n    Starts:");
-		for(curr = range->starts; curr; curr = curr->next)
-		{
-			printf("\n        ");
-			jit_dump_insn(stdout, func, curr->insn);
-		}
-		printf("\n");
+	unsigned max_unnamed[JIT_NUM_REG_CLASSES];
 
-		printf("    Ends:");
-		for(curr = range->ends; curr; curr = curr->next)
+	for(block = func->builder->entry_block; block; block = block->next)
+	{
+		jit_insn_iter_init(&iter, block);
+		memset(max_unnamed, 0, sizeof(max_unnamed));
+		prev = 0;
+
+		while((insn = jit_insn_iter_next(&iter)) != 0)
 		{
-			printf("\n        ");
-			jit_dump_insn(stdout, func, curr->insn);
+			memset(&regmap, 0, sizeof(regmap));
+
+			switch(insn->opcode)
+			{
+			#define JIT_INCLUDE_REGISTER_USAGE
+			#include "./jit-rules-x86-64.inc"
+			#undef JIT_INCLUDE_REGISTER_USAGE
+
+			default:
+				/* should this be an error? */
+				break;
+			}
+
+			/* In order to not create live ranges for every instructions we take
+			   the maximum number of unnamed registers per class in each block
+			   and create one live range per block. */
+			for(i = 0; i < JIT_NUM_REG_CLASSES; i++)
+			{
+				if(regmap.unnamed[i] > max_unnamed[i])
+				{
+					max_unnamed[i] = regmap.unnamed[i];
+				}
+			}
+
+			/* create tiny live ranges for clobbered values */
+			if(regmap.clobber != 0)
+			{
+				range = create_live_range(func, 0);
+				range->register_count = 0;
+				range->colors = regmap.clobber;
+				insn_list_add(&range->starts, block, insn);
+				insn_list_add(&range->ends, block, insn);
+			}
+			if(regmap.early_clobber != 0)
+			{
+				range = create_live_range(func, 0);
+				range->register_count = 0;
+				range->colors = regmap.early_clobber;
+				insn_list_add(&range->ends, block, insn);
+
+				if(prev == 0)
+				{
+					insn_list_add(&range->starts, block, prev);
+				}
+				else
+				{
+					insn_list_add(&range->starts, block, insn);
+				}
+			}
+
+			/* TODO we could use regmap.dest, regmap.value1, etc. here to track
+			   preferred registers of live ranges, but how do we find the live
+			   ranges which corresponds to dest, value1 and value2 at the
+			   current point? */
+
+			prev = insn;
 		}
-		printf("\n\n");
+
+		/* get the first and last instruction of the block */
+		jit_insn_iter_init(&iter, block);
+		prev = jit_insn_iter_next(&iter);
+		jit_insn_iter_init_last(&iter, block);
+		insn = jit_insn_iter_previous(&iter);
+
+		/* create live ranges for each register class */
+		for(i = 0; i < JIT_NUM_REG_CLASSES; i++)
+		{
+			if(max_unnamed[i] > 0)
+			{
+				range = create_live_range(func, 0);
+				range->colors = 0;
+				range->register_count = max_unnamed[i];
+				insn_list_add(&range->starts, block, prev);
+				insn_list_add(&range->ends, block, insn);
+			}
+		}
 	}
+
+#ifdef _JIT_FLOW_DEBUG
+	puts("Live ranges after _jit_function_add_instruction_live_ranges:");
+	dump_live_ranges(func);
 #endif
 }

@@ -1197,12 +1197,15 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 		clause = clause->next;
 	}
 
+	printf("#ifndef JIT_INCLUDE_REGISTER_USAGE\n");
 	printf("\t%s inst;\n", gensel_inst_type);
 	if(contains_registers)
 	{
 		printf("\t_jit_regs_t regs;\n");
 	}
 	gensel_declare_regs(clauses, options);
+
+	printf("#endif\n");
 
 	ternary = (0 != gensel_search_option(options, GENSEL_OPT_TERNARY));
 

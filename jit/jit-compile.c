@@ -109,6 +109,7 @@ optimize(jit_function_t func)
 		}
 
 		_jit_function_compute_live_ranges(func);
+		_jit_function_add_instruction_live_ranges(func);
 		//TODO use the generated live ranges (e.g. for register allocation)
 
 		break;
