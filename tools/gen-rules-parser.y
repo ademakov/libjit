@@ -976,32 +976,90 @@ gensel_output_register_usage(gensel_clause_t clause)
 	int *unnamed_counts;
 	gensel_option_t pattern;
 	gensel_value_t values;
+	gensel_regclass_t regclass;
 
 	unnamed_counts = alloca(gensel_regclass_count * sizeof(int));
 	memset(unnamed_counts, 0, gensel_regclass_count * sizeof(int));
 
 	clobbered_classes = 0;
-	pattern = clause->pattern;
-	while(pattern)
+	i = 0;
+	for(pattern = clause->pattern; pattern; pattern = pattern->next)
 	{
 		switch(pattern->option)
 		{
 		case GENSEL_PATT_REG:
 		case GENSEL_PATT_LREG:
+			regclass = pattern->values->value;
+			values = pattern->values->next;
+			if(values && values->value)
+			{
+				/* TODO resolve register names at compile time */
+				if(values->type == GENSEL_VALUE_EARLY_CLOBBER)
+				{
+					printf("\t\tregmap.early_clobber |= (1 << _jit_regs_lookup(\"%s\"))",
+						values->value);
+
+					if(values->next && values->next->value)
+					{
+						printf("| (1 << _jit_regs_lookup(\"%s\"));\n",
+							values->next->value);
+					}
+					else
+					{
+						printf(";\n");
+					}
+				}
+				else if(values->type == GENSEL_VALUE_CLOBBER)
+				{
+					printf("\t\tregmap.clobber |= (1 << _jit_regs_lookup(\"%s\"))",
+						values->value);
+
+					if(values->next && values->next->value)
+					{
+						printf("| (1 << _jit_regs_lookup(\"%s\"));\n",
+							values->next->value);
+					}
+					else
+					{
+						printf(";\n");
+					}
+				}
+
+				printf("\t\tregmap.%s = _jit_regs_lookup(\"%s\");\n",
+					gensel_args[i], values->value);
+			}
+			else
+			{
+				regclass_index = gensel_regclass_get_index(regclass);
+				++unnamed_counts[regclass_index];
+
+				printf("\t\tregmap.%s = _JIT_REG_USAGE_UNNAMED;\n",
+					gensel_args[i]);
+
+				if(regclass->is_long)
+				{
+					printf("\t\tregmap.%s_other = _JIT_REG_USAGE_UNNAMED;\n",
+						gensel_args[i]);
+				}
+			}
+
+			++i;
+			break;
+
 		case GENSEL_PATT_SCRATCH:
-			regclass_index = gensel_regclass_get_index(pattern->values->value);
+			regclass = pattern->values->value;
 			values = pattern->values->next;
 			if(values && values->value)
 			{
 				if(values->type == GENSEL_VALUE_EARLY_CLOBBER)
 				{
-					printf("\t\tregmap.early_clobber[%d] |= (1 << _jit_regs_lookup(\"%s\"))",
-						regclass_index, values->value);
+					printf("\t\tregmap.early_clobber |= (1 << _jit_regs_lookup(\"%s\"))",
+						values->value);
 				}
 				else
 				{
-					printf("\t\tregmap.clobber[%d] |= (1 << _jit_regs_lookup(\"%s\"))",
-						regclass_index, values->value);
+					printf("\t\tregmap.clobber |= (1 << _jit_regs_lookup(\"%s\"))",
+						values->value);
 				}
 
 				if(values->next && values->next->value)
@@ -1009,11 +1067,18 @@ gensel_output_register_usage(gensel_clause_t clause)
 					printf("| (1 << _jit_regs_lookup(\"%s\"))",
 						values->next->value);
 				}
+
 				printf(";\n");
 			}
 			else
 			{
+				regclass_index = gensel_regclass_get_index(regclass);
 				++unnamed_counts[regclass_index];
+
+				if(regclass->is_long)
+				{
+					++unnamed_counts[regclass_index];
+				}
 			}
 			break;
 
@@ -1044,8 +1109,11 @@ gensel_output_register_usage(gensel_clause_t clause)
 			}
 			break;
 		}
+	}
 
-		pattern = pattern->next;
+	for(; i < 3; i++)
+	{
+		printf("\t\tregmap.%s = _JIT_REG_USAGE_UNNUSED;\n", gensel_args[i]);
 	}
 
 	for(i = 0; i < gensel_regclass_count; i++)
@@ -1054,7 +1122,7 @@ gensel_output_register_usage(gensel_clause_t clause)
 		{
 			printf("\t\tregmap.unnamed[%d] = %d;\n", i, unnamed_counts[i]);
 		}
-	}
+	}	
 
 	if(clobbered_classes != 0)
 	{
