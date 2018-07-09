@@ -313,11 +313,17 @@ struct _jit_live_range
 	/* Bitset of registers used */
 	jit_nuint colors;
 
+	/* When a value is required in a specific registers its preferred color
+	   is incremented. preferred_colors might be 0 when the live range is never
+	   required in a specific register */
+	jit_ushort *preferred_colors;
+
 	/* Next live range of @var{value} */
 	_jit_live_range_t value_next;
 
 	/* Next live range of the function */
 	_jit_live_range_t func_next;
+
 };
 
 /*
@@ -379,6 +385,9 @@ struct _jit_insn
 	jit_value_t		dest;
 	jit_value_t		value1;
 	jit_value_t		value2;
+	_jit_live_range_t dest_live;
+	_jit_live_range_t value1_live;
+	_jit_live_range_t value2_live;
 };
 
 /*

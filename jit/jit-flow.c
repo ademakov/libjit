@@ -24,11 +24,13 @@
 #include "jit-rules.h"
 #include "jit-reg-alloc.h"
 #include "jit-setjmp.h"
+#include <assert.h>
 
 #ifdef _JIT_FLOW_DEBUG
 #include <jit/jit-dump.h>
 #endif
 
+/* Constants used by the generated rules for indicating register usage */
 #define _JIT_REG_USAGE_UNNUSED -2
 #define _JIT_REG_USAGE_UNNAMED -1
 
@@ -356,14 +358,14 @@ flood_fill_touched_succs(jit_block_t block, _jit_live_range_t range, jit_value_t
 	}
 }
 
-static void
+static _jit_live_range_t
 handle_live_range_use(jit_block_t block, jit_insn_t insn, jit_value_t value)
 {
 	_jit_live_range_t range;
 
 	if(!value || value->is_constant)
 	{
-		return;
+		return 0;
 	}
 
 	for(range = value->live_ranges; range; range = range->value_next)
@@ -391,7 +393,7 @@ handle_live_range_use(jit_block_t block, jit_insn_t insn, jit_value_t value)
 			insn_list_add(&range->ends, block, insn);
 		}
 
-		return;
+		return range;
 	}
 
 	/* There is no live range that matches, we have to create a new one and
@@ -410,9 +412,11 @@ handle_live_range_use(jit_block_t block, jit_insn_t insn, jit_value_t value)
 	{
 		insn_list_add(&range->ends, block, insn);
 	}
+
+	return range;
 }
 
-static void
+static _jit_live_range_t
 handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
 {
 	_jit_live_range_t range;
@@ -420,7 +424,7 @@ handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
 
 	if(!value || value->is_constant)
 	{
-		return;
+		return 0;
 	}
 
 	for(range = value->live_ranges; range; range = range->value_next)
@@ -429,21 +433,12 @@ handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
 		if(end != 0 && insn_list_get_insn_from_block(range->starts, block) == 0)
 		{
 			/* range is a local life range with one start (here) and one end */
-			if(range->starts == 0 && range->ends->next == 0)
-			{
-				insn_list_add(&range->starts, block, insn);
-				_jit_bitset_clear(&range->touched_block_starts);
-				_jit_bitset_clear(&range->touched_block_ends);
-			}
-			else
-			{
-				insn_list_remove(&range->ends, end);
+			assert(range->starts == 0 && range->ends->next == 0);
 
-				range = create_live_range(block->func, value);
-				insn_list_add(&range->starts, block, insn);
-				insn_list_add(&range->ends, block, end);
-			}
-			return;
+			insn_list_add(&range->starts, block, insn);
+			_jit_bitset_clear(&range->touched_block_starts);
+			_jit_bitset_clear(&range->touched_block_ends);
+			return range;
 		}
 
 		/* If the range does not touch the end of the current block, this
@@ -454,7 +449,7 @@ handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
 		}
 
 		insn_list_add(&range->starts, block, insn);
-		return;
+		return range;
 	}
 
 	/* There is no live range that matches, we have to create a new one and
@@ -466,6 +461,8 @@ handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
 	{
 		flood_fill_touched_succs(block, range, value);
 	}
+
+	return range;
 }
 
 #ifdef _JIT_FLOW_DEBUG
@@ -475,6 +472,7 @@ dump_live_ranges(jit_function_t func)
 	_jit_live_range_t range;
 	_jit_insn_list_t curr;
 	int i;
+	int j;
 
 	i = 0;
 	for(range = func->live_ranges; range; range = range->func_next)
@@ -492,6 +490,26 @@ dump_live_ranges(jit_function_t func)
 
 		printf("\n    Register Count: %d", range->register_count);
 		printf("\n    Colors: 0x%lx", range->colors);
+
+		if(range->preferred_colors != 0)
+		{
+			printf("\n    Preferred Colors: ");
+
+			for(j = 0; j < JIT_NUM_REGS; j++)
+			{
+				if(range->preferred_colors[j] != 0)
+				{
+					if(j != 0)
+					{
+						printf(", ");
+					}
+					printf("(%d, %s)", range->preferred_colors[j], jit_reg_name(j));
+				}
+			}
+
+			printf("\n");
+		}
+
 		printf("\n    Starts:");
 		for(curr = range->starts; curr; curr = curr->next)
 		{
@@ -535,25 +553,25 @@ void _jit_function_compute_live_ranges(jit_function_t func)
 
 			if((flags & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
 			{
-				handle_live_range_use(block, insn, insn->value1);
+				insn->value1_live = handle_live_range_use(block, insn, insn->value1);
 			}
 
 			if((flags & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
 			{
-				handle_live_range_use(block, insn, insn->value2);
+				insn->value2_live = handle_live_range_use(block, insn, insn->value2);
 			}
 
 			if((flags & JIT_INSN_DEST_OTHER_FLAGS) == 0)
 			{
 				if((flags & JIT_INSN_DEST_IS_VALUE) == 0)
 				{
-					handle_live_range_start(block, insn, insn->dest);
+					insn->dest_live = handle_live_range_start(block, insn, insn->dest);
 				}
 				else
 				{
 					/* The destination is actually a source value for this
 					   instruction (e.g. JIT_OP_STORE_RELATIVE_*) */
-					handle_live_range_use(block, insn, insn->dest);
+					insn->dest_live = handle_live_range_use(block, insn, insn->dest);
 				}
 			}
 		}
@@ -563,6 +581,23 @@ void _jit_function_compute_live_ranges(jit_function_t func)
 	puts("Live ranges after _jit_function_compute_live_ranges:");
 	dump_live_ranges(func);
 #endif
+}
+
+void increment_preferred_color(_jit_live_range_t range, int reg)
+{
+	if(range == 0
+		|| reg == _JIT_REG_USAGE_UNNAMED
+		|| reg == _JIT_REG_USAGE_UNNUSED)
+	{
+		return;
+	}
+
+	if(range->preferred_colors == 0)
+	{
+		range->preferred_colors = jit_calloc(JIT_NUM_REGS, sizeof(jit_ushort));
+	}
+
+	++range->preferred_colors[reg];
 }
 
 void _jit_function_add_instruction_live_ranges(jit_function_t func)
@@ -650,10 +685,9 @@ void _jit_function_add_instruction_live_ranges(jit_function_t func)
 				}
 			}
 
-			/* TODO we could use regmap.dest, regmap.value1, etc. here to track
-			   preferred registers of live ranges, but how do we find the live
-			   ranges which corresponds to dest, value1 and value2 at the
-			   current point? */
+			increment_preferred_color(insn->dest_live, regmap.dest);
+			increment_preferred_color(insn->value1_live, regmap.value1);
+			increment_preferred_color(insn->value2_live, regmap.value2);
 
 			prev = insn;
 		}
