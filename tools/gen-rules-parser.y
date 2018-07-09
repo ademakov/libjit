@@ -968,7 +968,7 @@ gensel_output_register(char *name, gensel_regclass_t regclass, gensel_value_t va
  * Output register usage information.
  */
 static void
-gensel_output_register_usage(gensel_clause_t clause)
+gensel_output_register_usage(gensel_clause_t clause, char **args)
 {
 	int i;
 	int clobbered_classes;
@@ -1026,7 +1026,7 @@ gensel_output_register_usage(gensel_clause_t clause)
 				}
 
 				printf("\t\tregmap.%s = _jit_regs_lookup(\"%s\");\n",
-					gensel_args[i], values->value);
+					args[i], values->value);
 			}
 			else
 			{
@@ -1034,12 +1034,12 @@ gensel_output_register_usage(gensel_clause_t clause)
 				++unnamed_counts[regclass_index];
 
 				printf("\t\tregmap.%s = _JIT_REG_USAGE_UNNAMED;\n",
-					gensel_args[i]);
+					args[i]);
 
 				if(regclass->is_long)
 				{
 					printf("\t\tregmap.%s_other = _JIT_REG_USAGE_UNNAMED;\n",
-						gensel_args[i]);
+						args[i]);
 				}
 			}
 
@@ -1412,7 +1412,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 		}
 
 		printf("#ifdef JIT_INCLUDE_REGISTER_USAGE\n");
-		gensel_output_register_usage(clause);
+		gensel_output_register_usage(clause, args);
 		printf("#else\n");
 
 		if(contains_registers)
