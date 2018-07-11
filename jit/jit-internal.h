@@ -335,6 +335,10 @@ struct _jit_live_range
 	   required in a specific register */
 	jit_ushort *preferred_colors;
 
+	/* Array of live ranges this live range interferes with */
+	_jit_live_range_t neighbours;
+	unsigned neighbour_count;
+
 	/* Next live range of @var{value} */
 	_jit_live_range_t value_next;
 
@@ -352,6 +356,11 @@ void _jit_function_compute_live_ranges(jit_function_t func);
  * Add internal live ranges which reserve registers for instructions etc.
  */
 void _jit_function_add_instruction_live_ranges(jit_function_t func);
+
+/*
+ * Calculate the neighbours of each live range
+ */
+void _jit_function_build_interference_graph(jit_function_t func);
 
 /*
  * Internal structure of a value.

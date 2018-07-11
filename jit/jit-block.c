@@ -1053,8 +1053,8 @@ _jit_block_recompute_common_properties(jit_function_t func)
 		block->index = count;
 		++count;
 
-		jit_insn_iter_init_last(&iter, block);
-		while((insn = jit_insn_iter_previous(&iter)) != 0)
+		jit_insn_iter_init(&iter, block);
+		while((insn = jit_insn_iter_next(&iter)) != 0)
 		{
 			insn->index = insn_count;
 			++insn_count;

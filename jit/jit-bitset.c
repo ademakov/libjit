@@ -177,6 +177,20 @@ _jit_bitset_equal(_jit_bitset_t *bs1, _jit_bitset_t *bs2)
 }
 
 int
+_jit_bitset_test(_jit_bitset_t *bs1, _jit_bitset_t *bs2)
+{
+	int i;
+	for(i = 0; i < bs1->size; i++)
+	{
+		if(bs1->bits[i] & bs2->bits[i] != 0)
+		{
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int
 _jit_bitset_contains(_jit_bitset_t *outer, _jit_bitset_t *inner)
 {
 	int i;

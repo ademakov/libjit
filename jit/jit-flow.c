@@ -577,11 +577,6 @@ _jit_function_compute_live_ranges(jit_function_t func)
 			}
 		}
 	}
-
-#ifdef _JIT_FLOW_DEBUG
-	puts("Live ranges after _jit_function_compute_live_ranges:");
-	dump_live_ranges(func);
-#endif
 }
 
 void increment_preferred_color(_jit_live_range_t range, int reg)
@@ -715,7 +710,6 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 	}
 
 #ifdef _JIT_FLOW_DEBUG
-	puts("Live ranges after _jit_function_add_instruction_live_ranges:");
 	dump_live_ranges(func);
 #endif
 }
