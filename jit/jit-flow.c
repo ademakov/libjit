@@ -223,8 +223,8 @@ _jit_value_in_live_out(jit_block_t block, jit_value_t value)
 		return 1;
 }
 
-static void
-insn_list_add(_jit_insn_list_t *list, jit_block_t block, jit_insn_t insn)
+void
+_jit_insn_list_add(_jit_insn_list_t *list, jit_block_t block, jit_insn_t insn)
 {
 	_jit_insn_list_t entry = jit_new(struct _jit_insn_list);
 	entry->block = block;
@@ -233,8 +233,8 @@ insn_list_add(_jit_insn_list_t *list, jit_block_t block, jit_insn_t insn)
 	*list = entry;
 }
 
-static void
-insn_list_remove(_jit_insn_list_t *list, jit_insn_t insn)
+void
+_jit_insn_list_remove(_jit_insn_list_t *list, jit_insn_t insn)
 {
 	_jit_insn_list_t curr = *list;
 	while(curr)
@@ -251,8 +251,8 @@ insn_list_remove(_jit_insn_list_t *list, jit_insn_t insn)
 	}
 }
 
-static jit_insn_t
-insn_list_get_insn_from_block(_jit_insn_list_t list, jit_block_t block)
+jit_insn_t
+_jit_insn_list_get_insn_from_block(_jit_insn_list_t list, jit_block_t block)
 {
 	while(list)
 	{
@@ -381,16 +381,16 @@ handle_live_range_use(jit_block_t block, jit_insn_t insn, jit_value_t value)
 		{
 			/* The range is alive at the end of the block. This is only an end
 			   if it is restart later in this block */
-			if(insn_list_get_insn_from_block(range->starts, block) == 0)
+			if(_jit_insn_list_get_insn_from_block(range->starts, block) == 0)
 			{
-				insn_list_add(&range->ends, block, insn);
+				_jit_insn_list_add(&range->ends, block, insn);
 			}
 		}
-		else if(insn_list_get_insn_from_block(range->ends, block) == 0)
+		else if(_jit_insn_list_get_insn_from_block(range->ends, block) == 0)
 		{
 			/* This is the last instruction in the block which uses the range
 			   thus is ends the range */
-			insn_list_add(&range->ends, block, insn);
+			_jit_insn_list_add(&range->ends, block, insn);
 		}
 
 		return range;
@@ -410,7 +410,7 @@ handle_live_range_use(jit_block_t block, jit_insn_t insn, jit_value_t value)
 	}
 	else
 	{
-		insn_list_add(&range->ends, block, insn);
+		_jit_insn_list_add(&range->ends, block, insn);
 	}
 
 	return range;
@@ -429,13 +429,13 @@ handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
 
 	for(range = value->live_ranges; range; range = range->value_next)
 	{
-		end = insn_list_get_insn_from_block(range->ends, block);
-		if(end != 0 && insn_list_get_insn_from_block(range->starts, block) == 0)
+		end = _jit_insn_list_get_insn_from_block(range->ends, block);
+		if(end != 0 && _jit_insn_list_get_insn_from_block(range->starts, block) == 0)
 		{
 			/* range is a local life range with one start (here) and one end */
 			assert(range->starts == 0 && range->ends->next == 0);
 
-			insn_list_add(&range->starts, block, insn);
+			_jit_insn_list_add(&range->starts, block, insn);
 			_jit_bitset_clear(&range->touched_block_starts);
 			_jit_bitset_clear(&range->touched_block_ends);
 			return range;
@@ -448,14 +448,14 @@ handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
 			continue;
 		}
 
-		insn_list_add(&range->starts, block, insn);
+		_jit_insn_list_add(&range->starts, block, insn);
 		return range;
 	}
 
 	/* There is no live range that matches, we have to create a new one and
 	   compute the touched blocks */
 	range = create_live_range(block->func, value);
-	insn_list_add(&range->starts, block, insn);
+	_jit_insn_list_add(&range->starts, block, insn);
 
 	if(_jit_bitset_test_bit(&block->live_out, value->index))
 	{
@@ -529,7 +529,8 @@ dump_live_ranges(jit_function_t func)
 }
 #endif
 
-void _jit_function_compute_live_ranges(jit_function_t func)
+void
+_jit_function_compute_live_ranges(jit_function_t func)
 {
 	jit_block_t block;
 	jit_insn_iter_t iter;
@@ -600,7 +601,8 @@ void increment_preferred_color(_jit_live_range_t range, int reg)
 	++range->preferred_colors[reg];
 }
 
-void _jit_function_add_instruction_live_ranges(jit_function_t func)
+void
+_jit_function_add_instruction_live_ranges(jit_function_t func)
 {
 	jit_block_t block;
 	jit_insn_iter_t iter;
@@ -665,23 +667,23 @@ void _jit_function_add_instruction_live_ranges(jit_function_t func)
 				range = create_live_range(func, 0);
 				range->register_count = 0;
 				range->colors = regmap.clobber;
-				insn_list_add(&range->starts, block, insn);
-				insn_list_add(&range->ends, block, insn);
+				_jit_insn_list_add(&range->starts, block, insn);
+				_jit_insn_list_add(&range->ends, block, insn);
 			}
 			if(regmap.early_clobber != 0)
 			{
 				range = create_live_range(func, 0);
 				range->register_count = 0;
 				range->colors = regmap.early_clobber;
-				insn_list_add(&range->ends, block, insn);
+				_jit_insn_list_add(&range->ends, block, insn);
 
 				if(prev == 0)
 				{
-					insn_list_add(&range->starts, block, prev);
+					_jit_insn_list_add(&range->starts, block, prev);
 				}
 				else
 				{
-					insn_list_add(&range->starts, block, insn);
+					_jit_insn_list_add(&range->starts, block, insn);
 				}
 			}
 
@@ -706,8 +708,8 @@ void _jit_function_add_instruction_live_ranges(jit_function_t func)
 				range = create_live_range(func, 0);
 				range->colors = 0;
 				range->register_count = max_unnamed[i];
-				insn_list_add(&range->starts, block, prev);
-				insn_list_add(&range->ends, block, insn);
+				_jit_insn_list_add(&range->starts, block, prev);
+				_jit_insn_list_add(&range->ends, block, insn);
 			}
 		}
 	}

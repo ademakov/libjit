@@ -288,6 +288,23 @@ struct _jit_insn_list
 };
 
 /*
+ * Add an instruction to @var{list}
+ */
+void _jit_insn_list_add(_jit_insn_list_t *list, jit_block_t block,
+	jit_insn_t insn);
+
+/*
+ * Remove an instruction from @var{list}
+ */
+void _jit_insn_list_remove(_jit_insn_list_t *list, jit_insn_t insn);
+
+/*
+ * Get the first instruction in @var{list} which is from block @var{block}
+ */
+jit_insn_t _jit_insn_list_get_insn_from_block(_jit_insn_list_t list,
+	jit_block_t block);
+
+/*
  * Represents a live range of @var{value}
  */
 typedef struct _jit_live_range *_jit_live_range_t;
@@ -325,6 +342,16 @@ struct _jit_live_range
 	_jit_live_range_t func_next;
 
 };
+
+/*
+ * Compute live ranges of all values.
+ */
+void _jit_function_compute_live_ranges(jit_function_t func);
+
+/*
+ * Add internal live ranges which reserve registers for instructions etc.
+ */
+void _jit_function_add_instruction_live_ranges(jit_function_t func);
 
 /*
  * Internal structure of a value.
@@ -751,6 +778,11 @@ struct jit_thread_control
 	jit_backtrace_t		backtrace_head;
 	struct jit_jmp_buf	*setjmp_head;
 };
+
+/*
+ * Recompute block, instruction and value properties index, usage_count etc.
+ */
+void _jit_block_recompute_common_properties(jit_function_t func);
 
 /*
  * Initialize the block list for a function.
