@@ -22,7 +22,9 @@
 
 #include "jit-internal.h"
 
+#ifdef _JIT_GRAPH_REGALLOC_DEBUG
 #include <jit/jit-dump.h>
+#endif
 
 /* TODO: currently two live ranges count as interfering when one starts in the
    instruction another one ends in. This is not always the case. */
@@ -165,21 +167,54 @@ _jit_function_build_interference_graph(jit_function_t func)
 	int i;
 	int j;
 
+#ifdef _JIT_GRAPH_REGALLOC_DEBUG
 	printf("Interference graph:\n");
+#endif
 
 	i = 0;
 	for(a = func->live_ranges; a; a = a->func_next)
 	{
+		if(!_jit_bitset_is_allocated(&a->neighbors))
+		{
+			_jit_bitset_allocate(&a->neighbors, func->live_range_count);
+		}
+
 		j = i + 1;
 		for(b = a->func_next; b; b = b->func_next)
 		{
+			if(!_jit_bitset_is_allocated(&b->neighbors))
+			{
+				_jit_bitset_allocate(&b->neighbors, func->live_range_count);
+			}
+
 			if(check_interfering(func, a, b))
 			{
+				_jit_bitset_set_bit(&a->neighbors, j);
+				_jit_bitset_set_bit(&b->neighbors, i);
+				++a->neighbor_count;
+				++b->neighbor_count;
+
+#ifdef _JIT_GRAPH_REGALLOC_DEBUG
 				printf("    LiveRange(#%d, ", i);
-				jit_dump_value(stdout, func, a->value, NULL);
+				if(a->value == NULL)
+				{
+					printf("XX");
+				}
+				else
+				{
+					jit_dump_value(stdout, func, a->value, NULL);
+				}
 				printf(") <-> LiveRange(#%d, ", j);
-				jit_dump_value(stdout, func, b->value, NULL);
+				if(b->value == NULL)
+				{
+					printf("XX");
+				}
+				else
+				{
+					jit_dump_value(stdout, func, b->value, NULL);
+				}
 				printf(")\n");
+#endif
 			}
 
 			++j;

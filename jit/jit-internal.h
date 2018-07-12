@@ -335,9 +335,9 @@ struct _jit_live_range
 	   required in a specific register */
 	jit_ushort *preferred_colors;
 
-	/* Array of live ranges this live range interferes with */
-	_jit_live_range_t neighbours;
-	unsigned neighbour_count;
+	/* Live ranges this live range interferes with */
+	_jit_bitset_t neighbors;
+	unsigned neighbor_count;
 
 	/* Next live range of @var{value} */
 	_jit_live_range_t value_next;
@@ -592,6 +592,7 @@ struct _jit_function
 
 	/* Live ranges in this function */
 	_jit_live_range_t live_ranges;
+	unsigned live_range_count;
 
 	/* Flag bits for this function */
 	unsigned		is_recompilable : 1;

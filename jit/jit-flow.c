@@ -280,6 +280,8 @@ create_live_range(jit_function_t func, jit_value_t value)
 	range->func_next = func->live_ranges;
 	func->live_ranges = range;
 
+	++func->live_range_count;
+
 	if(value)
 	{
 		range->value_next = value->live_ranges;
@@ -297,6 +299,9 @@ create_live_range(jit_function_t func, jit_value_t value)
 	_jit_bitset_init(&range->touched_block_ends);
 	_jit_bitset_allocate(&range->touched_block_ends,
 		func->builder->block_count);
+
+	_jit_bitset_init(&range->neighbors);
+	range->neighbor_count = 0;
 
 	return range;
 }
