@@ -1111,11 +1111,6 @@ gensel_output_register_usage(gensel_clause_t clause, char **args)
 		}
 	}
 
-	for(; i < 3; i++)
-	{
-		printf("\t\tregmap.%s = _JIT_REG_USAGE_UNNUSED;\n", gensel_args[i]);
-	}
-
 	for(i = 0; i < gensel_regclass_count; i++)
 	{
 		if(unnamed_counts[i] != 0)

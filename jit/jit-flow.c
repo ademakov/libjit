@@ -270,12 +270,9 @@ create_live_range(jit_function_t func, jit_value_t value)
 {
 	_jit_live_range_t range;
 
-	range = jit_new(struct _jit_live_range);
+	range = jit_cnew(struct _jit_live_range);
 	range->value = value;
-	range->starts = 0;
-	range->ends = 0;
 	range->register_count = 1;
-	range->colors = 0;
 
 	range->func_next = func->live_ranges;
 	func->live_ranges = range;
@@ -301,7 +298,6 @@ create_live_range(jit_function_t func, jit_value_t value)
 		func->builder->block_count);
 
 	_jit_bitset_init(&range->neighbors);
-	range->neighbor_count = 0;
 
 	return range;
 }
@@ -638,6 +634,12 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 		while((insn = jit_insn_iter_next(&iter)) != 0)
 		{
 			memset(&regmap, 0, sizeof(regmap));
+			regmap.dest = _JIT_REG_USAGE_UNNUSED;
+			regmap.value1 = _JIT_REG_USAGE_UNNUSED;
+			regmap.value2 = _JIT_REG_USAGE_UNNUSED;
+			regmap.dest_other = _JIT_REG_USAGE_UNNUSED;
+			regmap.value1_other = _JIT_REG_USAGE_UNNUSED;
+			regmap.value2_other = _JIT_REG_USAGE_UNNUSED;
 
 			switch(insn->opcode)
 			{
