@@ -22,6 +22,7 @@
 
 #include "jit-internal.h"
 #include "jit-reg-alloc.h"
+#include <assert.h>
 
 #ifdef _JIT_GRAPH_REGALLOC_DEBUG
 #include <jit/jit-dump.h>
@@ -223,6 +224,10 @@ _jit_regs_graph_build(jit_function_t func)
 
 		++i;
 	}
+
+#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+	printf("\n");
+#endif
 }
 
 void
@@ -256,6 +261,11 @@ _jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
 	{
 		curr->on_stack = 0;
 		curr->curr_neighbor_count = curr->neighbor_count;
+
+		if(!curr->value)
+		{
+			curr->colors = 0;
+		}
 	}
 
 	for(pos = 0; pos < func->live_range_count; pos++)
@@ -297,9 +307,73 @@ _jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
 }
 
 int
-_jit_regs_graph_select(jit_function_t func, _jit_live_range_t *stack)
+_jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
+	_jit_live_range_t *stack)
 {
-	/* TODO */
+	_jit_live_range_t curr;
+	jit_nuint used;
+	jit_ushort preferred_score;
+	int preferred;
+	int pos;
+	int i;
+
+	for(pos = func->live_range_count - 1; pos >= 0; pos--)
+	{
+		curr = stack[pos];
+		used = 0;
+
+		for(i = 0; i < func->live_range_count; i++)
+		{
+			if(_jit_bitset_test_bit(&curr->neighbors, i))
+			{
+				used |= ranges[i]->colors;
+			}
+		}
+
+		if(used == ((jit_nuint)1 << (JIT_NUM_REGS + 1)) - 1)
+		{
+			/* TODO spill @var{curr} */
+			assert(0);
+			return 0;
+		}
+
+		preferred = -1;
+		preferred_score = 0;
+		for(i = 0; i < JIT_NUM_REGS; i++)
+		{
+			if((curr->preferred_colors == 0 || curr->preferred_colors[i] > preferred_score)
+				&& ((1 << i) & used) == 0)
+			{
+				preferred = i;
+				if(curr->preferred_colors)
+				{
+					preferred_score = curr->preferred_colors[i];
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+
+#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+		printf("Using register %%%s for LiveRange(#?, ", jit_reg_name(preferred));
+		if(curr->value)
+		{
+			jit_dump_value(stdout, func, curr->value, NULL);
+		}
+		else
+		{
+			printf("XX");
+		}
+		printf(")\n");
+#endif
+		curr->colors = 1 << preferred;
+	}
+
+#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+	printf("\n");
+#endif
 	return 1;
 }
 
@@ -329,6 +403,6 @@ _jit_regs_graph_compute_coloring(jit_function_t func)
 
 	do
 	{
-		_jit_regs_graph_simplify(func, stack, ranges);
-	} while(!_jit_regs_graph_select(func, stack));
+		_jit_regs_graph_simplify(func, ranges, stack);
+	} while(!_jit_regs_graph_select(func, ranges, stack));
 }
