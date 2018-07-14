@@ -21,6 +21,7 @@
  */
 
 #include "jit-internal.h"
+#include "jit-reg-alloc.h"
 
 #ifdef _JIT_GRAPH_REGALLOC_DEBUG
 #include <jit/jit-dump.h>
@@ -160,7 +161,7 @@ check_interfering(jit_function_t func,
 }
 
 void
-_jit_function_build_interference_graph(jit_function_t func)
+_jit_regs_graph_build(jit_function_t func)
 {
 	_jit_live_range_t a;
 	_jit_live_range_t b;
@@ -222,4 +223,112 @@ _jit_function_build_interference_graph(jit_function_t func)
 
 		++i;
 	}
+}
+
+void
+_jit_regs_graph_coalesce(jit_function_t func)
+{
+	/* TODO */
+}
+
+static void
+decrement_neighbor_count(jit_function_t func, _jit_live_range_t *ranges,
+	_jit_live_range_t curr, int i)
+{
+	int j;
+	for(j = 0; j < func->live_range_count; j++)
+	{
+		if(_jit_bitset_test_bit(&curr->neighbors, j))
+		{
+			--ranges[i]->curr_neighbor_count;
+		}
+	}
+}
+void
+_jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
+	_jit_live_range_t *stack)
+{
+	_jit_live_range_t curr;
+	int pos;
+	int i;
+
+	for(curr = func->live_ranges; curr; curr = curr->func_next)
+	{
+		curr->on_stack = 0;
+		curr->curr_neighbor_count = curr->neighbor_count;
+	}
+
+	for(pos = 0; pos < func->live_range_count; pos++)
+	{
+		i = 0;
+		for(curr = func->live_ranges; curr; curr = curr->func_next)
+		{
+			if(!curr->on_stack && curr->curr_neighbor_count < JIT_NUM_REGS)
+			{
+				curr->on_stack = 1;
+				stack[pos] = curr;
+				decrement_neighbor_count(func, ranges, curr, i);
+				break;
+			}
+
+			++i;
+		}
+
+		if(i == func->live_range_count)
+		{
+			/* We did not find any live range with less then JIT_NUM_REGS
+			   neighbors. We optimistically push one to the stack
+			   TODO: base this decision on spill cost */
+			i = 0;
+			for(curr = func->live_ranges; curr; curr = curr->func_next)
+			{
+				if(!curr->on_stack)
+				{
+					curr->on_stack = 1;
+					stack[pos] = curr;
+					decrement_neighbor_count(func, ranges, curr, i);
+					break;
+				}
+
+				++i;
+			}
+		}
+	}
+}
+
+int
+_jit_regs_graph_select(jit_function_t func, _jit_live_range_t *stack)
+{
+	/* TODO */
+	return 1;
+}
+
+void
+_jit_regs_graph_compute_coloring(jit_function_t func)
+{
+	_jit_live_range_t curr;
+	_jit_live_range_t *stack;
+	_jit_live_range_t *ranges;
+	int i;
+
+	stack = jit_malloc(func->live_range_count * 
+		sizeof(_jit_live_range_t));
+
+	ranges = jit_malloc(func->live_range_count * 
+		sizeof(_jit_live_range_t));
+
+	curr = func->live_ranges;
+	for(i = 0; i < func->live_range_count; i++)
+	{
+		ranges[i] = curr;
+		curr = curr->func_next;
+	}
+
+	_jit_regs_graph_build(func);
+	_jit_regs_graph_coalesce(func);
+
+	do
+	{
+		_jit_regs_graph_simplify(func, stack, ranges);
+	} while(!_jit_regs_graph_select(func, stack));
 }

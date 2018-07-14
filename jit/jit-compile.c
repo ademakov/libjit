@@ -111,7 +111,7 @@ optimize(jit_function_t func)
 		_jit_function_compute_live_ranges(func);
 		_jit_function_add_instruction_live_ranges(func);
 
-		_jit_function_build_interference_graph(func);
+		_jit_regs_graph_compute_coloring(func);
 
 		break;
 	}

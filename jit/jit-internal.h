@@ -338,6 +338,11 @@ struct _jit_live_range
 	/* Live ranges this live range interferes with */
 	_jit_bitset_t neighbors;
 	unsigned neighbor_count;
+	unsigned curr_neighbor_count;
+
+	/* Wether the variable is already on stack in the simplify step of
+	   Chaitin/Briggs algorithm */
+	unsigned on_stack : 1;
 
 	/* Next live range of @var{value} */
 	_jit_live_range_t value_next;
@@ -358,9 +363,9 @@ void _jit_function_compute_live_ranges(jit_function_t func);
 void _jit_function_add_instruction_live_ranges(jit_function_t func);
 
 /*
- * Calculate the neighbours of each live range
+ * Allocate registers for all live ranges
  */
-void _jit_function_build_interference_graph(jit_function_t func);
+void _jit_regs_graph_compute_coloring(jit_function_t func);
 
 /*
  * Internal structure of a value.
