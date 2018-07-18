@@ -692,6 +692,9 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 			increment_preferred_color(insn->dest_live, regmap.dest);
 			increment_preferred_color(insn->value1_live, regmap.value1);
 			increment_preferred_color(insn->value2_live, regmap.value2);
+			increment_preferred_color(insn->dest_live, regmap.dest_other);
+			increment_preferred_color(insn->value1_live, regmap.value1_other);
+			increment_preferred_color(insn->value2_live, regmap.value2_other);
 
 			prev = insn;
 		}

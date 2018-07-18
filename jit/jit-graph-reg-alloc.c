@@ -28,9 +28,6 @@
 #include <jit/jit-dump.h>
 #endif
 
-/* TODO: currently two live ranges count as interfering when one starts in the
-   instruction another one ends in. This is not always the case. */
-
 static int
 is_local(_jit_live_range_t range)
 {
@@ -42,7 +39,8 @@ is_local(_jit_live_range_t range)
 }
 
 static int
-does_local_range_interfere_with(_jit_live_range_t local, _jit_live_range_t other)
+does_local_range_interfere_with(_jit_live_range_t local,
+	_jit_live_range_t other)
 {
 	int touches_start;
 	int touches_end;
@@ -55,22 +53,18 @@ does_local_range_interfere_with(_jit_live_range_t local, _jit_live_range_t other
 	touches_end = _jit_bitset_test_bit(&other->touched_block_ends,
 		block->index);
 
-	if(touches_start && touches_end)
-	{
-		return 1;
-	}
-	else if(touches_start)
+	if(touches_start)
 	{
 		insn = _jit_insn_list_get_insn_from_block(other->ends, block);
-		if(insn->index >= local->starts->insn->index)
+		if(insn != 0 && insn->index > local->starts->insn->index)
 		{
 			return 1;
 		}
 	}
-	else if(touches_end)
+	if(touches_end)
 	{
 		insn = _jit_insn_list_get_insn_from_block(other->starts, block);
-		if(insn->index <= local->ends->insn->index)
+		if(insn != 0 && insn->index < local->ends->insn->index)
 		{
 			return 1;
 		}
@@ -109,11 +103,11 @@ check_interfering(jit_function_t func,
 		start_b = b->starts->insn;
 		end_a = a->ends->insn;
 		end_b = b->ends->insn;
-		if(start_a->index >= start_b->index && start_a->index <= end_b->index)
+		if(start_a->index >= start_b->index && start_a->index < end_b->index)
 		{
 			return 1;
 		}
-		if(start_b->index >= start_a->index && start_b->index <= end_a->index)
+		if(start_b->index >= start_a->index && start_b->index < end_a->index)
 		{
 			return 1;
 		}
@@ -138,7 +132,7 @@ check_interfering(jit_function_t func,
 			{
 				end_a = _jit_insn_list_get_insn_from_block(a->ends, block);
 				start_b = _jit_insn_list_get_insn_from_block(b->starts, block);
-				if(start_b->index <= end_a->index)
+				if(start_b->index < end_a->index)
 				{
 					return 1;
 				}
@@ -148,7 +142,7 @@ check_interfering(jit_function_t func,
 			{
 				start_a = _jit_insn_list_get_insn_from_block(a->starts, block);
 				end_b = _jit_insn_list_get_insn_from_block(b->ends, block);
-				if(start_a->index <= end_b->index)
+				if(start_a->index < end_b->index)
 				{
 					return 1;
 				}
@@ -317,6 +311,10 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 	int pos;
 	int i;
 
+#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+	printf("Registers:\n");
+#endif
+
 	for(pos = func->live_range_count - 1; pos >= 0; pos--)
 	{
 		curr = stack[pos];
@@ -330,18 +328,12 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 			}
 		}
 
-		if(used == ((jit_nuint)1 << (JIT_NUM_REGS + 1)) - 1)
-		{
-			/* TODO spill @var{curr} */
-			assert(0);
-			return 0;
-		}
-
 		preferred = -1;
 		preferred_score = 0;
 		for(i = 0; i < JIT_NUM_REGS; i++)
 		{
-			if((curr->preferred_colors == 0 || curr->preferred_colors[i] > preferred_score)
+			if((curr->preferred_colors == 0
+				|| curr->preferred_colors[i] >= preferred_score)
 				&& ((1 << i) & used) == 0)
 			{
 				preferred = i;
@@ -356,8 +348,24 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 			}
 		}
 
+		if(preferred == -1)
+		{
+			/* TODO spill @var{curr} */
+			assert(0);
+			return 0;
+		}
+		curr->colors = 1 << preferred;
+
 #ifdef _JIT_GRAPH_REGALLOC_DEBUG
-		printf("Using register %%%s for LiveRange(#?, ", jit_reg_name(preferred));
+		for(i = 0; i < func->live_range_count; i++)
+		{
+			if(ranges[i] == curr)
+			{
+				break;
+			}
+		}
+
+		printf("    LiveRange(#%d, ", i);
 		if(curr->value)
 		{
 			jit_dump_value(stdout, func, curr->value, NULL);
@@ -366,9 +374,9 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 		{
 			printf("XX");
 		}
-		printf(")\n");
+		printf("): %%%s\n", jit_reg_name(preferred));
 #endif
-		curr->colors = 1 << preferred;
+
 	}
 
 #ifdef _JIT_GRAPH_REGALLOC_DEBUG
