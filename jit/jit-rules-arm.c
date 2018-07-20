@@ -115,11 +115,11 @@
 /* 
  * Define the classes of registers
  */
-static _jit_regclass_t *arm_reg;
-static _jit_regclass_t *arm_freg;
-static _jit_regclass_t *arm_freg32;
-static _jit_regclass_t *arm_freg64;
-static _jit_regclass_t *arm_lreg;
+static _jit_regclass_t *arm_reg = NULL;
+static _jit_regclass_t *arm_freg = NULL;
+static _jit_regclass_t *arm_freg32 = NULL;
+static _jit_regclass_t *arm_freg64 = NULL;
+static _jit_regclass_t *arm_lreg = NULL;
 
 /*
  * -------------------- Helper functions --------------------------
@@ -719,6 +719,12 @@ void _jit_init_backend(void)
 	arm_lreg = _jit_regclass_create(
 		"lreg", JIT_REG_LONG, 2,
 		ARM_REG_R0, ARM_REG_R2);
+
+	_jit_regclass_info[0] = arm_lreg;
+	_jit_regclass_info[1] = arm_freg64;
+	_jit_regclass_info[2] = arm_freg32;
+	_jit_regclass_info[3] = arm_freg;
+	_jit_regclass_info[4] = arm_reg;
 }
 
 void _jit_gen_get_elf_info(jit_elf_info_t *info)

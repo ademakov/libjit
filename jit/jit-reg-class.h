@@ -41,6 +41,11 @@ typedef struct
 
 } _jit_regclass_t;
 
+/*
+ * The information for all register classes in the system.
+ */
+extern _jit_regclass_t *_jit_regclass_info[JIT_NUM_REG_CLASSES];
+
 /* Create a register class.  */
 _jit_regclass_t *_jit_regclass_create(const char *name, int flags, int num_regs, ...);
 

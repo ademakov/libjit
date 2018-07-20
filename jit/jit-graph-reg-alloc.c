@@ -256,7 +256,7 @@ _jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
 		curr->on_stack = 0;
 		curr->curr_neighbor_count = curr->neighbor_count;
 
-		if(!curr->value)
+		if(!curr->is_fixed)
 		{
 			curr->colors = 0;
 		}
@@ -376,8 +376,8 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 				break;
 			}
 		}
-
 		printf("    LiveRange(#%d, ", i);
+
 		if(curr->value)
 		{
 			jit_dump_value(stdout, func, curr->value, NULL);
@@ -386,7 +386,16 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 		{
 			printf("XX");
 		}
-		printf("): %%%s\n", jit_reg_name(preferred));
+		printf("): ");
+
+		for(i = 0; i < JIT_NUM_REGS; i++)
+		{
+			if(curr->colors & ((jit_nuint)1 << i))
+			{
+				printf("%%%s, ", jit_reg_name(i));
+			}
+		}
+		printf("\n");
 #endif
 	}
 

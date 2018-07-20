@@ -84,6 +84,7 @@ extern	"C" {
 
 /* JIT_NUM_REGS is the total number of registers (general purpose) */
 #define JIT_NUM_REGS		16
+#define JIT_NUM_REG_CLASSES	5
 
 #endif /* JIT_ARM_HAS_FLOAT_REGS */
 

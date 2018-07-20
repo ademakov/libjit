@@ -493,7 +493,10 @@ dump_live_ranges(jit_function_t func)
 			printf("<internal>");
 		}
 
-		printf("\n    Colors: 0x%lx", range->colors);
+		if(range->is_fixed)
+		{
+			printf("\n    Colors: 0x%lx", range->colors);
+		}
 
 		if(range->preferred_colors != 0)
 		{
@@ -503,15 +506,9 @@ dump_live_ranges(jit_function_t func)
 			{
 				if(range->preferred_colors[j] != 0)
 				{
-					if(j != 0)
-					{
-						printf(", ");
-					}
-					printf("(%d, %s)", range->preferred_colors[j], jit_reg_name(j));
+					printf("(%d, %s), ", range->preferred_colors[j], jit_reg_name(j));
 				}
 			}
-
-			printf("\n");
 		}
 
 		printf("\n    Starts:");
@@ -630,11 +627,11 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 	jit_insn_iter_t iter;
 	jit_insn_t insn;
 	jit_insn_t prev;
+	_jit_regclass_t *regclass;
 	int i;
 	int j;
+	jit_nuint color;
 
-	//TODO remove
-#define JIT_NUM_REG_CLASSES 7
 	struct
 	{
 		jit_nuint clobber;
@@ -694,6 +691,31 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 			{
 				create_dummy_live_range(func, block,
 					prev, insn, 1, regmap.early_clobber);
+			}
+			if(regmap.clobbered_classes != 0)
+			{
+				for(i = 0; i < JIT_NUM_REG_CLASSES; i++)
+				{
+					if((regmap.clobbered_classes & (1 << i)) == 0)
+					{
+						continue;
+					}
+
+					regclass = _jit_regclass_info[i];
+					if(regclass == 0)
+					{
+						continue;
+					}
+
+					color = 0;
+					for(j = 0; j < regclass->num_regs; j++)
+					{
+						color |= 1 << regclass->regs[j];
+					}
+				}
+
+				create_dummy_live_range(func, block,
+					0, insn, 1, color);
 			}
 
 			increment_preferred_color(insn->dest_live, regmap.dest);

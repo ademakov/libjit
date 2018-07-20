@@ -134,6 +134,8 @@ extern	"C" {
 /* 32 floating-point registers + 32 integer registers */
 #define JIT_NUM_REGS			64
 
+#define JIT_NUM_REG_CLASSES		2
+
 /*
  * The number of registers that are used for global register 
  * allocation. Set to zero if global register allocation should not be 

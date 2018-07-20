@@ -117,6 +117,9 @@ void _jit_init_backend(void) {
 		ALPHA_FS5, ALPHA_FS6, ALPHA_FS7, ALPHA_FT0, ALPHA_FT1,
 		ALPHA_FT2, ALPHA_FT3, ALPHA_FT4, ALPHA_FT5
 	);
+
+	_jit_regclass_info[0] = alpha_freg;
+	_jit_regclass_info[1] = alpha_reg;
 }
 
 #define TODO()          \

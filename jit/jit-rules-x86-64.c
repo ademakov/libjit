@@ -256,6 +256,14 @@ _jit_init_backend(void)
 		X86_64_REG_XMM10, X86_64_REG_XMM11,
 		X86_64_REG_XMM12, X86_64_REG_XMM13,
 		X86_64_REG_XMM14, X86_64_REG_XMM15);
+
+	_jit_regclass_info[0] = x86_64_xreg;
+	_jit_regclass_info[1] = x86_64_freg;
+	_jit_regclass_info[2] = x86_64_sreg;
+	_jit_regclass_info[3] = x86_64_rreg;
+	_jit_regclass_info[4] = x86_64_dreg;
+	_jit_regclass_info[5] = x86_64_creg;
+	_jit_regclass_info[6] = x86_64_reg;
 }
 
 int

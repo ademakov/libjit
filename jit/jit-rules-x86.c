@@ -93,6 +93,11 @@ void _jit_init_backend(void)
 	x86_lreg = _jit_regclass_create(
 		"lreg", JIT_REG_LONG, 2,
 		X86_REG_EAX, X86_REG_ECX);
+
+	_jit_regclass_info[0] = x86_lreg;
+	_jit_regclass_info[1] = x86_freg;
+	_jit_regclass_info[2] = x86_breg;
+	_jit_regclass_info[3] = x86_reg;
 }
 
 void _jit_gen_get_elf_info(jit_elf_info_t *info)
