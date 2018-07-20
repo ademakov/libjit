@@ -37,6 +37,7 @@ struct _jit_bitset
 
 void _jit_bitset_init(_jit_bitset_t *bs);
 int _jit_bitset_allocate(_jit_bitset_t *bs, int size);
+int _jit_bitset_resize(_jit_bitset_t *bs, int size);
 int _jit_bitset_is_allocated(_jit_bitset_t *bs);
 void _jit_bitset_free(_jit_bitset_t *bs);
 int _jit_bitset_size(_jit_bitset_t *bs);

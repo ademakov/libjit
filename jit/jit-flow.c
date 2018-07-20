@@ -265,16 +265,26 @@ _jit_insn_list_get_insn_from_block(_jit_insn_list_t list, jit_block_t block)
 	return 0;
 }
 
-static _jit_live_range_t
-create_live_range(jit_function_t func, jit_value_t value)
+_jit_live_range_t
+_jit_function_create_live_range(jit_function_t func,
+	jit_value_t value)
 {
 	_jit_live_range_t range;
 
 	range = jit_cnew(struct _jit_live_range);
 	range->value = value;
+	range->func_next = 0;
 
-	range->func_next = func->live_ranges;
-	func->live_ranges = range;
+	if(func->last_live_range == 0)
+	{
+		func->live_ranges = range;
+		func->last_live_range = range;
+	}
+	else
+	{
+		func->last_live_range->func_next = range;
+		func->last_live_range = range;
+	}
 
 	++func->live_range_count;
 
@@ -398,7 +408,7 @@ handle_live_range_use(jit_block_t block, jit_insn_t insn, jit_value_t value)
 
 	/* There is no live range that matches, we have to create a new one and
 	   compute the touched blocks */
-	range = create_live_range(block->func, value);
+	range = _jit_function_create_live_range(block->func, value);
 
 	if(_jit_bitset_test_bit(&block->upward_exposes, value->index))
 	{
@@ -459,7 +469,7 @@ handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
 
 	/* There is no live range that matches, we have to create a new one and
 	   compute the touched blocks */
-	range = create_live_range(block->func, value);
+	range = _jit_function_create_live_range(block->func, value);
 	_jit_insn_list_add(&range->starts, block, insn);
 
 	if(_jit_bitset_test_bit(&block->live_out, value->index))
@@ -586,7 +596,7 @@ void create_dummy_live_range(jit_function_t func, jit_block_t block,
 {
 	_jit_live_range_t range;
 
-	range = create_live_range(func, 0);
+	range = _jit_function_create_live_range(func, 0);
 	range->is_fixed = is_fixed;
 	range->colors = color;
 	_jit_insn_list_add(&range->ends, block, curr);

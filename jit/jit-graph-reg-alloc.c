@@ -22,10 +22,36 @@
 
 #include "jit-internal.h"
 #include "jit-reg-alloc.h"
-#include <assert.h>
 
 #ifdef _JIT_GRAPH_REGALLOC_DEBUG
 #include <jit/jit-dump.h>
+
+void dump_live_range(jit_function_t func, _jit_live_range_t range)
+{
+	int i;
+	_jit_live_range_t curr;
+
+	i = 0;
+	for(curr = func->live_ranges; curr; curr = curr->func_next)
+	{
+		if(curr == range)
+		{
+			break;
+		}
+		++i;
+	}
+	printf("LiveRange(#%d, ", i);
+
+	if(range->value)
+	{
+		jit_dump_value(stdout, func, range->value, NULL);
+	}
+	else
+	{
+		printf("XX");
+	}
+	printf(")");
+}
 #endif
 
 static int
@@ -191,31 +217,16 @@ _jit_regs_graph_build(jit_function_t func)
 				++b->neighbor_count;
 
 #ifdef _JIT_GRAPH_REGALLOC_DEBUG
-				printf("    LiveRange(#%d, ", i);
-				if(a->value == NULL)
-				{
-					printf("XX");
-				}
-				else
-				{
-					jit_dump_value(stdout, func, a->value, NULL);
-				}
-				printf(") <-> LiveRange(#%d, ", j);
-				if(b->value == NULL)
-				{
-					printf("XX");
-				}
-				else
-				{
-					jit_dump_value(stdout, func, b->value, NULL);
-				}
-				printf(")\n");
+				printf("    ");
+				dump_live_range(func, a);
+				printf(" <-> ");
+				dump_live_range(func, b);
+				printf("\n");
 #endif
 			}
 
 			++j;
 		}
-
 		++i;
 	}
 
@@ -243,7 +254,7 @@ decrement_neighbor_count(jit_function_t func, _jit_live_range_t *ranges,
 		}
 	}
 }
-void
+int
 _jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
 	_jit_live_range_t *stack)
 {
@@ -286,7 +297,7 @@ _jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
 			i = 0;
 			for(curr = func->live_ranges; curr; curr = curr->func_next)
 			{
-				if(!curr->on_stack)
+				if(!curr->on_stack && !curr->is_spilled)
 				{
 					curr->on_stack = 1;
 					stack[pos] = curr;
@@ -296,26 +307,179 @@ _jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
 
 				++i;
 			}
+
+			if(i == func->live_range_count)
+			{
+				return pos - 1;
+			}
 		}
+	}
+
+	return pos - 1;
+}
+
+_jit_live_range_t
+spill_live_range_in_insn(jit_function_t func, jit_block_t block,
+	jit_insn_t prev, jit_insn_t insn, _jit_live_range_t range)
+{
+	_jit_live_range_t curr;
+	_jit_live_range_t dummy;
+	int i;
+	int j;
+
+	i = func->live_range_count;
+	dummy = _jit_function_create_live_range(func, range->value);
+	_jit_bitset_allocate(&dummy->neighbors, func->live_range_count * 3 / 2);
+
+	_jit_insn_list_add(&dummy->ends, block, insn);
+	if(prev == 0)
+	{
+		_jit_insn_list_add(&dummy->ends, block, insn);
+	}
+	else
+	{
+		_jit_insn_list_add(&dummy->starts, block, prev);
+	}
+
+	j = 0;
+	for(curr = func->live_ranges; curr; curr = curr->func_next)
+	{
+		if(_jit_bitset_size(&curr->neighbors) < func->live_range_count)
+		{
+			_jit_bitset_resize(&curr->neighbors,
+				func->live_range_count * 3 / 2);
+		}
+
+		if(dummy != curr && check_interfering(func, dummy, curr))
+		{
+			_jit_bitset_set_bit(&curr->neighbors, i);
+			_jit_bitset_set_bit(&dummy->neighbors, j);
+			++curr->neighbor_count;
+			++dummy->neighbor_count;
+
+		}
+
+		++j;
+	}
+
+	return dummy;
+}
+void
+spill_live_range_in_block(jit_function_t func, jit_block_t block,
+	_jit_live_range_t range)
+{
+	jit_insn_iter_t iter;
+	jit_insn_t prev;
+	jit_insn_t insn;
+
+	prev = 0;
+	jit_insn_iter_init(&iter, block);
+	while((insn = jit_insn_iter_next(&iter)) != NULL)
+	{
+		if(insn->dest_live == range)
+		{
+			insn->dest_live = spill_live_range_in_insn(func, block,
+				prev, insn, range);
+		}
+		else if(insn->value1_live == range)
+		{
+			insn->value1_live = spill_live_range_in_insn(func, block,
+				prev, insn, range);
+		}
+		else if(insn->value2_live == range)
+		{
+			insn->value2_live = spill_live_range_in_insn(func, block,
+				prev, insn, range);
+		}
+
+		prev = insn;
+	}
+}
+void
+spill_live_range(jit_function_t func, _jit_live_range_t *ranges,
+	_jit_live_range_t range)
+{
+	_jit_live_range_t curr;
+	jit_block_t block;
+	int index;
+	int i;
+
+#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+	printf("Spilling ");
+	dump_live_range(func, range);
+	printf("\n");
+#endif
+
+	for(i = 0; i < func->live_range_count; i++)
+	{
+		if(_jit_bitset_test_bit(&range->neighbors, i))
+		{
+			--ranges[i]->neighbor_count;
+		}
+	}
+
+	if(is_local(range))
+	{
+		spill_live_range_in_block(func, range->starts->block, range);
+	}
+	else
+	{
+		for(i = 0; i < func->builder->num_block_order; i++)
+		{
+			block = func->builder->block_order[i];
+			index = block->index;
+			if(_jit_bitset_test_bit(&range->touched_block_starts, index)
+				|| _jit_bitset_test_bit(&range->touched_block_ends, index))
+			{
+				spill_live_range_in_block(func, block, range);
+			}
+		}
+	}
+
+	range->is_spilled = 1;
+}
+
+int value_get_type_flag(jit_value_t value)
+{
+	switch(jit_type_remove_tags(value->type)->kind)
+	{
+	case JIT_TYPE_SBYTE:
+	case JIT_TYPE_UBYTE:
+	case JIT_TYPE_SHORT:
+	case JIT_TYPE_USHORT:
+	case JIT_TYPE_INT:
+	case JIT_TYPE_UINT:
+	case JIT_TYPE_NINT:
+	case JIT_TYPE_NUINT:
+	case JIT_TYPE_SIGNATURE:
+	case JIT_TYPE_PTR:
+		return JIT_REG_WORD;
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+		return JIT_REG_LONG;
+	case JIT_TYPE_FLOAT32:
+		return JIT_REG_FLOAT32;
+	case JIT_TYPE_FLOAT64:
+		return JIT_REG_FLOAT64;
+	case JIT_TYPE_NFLOAT:
+		return JIT_REG_NFLOAT;
+	default:
+		return 0;
 	}
 }
 
 int
 _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
-	_jit_live_range_t *stack)
+	_jit_live_range_t *stack, int pos)
 {
 	_jit_live_range_t curr;
 	jit_nuint used;
 	jit_ushort preferred_score;
 	int preferred;
-	int pos;
+	int type;
 	int i;
 
-#ifdef _JIT_GRAPH_REGALLOC_DEBUG
-	printf("Registers:\n");
-#endif
-
-	for(pos = func->live_range_count - 1; pos >= 0; pos--)
+	for(; pos >= 0; pos--)
 	{
 		curr = stack[pos];
 		used = 0;
@@ -332,20 +496,21 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 		{
 			if((curr->colors & used) != 0)
 			{
-				/* TODO spill @var{curr} */
-				assert(0);
+				spill_live_range(func, ranges, curr);
 				return 0;
 			}
 		}
 		else
 		{
+			type = value_get_type_flag(curr->value);
 			preferred = -1;
 			preferred_score = 0;
 			for(i = 0; i < JIT_NUM_REGS; i++)
 			{
 				if((curr->preferred_colors == 0
 					|| curr->preferred_colors[i] >= preferred_score)
-					&& ((1 << i) & used) == 0)
+					&& ((1 << i) & used) == 0
+					&& (jit_reg_flags(i) & type) != 0)
 				{
 					preferred = i;
 					if(curr->preferred_colors)
@@ -361,47 +526,13 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 
 			if(preferred == -1)
 			{
-				/* TODO spill @var{curr} */
-				assert(0);
+				spill_live_range(func, ranges, curr);
 				return 0;
 			}
 			curr->colors = 1 << preferred;
 		}
-
-#ifdef _JIT_GRAPH_REGALLOC_DEBUG
-		for(i = 0; i < func->live_range_count; i++)
-		{
-			if(ranges[i] == curr)
-			{
-				break;
-			}
-		}
-		printf("    LiveRange(#%d, ", i);
-
-		if(curr->value)
-		{
-			jit_dump_value(stdout, func, curr->value, NULL);
-		}
-		else
-		{
-			printf("XX");
-		}
-		printf("): ");
-
-		for(i = 0; i < JIT_NUM_REGS; i++)
-		{
-			if(curr->colors & ((jit_nuint)1 << i))
-			{
-				printf("%%%s, ", jit_reg_name(i));
-			}
-		}
-		printf("\n");
-#endif
 	}
 
-#ifdef _JIT_GRAPH_REGALLOC_DEBUG
-	printf("\n");
-#endif
 	return 1;
 }
 
@@ -411,26 +542,72 @@ _jit_regs_graph_compute_coloring(jit_function_t func)
 	_jit_live_range_t curr;
 	_jit_live_range_t *stack;
 	_jit_live_range_t *ranges;
+	int pos;
 	int i;
 
-	stack = jit_malloc(func->live_range_count * 
-		sizeof(_jit_live_range_t));
-
-	ranges = jit_malloc(func->live_range_count * 
-		sizeof(_jit_live_range_t));
-
+	i = 0;
+	stack = 0;
+	ranges = 0;
 	curr = func->live_ranges;
-	for(i = 0; i < func->live_range_count; i++)
-	{
-		ranges[i] = curr;
-		curr = curr->func_next;
-	}
 
 	_jit_regs_graph_build(func);
 	_jit_regs_graph_coalesce(func);
 
 	do
 	{
-		_jit_regs_graph_simplify(func, ranges, stack);
-	} while(!_jit_regs_graph_select(func, ranges, stack));
+		if(i < func->live_range_count)
+		{
+			jit_free(stack);
+			stack = jit_malloc(func->live_range_count *
+				sizeof(_jit_live_range_t));
+			ranges = jit_realloc(ranges, func->live_range_count *
+				sizeof(_jit_live_range_t));
+
+			if(i != 0)
+			{
+				curr = curr->func_next;
+			}
+			for(; i < func->live_range_count; i++)
+			{
+				ranges[i] = curr;
+
+				if(curr->func_next)
+				{
+					curr = curr->func_next;
+				}
+			}
+		}
+
+		pos = _jit_regs_graph_simplify(func, ranges, stack);
+	} while(!_jit_regs_graph_select(func, ranges, stack, pos));
+
+	jit_free(stack);
+	jit_free(ranges);
+
+#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+	printf("Registers:\n");
+	for(curr = func->live_ranges; curr; curr = curr->func_next)
+	{
+		printf("    ");
+		dump_live_range(func, curr);
+		printf(": ");
+
+		if(curr->is_spilled)
+		{
+			printf("<spilled>");
+		}
+		else
+		{
+			for(i = 0; i < JIT_NUM_REGS; i++)
+			{
+				if(curr->colors & ((jit_nuint)1 << i))
+				{
+					printf("%%%s, ", jit_reg_name(i));
+				}
+			}
+		}
+		printf("\n");
+	}
+	printf("\n");
+#endif
 }

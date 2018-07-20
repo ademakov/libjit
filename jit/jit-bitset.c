@@ -45,6 +45,35 @@ _jit_bitset_allocate(_jit_bitset_t *bs, int size)
 	}
 	else
 	{
+		bs->size = 0;
+		bs->bits = 0;
+	}
+	return 1;
+}
+
+int
+_jit_bitset_resize(_jit_bitset_t *bs, int size)
+{
+	int old_size;
+
+	if(size > 0)
+	{
+		old_size = bs->size;
+		size = (size + _JIT_BITSET_WORD_BITS - 1) / _JIT_BITSET_WORD_BITS;
+		bs->size = size;
+		bs->bits = jit_realloc(bs->bits, size * sizeof(_jit_bitset_word_t));
+		if(!bs->bits)
+		{
+			return 0;
+		}
+		if(size > old_size)
+		{
+			memset(bs->bits + old_size, 0, size - old_size);
+		}
+	}
+	else
+	{
+		bs->size = 0;
 		bs->bits = 0;
 	}
 	return 1;

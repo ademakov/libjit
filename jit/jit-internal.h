@@ -336,20 +336,28 @@ struct _jit_live_range
 	unsigned neighbor_count;
 	unsigned curr_neighbor_count;
 
-	/* Wether the variable is already on stack in the simplify step of
+	/* Wether the live range is already on stack in the simplify step of
 	   Chaitin/Briggs algorithm */
 	unsigned on_stack : 1;
 
 	/* The live ranges color is pre defined and shall not be changed */
 	unsigned is_fixed : 1;
 
+	/* The live range was spilled and replaced by (multiple) smaller ones */
+	unsigned is_spilled : 1;
+
 	/* Next live range of @var{value} */
 	_jit_live_range_t value_next;
 
-	/* Next live range of the function */
+	/* Previous & Next live ranges of the function */
 	_jit_live_range_t func_next;
-
 };
+
+/*
+ * Create a live range
+ */
+_jit_live_range_t _jit_function_create_live_range(jit_function_t func,
+	jit_value_t value);
 
 /*
  * Compute live ranges of all values.
@@ -596,6 +604,7 @@ struct _jit_function
 
 	/* Live ranges in this function */
 	_jit_live_range_t live_ranges;
+	_jit_live_range_t last_live_range;
 	unsigned live_range_count;
 
 	/* Flag bits for this function */
