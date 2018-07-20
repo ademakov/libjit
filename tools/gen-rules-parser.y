@@ -1031,7 +1031,6 @@ gensel_output_register_usage(gensel_clause_t clause, char **args)
 			else
 			{
 				regclass_index = gensel_regclass_get_index(regclass);
-				++unnamed_counts[regclass_index];
 
 				printf("\t\tregmap.%s = _JIT_REG_USAGE_UNNAMED;\n",
 					args[i]);

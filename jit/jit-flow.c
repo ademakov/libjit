@@ -580,6 +580,26 @@ _jit_function_compute_live_ranges(jit_function_t func)
 	}
 }
 
+void create_dummy_live_range(jit_function_t func, jit_block_t block,
+	jit_insn_t prev, jit_insn_t curr,
+	unsigned register_count, jit_nuint color)
+{
+	_jit_live_range_t range;
+
+	range = create_live_range(func, 0);
+	range->register_count = register_count;
+	range->colors = 0;
+	_jit_insn_list_add(&range->ends, block, curr);
+
+	if(prev == 0)
+	{
+		_jit_insn_list_add(&range->starts, block, curr);
+	}
+	else
+	{
+		_jit_insn_list_add(&range->starts, block, prev);
+	}
+}
 void increment_preferred_color(_jit_live_range_t range, int reg)
 {
 	if(range == 0
@@ -589,6 +609,9 @@ void increment_preferred_color(_jit_live_range_t range, int reg)
 		return;
 	}
 
+	/* TODO @var{range} needs to be in @var{reg} but might not actually be in
+	   it when another register has a higher preferrence. In that case a dummy
+	   live range needs to be created so no other live range blocks @var{reg} */
 	if(range->preferred_colors == 0)
 	{
 		range->preferred_colors = jit_calloc(JIT_NUM_REGS, sizeof(jit_ushort));
@@ -604,7 +627,6 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 	jit_insn_iter_t iter;
 	jit_insn_t insn;
 	jit_insn_t prev;
-	_jit_live_range_t range;
 	int i;
 
 	//TODO remove
@@ -623,12 +645,9 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 		unsigned unnamed[JIT_NUM_REG_CLASSES];
 	} regmap;
 
-	unsigned max_unnamed[JIT_NUM_REG_CLASSES];
-
 	for(block = func->builder->entry_block; block; block = block->next)
 	{
 		jit_insn_iter_init(&iter, block);
-		memset(max_unnamed, 0, sizeof(max_unnamed));
 		prev = 0;
 
 		while((insn = jit_insn_iter_next(&iter)) != 0)
@@ -652,41 +671,25 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 				break;
 			}
 
-			/* In order to not create live ranges for every instructions we take
-			   the maximum number of unnamed registers per class in each block
-			   and create one live range per block. */
 			for(i = 0; i < JIT_NUM_REG_CLASSES; i++)
 			{
-				if(regmap.unnamed[i] > max_unnamed[i])
+				if(regmap.unnamed[i] != 0)
 				{
-					max_unnamed[i] = regmap.unnamed[i];
+					create_dummy_live_range(func, block,
+						prev, insn, regmap.unnamed[i], 0);
 				}
 			}
 
 			/* create tiny live ranges for clobbered values */
 			if(regmap.clobber != 0)
 			{
-				range = create_live_range(func, 0);
-				range->register_count = 0;
-				range->colors = regmap.clobber;
-				_jit_insn_list_add(&range->starts, block, insn);
-				_jit_insn_list_add(&range->ends, block, insn);
+				create_dummy_live_range(func, block,
+					0, insn, 0, regmap.clobber);
 			}
 			if(regmap.early_clobber != 0)
 			{
-				range = create_live_range(func, 0);
-				range->register_count = 0;
-				range->colors = regmap.early_clobber;
-				_jit_insn_list_add(&range->ends, block, insn);
-
-				if(prev == 0)
-				{
-					_jit_insn_list_add(&range->starts, block, prev);
-				}
-				else
-				{
-					_jit_insn_list_add(&range->starts, block, insn);
-				}
+				create_dummy_live_range(func, block,
+					prev, insn, 0, regmap.early_clobber);
 			}
 
 			increment_preferred_color(insn->dest_live, regmap.dest);
@@ -697,25 +700,6 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 			increment_preferred_color(insn->value2_live, regmap.value2_other);
 
 			prev = insn;
-		}
-
-		/* get the first and last instruction of the block */
-		jit_insn_iter_init(&iter, block);
-		prev = jit_insn_iter_next(&iter);
-		jit_insn_iter_init_last(&iter, block);
-		insn = jit_insn_iter_previous(&iter);
-
-		/* create live ranges for each register class */
-		for(i = 0; i < JIT_NUM_REG_CLASSES; i++)
-		{
-			if(max_unnamed[i] > 0)
-			{
-				range = create_live_range(func, 0);
-				range->colors = 0;
-				range->register_count = max_unnamed[i];
-				_jit_insn_list_add(&range->starts, block, prev);
-				_jit_insn_list_add(&range->ends, block, insn);
-			}
 		}
 	}
 
