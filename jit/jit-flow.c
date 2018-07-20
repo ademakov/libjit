@@ -272,7 +272,6 @@ create_live_range(jit_function_t func, jit_value_t value)
 
 	range = jit_cnew(struct _jit_live_range);
 	range->value = value;
-	range->register_count = 1;
 
 	range->func_next = func->live_ranges;
 	func->live_ranges = range;
@@ -405,6 +404,11 @@ handle_live_range_use(jit_block_t block, jit_insn_t insn, jit_value_t value)
 	{
 		flood_fill_touched_preds(block, range, value);
 	}
+	else
+	{
+		_jit_bitset_set_bit(&range->touched_block_starts, block->index);
+	}
+
 	if(_jit_bitset_test_bit(&block->live_out, value->index))
 	{
 		flood_fill_touched_succs(block, range, value);
@@ -489,7 +493,6 @@ dump_live_ranges(jit_function_t func)
 			printf("<internal>");
 		}
 
-		printf("\n    Register Count: %d", range->register_count);
 		printf("\n    Colors: 0x%lx", range->colors);
 
 		if(range->preferred_colors != 0)
@@ -582,13 +585,13 @@ _jit_function_compute_live_ranges(jit_function_t func)
 
 void create_dummy_live_range(jit_function_t func, jit_block_t block,
 	jit_insn_t prev, jit_insn_t curr,
-	unsigned register_count, jit_nuint color)
+	unsigned is_fixed, jit_nuint color)
 {
 	_jit_live_range_t range;
 
 	range = create_live_range(func, 0);
-	range->register_count = register_count;
-	range->colors = 0;
+	range->is_fixed = is_fixed;
+	range->colors = color;
 	_jit_insn_list_add(&range->ends, block, curr);
 
 	if(prev == 0)
@@ -628,6 +631,7 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 	jit_insn_t insn;
 	jit_insn_t prev;
 	int i;
+	int j;
 
 	//TODO remove
 #define JIT_NUM_REG_CLASSES 7
@@ -673,10 +677,10 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 
 			for(i = 0; i < JIT_NUM_REG_CLASSES; i++)
 			{
-				if(regmap.unnamed[i] != 0)
+				for(j = regmap.unnamed[i]; j > 0; j--)
 				{
 					create_dummy_live_range(func, block,
-						prev, insn, regmap.unnamed[i], 0);
+						prev, insn, 0, 0);
 				}
 			}
 
@@ -684,12 +688,12 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 			if(regmap.clobber != 0)
 			{
 				create_dummy_live_range(func, block,
-					0, insn, 0, regmap.clobber);
+					0, insn, 1, regmap.clobber);
 			}
 			if(regmap.early_clobber != 0)
 			{
 				create_dummy_live_range(func, block,
-					prev, insn, 0, regmap.early_clobber);
+					prev, insn, 1, regmap.early_clobber);
 			}
 
 			increment_preferred_color(insn->dest_live, regmap.dest);

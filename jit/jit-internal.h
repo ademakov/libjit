@@ -323,10 +323,6 @@ struct _jit_live_range
 	/* One bit for each block set if the range is alive at the end of the block */
 	_jit_bitset_t touched_block_ends;
 
-	/* Amount of registers required by this range
-	   0 means @var{colors} is constant and shall not be changed. */
-	unsigned register_count;
-
 	/* Bitset of registers used */
 	jit_nuint colors;
 
@@ -343,6 +339,9 @@ struct _jit_live_range
 	/* Wether the variable is already on stack in the simplify step of
 	   Chaitin/Briggs algorithm */
 	unsigned on_stack : 1;
+
+	/* The live ranges color is pre defined and shall not be changed */
+	unsigned is_fixed : 1;
 
 	/* Next live range of @var{value} */
 	_jit_live_range_t value_next;

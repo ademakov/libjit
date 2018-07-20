@@ -328,33 +328,45 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 			}
 		}
 
-		preferred = -1;
-		preferred_score = 0;
-		for(i = 0; i < JIT_NUM_REGS; i++)
+		if(curr->is_fixed)
 		{
-			if((curr->preferred_colors == 0
-				|| curr->preferred_colors[i] >= preferred_score)
-				&& ((1 << i) & used) == 0)
+			if((curr->colors & used) != 0)
 			{
-				preferred = i;
-				if(curr->preferred_colors)
-				{
-					preferred_score = curr->preferred_colors[i];
-				}
-				else
-				{
-					break;
-				}
+				/* TODO spill @var{curr} */
+				assert(0);
+				return 0;
 			}
 		}
-
-		if(preferred == -1)
+		else
 		{
-			/* TODO spill @var{curr} */
-			assert(0);
-			return 0;
+			preferred = -1;
+			preferred_score = 0;
+			for(i = 0; i < JIT_NUM_REGS; i++)
+			{
+				if((curr->preferred_colors == 0
+					|| curr->preferred_colors[i] >= preferred_score)
+					&& ((1 << i) & used) == 0)
+				{
+					preferred = i;
+					if(curr->preferred_colors)
+					{
+						preferred_score = curr->preferred_colors[i];
+					}
+					else
+					{
+						break;
+					}
+				}
+			}
+
+			if(preferred == -1)
+			{
+				/* TODO spill @var{curr} */
+				assert(0);
+				return 0;
+			}
+			curr->colors = 1 << preferred;
 		}
-		curr->colors = 1 << preferred;
 
 #ifdef _JIT_GRAPH_REGALLOC_DEBUG
 		for(i = 0; i < func->live_range_count; i++)
@@ -376,7 +388,6 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 		}
 		printf("): %%%s\n", jit_reg_name(preferred));
 #endif
-
 	}
 
 #ifdef _JIT_GRAPH_REGALLOC_DEBUG
