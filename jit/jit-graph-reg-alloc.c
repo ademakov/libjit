@@ -82,7 +82,7 @@ does_local_range_interfere_with(_jit_live_range_t local,
 	if(touches_start)
 	{
 		insn = _jit_insn_list_get_insn_from_block(other->ends, block);
-		if(insn != 0 && insn->index > local->starts->insn->index)
+		if(insn != 0 && insn > local->starts->insn)
 		{
 			return 1;
 		}
@@ -90,7 +90,7 @@ does_local_range_interfere_with(_jit_live_range_t local,
 	if(touches_end)
 	{
 		insn = _jit_insn_list_get_insn_from_block(other->starts, block);
-		if(insn != 0 && insn->index < local->ends->insn->index)
+		if(insn != 0 && insn < local->ends->insn)
 		{
 			return 1;
 		}
@@ -129,11 +129,11 @@ check_interfering(jit_function_t func,
 		start_b = b->starts->insn;
 		end_a = a->ends->insn;
 		end_b = b->ends->insn;
-		if(start_a->index >= start_b->index && start_a->index < end_b->index)
+		if(start_a >= start_b && start_a < end_b)
 		{
 			return 1;
 		}
-		if(start_b->index >= start_a->index && start_b->index < end_a->index)
+		if(start_b >= start_a && start_b < end_a)
 		{
 			return 1;
 		}
@@ -158,7 +158,7 @@ check_interfering(jit_function_t func,
 			{
 				end_a = _jit_insn_list_get_insn_from_block(a->ends, block);
 				start_b = _jit_insn_list_get_insn_from_block(b->starts, block);
-				if(start_b->index < end_a->index)
+				if(start_b < end_a)
 				{
 					return 1;
 				}
@@ -168,7 +168,7 @@ check_interfering(jit_function_t func,
 			{
 				start_a = _jit_insn_list_get_insn_from_block(a->starts, block);
 				end_b = _jit_insn_list_get_insn_from_block(b->ends, block);
-				if(start_a->index < end_b->index)
+				if(start_a < end_b)
 				{
 					return 1;
 				}
@@ -399,7 +399,6 @@ void
 spill_live_range(jit_function_t func, _jit_live_range_t *ranges,
 	_jit_live_range_t range)
 {
-	_jit_live_range_t curr;
 	jit_block_t block;
 	int index;
 	int i;

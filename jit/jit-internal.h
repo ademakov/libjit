@@ -429,7 +429,6 @@ struct _jit_insn
 {
 	short			opcode;
 	short			flags;
-	unsigned		index;
 	jit_value_t		dest;
 	jit_value_t		value1;
 	jit_value_t		value2;

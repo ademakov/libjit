@@ -1013,7 +1013,6 @@ _jit_block_recompute_common_properties(jit_function_t func)
 	jit_insn_t insn;
 	jit_value_t value;
 	jit_nuint count;
-	jit_nuint insn_count;
 	jit_pool_block_t memblock = func->builder->value_pool.blocks;
 	int num = (int)(func->builder->value_pool.elems_per_block);
 
@@ -1046,7 +1045,6 @@ _jit_block_recompute_common_properties(jit_function_t func)
 
 	func->builder->value_count = count;
 	count = 0;
-	insn_count = 0;
 
 	for(block = func->builder->entry_block; block; block = block->next)
 	{
@@ -1056,9 +1054,6 @@ _jit_block_recompute_common_properties(jit_function_t func)
 		jit_insn_iter_init(&iter, block);
 		while((insn = jit_insn_iter_next(&iter)) != 0)
 		{
-			insn->index = insn_count;
-			++insn_count;
-
 			/* Skip NOP instructions, which may have arguments left
 			   over from when the instruction was replaced, but which
 			   are not used in this block */
