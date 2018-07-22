@@ -336,6 +336,10 @@ struct _jit_live_range
 	unsigned neighbor_count;
 	unsigned curr_neighbor_count;
 
+	/* Count of registers used. This is 1 for most live ranges, but might be
+	   more for fixed live ranges */
+	unsigned register_count;
+
 	/* Wether the live range is already on stack in the simplify step of
 	   Chaitin/Briggs algorithm */
 	unsigned on_stack : 1;

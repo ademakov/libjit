@@ -273,6 +273,7 @@ _jit_function_create_live_range(jit_function_t func,
 
 	range = jit_cnew(struct _jit_live_range);
 	range->value = value;
+	range->register_count = 1;
 	range->func_next = 0;
 
 	if(func->last_live_range == 0)
@@ -603,12 +604,25 @@ void create_dummy_live_range(jit_function_t func, jit_block_t block,
 	jit_value_t value, unsigned is_fixed, jit_nuint color)
 {
 	_jit_live_range_t range;
+	int i;
 
 	range = _jit_function_create_live_range(func, value);
 	range->is_fixed = is_fixed;
 	range->colors = color;
-	_jit_insn_list_add(&range->ends, block, curr);
 
+	if(is_fixed)
+	{
+		range->register_count = 0;
+		for(i = 0; i < JIT_NUM_REGS; i++)
+		{
+			if(color & (1 << i))
+			{
+				++range->register_count;
+			}
+		}
+	}
+
+	_jit_insn_list_add(&range->ends, block, curr);
 	if(prev == 0)
 	{
 		_jit_insn_list_add(&range->starts, block, curr);

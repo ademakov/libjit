@@ -201,6 +201,14 @@ _jit_regs_graph_build(jit_function_t func)
 	int i;
 	int j;
 
+	for(a = func->live_ranges; a; a = a->func_next)
+	{
+		if(!_jit_bitset_is_allocated(&a->neighbors))
+		{
+			_jit_bitset_allocate(&a->neighbors, func->live_range_count);
+		}
+	}
+
 #ifdef _JIT_GRAPH_REGALLOC_DEBUG
 	printf("Interference graph:\n");
 #endif
@@ -208,25 +216,15 @@ _jit_regs_graph_build(jit_function_t func)
 	i = 0;
 	for(a = func->live_ranges; a; a = a->func_next)
 	{
-		if(!_jit_bitset_is_allocated(&a->neighbors))
-		{
-			_jit_bitset_allocate(&a->neighbors, func->live_range_count);
-		}
-
 		j = i + 1;
 		for(b = a->func_next; b; b = b->func_next)
 		{
-			if(!_jit_bitset_is_allocated(&b->neighbors))
-			{
-				_jit_bitset_allocate(&b->neighbors, func->live_range_count);
-			}
-
 			if(check_interfering(func, a, b))
 			{
 				_jit_bitset_set_bit(&a->neighbors, j);
 				_jit_bitset_set_bit(&b->neighbors, i);
-				++a->neighbor_count;
-				++b->neighbor_count;
+				a->neighbor_count += b->register_count;
+				b->neighbor_count += a->register_count;
 
 #ifdef _JIT_GRAPH_REGALLOC_DEBUG
 				printf("    ");
@@ -262,7 +260,7 @@ decrement_neighbor_count(jit_function_t func, _jit_live_range_t *ranges,
 	{
 		if(_jit_bitset_test_bit(&curr->neighbors, i))
 		{
-			--ranges[i]->curr_neighbor_count;
+			ranges[i]->curr_neighbor_count -= curr->register_count;
 		}
 	}
 }
@@ -387,9 +385,8 @@ spill_live_range_in_insn(jit_function_t func, jit_block_t block,
 		{
 			_jit_bitset_set_bit(&curr->neighbors, i);
 			_jit_bitset_set_bit(&dummy->neighbors, j);
-			++curr->neighbor_count;
-			++dummy->neighbor_count;
-
+			curr->neighbor_count += dummy->register_count;
+			dummy->neighbor_count += curr->register_count;
 		}
 
 		++j;
@@ -451,7 +448,7 @@ spill_live_range(jit_function_t func, _jit_live_range_t *ranges,
 	{
 		if(_jit_bitset_test_bit(&range->neighbors, i))
 		{
-			--ranges[i]->neighbor_count;
+			ranges[i]->neighbor_count -= range->register_count;
 		}
 	}
 
@@ -571,7 +568,13 @@ _jit_regs_graph_compute_coloring(jit_function_t func)
 	_jit_live_range_t *stack;
 	_jit_live_range_t *ranges;
 	int pos;
-	int i;
+	int i;	
+#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+	int spill_count;
+	spill_count = -1;
+#endif
+
+
 
 	i = 0;
 	stack = 0;
@@ -605,6 +608,11 @@ _jit_regs_graph_compute_coloring(jit_function_t func)
 				}
 			}
 		}
+		
+#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+		++spill_count;
+#endif
+
 
 		pos = _jit_regs_graph_simplify(func, ranges, stack);
 	} while(!_jit_regs_graph_select(func, ranges, stack, pos));
@@ -613,6 +621,7 @@ _jit_regs_graph_compute_coloring(jit_function_t func)
 	jit_free(ranges);
 
 #ifdef _JIT_GRAPH_REGALLOC_DEBUG
+	printf("Register allocation finished after %d spills\n", spill_count);
 	printf("Registers:\n");
 	for(curr = func->live_ranges; curr; curr = curr->func_next)
 	{
