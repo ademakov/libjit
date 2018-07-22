@@ -505,7 +505,15 @@ dump_live_ranges(jit_function_t func)
 
 		if(range->is_fixed)
 		{
-			printf("\n    Colors: 0x%lx", range->colors);
+			printf("\n    Fixed Colors: ");
+
+			for(j = 0; j < JIT_NUM_REGS; j++)
+			{
+				if(range->colors & ((jit_ulong)1 << j))
+				{
+					printf("%s, ", jit_reg_name(j));
+				}
+			}
 		}
 
 		if(range->preferred_colors != 0)
@@ -592,11 +600,11 @@ _jit_function_compute_live_ranges(jit_function_t func)
 
 void create_dummy_live_range(jit_function_t func, jit_block_t block,
 	jit_insn_t prev, jit_insn_t curr,
-	unsigned is_fixed, jit_nuint color)
+	jit_value_t value, unsigned is_fixed, jit_nuint color)
 {
 	_jit_live_range_t range;
 
-	range = _jit_function_create_live_range(func, 0);
+	range = _jit_function_create_live_range(func, value);
 	range->is_fixed = is_fixed;
 	range->colors = color;
 	_jit_insn_list_add(&range->ends, block, curr);
@@ -610,7 +618,8 @@ void create_dummy_live_range(jit_function_t func, jit_block_t block,
 		_jit_insn_list_add(&range->starts, block, prev);
 	}
 }
-void increment_preferred_color(_jit_live_range_t range, int reg)
+void increment_preferred_color(jit_function_t func, jit_block_t block,
+	jit_insn_t insn, _jit_live_range_t range, int reg)
 {
 	if(range == 0
 		|| reg == _JIT_REG_USAGE_UNNAMED
@@ -619,15 +628,16 @@ void increment_preferred_color(_jit_live_range_t range, int reg)
 		return;
 	}
 
-	/* TODO @var{range} needs to be in @var{reg} but might not actually be in
-	   it when another register has a higher preferrence. In that case a dummy
-	   live range needs to be created so no other live range blocks @var{reg} */
 	if(range->preferred_colors == 0)
 	{
 		range->preferred_colors = jit_calloc(JIT_NUM_REGS, sizeof(jit_ushort));
 	}
-
 	++range->preferred_colors[reg];
+
+	/* Create a dummy range which reserves the register in case @var{range} gets
+	   colored with a different register */
+	create_dummy_live_range(func, block, 0, insn,
+		range->value, 1, (1 << reg));
 }
 
 void
@@ -663,6 +673,11 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 
 		while((insn = jit_insn_iter_next(&iter)) != 0)
 		{
+			if(insn->opcode == JIT_OP_NOP)
+			{
+				continue;
+			}
+
 			memset(&regmap, 0, sizeof(regmap));
 			regmap.dest = _JIT_REG_USAGE_UNNUSED;
 			regmap.value1 = _JIT_REG_USAGE_UNNUSED;
@@ -686,21 +701,21 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 			{
 				for(j = regmap.unnamed[i]; j > 0; j--)
 				{
-					create_dummy_live_range(func, block,
-						prev, insn, 0, 0);
+					create_dummy_live_range(func, block, prev, insn,
+						0, 0, 0);
 				}
 			}
 
 			/* create tiny live ranges for clobbered values */
 			if(regmap.clobber != 0)
 			{
-				create_dummy_live_range(func, block,
-					0, insn, 1, regmap.clobber);
+				create_dummy_live_range(func, block, 0, insn,
+					0, 1, regmap.clobber);
 			}
 			if(regmap.early_clobber != 0)
 			{
-				create_dummy_live_range(func, block,
-					prev, insn, 1, regmap.early_clobber);
+				create_dummy_live_range(func, block, prev, insn,
+					0, 1, regmap.early_clobber);
 			}
 			if(regmap.clobbered_classes != 0)
 			{
@@ -724,16 +739,22 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 					}
 				}
 
-				create_dummy_live_range(func, block,
-					0, insn, 1, color);
+				create_dummy_live_range(func, block, 0, insn,
+					0, 1, color);
 			}
 
-			increment_preferred_color(insn->dest_live, regmap.dest);
-			increment_preferred_color(insn->value1_live, regmap.value1);
-			increment_preferred_color(insn->value2_live, regmap.value2);
-			increment_preferred_color(insn->dest_live, regmap.dest_other);
-			increment_preferred_color(insn->value1_live, regmap.value1_other);
-			increment_preferred_color(insn->value2_live, regmap.value2_other);
+			increment_preferred_color(func, block, insn,
+				insn->dest_live, regmap.dest);
+			increment_preferred_color(func, block, insn,
+				insn->value1_live, regmap.value1);
+			increment_preferred_color(func, block, insn,
+				insn->value2_live, regmap.value2);
+			increment_preferred_color(func, block, insn,
+				insn->dest_live, regmap.dest_other);
+			increment_preferred_color(func, block, insn,
+				insn->value1_live, regmap.value1_other);
+			increment_preferred_color(func, block, insn,
+				insn->value2_live, regmap.value2_other);
 
 			prev = insn;
 		}

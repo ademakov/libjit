@@ -50,17 +50,17 @@ void dump_live_range(jit_function_t func, _jit_live_range_t range)
 	{
 		printf("XX");
 	}
-	printf(")");
+	printf(", %d)", range->neighbor_count);
 }
 #endif
 
 static int
 is_local(_jit_live_range_t range)
 {
-	return range->starts != NULL
-		&& range->ends != NULL
-		&& range->starts->next == NULL
-		&& range->ends->next == NULL
+	return range->starts != 0
+		&& range->ends != 0
+		&& range->starts->next == 0
+		&& range->ends->next == 0
 		&& range->starts->block == range->ends->block;
 }
 
@@ -108,6 +108,11 @@ check_interfering(jit_function_t func,
 	int b_is_local;
 	jit_block_t block;
 	jit_insn_t start_a, start_b, end_a, end_b;
+
+	if(a->value != 0 && a->value == b->value)
+	{
+		return 0;
+	}
 
 	if(_jit_bitset_test(&a->touched_block_starts, &b->touched_block_starts)
 		|| _jit_bitset_test(&a->touched_block_ends, &b->touched_block_ends))
@@ -278,7 +283,8 @@ _jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
 		i = 0;
 		for(curr = func->live_ranges; curr; curr = curr->func_next)
 		{
-			if(!curr->on_stack && curr->curr_neighbor_count < JIT_NUM_REGS)
+			if(!curr->on_stack && !curr->is_spilled && !curr->is_fixed
+				&& curr->curr_neighbor_count < JIT_NUM_REGS)
 			{
 				curr->on_stack = 1;
 				stack[pos] = curr;
@@ -297,8 +303,13 @@ _jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
 			i = 0;
 			for(curr = func->live_ranges; curr; curr = curr->func_next)
 			{
-				if(!curr->on_stack && !curr->is_spilled)
+				if(!curr->on_stack && !curr->is_spilled && !curr->is_fixed)
 				{
+#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+					printf("Optimistically pushing ");
+					dump_live_range(func, curr);
+					printf("\n");
+#endif
 					curr->on_stack = 1;
 					stack[pos] = curr;
 					decrement_neighbor_count(func, ranges, curr, i);
@@ -491,45 +502,34 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 			}
 		}
 
-		if(curr->is_fixed)
+		type = value_get_type_flag(curr->value);
+		preferred = -1;
+		preferred_score = 0;
+		for(i = 0; i < JIT_NUM_REGS; i++)
 		{
-			if((curr->colors & used) != 0)
+			if((curr->preferred_colors == 0
+				|| curr->preferred_colors[i] >= preferred_score)
+				&& ((1 << i) & used) == 0
+				&& (jit_reg_flags(i) & type) != 0)
 			{
-				spill_live_range(func, ranges, curr);
-				return 0;
-			}
-		}
-		else
-		{
-			type = value_get_type_flag(curr->value);
-			preferred = -1;
-			preferred_score = 0;
-			for(i = 0; i < JIT_NUM_REGS; i++)
-			{
-				if((curr->preferred_colors == 0
-					|| curr->preferred_colors[i] >= preferred_score)
-					&& ((1 << i) & used) == 0
-					&& (jit_reg_flags(i) & type) != 0)
+				preferred = i;
+				if(curr->preferred_colors)
 				{
-					preferred = i;
-					if(curr->preferred_colors)
-					{
-						preferred_score = curr->preferred_colors[i];
-					}
-					else
-					{
-						break;
-					}
+					preferred_score = curr->preferred_colors[i];
+				}
+				else
+				{
+					break;
 				}
 			}
-
-			if(preferred == -1)
-			{
-				spill_live_range(func, ranges, curr);
-				return 0;
-			}
-			curr->colors = 1 << preferred;
 		}
+
+		if(preferred == -1)
+		{
+			spill_live_range(func, ranges, curr);
+			return 0;
+		}
+		curr->colors = 1 << preferred;
 	}
 
 	return 1;

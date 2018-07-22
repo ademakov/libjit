@@ -324,7 +324,7 @@ struct _jit_live_range
 	_jit_bitset_t touched_block_ends;
 
 	/* Bitset of registers used */
-	jit_nuint colors;
+	jit_ulong colors;
 
 	/* When a value is required in a specific registers its preferred color
 	   is incremented. preferred_colors might be 0 when the live range is never
