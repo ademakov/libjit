@@ -106,27 +106,30 @@ void
 _jit_bitset_set_bit(_jit_bitset_t *bs, int bit)
 {
 	int word;
+	_jit_bitset_word_t pattern;
 	word = bit / _JIT_BITSET_WORD_BITS;
-	bit = 1 << (bit % _JIT_BITSET_WORD_BITS);
-	bs->bits[word] |= bit;
+	pattern = (_jit_bitset_word_t)1 << (bit % _JIT_BITSET_WORD_BITS);
+	bs->bits[word] |= pattern;
 }
 
 void
 _jit_bitset_clear_bit(_jit_bitset_t *bs, int bit)
 {
 	int word;
+	_jit_bitset_word_t pattern;
 	word = bit / _JIT_BITSET_WORD_BITS;
-	bit = 1 << (bit % _JIT_BITSET_WORD_BITS);
-	bs->bits[word] &= ~bit;
+	pattern = (_jit_bitset_word_t)1 << (bit % _JIT_BITSET_WORD_BITS);
+	bs->bits[word] &= ~pattern;
 }
 
 int
 _jit_bitset_test_bit(_jit_bitset_t *bs, int bit)
 {
 	int word;
+	_jit_bitset_word_t pattern;
 	word = bit / _JIT_BITSET_WORD_BITS;
-	bit = 1 << (bit % _JIT_BITSET_WORD_BITS);
-	return (bs->bits[word] & bit) != 0;
+	pattern = (_jit_bitset_word_t)1 << (bit % _JIT_BITSET_WORD_BITS);
+	return (bs->bits[word] & pattern) != 0;
 }
 
 void
