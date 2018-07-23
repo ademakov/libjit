@@ -23,6 +23,14 @@
 #include "jit-internal.h"
 #include "jit-reg-alloc.h"
 
+/* num_regs[get_type_flags(value)] returns the amount of registers available in
+   in the architecture which can hold @var{value} */
+static jit_ubyte num_regs[6] = {0};
+
+/* interference_map[i][j] is 1 if two values with type index i and j can
+   reside in the same register and thus interfere */
+static jit_ubyte interference_map[6][6] = {0};
+
 #ifdef _JIT_GRAPH_REGALLOC_DEBUG
 #include <jit/jit-dump.h>
 
@@ -71,6 +79,61 @@ is_dummy(_jit_live_range_t range)
 		&& range->ends->insn - range->starts->insn <= 1;
 }
 
+/* Returns a type index used with num_regs and interference_map and can be
+   turned into a JIT_REG_ constant using get_type_flag */
+int get_type_index(jit_value_t value)
+{
+	if(!value)
+	{
+		return 0;
+	}
+
+	switch(jit_type_remove_tags(value->type)->kind)
+	{
+	case JIT_TYPE_SBYTE:
+	case JIT_TYPE_UBYTE:
+	case JIT_TYPE_SHORT:
+	case JIT_TYPE_USHORT:
+	case JIT_TYPE_INT:
+	case JIT_TYPE_UINT:
+	case JIT_TYPE_NINT:
+	case JIT_TYPE_NUINT:
+	case JIT_TYPE_SIGNATURE:
+	case JIT_TYPE_PTR:
+		return 1;
+	case JIT_TYPE_LONG:
+	case JIT_TYPE_ULONG:
+		return 2;
+	case JIT_TYPE_FLOAT32:
+		return 3;
+	case JIT_TYPE_FLOAT64:
+		return 4;
+	case JIT_TYPE_NFLOAT:
+		return 5;
+	default:
+		return 0;
+	}
+}
+
+int get_type_flag(int index)
+{
+	switch(index)
+	{
+	case 1:
+		return JIT_REG_WORD;
+	case 2:
+		return JIT_REG_LONG;
+	case 3:
+		return JIT_REG_FLOAT32;
+	case 4:
+		return JIT_REG_FLOAT64;
+	case 5:
+		return JIT_REG_NFLOAT;
+	default:
+		return 0;
+	}
+}
+
 static int
 does_local_range_interfere_with(_jit_live_range_t local,
 	_jit_live_range_t other)
@@ -113,10 +176,19 @@ check_interfering(jit_function_t func,
 	int i;
 	int a_is_local;
 	int b_is_local;
+	int a_index;
+	int b_index;
 	jit_block_t block;
 	jit_insn_t start_a, start_b, end_a, end_b;
 
 	if(a->value != 0 && a->value == b->value)
+	{
+		return 0;
+	}
+
+	a_index = get_type_index(a->value);
+	b_index = get_type_index(b->value);
+	if(interference_map[a_index][b_index] == 0)
 	{
 		return 0;
 	}
@@ -269,8 +341,9 @@ _jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
 	_jit_live_range_t *stack)
 {
 	_jit_live_range_t curr;
+	_jit_live_range_t spill_candidate;
+	int type;
 	int pos;
-	int i;
 
 	for(curr = func->live_ranges; curr; curr = curr->func_next)
 	{
@@ -285,57 +358,63 @@ _jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
 
 	for(pos = 0; pos < func->live_range_count; pos++)
 	{
-		i = 0;
 		for(curr = func->live_ranges; curr; curr = curr->func_next)
 		{
+			type = get_type_index(curr->value);
 			if(!curr->on_stack && !curr->is_spilled && !curr->is_fixed
-				&& curr->curr_neighbor_count < JIT_NUM_REGS
-				&& !is_dummy(curr))
+				&& curr->curr_neighbor_count < num_regs[type])
 			{
 				curr->on_stack = 1;
 				stack[pos] = curr;
 				decrement_neighbor_count(func, ranges, curr);
 				break;
 			}
-
-			++i;
 		}
 
-		if(i == func->live_range_count)
+		if(curr)
 		{
-			/* We did not find any live range with less then JIT_NUM_REGS
-			   neighbors. We optimistically push one to the stack
-			   TODO: base this decision on spill cost */
-			i = 0;
-			for(curr = func->live_ranges; curr; curr = curr->func_next)
+			/* We sucessfully added a live range to the stack */
+			continue;
+		}
+
+		/* We did not find any live range with less then JIT_NUM_REGS
+		   neighbors. We optimistically push one to the stack
+		   TODO: base this decision on spill cost */
+		spill_candidate = 0;
+		for(curr = func->live_ranges; curr; curr = curr->func_next)
+		{
+			if(!curr->on_stack && !curr->is_spilled && !curr->is_fixed)
 			{
-				if(!curr->on_stack && !curr->is_spilled && !curr->is_fixed
-					&& !is_dummy(curr))
+				spill_candidate = curr;
+				/* We prefer optimistially push non-dummy live ranges as
+				   spilling dummy ranges usually doesn't help the coloring
+				   problem */
+				if(!is_dummy(curr))
 				{
-#ifdef _JIT_GRAPH_REGALLOC_DEBUG
-					printf("Optimistically pushing ");
-					dump_live_range(func, curr);
-					printf("\n");
-#endif
-					curr->on_stack = 1;
-					stack[pos] = curr;
-					decrement_neighbor_count(func, ranges, curr);
 					break;
 				}
-
-				++i;
-			}
-
-			if(i == func->live_range_count)
-			{
-				break;
 			}
 		}
+
+		if(!spill_candidate)
+		{
+			/* everything is fixed, on stack or spilled already */
+			break;
+		}
+
+#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+		printf("Optimistically pushing ");
+		dump_live_range(func, spill_candidate);
+		printf("\n");
+#endif
+		spill_candidate->on_stack = 1;
+		stack[pos] = spill_candidate;
+		decrement_neighbor_count(func, ranges, spill_candidate);
 	}
 
 	/* Put dummy live ranges on the stack last, ensuring they are colored first
 	   and not spilled (again). */
-	for(curr = func->live_ranges; curr; curr = curr->func_next)
+	/*for(curr = func->live_ranges; curr; curr = curr->func_next)
 	{
 		if(is_dummy(curr))
 		{
@@ -344,7 +423,7 @@ _jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
 			decrement_neighbor_count(func, ranges, curr);
 			++pos;
 		}
-	}
+	}*/
 
 	return pos - 1;
 }
@@ -473,35 +552,6 @@ spill_live_range(jit_function_t func, _jit_live_range_t *ranges,
 	range->is_spilled = 1;
 }
 
-int value_get_type_flag(jit_value_t value)
-{
-	switch(jit_type_remove_tags(value->type)->kind)
-	{
-	case JIT_TYPE_SBYTE:
-	case JIT_TYPE_UBYTE:
-	case JIT_TYPE_SHORT:
-	case JIT_TYPE_USHORT:
-	case JIT_TYPE_INT:
-	case JIT_TYPE_UINT:
-	case JIT_TYPE_NINT:
-	case JIT_TYPE_NUINT:
-	case JIT_TYPE_SIGNATURE:
-	case JIT_TYPE_PTR:
-		return JIT_REG_WORD;
-	case JIT_TYPE_LONG:
-	case JIT_TYPE_ULONG:
-		return JIT_REG_LONG;
-	case JIT_TYPE_FLOAT32:
-		return JIT_REG_FLOAT32;
-	case JIT_TYPE_FLOAT64:
-		return JIT_REG_FLOAT64;
-	case JIT_TYPE_NFLOAT:
-		return JIT_REG_NFLOAT;
-	default:
-		return 0;
-	}
-}
-
 int
 _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 	_jit_live_range_t *stack, int pos)
@@ -527,7 +577,7 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 			}
 		}
 
-		type = value_get_type_flag(curr->value);
+		type = get_type_flag(get_type_index(curr->value));
 		preferred = -1;
 		preferred_score = 0;
 		for(i = 0; i < JIT_NUM_REGS; i++)
@@ -551,7 +601,6 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 
 		if(preferred == -1)
 		{
-			printf("No register found. Used: 0x%x\n", used);
 			spill_live_range(func, ranges, curr);
 			return 0;
 		}
@@ -561,6 +610,35 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 	return 1;
 }
 
+/* This function initializes @var{interference_map} and @var{num_regs} */
+void initialize_type_interference_and_num_regs()
+{
+	int flags;
+	int reg;
+	int i;
+	int j;
+
+	for(reg = 0; reg < JIT_NUM_REGS; reg++)
+	{
+		flags = jit_reg_flags(reg);
+
+		for(i = 0; i < 6; i++)
+		{
+			if(flags & get_type_flag(i))
+			{
+				++num_regs[i];
+
+				for(j = 0; j < 6; j++)
+				{
+					if(flags & get_type_flag(j))
+					{
+						interference_map[i][j] = 1;
+					}
+				}
+			}
+		}
+	}
+}
 void
 _jit_regs_graph_compute_coloring(jit_function_t func)
 {
@@ -574,7 +652,10 @@ _jit_regs_graph_compute_coloring(jit_function_t func)
 	spill_count = -1;
 #endif
 
-
+	if(num_regs[1] == 0)
+	{
+		initialize_type_interference_and_num_regs();
+	}
 
 	i = 0;
 	stack = 0;
