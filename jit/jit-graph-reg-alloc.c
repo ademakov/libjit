@@ -831,8 +831,6 @@ void
 begin_value(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn,
 	short mask, int i, jit_value_t value, _jit_live_range_t range, int is_dest)
 {
-	int reg;
-
 	if((insn->flags & mask) != 0 || value == 0 || regs->descs[i].value == 0)
 	{
 		return;
@@ -841,6 +839,12 @@ begin_value(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn,
 	if(value->is_constant)
 	{
 		/* The value is a constant but required in a register */
+		if(regs->descs[i].reg == -1)
+		{
+			assert(range != 0);
+			regs->descs[i].reg = find_reg_in_colors(range->colors);
+			/* TODO other_reg */
+		}
 		_jit_gen_load_value(gen, regs->descs[i].reg,
 			regs->descs[i].other_reg, value);
 	}
@@ -852,6 +856,7 @@ begin_value(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn,
 		if(regs->descs[i].reg == -1)
 		{
 			regs->descs[i].reg = find_reg_in_colors(range->colors);
+			/* TODO other_reg */
 		}
 
 		if(!is_dest)
