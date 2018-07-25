@@ -22,6 +22,7 @@
 
 #include "jit-internal.h"
 #include "jit-reg-alloc.h"
+#include <assert.h>
 
 /* num_regs[get_type_flags(value)] returns the amount of registers available in
    in the architecture which can hold @var{value} */
@@ -439,6 +440,7 @@ spill_live_range_in_insn(jit_function_t func, jit_block_t block,
 
 	i = func->live_range_count;
 	dummy = _jit_function_create_live_range(func, range->value);
+	dummy->is_spill_range = 1;
 	_jit_bitset_allocate(&dummy->neighbors, func->live_range_count * 3 / 2);
 
 	_jit_insn_list_add(&dummy->ends, block, insn);
@@ -492,16 +494,19 @@ spill_live_range_in_block(jit_function_t func, jit_block_t block,
 	{
 		if(insn->dest_live == range)
 		{
+			/* TODO maybe the instruction supports dest to be in memory */
 			insn->dest_live = spill_live_range_in_insn(func, block,
 				prev, insn, range);
 		}
 		else if(insn->value1_live == range)
 		{
+			/* TODO maybe the instruction supports value1 to be in memory */
 			insn->value1_live = spill_live_range_in_insn(func, block,
 				prev, insn, range);
 		}
 		else if(insn->value2_live == range)
 		{
+			/* TODO maybe the instruction supports value2 to be in memory */
 			insn->value2_live = spill_live_range_in_insn(func, block,
 				prev, insn, range);
 		}
@@ -701,6 +706,8 @@ _jit_regs_graph_compute_coloring(jit_function_t func)
 	jit_free(stack);
 	jit_free(ranges);
 
+	func->registers_graph_allocated = 1;
+
 #ifdef _JIT_GRAPH_REGALLOC_DEBUG
 	printf("Register allocation finished after %d spills\n", spill_count);
 	printf("Registers:\n");
@@ -728,4 +735,183 @@ _jit_regs_graph_compute_coloring(jit_function_t func)
 	}
 	printf("\n");
 #endif
+}
+
+int find_reg_in_colors(jit_ulong colors)
+{
+	int i;
+	for(i = 0; i < JIT_NUM_REGS; i++)
+	{
+		if(colors & (1 << i))
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+/* Initialize in_register and reg fields of each value */
+void
+_jit_regs_graph_init_for_block(jit_gencode_t gen, jit_function_t func,
+	jit_block_t block)
+{
+	_jit_live_range_t curr;
+	jit_value_t value;
+	int i;
+	jit_pool_block_t memblock = func->builder->value_pool.blocks;
+	int num = (int)(func->builder->value_pool.elems_per_block);
+
+	while(memblock != 0)
+	{
+		if(!(memblock->next))
+		{
+			num = (int)(func->builder->value_pool.elems_in_last);
+		}
+
+		for(i = 0; i < num; ++i)
+		{
+			value = (jit_value_t)(memblock->data + i * sizeof(struct _jit_value));
+			value->in_register = 0;
+			value->in_global_register = 0;
+
+			if(!value->is_constant)
+			{
+				for(curr = value->live_ranges; curr; curr = curr->value_next)
+				{
+					if(_jit_bitset_test_bit(&curr->touched_block_starts,
+						block->index)
+						&& !curr->is_spilled)
+					{
+						value->in_register = 1;
+						value->reg = find_reg_in_colors(curr->colors);
+						break;
+					}
+				}
+			}
+		}
+		memblock = memblock->next;
+	}
+}
+
+void
+init_value_for_insn(jit_gencode_t gen, jit_insn_t insn,
+	short mask, jit_value_t value, _jit_live_range_t range)
+{
+	if((insn->flags & mask) != 0 || value == 0 || value->is_constant)
+	{
+		return;
+	}
+
+	if(!range->is_spill_range)
+	{
+		value->in_register = 1;
+		value->reg = find_reg_in_colors(range->colors);
+	}
+}
+/* Set in_register and reg fields for values used in @var{insn} */
+void
+_jit_regs_graph_init_for_insn(jit_gencode_t gen, jit_function_t func,
+	jit_insn_t insn)
+{
+	if(insn->opcode == JIT_OP_NOP)
+	{
+		return;
+	}
+
+	init_value_for_insn(gen, insn, JIT_INSN_DEST_OTHER_FLAGS,
+		insn->dest, insn->dest_live);
+	init_value_for_insn(gen, insn, JIT_INSN_VALUE1_OTHER_FLAGS,
+		insn->value1, insn->value1_live);
+	init_value_for_insn(gen, insn, JIT_INSN_VALUE2_OTHER_FLAGS,
+		insn->value2, insn->value2_live);
+}
+
+void
+begin_value(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn,
+	short mask, int i, jit_value_t value, _jit_live_range_t range, int is_dest)
+{
+	int reg;
+
+	if((insn->flags & mask) != 0 || value == 0 || regs->descs[i].value == 0)
+	{
+		return;
+	}
+
+	if(value->is_constant)
+	{
+		/* The value is a constant but required in a register */
+		_jit_gen_load_value(gen, regs->descs[i].reg,
+			regs->descs[i].other_reg, value);
+	}
+	else if(!value->in_register)
+	{
+		/* The range was spilled, we need to load the value */
+		assert(range != 0 && range->is_spill_range);
+
+		if(regs->descs[i].reg == -1)
+		{
+			regs->descs[i].reg = find_reg_in_colors(range->colors);
+		}
+
+		if(!is_dest)
+		{
+			_jit_gen_load_value(gen, regs->descs[i].reg,
+				regs->descs[i].other_reg, value);
+		}
+	}
+	else
+	{
+		/* The value is already in a register */
+		if(regs->descs[i].reg == -1)
+		{
+			regs->descs[i].reg = value->reg;
+		}
+		else if(regs->descs[i].reg != value->reg)
+		{
+			_jit_gen_load_value(gen, regs->descs[i].reg,
+				regs->descs[i].other_reg, value);
+		}
+	}
+}
+void
+_jit_regs_graph_begin(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn)
+{
+	_jit_live_range_t curr;
+	int reg;
+	int i;
+
+	begin_value(gen, regs, insn, JIT_INSN_DEST_OTHER_FLAGS,
+		0, insn->dest, insn->dest_live,
+		(insn->flags & JIT_INSN_DEST_IS_VALUE) == 0);
+	begin_value(gen, regs, insn, JIT_INSN_VALUE1_OTHER_FLAGS,
+		1, insn->value1, insn->value1_live, 0);
+	begin_value(gen, regs, insn, JIT_INSN_VALUE2_OTHER_FLAGS,
+		2, insn->value2, insn->value2_live, 0);
+
+	curr = insn->scratch_live;
+	for(i = regs->num_scratch - 1; i >= 0; i--)
+	{
+		reg = find_reg_in_colors(curr->colors);
+		assert(regs->scratch[i].reg == -1 || regs->scratch[i].reg == reg);
+		regs->scratch[i].reg = reg;
+
+		curr = curr->value_next;
+	}
+}
+
+void
+_jit_regs_graph_commit(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn)
+{
+	if((insn->flags & JIT_INSN_DEST_OTHER_FLAGS) == 0
+		&& (insn->flags & JIT_INSN_DEST_IS_VALUE) == 0
+		&& insn->dest != 0
+		&& insn->dest_live != 0
+		&& insn->dest_live->is_spill_range)
+	{
+		/* The instruction wrote to dest, which is a spilled value. We need to
+		   save it from it's temporary register back to memory */
+		_jit_gen_spill_reg(gen, regs->descs[0].reg, regs->descs[0].other_reg,
+			insn->dest);
+	}
 }

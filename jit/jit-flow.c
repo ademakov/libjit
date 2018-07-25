@@ -599,28 +599,12 @@ _jit_function_compute_live_ranges(jit_function_t func)
 	}
 }
 
-void create_dummy_live_range(jit_function_t func, jit_block_t block,
-	jit_insn_t prev, jit_insn_t curr,
-	jit_value_t value, unsigned is_fixed, jit_nuint color)
+_jit_live_range_t
+create_dummy_live_range(jit_function_t func, jit_block_t block,
+	jit_insn_t prev, jit_insn_t curr, jit_value_t value)
 {
 	_jit_live_range_t range;
-	int i;
-
 	range = _jit_function_create_live_range(func, value);
-	range->is_fixed = is_fixed;
-	range->colors = color;
-
-	if(is_fixed)
-	{
-		range->register_count = 0;
-		for(i = 0; i < JIT_NUM_REGS; i++)
-		{
-			if(color & (1 << i))
-			{
-				++range->register_count;
-			}
-		}
-	}
 
 	_jit_insn_list_add(&range->ends, block, curr);
 	if(prev == 0)
@@ -631,8 +615,42 @@ void create_dummy_live_range(jit_function_t func, jit_block_t block,
 	{
 		_jit_insn_list_add(&range->starts, block, prev);
 	}
+
+	return range;
 }
-void increment_preferred_color(jit_function_t func, jit_block_t block,
+void
+create_fixed_live_range(jit_function_t func, jit_block_t block,
+	jit_insn_t prev, jit_insn_t curr,
+	jit_value_t value, jit_ulong colors)
+{
+	_jit_live_range_t range;
+	int i;
+
+	range = create_dummy_live_range(func, block, prev, curr, 0);
+	range->is_fixed = 1;
+	range->colors = colors;
+
+	range->register_count = 0;
+	for(i = 0; i < JIT_NUM_REGS; i++)
+	{
+		if(colors & (1 << i))
+		{
+			++range->register_count;
+		}
+	}
+}
+void
+create_scratch_live_range(jit_function_t func, jit_block_t block,
+	jit_insn_t prev, jit_insn_t curr)
+{
+	_jit_live_range_t range;
+	range = create_dummy_live_range(func, block, prev, curr, 0);
+	range->value_next = curr->scratch_live;
+	curr->scratch_live = range;
+}
+
+void
+increment_preferred_color(jit_function_t func, jit_block_t block,
 	jit_insn_t insn, _jit_live_range_t range, int reg)
 {
 	if(range == 0
@@ -650,8 +668,7 @@ void increment_preferred_color(jit_function_t func, jit_block_t block,
 
 	/* Create a dummy range which reserves the register in case @var{range} gets
 	   colored with a different register */
-	create_dummy_live_range(func, block, 0, insn,
-		range->value, 1, (1 << reg));
+	create_fixed_live_range(func, block, 0, insn, range->value, (1 << reg));
 }
 
 void
@@ -664,7 +681,7 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 	_jit_regclass_t *regclass;
 	int i;
 	int j;
-	jit_nuint color;
+	jit_ulong colors;
 
 	struct
 	{
@@ -715,21 +732,20 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 			{
 				for(j = regmap.unnamed[i]; j > 0; j--)
 				{
-					create_dummy_live_range(func, block, prev, insn,
-						0, 0, 0);
+					create_scratch_live_range(func, block, prev, insn);
 				}
 			}
 
 			/* create tiny live ranges for clobbered values */
 			if(regmap.clobber != 0)
 			{
-				create_dummy_live_range(func, block, 0, insn,
-					0, 1, regmap.clobber);
+				create_fixed_live_range(func, block, prev, insn,
+					0, regmap.clobber);
 			}
 			if(regmap.early_clobber != 0)
 			{
-				create_dummy_live_range(func, block, prev, insn,
-					0, 1, regmap.early_clobber);
+				create_fixed_live_range(func, block, prev, insn,
+					0, regmap.early_clobber);
 			}
 			if(regmap.clobbered_classes != 0)
 			{
@@ -746,15 +762,15 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 						continue;
 					}
 
-					color = 0;
+					colors = 0;
 					for(j = 0; j < regclass->num_regs; j++)
 					{
-						color |= 1 << regclass->regs[j];
+						colors |= 1 << regclass->regs[j];
 					}
 				}
 
-				create_dummy_live_range(func, block, 0, insn,
-					0, 1, color);
+				create_fixed_live_range(func, block, prev, insn,
+					0, colors);
 			}
 
 			increment_preferred_color(func, block, insn,

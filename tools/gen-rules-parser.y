@@ -1630,7 +1630,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 
 			if(contains_registers)
 			{
-				printf("\t\t_jit_regs_begin(gen, &regs, ");
+				printf("\t\t_jit_regs_begin(gen, &regs, insn, ");
 			}
 			else
 			{
@@ -1740,7 +1740,7 @@ static void gensel_output_clauses(gensel_clause_t clauses, gensel_option_t optio
 		}
 		if(contains_registers)
 		{
-			printf("\t\t_jit_regs_commit(gen, &regs);\n");
+			printf("\t\t_jit_regs_commit(gen, &regs, insn);\n");
 		}
 
 		printf("#endif\n\t}\n");

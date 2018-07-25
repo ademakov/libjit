@@ -169,6 +169,7 @@ struct jit_gencode
 	jit_regused_t		inhibit;	/* Temporarily inhibited registers */
 	jit_regcontents_t	contents[JIT_NUM_REGS]; /* Contents of each register */
 	int			current_age;	/* Current age value for registers */
+	unsigned		graph_allocated : 1; /* Registers are pre allocated */
 #ifdef JIT_REG_STACK
 	int			reg_stack_top;	/* Current register stack top */
 #endif

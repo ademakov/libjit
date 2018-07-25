@@ -350,6 +350,9 @@ struct _jit_live_range
 	/* The live range was spilled and replaced by (multiple) smaller ones */
 	unsigned is_spilled : 1;
 
+	/* The live range is a tiny range created when spilling another */
+	unsigned is_spill_range : 1;
+
 	/* Next live range of @var{value} */
 	_jit_live_range_t value_next;
 
@@ -439,6 +442,7 @@ struct _jit_insn
 	_jit_live_range_t dest_live;
 	_jit_live_range_t value1_live;
 	_jit_live_range_t value2_live;
+	_jit_live_range_t scratch_live;
 };
 
 /*
@@ -617,6 +621,7 @@ struct _jit_function
 	unsigned		no_return : 1;
 	unsigned		has_try : 1;
 	unsigned		computed_liveness : 1;
+	unsigned		registers_graph_allocated : 1;
 	unsigned		optimization_level : 8;
 
 	/* Flag set once the function is compiled */

@@ -229,6 +229,11 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 		printf("\nStart of binary code: 0x%08x\n", p1);
 #endif
 
+		if(gen->graph_allocated)
+		{
+			_jit_regs_graph_init_for_insn(gen, func, insn);
+		}
+
 		switch(insn->opcode)
 		{
 		case JIT_OP_NOP:
@@ -653,7 +658,10 @@ codegen_prepare(_jit_compile_t *state)
 
 	/* Allocate global registers to variables within the function */
 #ifndef JIT_BACKEND_INTERP
-	_jit_regs_alloc_global(&state->gen, state->func);
+	if(!state->func->registers_graph_allocated)
+	{
+		_jit_regs_alloc_global(&state->gen, state->func);
+	}
 #endif
 }
 
@@ -671,6 +679,8 @@ codegen(_jit_compile_t *state)
 	   the available space start - gen->start) */
 	gen->code_start = gen->ptr;
 
+	gen->graph_allocated = func->registers_graph_allocated;
+
 #ifdef JIT_PROLOG_SIZE
 	/* Output space for the function prolog */
 	_jit_gen_check_space(gen, JIT_PROLOG_SIZE);
@@ -685,16 +695,27 @@ codegen(_jit_compile_t *state)
 		_jit_gen_start_block(gen, block);
 
 #ifndef JIT_BACKEND_INTERP
-		/* Clear the local register assignments */
-		_jit_regs_init_for_block(gen);
+		if(gen->graph_allocated)
+		{
+			/* Initialize register assignments */
+			_jit_regs_graph_init_for_block(gen, func, block);
+		}
+		else
+		{
+			/* Clear the local register assignments */
+			_jit_regs_init_for_block(gen);
+		}
 #endif
 
 		/* Generate the block's code */
 		compile_block(gen, func, block);
 
 #ifndef JIT_BACKEND_INTERP
-		/* Spill all live register values back to their frame positions */
-		_jit_regs_spill_all(gen);
+		if(!gen->graph_allocated)
+		{
+			/* Spill all live register values back to their frame positions */
+			_jit_regs_spill_all(gen);
+		}
 #endif
 
 		/* Notify the back end that the block is finished */
