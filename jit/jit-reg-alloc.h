@@ -191,6 +191,8 @@ void _jit_regs_graph_begin(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn
 void _jit_regs_graph_commit(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn);
 void _jit_regs_graph_init_for_block(jit_gencode_t gen, jit_function_t func, jit_block_t block);
 void _jit_regs_graph_init_for_insn(jit_gencode_t gen, jit_function_t func, jit_insn_t insn);
+void _jit_regs_graph_set_incoming(jit_gencode_t gen, int reg, jit_value_t value);
+void _jit_regs_graph_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value);
 
 #ifdef	__cplusplus
 };

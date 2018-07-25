@@ -187,11 +187,14 @@ check_interfering(jit_function_t func,
 		return 0;
 	}
 
-	a_index = get_type_index(a->value);
-	b_index = get_type_index(b->value);
-	if(interference_map[a_index][b_index] == 0)
+	if(a->value && b->value)
 	{
-		return 0;
+		a_index = get_type_index(a->value);
+		b_index = get_type_index(b->value);
+		if(interference_map[a_index][b_index] == 0)
+		{
+			return 0;
+		}
 	}
 
 	if(_jit_bitset_test(&a->touched_block_starts, &b->touched_block_starts)
@@ -827,6 +830,13 @@ _jit_regs_graph_init_for_insn(jit_gencode_t gen, jit_function_t func,
 		insn->value2, insn->value2_live);
 }
 
+int
+same_reg(jit_value_t a, jit_value_t b)
+{
+	return a && b
+		&& a->in_register && b->in_register
+		&& a->reg == b->reg;
+}
 void
 begin_value(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn,
 	short mask, int i, jit_value_t value, _jit_live_range_t range, int is_dest)
@@ -894,6 +904,28 @@ _jit_regs_graph_begin(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn)
 	begin_value(gen, regs, insn, JIT_INSN_VALUE2_OTHER_FLAGS,
 		2, insn->value2, insn->value2_live, 0);
 
+	/* TODO regs->free_dest */
+	if(regs->commutative)
+	{
+		if(same_reg(insn->dest, insn->value1))
+		{
+		}
+		else if(same_reg(insn->dest, insn->value2))
+		{
+			regs->descs[1].reg = regs->descs[2].reg;
+			regs->descs[1].other_reg = regs->descs[2].other_reg;
+		}
+		else
+		{
+			_jit_gen_load_value(gen, regs->descs[0].reg,
+				regs->descs[0].other_reg, insn->value1);
+
+			regs->descs[0].reg = regs->descs[1].reg;
+			regs->descs[0].other_reg = regs->descs[1].other_reg;
+		}
+	}
+	/* TODO regs->copy */
+
 	curr = insn->scratch_live;
 	for(i = regs->num_scratch - 1; i >= 0; i--)
 	{
@@ -918,5 +950,32 @@ _jit_regs_graph_commit(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn)
 		   save it from it's temporary register back to memory */
 		_jit_gen_spill_reg(gen, regs->descs[0].reg, regs->descs[0].other_reg,
 			insn->dest);
+	}
+}
+
+void
+_jit_regs_graph_set_incoming(jit_gencode_t gen, int reg, jit_value_t value)
+{
+	int tmp;
+
+	if(!value->in_register)
+	{
+		_jit_gen_spill_reg(gen, reg, -1, value);
+	}
+	else if(value->reg != reg)
+	{
+		tmp = value->reg;
+		value->reg = reg;
+		_jit_gen_load_value(gen, tmp, -1, value);
+		value->reg = tmp;
+	}
+}
+
+void
+_jit_regs_graph_set_outgoing(jit_gencode_t gen, int reg, jit_value_t value)
+{
+	if(!value->in_register || value->reg != reg)
+	{
+		_jit_gen_load_value(gen, reg, -1, value);
 	}
 }

@@ -556,6 +556,8 @@ _jit_function_compute_live_ranges(jit_function_t func)
 	jit_insn_iter_t iter;
 	jit_insn_t insn;
 	int flags;
+	int i;
+	int num_params;
 
 	for(block = func->builder->entry_block; block; block = block->next)
 	{
@@ -597,6 +599,15 @@ _jit_function_compute_live_ranges(jit_function_t func)
 			}
 		}
 	}
+
+	block = func->builder->entry_block;
+	jit_insn_iter_init(&iter, block);
+	insn = jit_insn_iter_next(&iter);
+	num_params = jit_type_num_params(func->signature);
+	for(i = 0; i < num_params; i++)
+	{
+		handle_live_range_start(block, insn, func->builder->param_values[i]);
+	}
 }
 
 _jit_live_range_t
@@ -626,7 +637,7 @@ create_fixed_live_range(jit_function_t func, jit_block_t block,
 	_jit_live_range_t range;
 	int i;
 
-	range = create_dummy_live_range(func, block, prev, curr, 0);
+	range = create_dummy_live_range(func, block, prev, curr, value);
 	range->is_fixed = 1;
 	range->colors = colors;
 
@@ -689,22 +700,24 @@ handle_constant_in_reg(jit_function_t func, jit_block_t block,
 {
 	int colors;
 
-	if(value != 0 && value->is_constant && reg != _JIT_REG_USAGE_UNNUSED)
+	if(reg == _JIT_REG_USAGE_UNNUSED || value == 0 || !value->is_constant)
 	{
-		if(reg == _JIT_REG_USAGE_UNNAMED)
+		return;
+	}
+
+	if(reg == _JIT_REG_USAGE_UNNAMED)
+	{
+		*out = create_dummy_live_range(func, block, 0, insn, value);
+	}
+	else
+	{
+		colors = 1 << reg;
+		if(reg_other != _JIT_REG_USAGE_UNNUSED)
 		{
-			*out = create_dummy_live_range(func, block, 0, insn, value);
+			assert(reg_other != _JIT_REG_USAGE_UNNAMED);
+			colors |= 1 << reg_other;
 		}
-		else
-		{
-			colors = 1 << reg;
-			if(reg_other != _JIT_REG_USAGE_UNNUSED)
-			{
-				assert(reg_other != _JIT_REG_USAGE_UNNAMED);
-				colors |= 1 << reg_other;
-			}
-			*out = create_fixed_live_range(func, block, 0, insn, value, colors);
-		}
+		*out = create_fixed_live_range(func, block, 0, insn, value, colors);
 	}
 }
 
@@ -744,6 +757,37 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 			if(insn->opcode == JIT_OP_NOP)
 			{
 				continue;
+			}
+
+			/* Handle opcode specialities */
+			switch(insn->opcode)
+			{
+			case JIT_OP_CALL:
+			case JIT_OP_CALL_TAIL:
+			case JIT_OP_CALL_INDIRECT:
+			case JIT_OP_CALL_INDIRECT_TAIL:
+			case JIT_OP_CALL_VTABLE_PTR:
+			case JIT_OP_CALL_VTABLE_PTR_TAIL:
+			case JIT_OP_CALL_EXTERNAL:
+			case JIT_OP_CALL_EXTERNAL_TAIL:
+				colors = 0;
+				for(i = 0; i < JIT_NUM_REGS; i++)
+				{
+					if((jit_reg_flags(i) & JIT_REG_GLOBAL) == 0)
+					{
+						colors |= 1 << i;
+					}
+				}
+				create_fixed_live_range(func, block, 0, insn, 0, colors);
+				break;
+
+			case JIT_OP_INCOMING_REG:
+			case JIT_OP_OUTGOING_REG:
+			case JIT_OP_RETURN_REG:
+				increment_preferred_color(func, block, insn, insn->value1_live,
+					(int)jit_value_get_nint_constant(insn->value2),
+					_JIT_REG_USAGE_UNNUSED);
+				break;
 			}
 
 			memset(&regmap, 0, sizeof(regmap));

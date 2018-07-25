@@ -257,21 +257,40 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 		case JIT_OP_CALL_VTABLE_PTR_TAIL:
 		case JIT_OP_CALL_EXTERNAL:
 		case JIT_OP_CALL_EXTERNAL_TAIL:
-			/* Spill all caller-saved registers before a call */
-			_jit_regs_spill_all(gen);
-			/* Generate code for the instruction with the back end */
-			_jit_gen_insn(gen, func, block, insn);
-			/* Free outgoing registers if any */
-			_jit_regs_clear_all_outgoing(gen);
+			if(gen->graph_allocated)
+			{
+				/* Generate code for the instruction with the back end */
+				_jit_gen_insn(gen, func, block, insn);
+			}
+			else
+			{
+				/* Spill all caller-saved registers before a call */
+				_jit_regs_spill_all(gen);
+				/* Generate code for the instruction with the back end */
+				_jit_gen_insn(gen, func, block, insn);
+				/* Free outgoing registers if any */
+				_jit_regs_clear_all_outgoing(gen);
+			}
 			break;
 #endif
 
 #ifndef JIT_BACKEND_INTERP
 		case JIT_OP_INCOMING_REG:
-			/* Assign a register to an incoming value */
-			_jit_regs_set_incoming(gen,
-					       (int)jit_value_get_nint_constant(insn->value2),
-					       insn->value1);
+			if(gen->graph_allocated)
+			{
+				/* If value1 is not colored with the correct register, move the
+				   incoming register to value1s color */
+				_jit_regs_graph_set_incoming(gen,
+					(int)jit_value_get_nint_constant(insn->value2),
+					insn->value1);
+			}
+			else
+			{
+				/* Assign a register to an incoming value */
+				_jit_regs_set_incoming(gen,
+					(int)jit_value_get_nint_constant(insn->value2),
+					insn->value1);
+			}
 			/* Generate code for the instruction with the back end */
 			_jit_gen_insn(gen, func, block, insn);
 			break;
@@ -295,10 +314,21 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 
 #ifndef JIT_BACKEND_INTERP
 		case JIT_OP_OUTGOING_REG:
-			/* Copy a value into an outgoing register */
-			_jit_regs_set_outgoing(gen,
-					       (int)jit_value_get_nint_constant(insn->value2),
-					       insn->value1);
+			if(gen->graph_allocated)
+			{
+				/* If value1 is not coloured with tie correct register move
+				   the value from value1 to the register */
+				_jit_regs_graph_set_outgoing(gen,
+					(int)jit_value_get_nint_constant(insn->value2),
+					insn->value1);
+			}
+			else
+			{
+				/* Copy a value into an outgoing register */
+				_jit_regs_set_outgoing(gen,
+					(int)jit_value_get_nint_constant(insn->value2),
+					insn->value1);
+			}
 			break;
 #endif
 
@@ -314,10 +344,21 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 
 #ifndef JIT_BACKEND_INTERP
 		case JIT_OP_RETURN_REG:
-			/* Assign a register to a return value */
-			_jit_regs_set_incoming(gen,
-					       (int)jit_value_get_nint_constant(insn->value2),
-					       insn->value1);
+			if(gen->graph_allocated)
+			{
+				/* If value1 is not colored with the correct register, move the
+				   incoming register to value1s color */
+				_jit_regs_graph_set_incoming(gen,
+					(int)jit_value_get_nint_constant(insn->value2),
+					insn->value1);
+			}
+			else
+			{
+				/* Assign a register to a return value */
+				_jit_regs_set_incoming(gen,
+					(int)jit_value_get_nint_constant(insn->value2),
+					insn->value1);
+			}
 			/* Generate code for the instruction with the back end */
 			_jit_gen_insn(gen, func, block, insn);
 			break;
