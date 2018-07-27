@@ -766,6 +766,7 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 		int dest_other;
 		int value1_other;
 		int value2_other;
+		unsigned flags;
 		unsigned unnamed[JIT_NUM_REG_CLASSES];
 	} regmap;
 
@@ -889,6 +890,8 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 				regmap.value1, regmap.value1_other, &insn->value1_live);
 			handle_constant_in_reg(func, block, insn, insn->value2,
 				regmap.value2, regmap.value2_other, &insn->value2_live);
+
+			insn->flags |= regmap.flags;
 
 			prev = insn;
 		}

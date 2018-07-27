@@ -136,6 +136,15 @@ int get_type_flag(int index)
 }
 
 static int
+do_dest_and_value2_interfere(jit_insn_t insn,
+	_jit_live_range_t starting, _jit_live_range_t ending)
+{
+	return (insn->flags & JIT_INSN_DEST_INTERFERES_VALUE2)
+		&& insn->dest_live == starting
+		&& insn->value2_live == ending;
+}
+
+static int
 does_local_range_interfere_with(_jit_live_range_t local,
 	_jit_live_range_t other)
 {
@@ -161,11 +170,21 @@ does_local_range_interfere_with(_jit_live_range_t local,
 		{
 			return 1;
 		}
+		if(insn == local->starts->insn
+			&& do_dest_and_value2_interfere(insn, local, other))
+		{
+			return 1;
+		}
 	}
 	if(touches_end)
 	{
 		insn = _jit_insn_list_get_insn_from_block(other->starts, block);
 		if(insn != 0 && insn < local->ends->insn)
+		{
+			return 1;
+		}
+		if(insn == local->ends->insn
+			&& do_dest_and_value2_interfere(insn, other, local))
 		{
 			return 1;
 		}
@@ -226,6 +245,16 @@ check_interfering(jit_function_t func,
 			return 1;
 		}
 		if(start_b >= start_a && start_b < end_a)
+		{
+			return 1;
+		}
+		if(start_a == end_b
+			&& do_dest_and_value2_interfere(start_a, a, b))
+		{
+			return 1;
+		}
+		if(start_b == end_a
+			&& do_dest_and_value2_interfere(start_b, b, a))
 		{
 			return 1;
 		}
@@ -501,21 +530,39 @@ spill_live_range_in_block(jit_function_t func, jit_block_t block,
 	{
 		if(insn->dest_live == range)
 		{
-			/* TODO maybe the instruction supports dest to be in memory */
-			insn->dest_live = spill_live_range_in_insn(func, block,
-				prev, insn, range);
+			if(insn->flags & JIT_INSN_DEST_CAN_BE_MEM)
+			{
+				insn->dest_live = 0;
+			}
+			else
+			{
+				insn->dest_live = spill_live_range_in_insn(func, block,
+					prev, insn, range);
+			}
 		}
 		else if(insn->value1_live == range)
 		{
-			/* TODO maybe the instruction supports value1 to be in memory */
-			insn->value1_live = spill_live_range_in_insn(func, block,
-				prev, insn, range);
+			if(insn->flags & JIT_INSN_VALUE1_CAN_BE_MEM)
+			{
+				insn->value1_live = 0;
+			}
+			else
+			{
+				insn->value1_live = spill_live_range_in_insn(func, block,
+					prev, insn, range);
+			}
 		}
 		else if(insn->value2_live == range)
 		{
-			/* TODO maybe the instruction supports value2 to be in memory */
-			insn->value2_live = spill_live_range_in_insn(func, block,
-				prev, insn, range);
+			if(insn->flags & JIT_INSN_VALUE2_CAN_BE_MEM)
+			{
+				insn->value2_live = 0;
+			}
+			else
+			{
+				insn->value2_live = spill_live_range_in_insn(func, block,
+					prev, insn, range);
+			}
 		}
 
 		prev = insn;
@@ -821,10 +868,15 @@ init_value_for_insn(jit_gencode_t gen, jit_insn_t insn,
 		return;
 	}
 
-	if(!range->is_spill_range)
+
+	if(range != 0 && !range->is_spill_range)
 	{
 		value->in_register = 1;
 		value->reg = find_reg_in_colors(range->colors);
+	}
+	else
+	{
+		value->in_register = 0;
 	}
 }
 /* Set in_register and reg fields for values used in @var{insn} */

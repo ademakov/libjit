@@ -671,24 +671,6 @@ gensel_contains_registers(gensel_option_t pattern)
 }
 
 /*
- * Check if the pattern contains any local.
- */
-static int
-gensel_contains_local(gensel_option_t pattern)
-{
-	while(pattern)
-	{
-		switch(pattern->option)
-		{
-		case GENSEL_PATT_LOCAL:
-			return 1;
-		}
-		pattern = pattern->next;
-	}
-	return 0;
-}
-
-/*
  * Returns first register in the pattern if any.
  */
 static gensel_option_t
@@ -1674,6 +1656,7 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 	char *args[MAX_INPUT];
 	char *names[MAX_PATTERN];
 	char *other_names[MAX_PATTERN];
+	char *arg;
 	gensel_option_t pattern;
 	gensel_value_t values;
 	gensel_regclass_t regclass;
@@ -1685,16 +1668,64 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 	int regclass_index;
 	int clobbered_classes;
 	unsigned *unnamed_counts;
+	unsigned can_be_in_mem[3];
+	unsigned has_local;
 
 	is_first = 1;
 	ternary = (0 != gensel_search_option(options, GENSEL_OPT_TERNARY));
 	unnamed_counts = calloc(gensel_regclass_count, sizeof(unsigned));
 
+	can_be_in_mem[0] = 0;
+	can_be_in_mem[1] = 0;
+	can_be_in_mem[2] = 0;
+
 	for(; clause; clause = clause->next)
 	{
-		if(gensel_contains_local(clause->pattern))
+		free_dest = clause->dest;
+
+		index = 0;
+		has_local = 0;
+		for(pattern = clause->pattern; pattern; pattern = pattern->next)
 		{
-			/* TODO mark values which can be in memory */
+			switch(pattern->option)
+			{
+			case GENSEL_PATT_LOCAL:
+				has_local = 1;
+				if(ternary || free_dest)
+				{
+					if(index < 3)
+					{
+						can_be_in_mem[index] = 1;
+					}
+				}
+				else
+				{
+					if(index < 2)
+					{
+						can_be_in_mem[index + 1] = 1;
+					}
+				}
+
+				++index;
+				break;
+
+			case GENSEL_PATT_ANY:
+			case GENSEL_PATT_REG:
+			case GENSEL_PATT_LREG:
+			case GENSEL_PATT_IMM:
+			case GENSEL_PATT_IMMS8:
+			case GENSEL_PATT_IMMU8:
+			case GENSEL_PATT_IMMS16:
+			case GENSEL_PATT_IMMU16:
+			case GENSEL_PATT_IMMS32:
+			case GENSEL_PATT_IMMU32:
+				++index;
+				break;
+			}
+		}
+
+		if(has_local)
+		{
 			if(!clause->next)
 			{
 				gensel_error(clause->filename, clause->linenum,
@@ -1723,7 +1754,6 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 
 			is_first = 0;
 
-			free_dest = clause->dest;
 			gensel_build_arg_index(clause->pattern, 3, args, 0,
 				ternary, free_dest);
 
@@ -1865,6 +1895,16 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 			{
 				switch(pattern->option)
 				{
+				case GENSEL_PATT_IMM:
+				case GENSEL_PATT_IMMS8:
+				case GENSEL_PATT_IMMU8:
+				case GENSEL_PATT_IMMS16:
+				case GENSEL_PATT_IMMU16:
+				case GENSEL_PATT_IMMS32:
+				case GENSEL_PATT_IMMU32:
+					++index;
+					break;
+
 				case GENSEL_PATT_REG:
 				case GENSEL_PATT_LREG:
 					regclass = pattern->values->value;
@@ -2002,6 +2042,61 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 			{
 				printf("\t\tregmap.clobbered_classes = 0x%x;\n", clobbered_classes);
 			}
+
+			printf("\t\tregmap.flags = ");
+			is_first = 1;
+			for(index = 0; index < 3; index++)
+			{
+				if(can_be_in_mem[index])
+				{
+					if(is_first)
+					{
+						is_first = 0;
+					}
+					else
+					{
+						printf(" | ");
+					}
+
+					arg = gensel_string_upper(gensel_args[index]);
+					printf("JIT_INSN_%s_CAN_BE_MEM", arg);
+					free(arg);
+
+					can_be_in_mem[index] = 0;
+				}
+			}
+
+			if(gensel_search_option(options, GENSEL_OPT_COMMUTATIVE))
+			{
+				if(is_first)
+				{
+					is_first = 0;
+				}
+				else
+				{
+					printf(" | ");
+				}
+				printf("JIT_INSN_COMMUTATIVE");
+			}
+			else if(!ternary && !free_dest)
+			{
+				if(is_first)
+				{
+					is_first = 0;
+				}
+				else
+				{
+					printf(" | ");
+				}
+				printf("JIT_INSN_DEST_INTERFERES_VALUE2");
+			}
+
+
+			if(is_first)
+			{
+				printf("0");
+			}
+			printf(";\n");
 
 			printf("\t}\n");
 		}
