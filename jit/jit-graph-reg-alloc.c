@@ -150,6 +150,10 @@ does_local_range_interfere_with(_jit_live_range_t local,
 	touches_end = _jit_bitset_test_bit(&other->touched_block_ends,
 		block->index);
 
+	if(touches_start && touches_end)
+	{
+		return 1;
+	}
 	if(touches_start)
 	{
 		insn = _jit_insn_list_get_insn_from_block(other->ends, block);
@@ -568,6 +572,9 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 	jit_nuint used;
 	jit_ushort preferred_score;
 	int preferred;
+	int preferred_is_global;
+	int is_global;
+	int flags;
 	int type;
 	int i;
 
@@ -588,14 +595,22 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 		type = get_type_flag(get_type_index(curr->value));
 		preferred = -1;
 		preferred_score = 0;
+		preferred_is_global = 0;
 		for(i = 0; i < JIT_NUM_REGS; i++)
 		{
-			if((curr->preferred_colors == 0
-				|| curr->preferred_colors[i] >= preferred_score)
-				&& ((1 << i) & used) == 0
-				&& (jit_reg_flags(i) & type) != 0)
+			flags = jit_reg_flags(i);
+			is_global = (flags & JIT_REG_GLOBAL) != 0;
+			if(((1 << i) & used) == 0
+				&& (flags & type) != 0
+				&& (curr->preferred_colors == 0
+					|| curr->preferred_colors[i] >= preferred_score)
+				&& (preferred == -1
+					|| (curr->preferred_colors != 0
+						&& curr->preferred_colors[i] >= preferred_score)
+					|| (preferred_is_global && !is_global)))
 			{
 				preferred = i;
+				preferred_is_global = is_global;
 				if(curr->preferred_colors)
 				{
 					preferred_score = curr->preferred_colors[i];
@@ -831,11 +846,11 @@ _jit_regs_graph_init_for_insn(jit_gencode_t gen, jit_function_t func,
 }
 
 int
-same_reg(jit_value_t a, jit_value_t b)
+same_reg(_jit_regs_t *regs, int a, int b)
 {
-	return a && b
-		&& a->in_register && b->in_register
-		&& a->reg == b->reg;
+	return regs->descs[a].value && regs->descs[b].value
+		&& regs->descs[a].reg == regs->descs[b].reg
+		&& regs->descs[a].other_reg == regs->descs[b].other_reg;
 }
 void
 begin_value(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn,
@@ -904,27 +919,35 @@ _jit_regs_graph_begin(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn)
 	begin_value(gen, regs, insn, JIT_INSN_VALUE2_OTHER_FLAGS,
 		2, insn->value2, insn->value2_live, 0);
 
-	/* TODO regs->free_dest */
-	if(regs->commutative)
+	if(!regs->ternary && !regs->free_dest)
 	{
-		if(same_reg(insn->dest, insn->value1))
+		/* The instruction outputs to regs->descs[1] */
+
+		if(same_reg(regs, 0, 1))
 		{
+			/* The values are already in the correct registers */
 		}
-		else if(same_reg(insn->dest, insn->value2))
+		else if(same_reg(regs, 0, 2))
 		{
+			assert(regs->commutative);
+
+			reg = regs->descs[1].reg;
 			regs->descs[1].reg = regs->descs[2].reg;
+			regs->descs[2].reg = reg;
+
+			reg = regs->descs[1].other_reg;
 			regs->descs[1].other_reg = regs->descs[2].other_reg;
+			regs->descs[2].other_reg = reg;
 		}
-		else
+		else if(regs->descs[0].value && regs->descs[1].value)
 		{
 			_jit_gen_load_value(gen, regs->descs[0].reg,
 				regs->descs[0].other_reg, insn->value1);
 
-			regs->descs[0].reg = regs->descs[1].reg;
-			regs->descs[0].other_reg = regs->descs[1].other_reg;
+			regs->descs[1].reg = regs->descs[0].reg;
+			regs->descs[1].other_reg = regs->descs[0].other_reg;
 		}
 	}
-	/* TODO regs->copy */
 
 	curr = insn->scratch_live;
 	for(i = regs->num_scratch - 1; i >= 0; i--)

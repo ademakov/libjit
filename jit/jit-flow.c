@@ -530,6 +530,28 @@ dump_live_ranges(jit_function_t func)
 			}
 		}
 
+		if(range->starts->next == 0 && range->ends->next == 0
+			&& range->starts->block == range->ends->block)
+		{
+			printf("\n    Local range in block %d",
+				range->starts->block->index);
+		}
+		else
+		{
+			printf("\n    Touched blocks: ");
+			for(j = 0; j < func->builder->block_count; j++)
+			{
+				if(_jit_bitset_test_bit(&range->touched_block_starts, j))
+				{
+					printf("(#%d, start), ", j);
+				}
+				if(_jit_bitset_test_bit(&range->touched_block_ends, j))
+				{
+					printf("(#%d, end), ", j);
+				}
+			}
+		}
+
 		printf("\n    Starts:");
 		for(curr = range->starts; curr; curr = curr->next)
 		{
