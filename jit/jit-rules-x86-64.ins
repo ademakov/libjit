@@ -1581,33 +1581,33 @@ JIT_OP_FSUB:
 	[xreg, imm] -> {
 		_jit_xmm1_reg_imm_size_float32(gen, &inst, XMM1_SUB, $1, (jit_float32 *)$2);
 	}
-	[xreg, xreg] -> {
-		x86_64_subss_reg_reg(inst, $1, $2);
-	}
 	[xreg, local] -> {
 		x86_64_subss_reg_membase(inst, $1, X86_64_RBP, $2);
+	}
+	[xreg, xreg] -> {
+		x86_64_subss_reg_reg(inst, $1, $2);
 	}
 
 JIT_OP_FMUL: commutative
 	[xreg, imm] -> {
 		_jit_xmm1_reg_imm_size_float32(gen, &inst, XMM1_MUL, $1, (jit_float32 *)$2);
 	}
-	[xreg, xreg] -> {
-		x86_64_mulss_reg_reg(inst, $1, $2);
-	}
 	[xreg, local] -> {
 		x86_64_mulss_reg_membase(inst, $1, X86_64_RBP, $2);
+	}
+	[xreg, xreg] -> {
+		x86_64_mulss_reg_reg(inst, $1, $2);
 	}
 
 JIT_OP_FDIV:
 	[xreg, imm] -> {
 		_jit_xmm1_reg_imm_size_float32(gen, &inst, XMM1_DIV, $1, (jit_float32 *)$2);
 	}
-	[xreg, xreg] -> {
-		x86_64_divss_reg_reg(inst, $1, $2);
-	}
 	[xreg, local] -> {
 		x86_64_divss_reg_membase(inst, $1, X86_64_RBP, $2);
+	}
+	[xreg, xreg] -> {
+		x86_64_divss_reg_reg(inst, $1, $2);
 	}
 
 JIT_OP_FABS:
