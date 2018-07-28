@@ -414,27 +414,26 @@ void jit_dump_insn(FILE *stream, jit_function_t func, jit_insn_t insn)
 	}
 	else if((flags & JIT_OPCODE_IS_REG) != 0)
 	{
-		if(insn->value2 == 0)
-		{
-			reg = jit_value_get_nint_constant(jit_insn_get_value1(insn));
-		}
-		else
-		{
-			reg = jit_value_get_nint_constant(jit_insn_get_value2(insn));
-		}
-		fputs(name, stream);
-		putc('(', stream);
 		if(insn->dest == 0)
 		{
+			reg = jit_value_get_nint_constant(jit_insn_get_value2(insn));
+			fputs(name, stream);
+			putc('(', stream);
 			jit_dump_value(stream, func, jit_insn_get_value1(insn), 0);
+			fputs(", ", stream);
+			fputs(jit_reg_name(reg), stream);
+			putc(')', stream);
 		}
 		else
 		{
+			reg = jit_value_get_nint_constant(jit_insn_get_value1(insn));
 			jit_dump_value(stream, func, jit_insn_get_dest(insn), 0);
+			fputs(" = ", stream);
+			fputs(name, stream);
+			putc('(', stream);
+			fputs(jit_reg_name(reg), stream);
+			putc(')', stream);
 		}
-		fputs(", ", stream);
-		fputs(jit_reg_name(reg), stream);
-		putc(')', stream);
 		return;
 	}
 	else if((flags & JIT_OPCODE_IS_ADDROF_LABEL) != 0)

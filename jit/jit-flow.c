@@ -322,14 +322,13 @@ flood_fill_touched_preds(jit_block_t block, _jit_live_range_t range, jit_value_t
 	for(i = 0; i < block->num_preds; i++)
 	{
 		pred = block->preds[i]->src;
-		if(_jit_bitset_test_bit(&range->touched_block_ends, pred->index))
+		if(!_jit_bitset_test_bit(&range->touched_block_ends, pred->index))
 		{
-			continue;
+			flood_fill_touched_succs(pred, range, value);
 		}
 
-		flood_fill_touched_succs(pred, range, value);
-
-		if(!_jit_bitset_test_bit(&pred->var_kills, value->index))
+		if(!_jit_bitset_test_bit(&range->touched_block_starts, pred->index)
+			&& !_jit_bitset_test_bit(&pred->var_kills, value->index))
 		{
 			flood_fill_touched_preds(pred, range, value);
 		}
@@ -347,21 +346,33 @@ flood_fill_touched_succs(jit_block_t block, _jit_live_range_t range, jit_value_t
 	for(i = 0; i < block->num_succs; i++)
 	{
 		succ = block->succs[i]->dst;
-		if(_jit_bitset_test_bit(&range->touched_block_starts, succ->index))
-		{
-			continue;
-		}
-
-		if(_jit_bitset_test_bit(&succ->upward_exposes, value->index))
+		if(!_jit_bitset_test_bit(&range->touched_block_starts, succ->index)
+			&& _jit_bitset_test_bit(&succ->upward_exposes, value->index))
 		{
 			flood_fill_touched_preds(succ, range, value);
 		}
 
-		if(_jit_bitset_test_bit(&succ->live_out, value->index)
+		if(!_jit_bitset_test_bit(&range->touched_block_ends, succ->index)
+			&& _jit_bitset_test_bit(&succ->live_out, value->index)
 			&& !_jit_bitset_test_bit(&succ->var_kills, value->index))
 		{
 			flood_fill_touched_succs(succ, range, value);
 		}
+	}
+}
+
+static int
+has_memory_type(jit_value_t value)
+{
+	switch(jit_type_remove_tags(value->type)->kind)
+	{
+	case JIT_TYPE_STRUCT:
+	case JIT_TYPE_UNION:
+	case JIT_TYPE_SIGNATURE:
+		return 1;
+	
+	default:
+		return 0;
 	}
 }
 
@@ -370,7 +381,7 @@ handle_live_range_use(jit_block_t block, jit_insn_t insn, jit_value_t value)
 {
 	_jit_live_range_t range;
 
-	if(!value || value->is_constant)
+	if(!value || value->is_constant || has_memory_type(value))
 	{
 		return 0;
 	}
@@ -387,8 +398,9 @@ handle_live_range_use(jit_block_t block, jit_insn_t insn, jit_value_t value)
 		if(_jit_bitset_test_bit(&range->touched_block_ends, block->index))
 		{
 			/* The range is alive at the end of the block. This is only an end
-			   if it is restart later in this block */
-			if(_jit_insn_list_get_insn_from_block(range->starts, block) == 0)
+			   if it is restarted later in this block */
+			if(_jit_insn_list_get_insn_from_block(range->starts, block) == 0
+				&& _jit_insn_list_get_insn_from_block(range->ends, block) == 0)
 			{
 				_jit_insn_list_add(&range->ends, block, insn);
 			}
@@ -396,7 +408,7 @@ handle_live_range_use(jit_block_t block, jit_insn_t insn, jit_value_t value)
 		else if(_jit_insn_list_get_insn_from_block(range->ends, block) == 0)
 		{
 			/* This is the last instruction in the block which uses the range
-			   thus is ends the range */
+			   thus it ends the range */
 			_jit_insn_list_add(&range->ends, block, insn);
 		}
 
@@ -410,10 +422,6 @@ handle_live_range_use(jit_block_t block, jit_insn_t insn, jit_value_t value)
 	if(_jit_bitset_test_bit(&block->upward_exposes, value->index))
 	{
 		flood_fill_touched_preds(block, range, value);
-	}
-	else
-	{
-		_jit_bitset_set_bit(&range->touched_block_starts, block->index);
 	}
 
 	if(_jit_bitset_test_bit(&block->live_out, value->index))
@@ -434,7 +442,7 @@ handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
 	_jit_live_range_t range;
 	jit_insn_t end;
 
-	if(!value || value->is_constant)
+	if(!value || value->is_constant || has_memory_type(value))
 	{
 		return 0;
 	}
@@ -442,15 +450,29 @@ handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
 	for(range = value->live_ranges; range; range = range->value_next)
 	{
 		end = _jit_insn_list_get_insn_from_block(range->ends, block);
-		if(end != 0 && _jit_insn_list_get_insn_from_block(range->starts, block) == 0)
+		if(end != 0
+			&& _jit_insn_list_get_insn_from_block(range->starts, block) == 0)
 		{
-			/* range is a local life range with one start (here) and one end */
-			assert(range->starts == 0 && range->ends->next == 0);
+			if(range->starts == 0 && range->ends->next == 0)
+			{
+				/* range is a local life range with one start (here) and one
+				   end (@var{end}) */
+				_jit_insn_list_add(&range->starts, block, insn);
+				_jit_bitset_clear(&range->touched_block_starts);
+				_jit_bitset_clear(&range->touched_block_ends);
+				return range;
+			}
+			else
+			{
+				/* @var{end} and insn are together a local live range however
+				   @var{range} is a different one */
+				_jit_insn_list_remove(&range->ends, end);
 
-			_jit_insn_list_add(&range->starts, block, insn);
-			_jit_bitset_clear(&range->touched_block_starts);
-			_jit_bitset_clear(&range->touched_block_ends);
-			return range;
+				range = _jit_function_create_live_range(block->func, value);
+				_jit_insn_list_add(&range->starts, block, insn);
+				_jit_insn_list_add(&range->ends, block, end);
+				return range;
+			}
 		}
 
 		/* If the range does not touch the end of the current block, this
@@ -662,17 +684,19 @@ create_fixed_live_range(jit_function_t func, jit_block_t block,
 }
 void
 create_scratch_live_range(jit_function_t func, jit_block_t block,
-	jit_insn_t prev, jit_insn_t curr)
+	jit_insn_t prev, jit_insn_t curr, int regclass)
 {
 	_jit_live_range_t range;
 	range = create_dummy_live_range(func, block, prev, curr, 0);
 	range->value_next = curr->scratch_live;
+	range->regflags = _jit_regclass_info[regclass]->flags;
 	curr->scratch_live = range;
 }
 
 void
 increment_preferred_color(jit_function_t func, jit_block_t block,
-	jit_insn_t insn, _jit_live_range_t range, int reg, int reg_other)
+	jit_insn_t prev, jit_insn_t insn,
+	_jit_live_range_t range, int reg, int reg_other)
 {
 	int colors;
 
@@ -698,13 +722,13 @@ increment_preferred_color(jit_function_t func, jit_block_t block,
 
 	/* Create a dummy range which reserves the register in case @var{range} gets
 	   colored with a different register */
-	create_fixed_live_range(func, block, 0, insn, range->value, colors);
+	create_fixed_live_range(func, block, prev, insn, range->value, colors);
 }
 
 void
 handle_constant_in_reg(jit_function_t func, jit_block_t block,
-	jit_insn_t insn, jit_value_t value, int reg, int reg_other,
-	_jit_live_range_t *out)
+	jit_insn_t prev, jit_insn_t insn, jit_value_t value,
+	int reg, int reg_other, _jit_live_range_t *out)
 {
 	int colors;
 
@@ -715,7 +739,7 @@ handle_constant_in_reg(jit_function_t func, jit_block_t block,
 
 	if(reg == _JIT_REG_USAGE_UNNAMED)
 	{
-		*out = create_dummy_live_range(func, block, 0, insn, value);
+		*out = create_dummy_live_range(func, block, prev, insn, value);
 	}
 	else
 	{
@@ -725,7 +749,7 @@ handle_constant_in_reg(jit_function_t func, jit_block_t block,
 			assert(reg_other != _JIT_REG_USAGE_UNNAMED);
 			colors |= 1 << reg_other;
 		}
-		*out = create_fixed_live_range(func, block, 0, insn, value, colors);
+		*out = create_fixed_live_range(func, block, prev, insn, value, colors);
 	}
 }
 
@@ -753,6 +777,7 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 		{
 			if(insn->opcode == JIT_OP_NOP)
 			{
+				prev = insn;
 				continue;
 			}
 
@@ -780,14 +805,16 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 
 			case JIT_OP_INCOMING_REG:
 			case JIT_OP_RETURN_REG:
-				increment_preferred_color(func, block, insn, insn->dest_live,
+				increment_preferred_color(func, block, prev, insn,
+					insn->dest_live,
 					(int)jit_value_get_nint_constant(insn->value1),
 					_JIT_REG_USAGE_UNNUSED);
 				skip = 1;
 				break;
 
 			case JIT_OP_OUTGOING_REG:
-				increment_preferred_color(func, block, insn, insn->value1_live,
+				increment_preferred_color(func, block, prev, insn,
+					insn->value1_live,
 					(int)jit_value_get_nint_constant(insn->value2),
 					_JIT_REG_USAGE_UNNUSED);
 				skip = 1;
@@ -802,6 +829,7 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 			if(skip)
 			{
 				skip = 0;
+				prev = insn;
 				continue;
 			}
 
@@ -818,7 +846,7 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 			{
 				for(j = regmap.unnamed[i]; j > 0; j--)
 				{
-					create_scratch_live_range(func, block, prev, insn);
+					create_scratch_live_range(func, block, prev, insn, i);
 				}
 			}
 
@@ -859,18 +887,18 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 					0, colors);
 			}
 
-			increment_preferred_color(func, block, insn,
+			increment_preferred_color(func, block, prev, insn,
 				insn->dest_live, regmap.dest, regmap.dest_other);
-			increment_preferred_color(func, block, insn,
+			increment_preferred_color(func, block, prev, insn,
 				insn->value1_live, regmap.value1, regmap.value1_other);
-			increment_preferred_color(func, block, insn,
+			increment_preferred_color(func, block, prev, insn,
 				insn->value2_live, regmap.value2, regmap.value2_other);
 
-			handle_constant_in_reg(func, block, insn, insn->dest,
+			handle_constant_in_reg(func, block, prev, insn, insn->dest,
 				regmap.dest, regmap.dest_other, &insn->dest_live);
-			handle_constant_in_reg(func, block, insn, insn->value1,
+			handle_constant_in_reg(func, block, prev, insn, insn->value1,
 				regmap.value1, regmap.value1_other, &insn->value1_live);
-			handle_constant_in_reg(func, block, insn, insn->value2,
+			handle_constant_in_reg(func, block, prev, insn, insn->value2,
 				regmap.value2, regmap.value2_other, &insn->value2_live);
 
 			insn->flags |= regmap.flags;

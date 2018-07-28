@@ -313,6 +313,10 @@ struct _jit_live_range
 	/* Value for which this live range is */
 	jit_value_t value;
 
+	/* For internal live ranges this holds the JIT_REG_* flags of the required
+	   register kind */
+	int regflags;
+
 	/* List of instructions where the live range starts/ends */
 	_jit_insn_list_t starts;
 	_jit_insn_list_t ends;

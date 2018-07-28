@@ -82,7 +82,7 @@ is_dummy(_jit_live_range_t range)
 
 /* Returns a type index used with num_regs and interference_map and can be
    turned into a JIT_REG_ constant using get_type_flag */
-int get_type_index(jit_value_t value)
+int get_type_index_from_value(jit_value_t value)
 {
 	if(!value)
 	{
@@ -116,7 +116,7 @@ int get_type_index(jit_value_t value)
 	}
 }
 
-int get_type_flag(int index)
+int get_type_flag_from_index(int index)
 {
 	switch(index)
 	{
@@ -132,6 +132,40 @@ int get_type_flag(int index)
 		return JIT_REG_NFLOAT;
 	default:
 		return 0;
+	}
+}
+
+int get_type_index_from_range(_jit_live_range_t range)
+{
+	int i;
+
+	if(range->value)
+	{
+		return get_type_index_from_value(range->value);
+	}
+	else
+	{
+		for(i = 1; i < 5; i++)
+		{
+			if(range->regflags & get_type_flag_from_index(i))
+			{
+				return i;
+			}
+		}
+		return 0;
+	}
+}
+
+int get_type_flag_from_range(_jit_live_range_t range)
+{
+	if(range->value)
+	{
+		return get_type_flag_from_index(
+			get_type_index_from_value(range->value));
+	}
+	else
+	{
+		return range->regflags;
 	}
 }
 
@@ -212,8 +246,8 @@ check_interfering(jit_function_t func,
 
 	if(a->value && b->value)
 	{
-		a_index = get_type_index(a->value);
-		b_index = get_type_index(b->value);
+		a_index = get_type_index_from_range(a);
+		b_index = get_type_index_from_range(b);
 		if(interference_map[a_index][b_index] == 0)
 		{
 			return 0;
@@ -397,7 +431,7 @@ _jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
 	{
 		for(curr = func->live_ranges; curr; curr = curr->func_next)
 		{
-			type = get_type_index(curr->value);
+			type = get_type_index_from_range(curr);
 			if(!curr->on_stack && !curr->is_spilled && !curr->is_fixed
 				&& curr->curr_neighbor_count < num_regs[type])
 			{
@@ -423,10 +457,10 @@ _jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
 			if(!curr->on_stack && !curr->is_spilled && !curr->is_fixed)
 			{
 				spill_candidate = curr;
-				/* We prefer optimistially push non-dummy live ranges as
+				/* We prefer to optimistially push non-dummy live ranges as
 				   spilling dummy ranges usually doesn't help the coloring
 				   problem */
-				if(!is_dummy(curr))
+				if(!is_dummy(curr) && curr->value && !curr->value->is_constant)
 				{
 					break;
 				}
@@ -617,8 +651,8 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 {
 	_jit_live_range_t curr;
 	jit_nuint used;
-	jit_ushort preferred_score;
 	int preferred;
+	int preferred_score;
 	int preferred_is_global;
 	int is_global;
 	int flags;
@@ -639,9 +673,9 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 			}
 		}
 
-		type = get_type_flag(get_type_index(curr->value));
+		type = get_type_flag_from_range(curr);
 		preferred = -1;
-		preferred_score = 0;
+		preferred_score = -1;
 		preferred_is_global = 0;
 		for(i = 0; i < JIT_NUM_REGS; i++)
 		{
@@ -649,11 +683,12 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 			is_global = (flags & JIT_REG_GLOBAL) != 0;
 			if(((1 << i) & used) == 0
 				&& (flags & type) != 0
+				&& (flags & JIT_REG_FIXED) == 0
 				&& (curr->preferred_colors == 0
 					|| curr->preferred_colors[i] >= preferred_score)
 				&& (preferred == -1
 					|| (curr->preferred_colors != 0
-						&& curr->preferred_colors[i] >= preferred_score)
+						&& curr->preferred_colors[i] > preferred_score)
 					|| (preferred_is_global && !is_global)))
 			{
 				preferred = i;
@@ -661,10 +696,6 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 				if(curr->preferred_colors)
 				{
 					preferred_score = curr->preferred_colors[i];
-				}
-				else
-				{
-					break;
 				}
 			}
 		}
@@ -694,13 +725,13 @@ void initialize_type_interference_and_num_regs()
 
 		for(i = 0; i < 6; i++)
 		{
-			if(flags & get_type_flag(i))
+			if(flags & get_type_flag_from_index(i))
 			{
 				++num_regs[i];
 
 				for(j = 0; j < 6; j++)
 				{
-					if(flags & get_type_flag(j))
+					if(flags & get_type_flag_from_index(j))
 					{
 						interference_map[i][j] = 1;
 					}
@@ -906,9 +937,23 @@ same_reg(_jit_regs_t *regs, int a, int b)
 }
 void
 begin_value(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn,
-	short mask, int i, jit_value_t value, _jit_live_range_t range, int is_dest)
+	int i, jit_value_t value, _jit_live_range_t range)
 {
-	if((insn->flags & mask) != 0 || value == 0 || regs->descs[i].value == 0)
+	static const int other_masks[] = {
+		JIT_INSN_DEST_OTHER_FLAGS,
+		JIT_INSN_VALUE1_OTHER_FLAGS,
+		JIT_INSN_VALUE2_OTHER_FLAGS
+	};
+	static const int mem_masks[] = {
+		JIT_INSN_DEST_CAN_BE_MEM,
+		JIT_INSN_VALUE1_CAN_BE_MEM,
+		JIT_INSN_VALUE2_CAN_BE_MEM
+	};
+
+	if((insn->flags & other_masks[i]) != 0
+		|| value == 0
+		|| regs->descs[i].value == 0
+		|| get_type_index_from_value(value) == 0)
 	{
 		return;
 	}
@@ -927,19 +972,29 @@ begin_value(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn,
 	}
 	else if(!value->in_register)
 	{
-		/* The range was spilled, we need to load the value */
-		assert(range != 0 && range->is_spill_range);
-
-		if(regs->descs[i].reg == -1)
+		if((insn->flags & mem_masks[i]) != 0)
 		{
-			regs->descs[i].reg = find_reg_in_colors(range->colors);
-			/* TODO other_reg */
+			/* The value was spilled but the instruction supports it to be in
+			   memory. No need to load it */
 		}
-
-		if(!is_dest)
+		else
 		{
-			_jit_gen_load_value(gen, regs->descs[i].reg,
-				regs->descs[i].other_reg, value);
+			/* The range was spilled, we need to load the value */
+			assert(range != 0 && range->is_spill_range);
+
+			if(regs->descs[i].reg == -1)
+			{
+				regs->descs[i].reg = find_reg_in_colors(range->colors);
+				/* TODO other_reg */
+			}
+
+			/* If the value is a destination of @var{insn} we do not need to
+			   load it, but rather store it afterwords */
+			if(i != 0 || (insn->flags & JIT_INSN_DEST_IS_VALUE) != 0)
+			{
+				_jit_gen_load_value(gen, regs->descs[i].reg,
+					regs->descs[i].other_reg, value);
+			}
 		}
 	}
 	else
@@ -979,19 +1034,15 @@ _jit_regs_graph_begin(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn)
 		break;
 	}
 
-	begin_value(gen, regs, insn, JIT_INSN_DEST_OTHER_FLAGS,
-		0, insn->dest, insn->dest_live,
-		(insn->flags & JIT_INSN_DEST_IS_VALUE) == 0);
+	begin_value(gen, regs, insn, 0, insn->dest, insn->dest_live);
 
 	if(ignore != 1)
 	{
-		begin_value(gen, regs, insn, JIT_INSN_VALUE1_OTHER_FLAGS,
-			1, insn->value1, insn->value1_live, 0);
+		begin_value(gen, regs, insn, 1, insn->value1, insn->value1_live);
 	}
 	if(ignore != 2)
 	{
-		begin_value(gen, regs, insn, JIT_INSN_VALUE2_OTHER_FLAGS,
-			2, insn->value2, insn->value2_live, 0);
+		begin_value(gen, regs, insn, 2, insn->value2, insn->value2_live);
 	}
 
 	if(!regs->ternary && !regs->free_dest)

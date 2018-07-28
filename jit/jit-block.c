@@ -1014,16 +1014,11 @@ _jit_block_recompute_common_properties(jit_function_t func)
 	jit_value_t value;
 	jit_nuint count;
 	jit_pool_block_t memblock = func->builder->value_pool.blocks;
-	int num = (int)(func->builder->value_pool.elems_per_block);
+	int num = (int)(func->builder->value_pool.elems_in_last);
 
 	count = 0;
 	while(memblock != 0)
 	{
-		if(!(memblock->next))
-		{
-			num = (int)(func->builder->value_pool.elems_in_last);
-		}
-
 		for(i = 0; i < num; ++i)
 		{
 			value = (jit_value_t)(memblock->data + i * sizeof(struct _jit_value));
@@ -1041,6 +1036,8 @@ _jit_block_recompute_common_properties(jit_function_t func)
 			}
 		}
 		memblock = memblock->next;
+
+		num = (int)(func->builder->value_pool.elems_per_block);
 	}
 
 	func->builder->value_count = count;

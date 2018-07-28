@@ -2412,6 +2412,7 @@ calculate_frame_size(jit_gencode_t gen, jit_function_t func, int *regs_to_save_p
 	int reg;
 	int frame_size = 0;
 	int regs_to_save = 0;
+	int aligned_frame_size;
 
 	/* Allocate space for the local variable frame */
 	if(func->builder->frame_size > 0)
@@ -2439,9 +2440,29 @@ calculate_frame_size(jit_gencode_t gen, jit_function_t func, int *regs_to_save_p
 	frame_size += func->builder->param_area_size;
 #endif
 
-	/* Make sure that the framesize is a multiple of 16 bytes */
-	/* so that the final RSP will be alligned on a 16byte boundary. */
-	frame_size = (frame_size + 0xf) & ~0xf;
+	aligned_frame_size = (frame_size + 0xf) & ~0xf;
+
+	if(gen->stack_changed || func->builder->frame_size != 0)
+	{
+		/* Make sure that the framesize is a multiple of 16 bytes */
+		/* so that the final RSP will be alligned on a 16byte boundary. */
+		frame_size = aligned_frame_size;
+	}
+	else
+	{
+		/* System V says the stack is 16 byte aligned before the call
+		   instruction. Which means we have to displace by eight bytes to be
+		   aligned again. This is normally done by pushing rbp. When the stack
+		   is not touched rbp is not pushed though */
+		if(aligned_frame_size - 8 >= frame_size)
+		{
+			frame_size = aligned_frame_size - 8;
+		}
+		else
+		{
+			frame_size = aligned_frame_size + 8;
+		}
+	}
 
 	return frame_size;
 }
@@ -2458,7 +2479,7 @@ _jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 
 	frame_size = calculate_frame_size(gen, func, &regs_to_save);
 
-	if(gen->stack_changed)
+	if(gen->stack_changed || func->builder->frame_size != 0)
 	{
 		/* Push ebp onto the stack */
 		x86_64_push_reg_size(inst, X86_64_RBP, 8);
@@ -2524,7 +2545,7 @@ x86_64_prepare_for_return(unsigned char *inst, jit_gencode_t gen, jit_function_t
 	if(regs_to_restore > 0)
 	{
 		/* Determine how to access the frame */
-		if(gen->stack_changed)
+		if(gen->stack_changed || func->builder->frame_size != 0)
 		{
 			/* We use RBP */
 			base_reg = X86_64_RBP;
@@ -2555,7 +2576,7 @@ x86_64_prepare_for_return(unsigned char *inst, jit_gencode_t gen, jit_function_t
 		}
 	}
 
-	if(gen->stack_changed)
+	if(gen->stack_changed || func->builder->frame_size != 0)
 	{
 		/* Restore stack pointer and frame pointer */
 		x86_64_leave(inst);

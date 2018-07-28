@@ -304,6 +304,7 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 			{
 				insn->dest->in_register = 0;
 				_jit_gen_load_value(gen, insn->dest->reg, -1, insn->dest);
+				insn->dest->in_register = 1;
 			}
 			else if(insn->dest->has_global_register)
 			{
