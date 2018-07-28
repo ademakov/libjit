@@ -787,6 +787,23 @@ int _jit_opcode_is_supported(int opcode)
 	return 0;
 }
 
+int _jit_insn_get_register_usage(jit_insn_t insn,
+	_jit_insn_register_usage_t regmap)
+{
+	switch(insn->opcode)
+	{
+	#define JIT_INCLUDE_REGISTER_USAGE
+	#include "./jit-rules-arm.inc"
+	#undef JIT_INCLUDE_REGISTER_USAGE
+
+	default:
+		return 0;
+		break;
+	}
+
+	return 1;
+}
+
 void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 {
 	unsigned int prolog[JIT_PROLOG_SIZE / sizeof(int)];

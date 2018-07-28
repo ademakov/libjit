@@ -379,6 +379,20 @@ int _jit_opcode_is_supported(int opcode) {
 	return 0;
 }
 
+int _jit_insn_get_register_usage(jit_insn_t insn, _jit_insn_register_usage_t regmap) {
+	switch(insn->opcode) {
+	#define JIT_INCLUDE_REGISTER_USAGE
+	#include "./jit-rules-alpha.inc"
+	#undef JIT_INCLUDE_REGISTER_USAGE
+
+	default:
+		return 0;
+		break;
+	}
+
+	return 1;
+}
+
 /*
  * Determine if type is a candidate for allocation within global registers.
  */

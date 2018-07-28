@@ -1913,7 +1913,7 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 					{
 						if(values->type == GENSEL_VALUE_EARLY_CLOBBER)
 						{
-							printf("\t\tregmap.early_clobber |= (1 << _jit_regs_lookup(\"%s\"))",
+							printf("\t\tregmap->early_clobber |= (1 << _jit_regs_lookup(\"%s\"))",
 								(char *)values->value);
 
 							if(values->next && values->next->value)
@@ -1928,7 +1928,7 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 						}
 						else if(values->type == GENSEL_VALUE_CLOBBER)
 						{
-							printf("\t\tregmap.clobber |= (1 << _jit_regs_lookup(\"%s\"))",
+							printf("\t\tregmap->clobber |= (1 << _jit_regs_lookup(\"%s\"))",
 								(char *)values->value);
 
 							if(values->next && values->next->value)
@@ -1942,19 +1942,19 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 							}
 						}
 
-						printf("\t\tregmap.%s = _jit_regs_lookup(\"%s\");\n",
+						printf("\t\tregmap->%s = _jit_regs_lookup(\"%s\");\n",
 							args[index], (char *)values->value);
 					}
 					else
 					{
 						regclass_index = gensel_regclass_get_index(regclass);
 
-						printf("\t\tregmap.%s = _JIT_REG_USAGE_UNNAMED;\n",
+						printf("\t\tregmap->%s = _JIT_REG_USAGE_UNNAMED;\n",
 							args[index]);
 
 						if(regclass->is_long)
 						{
-							printf("\t\tregmap.%s_other = _JIT_REG_USAGE_UNNAMED;\n",
+							printf("\t\tregmap->%s_other = _JIT_REG_USAGE_UNNAMED;\n",
 								args[index]);
 						}
 					}
@@ -1969,12 +1969,12 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 					{
 						if(values->type == GENSEL_VALUE_EARLY_CLOBBER)
 						{
-							printf("\t\tregmap.early_clobber |= (1 << _jit_regs_lookup(\"%s\"))",
+							printf("\t\tregmap->early_clobber |= (1 << _jit_regs_lookup(\"%s\"))",
 								(char *)values->value);
 						}
 						else
 						{
-							printf("\t\tregmap.clobber |= (1 << _jit_regs_lookup(\"%s\"))",
+							printf("\t\tregmap->clobber |= (1 << _jit_regs_lookup(\"%s\"))",
 								(char *)values->value);
 						}
 
@@ -2009,7 +2009,7 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 						switch(values->type)
 						{
 						case GENSEL_VALUE_STRING:
-							printf("\t\tregmap.clobber |= 1 << _jit_regs_lookup(\"%s\");\n",
+							printf("\t\tregmap->clobber |= 1 << _jit_regs_lookup(\"%s\");\n",
 								(char *)values->value);
 							break;
 
@@ -2031,7 +2031,7 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 			{
 				if(unnamed_counts[index] != 0)
 				{
-					printf("\t\tregmap.unnamed[%d] = %d;\n",
+					printf("\t\tregmap->unnamed[%d] = %d;\n",
 						index, unnamed_counts[index]);
 
 					unnamed_counts[index] = 0;
@@ -2040,10 +2040,10 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 
 			if(clobbered_classes != 0)
 			{
-				printf("\t\tregmap.clobbered_classes = 0x%x;\n", clobbered_classes);
+				printf("\t\tregmap->clobbered_classes = 0x%x;\n", clobbered_classes);
 			}
 
-			printf("\t\tregmap.flags = ");
+			printf("\t\tregmap->flags = ");
 			is_first = 1;
 			for(index = 0; index < 3; index++)
 			{

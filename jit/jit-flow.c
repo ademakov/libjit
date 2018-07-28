@@ -30,10 +30,6 @@
 #include <jit/jit-dump.h>
 #endif
 
-/* Constants used by the generated rules for indicating register usage */
-#define _JIT_REG_USAGE_UNNUSED -2
-#define _JIT_REG_USAGE_UNNAMED -1
-
 static void
 handle_source_value(jit_block_t block, jit_value_t value)
 {
@@ -579,8 +575,6 @@ _jit_function_compute_live_ranges(jit_function_t func)
 	jit_insn_iter_t iter;
 	jit_insn_t insn;
 	int flags;
-	int i;
-	int num_params;
 
 	for(block = func->builder->entry_block; block; block = block->next)
 	{
@@ -747,21 +741,7 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 	int j;
 	int skip;
 	jit_ulong colors;
-
-	struct
-	{
-		jit_nuint clobber;
-		jit_nuint early_clobber;
-		unsigned clobbered_classes;
-		int dest;
-		int value1;
-		int value2;
-		int dest_other;
-		int value1_other;
-		int value2_other;
-		unsigned flags;
-		unsigned unnamed[JIT_NUM_REG_CLASSES];
-	} regmap;
+	struct jit_insn_register_usage regmap;
 
 	skip = 0;
 	for(block = func->builder->entry_block; block; block = block->next)
@@ -832,17 +812,7 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 			regmap.dest_other = _JIT_REG_USAGE_UNNUSED;
 			regmap.value1_other = _JIT_REG_USAGE_UNNUSED;
 			regmap.value2_other = _JIT_REG_USAGE_UNNUSED;
-
-			switch(insn->opcode)
-			{
-			#define JIT_INCLUDE_REGISTER_USAGE
-			#include "./jit-rules-x86-64.inc"
-			#undef JIT_INCLUDE_REGISTER_USAGE
-
-			default:
-				/* should this be an error? */
-				break;
-			}
+			_jit_insn_get_register_usage(insn, &regmap);
 
 			for(i = 0; i < JIT_NUM_REG_CLASSES; i++)
 			{
