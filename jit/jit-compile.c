@@ -281,15 +281,15 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 				/* If value1 is not colored with the correct register, move the
 				   incoming register to value1s color */
 				_jit_regs_graph_set_incoming(gen,
-					(int)jit_value_get_nint_constant(insn->value2),
-					insn->value1);
+					(int)jit_value_get_nint_constant(insn->value1),
+					insn->dest);
 			}
 			else
 			{
 				/* Assign a register to an incoming value */
 				_jit_regs_set_incoming(gen,
-					(int)jit_value_get_nint_constant(insn->value2),
-					insn->value1);
+					(int)jit_value_get_nint_constant(insn->value1),
+					insn->dest);
 			}
 			/* Generate code for the instruction with the back end */
 			_jit_gen_insn(gen, func, block, insn);
@@ -298,16 +298,22 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 
 		case JIT_OP_INCOMING_FRAME_POSN:
 			/* Set the frame position for an incoming value */
-			insn->value1->frame_offset = jit_value_get_nint_constant(insn->value2);
-			insn->value1->in_register = 0;
-			insn->value1->has_frame_offset = 1;
-			if(insn->value1->has_global_register)
+			insn->dest->frame_offset = jit_value_get_nint_constant(insn->value1);
+			insn->dest->has_frame_offset = 1;
+			if(gen->graph_allocated && insn->dest->in_register)
 			{
-				insn->value1->in_global_register = 1;
-				_jit_gen_load_global(gen, insn->value1->global_reg, insn->value1);
+				insn->dest->in_register = 0;
+				_jit_gen_load_value(gen, insn->dest->reg, -1, insn->dest);
+			}
+			else if(insn->dest->has_global_register)
+			{
+				insn->dest->in_register = 0;
+				insn->dest->in_global_register = 1;
+				_jit_gen_load_global(gen, insn->dest->global_reg, insn->dest);
 			}
 			else
 			{
+				insn->value1->in_register = 0;
 				insn->value1->in_frame = 1;
 			}
 			break;
@@ -334,12 +340,19 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 
 		case JIT_OP_OUTGOING_FRAME_POSN:
 			/* Set the frame position for an outgoing value */
-			insn->value1->frame_offset = jit_value_get_nint_constant(insn->value2);
-			insn->value1->in_register = 0;
-			insn->value1->in_global_register = 0;
-			insn->value1->in_frame = 0;
 			insn->value1->has_frame_offset = 1;
-			insn->value1->has_global_register = 0;
+			insn->value1->frame_offset = jit_value_get_nint_constant(insn->value2);
+			if(gen->graph_allocated && insn->value1->in_register)
+			{
+				_jit_gen_spill_reg(gen, insn->value1->reg, -1, insn->value1);
+			}
+			else
+			{
+				insn->value1->in_register = 0;
+				insn->value1->in_global_register = 0;
+				insn->value1->in_frame = 0;
+				insn->value1->has_global_register = 0;
+			}
 			break;
 
 #ifndef JIT_BACKEND_INTERP
@@ -349,15 +362,15 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 				/* If value1 is not colored with the correct register, move the
 				   incoming register to value1s color */
 				_jit_regs_graph_set_incoming(gen,
-					(int)jit_value_get_nint_constant(insn->value2),
-					insn->value1);
+					(int)jit_value_get_nint_constant(insn->value1),
+					insn->dest);
 			}
 			else
 			{
 				/* Assign a register to a return value */
 				_jit_regs_set_incoming(gen,
-					(int)jit_value_get_nint_constant(insn->value2),
-					insn->value1);
+					(int)jit_value_get_nint_constant(insn->value1),
+					insn->dest);
 			}
 			/* Generate code for the instruction with the back end */
 			_jit_gen_insn(gen, func, block, insn);

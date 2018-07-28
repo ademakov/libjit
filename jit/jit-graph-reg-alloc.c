@@ -868,11 +868,11 @@ init_value_for_insn(jit_gencode_t gen, jit_insn_t insn,
 		return;
 	}
 
-
 	if(range != 0 && !range->is_spill_range)
 	{
 		value->in_register = 1;
 		value->reg = find_reg_in_colors(range->colors);
+		jit_reg_set_used(gen->touched, value->reg);
 	}
 	else
 	{
@@ -962,14 +962,37 @@ _jit_regs_graph_begin(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn)
 	_jit_live_range_t curr;
 	int reg;
 	int i;
+	int ignore;
+
+	ignore = -1;
+	switch(insn->opcode)
+	{
+	case JIT_OP_INCOMING_REG:
+	case JIT_OP_INCOMING_FRAME_POSN:
+	case JIT_OP_RETURN_REG:
+		ignore = 1;
+		break;
+
+	case JIT_OP_OUTGOING_REG:
+	case JIT_OP_OUTGOING_FRAME_POSN:
+		ignore = 2;
+		break;
+	}
 
 	begin_value(gen, regs, insn, JIT_INSN_DEST_OTHER_FLAGS,
 		0, insn->dest, insn->dest_live,
 		(insn->flags & JIT_INSN_DEST_IS_VALUE) == 0);
-	begin_value(gen, regs, insn, JIT_INSN_VALUE1_OTHER_FLAGS,
-		1, insn->value1, insn->value1_live, 0);
-	begin_value(gen, regs, insn, JIT_INSN_VALUE2_OTHER_FLAGS,
-		2, insn->value2, insn->value2_live, 0);
+
+	if(ignore != 1)
+	{
+		begin_value(gen, regs, insn, JIT_INSN_VALUE1_OTHER_FLAGS,
+			1, insn->value1, insn->value1_live, 0);
+	}
+	if(ignore != 2)
+	{
+		begin_value(gen, regs, insn, JIT_INSN_VALUE2_OTHER_FLAGS,
+			2, insn->value2, insn->value2_live, 0);
+	}
 
 	if(!regs->ternary && !regs->free_dest)
 	{

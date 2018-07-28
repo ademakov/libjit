@@ -530,7 +530,8 @@ dump_live_ranges(jit_function_t func)
 			}
 		}
 
-		if(range->starts->next == 0 && range->ends->next == 0
+		if(range->starts != 0 && range->ends != 0
+			&& range->starts->next == 0 && range->ends->next == 0
 			&& range->starts->block == range->ends->block)
 		{
 			printf("\n    Local range in block %d",
@@ -620,15 +621,6 @@ _jit_function_compute_live_ranges(jit_function_t func)
 				}
 			}
 		}
-	}
-
-	block = func->builder->entry_block;
-	jit_insn_iter_init(&iter, block);
-	insn = jit_insn_iter_next(&iter);
-	num_params = jit_type_num_params(func->signature);
-	for(i = 0; i < num_params; i++)
-	{
-		handle_live_range_start(block, insn, func->builder->param_values[i]);
 	}
 }
 
@@ -753,6 +745,7 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 	_jit_regclass_t *regclass;
 	int i;
 	int j;
+	int skip;
 	jit_ulong colors;
 
 	struct
@@ -770,6 +763,7 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 		unsigned unnamed[JIT_NUM_REG_CLASSES];
 	} regmap;
 
+	skip = 0;
 	for(block = func->builder->entry_block; block; block = block->next)
 	{
 		jit_insn_iter_init(&iter, block);
@@ -798,19 +792,37 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 				{
 					if((jit_reg_flags(i) & JIT_REG_GLOBAL) == 0)
 					{
-						colors |= 1 << i;
+						colors |= (jit_ulong)1 << i;
 					}
 				}
 				create_fixed_live_range(func, block, 0, insn, 0, colors);
 				break;
 
 			case JIT_OP_INCOMING_REG:
-			case JIT_OP_OUTGOING_REG:
 			case JIT_OP_RETURN_REG:
+				increment_preferred_color(func, block, insn, insn->dest_live,
+					(int)jit_value_get_nint_constant(insn->value1),
+					_JIT_REG_USAGE_UNNUSED);
+				skip = 1;
+				break;
+
+			case JIT_OP_OUTGOING_REG:
 				increment_preferred_color(func, block, insn, insn->value1_live,
 					(int)jit_value_get_nint_constant(insn->value2),
 					_JIT_REG_USAGE_UNNUSED);
+				skip = 1;
 				break;
+
+			case JIT_OP_OUTGOING_FRAME_POSN:
+			case JIT_OP_INCOMING_FRAME_POSN:
+				skip = 1;
+				break;
+			}
+
+			if(skip)
+			{
+				skip = 0;
+				continue;
 			}
 
 			memset(&regmap, 0, sizeof(regmap));
