@@ -6292,17 +6292,25 @@ jit_insn_flush_struct(jit_function_t func, jit_value_t value)
 jit_value_t
 jit_insn_get_frame_pointer(jit_function_t func)
 {
-	jit_value_t dummy;
+	int reg;
+	jit_value_t value;
 
-	dummy = jit_value_create(func, jit_type_sbyte);
-	if(!dummy)
+	value = jit_value_create(func, jit_type_void_ptr);
+	if(!value)
 	{
 		return 0;
 	}
-	jit_value_set_addressable(dummy);
 
-	jit_insn_incoming_frame_posn(func, dummy, 0);
-	return jit_insn_address_of(func, dummy);
+	for(reg = 0; reg < JIT_NUM_REGS; reg++)
+	{
+		if(jit_reg_flags(reg) & JIT_REG_FRAME)
+		{
+			break;
+		}
+	}
+	jit_insn_incoming_reg(func, value, reg);
+
+	return value;
 }
 
 static jit_value_t
