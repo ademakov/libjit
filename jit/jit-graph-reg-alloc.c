@@ -368,14 +368,6 @@ _jit_regs_graph_build(jit_function_t func)
 				_jit_bitset_set_bit(&b->neighbors, i);
 				a->neighbor_count += b->register_count;
 				b->neighbor_count += a->register_count;
-
-#ifdef _JIT_GRAPH_REGALLOC_DEBUG
-				printf("    ");
-				dump_live_range(func, a);
-				printf(" <-> ");
-				dump_live_range(func, b);
-				printf("\n");
-#endif
 			}
 
 			++j;
@@ -807,29 +799,8 @@ _jit_regs_graph_compute_coloring(jit_function_t func)
 #ifdef _JIT_GRAPH_REGALLOC_DEBUG
 	printf("Register allocation finished after %d spills\n", spill_count);
 	printf("Registers:\n");
-	for(curr = func->live_ranges; curr; curr = curr->func_next)
-	{
-		printf("    ");
-		dump_live_range(func, curr);
-		printf(": ");
 
-		if(curr->is_spilled)
-		{
-			printf("<spilled>");
-		}
-		else
-		{
-			for(i = 0; i < JIT_NUM_REGS; i++)
-			{
-				if(curr->colors & ((jit_nuint)1 << i))
-				{
-					printf("%%%s, ", jit_reg_name(i));
-				}
-			}
-		}
-		printf("\n");
-	}
-	printf("\n");
+	_jit_dump_live_ranges(func);
 #endif
 }
 

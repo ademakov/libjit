@@ -691,6 +691,152 @@ static void dump_interp_code(FILE *stream, void **pc, void **end)
 #else /* !JIT_BACKEND_INTERP */
 
 /*
+ * Dump all live ranges to stdout. Used by jit-flow.c and jit-graph-rel-alloc.c
+ * for debugging output.
+ */
+void _jit_dump_live_ranges(jit_function_t func)
+{
+	_jit_live_range_t range;
+	_jit_insn_list_t curr;
+	jit_block_t block;
+	int i;
+	int j;
+
+	i = 0;
+	for(range = func->live_ranges; range; range = range->func_next)
+	{
+		printf("Live range %d:\n    Value: ", i++);
+
+		if(range->value)
+		{
+			jit_dump_value(stdout, func, range->value, NULL);
+
+			if(range->is_spill_range)
+			{
+				printf(" <spill range>");
+			}
+		}
+		else
+		{
+			printf("<internal>");
+		}
+
+		if(range->preferred_colors != 0)
+		{
+			printf("\n    Preferred Colors: ");
+
+			for(j = 0; j < JIT_NUM_REGS; j++)
+			{
+				if(range->preferred_colors[j] != 0)
+				{
+					printf("(%d, %s), ", range->preferred_colors[j], jit_reg_name(j));
+				}
+			}
+		}
+
+		printf("\n    Colors: ");
+		if(range->is_spilled)
+		{
+			printf("<spilled>");
+		}
+		else if(range->is_fixed || range->colors != 0)
+		{
+			if(range->is_fixed)
+			{
+				printf("<fixed> ");
+			}
+
+			for(j = 0; j < JIT_NUM_REGS; j++)
+			{
+				if(range->colors & ((jit_ulong)1 << j))
+				{
+					printf("%s, ", jit_reg_name(j));
+				}
+			}
+		}
+
+		printf("\n    Blocks: ");
+		if(range->starts != 0 && range->ends != 0
+			&& range->starts->next == 0 && range->ends->next == 0
+			&& range->starts->block == range->ends->block)
+		{
+			printf("(%d, Kill, Local)",
+				range->starts->block->index);
+		}
+		else
+		{
+			;
+			for(block = func->builder->entry_block; block; block = block->next)
+			{
+				if(!_jit_bitset_test_bit(&range->touched_block_starts, block->index)
+					&& !_jit_bitset_test_bit(&range->touched_block_ends, block->index))
+				{
+					continue;
+				}
+
+				printf("(%d", block->index);
+				if(_jit_bitset_test_bit(&range->touched_block_starts, block->index))
+				{
+					printf(", start");
+				}
+				if(_jit_bitset_test_bit(&range->touched_block_ends, block->index))
+				{
+					printf(", end");
+				}
+
+				if(_jit_bitset_test_bit(&block->upward_exposes, range->value->index))
+				{
+					printf(", UE");
+				}
+				if(_jit_bitset_test_bit(&block->var_kills, range->value->index))
+				{
+					printf(", Kill");
+				}
+				if(_jit_bitset_test_bit(&block->live_out, range->value->index))
+				{
+					printf(", LiveOut");
+				}
+
+				printf("), ");
+			}
+		}
+
+		printf("\n    Starts:");
+		for(curr = range->starts; curr; curr = curr->next)
+		{
+			printf("\n        ");
+			jit_dump_insn(stdout, func, curr->insn);
+		}
+
+		printf("\n    Ends:");
+		for(curr = range->ends; curr; curr = curr->next)
+		{
+			printf("\n        ");
+			jit_dump_insn(stdout, func, curr->insn);
+		}
+
+		if(range->neighbor_count != 0)
+		{
+			printf("\n    Neighbors: ");
+			for(j = 0; j < func->live_range_count; j++)
+			{
+				if(_jit_bitset_test_bit(&range->neighbors, j))
+				{
+					printf("%d, ", j);
+				}
+			}
+			printf("\n");
+		}
+		else
+		{
+			printf("\n");
+		}
+
+		printf("\n");
+	}
+}
+
+/*
  * Dump the native object code representation of a function to stream.
  */
 static void dump_object_code(FILE *stream, void *start, void *end)

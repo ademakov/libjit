@@ -499,97 +499,6 @@ handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
 	return range;
 }
 
-#ifdef _JIT_FLOW_DEBUG
-static void
-dump_live_ranges(jit_function_t func)
-{
-	_jit_live_range_t range;
-	_jit_insn_list_t curr;
-	int i;
-	int j;
-
-	i = 0;
-	for(range = func->live_ranges; range; range = range->func_next)
-	{
-		printf("Live range %d:\n    Value: ", i++);
-
-		if(range->value)
-		{
-			jit_dump_value(stdout, func, range->value, NULL);
-		}
-		else
-		{
-			printf("<internal>");
-		}
-
-		if(range->is_fixed)
-		{
-			printf("\n    Fixed Colors: ");
-
-			for(j = 0; j < JIT_NUM_REGS; j++)
-			{
-				if(range->colors & ((jit_ulong)1 << j))
-				{
-					printf("%s, ", jit_reg_name(j));
-				}
-			}
-		}
-
-		if(range->preferred_colors != 0)
-		{
-			printf("\n    Preferred Colors: ");
-
-			for(j = 0; j < JIT_NUM_REGS; j++)
-			{
-				if(range->preferred_colors[j] != 0)
-				{
-					printf("(%d, %s), ", range->preferred_colors[j], jit_reg_name(j));
-				}
-			}
-		}
-
-		if(range->starts != 0 && range->ends != 0
-			&& range->starts->next == 0 && range->ends->next == 0
-			&& range->starts->block == range->ends->block)
-		{
-			printf("\n    Local range in block %d",
-				range->starts->block->index);
-		}
-		else
-		{
-			printf("\n    Touched blocks: ");
-			for(j = 0; j < func->builder->block_count; j++)
-			{
-				if(_jit_bitset_test_bit(&range->touched_block_starts, j))
-				{
-					printf("(#%d, start), ", j);
-				}
-				if(_jit_bitset_test_bit(&range->touched_block_ends, j))
-				{
-					printf("(#%d, end), ", j);
-				}
-			}
-		}
-
-		printf("\n    Starts:");
-		for(curr = range->starts; curr; curr = curr->next)
-		{
-			printf("\n        ");
-			jit_dump_insn(stdout, func, curr->insn);
-		}
-		printf("\n");
-
-		printf("    Ends:");
-		for(curr = range->ends; curr; curr = curr->next)
-		{
-			printf("\n        ");
-			jit_dump_insn(stdout, func, curr->insn);
-		}
-		printf("\n\n");
-	}
-}
-#endif
-
 void
 _jit_function_compute_live_ranges(jit_function_t func)
 {
@@ -908,6 +817,6 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 	}
 
 #ifdef _JIT_FLOW_DEBUG
-	dump_live_ranges(func);
+	_jit_dump_live_ranges(func);
 #endif
 }
