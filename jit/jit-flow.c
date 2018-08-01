@@ -377,13 +377,33 @@ has_memory_type(jit_value_t value)
 }
 
 static _jit_live_range_t
-handle_live_range_use(jit_block_t block, jit_insn_t insn, jit_value_t value)
+handle_live_range_use(jit_block_t block,
+	jit_insn_t prev, jit_insn_t insn, jit_value_t value)
 {
 	_jit_live_range_t range;
 
 	if(!value || value->is_constant || has_memory_type(value))
 	{
 		return 0;
+	}
+
+	if(value->is_volatile || value->is_addressable)
+	{
+		/* TODO CAN_BE_IN_MEM */
+		range = _jit_function_create_live_range(block->func, value);
+		range->is_spill_range = 1;
+
+		_jit_insn_list_add(&range->ends, block, insn);
+		if(prev == 0)
+		{
+			_jit_insn_list_add(&range->ends, block, insn);
+		}
+		else
+		{
+			_jit_insn_list_add(&range->starts, block, prev);
+		}
+
+		return range;
 	}
 
 	for(range = value->live_ranges; range; range = range->value_next)
@@ -437,7 +457,8 @@ handle_live_range_use(jit_block_t block, jit_insn_t insn, jit_value_t value)
 }
 
 static _jit_live_range_t
-handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
+handle_live_range_start(jit_block_t block,
+	jit_insn_t prev, jit_insn_t insn, jit_value_t value)
 {
 	_jit_live_range_t range;
 	jit_insn_t end;
@@ -445,6 +466,25 @@ handle_live_range_start(jit_block_t block, jit_insn_t insn, jit_value_t value)
 	if(!value || value->is_constant || has_memory_type(value))
 	{
 		return 0;
+	}
+
+	if(value->is_volatile || value->is_addressable)
+	{
+		/* TODO CAN_BE_IN_MEM */
+		range = _jit_function_create_live_range(block->func, value);
+		range->is_spill_range = 1;
+
+		_jit_insn_list_add(&range->ends, block, insn);
+		if(prev == 0)
+		{
+			_jit_insn_list_add(&range->ends, block, insn);
+		}
+		else
+		{
+			_jit_insn_list_add(&range->starts, block, prev);
+		}
+
+		return range;
 	}
 
 	for(range = value->live_ranges; range; range = range->value_next)
@@ -504,11 +544,13 @@ _jit_function_compute_live_ranges(jit_function_t func)
 {
 	jit_block_t block;
 	jit_insn_iter_t iter;
+	jit_insn_t prev;
 	jit_insn_t insn;
 	int flags;
 
 	for(block = func->builder->entry_block; block; block = block->next)
 	{
+		prev = 0;
 		jit_insn_iter_init_last(&iter, block);
 		while((insn = jit_insn_iter_previous(&iter)) != 0)
 		{
@@ -517,6 +559,7 @@ _jit_function_compute_live_ranges(jit_function_t func)
 			   are not relevant to our data flow analysis */
 			if(insn->opcode == JIT_OP_NOP)
 			{
+				prev = insn;
 				continue;
 			}
 
@@ -524,27 +567,33 @@ _jit_function_compute_live_ranges(jit_function_t func)
 
 			if((flags & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
 			{
-				insn->value1_live = handle_live_range_use(block, insn, insn->value1);
+				insn->value1_live = handle_live_range_use(block,
+					prev, insn, insn->value1);
 			}
 
 			if((flags & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
 			{
-				insn->value2_live = handle_live_range_use(block, insn, insn->value2);
+				insn->value2_live = handle_live_range_use(block,
+					prev, insn, insn->value2);
 			}
 
 			if((flags & JIT_INSN_DEST_OTHER_FLAGS) == 0)
 			{
 				if((flags & JIT_INSN_DEST_IS_VALUE) == 0)
 				{
-					insn->dest_live = handle_live_range_start(block, insn, insn->dest);
+					insn->dest_live = handle_live_range_start(block,
+						prev, insn, insn->dest);
 				}
 				else
 				{
 					/* The destination is actually a source value for this
 					   instruction (e.g. JIT_OP_STORE_RELATIVE_*) */
-					insn->dest_live = handle_live_range_use(block, insn, insn->dest);
+					insn->dest_live = handle_live_range_use(block,
+						prev, insn, insn->dest);
 				}
 			}
+
+			prev = insn;
 		}
 	}
 }
@@ -583,7 +632,7 @@ create_fixed_live_range(jit_function_t func, jit_block_t block,
 	range->register_count = 0;
 	for(i = 0; i < JIT_NUM_REGS; i++)
 	{
-		if(colors & (1 << i))
+		if(colors & ((jit_ulong)1 << i))
 		{
 			++range->register_count;
 		}
@@ -622,11 +671,11 @@ increment_preferred_color(jit_function_t func, jit_block_t block,
 	}
 	++range->preferred_colors[reg];
 
-	colors = 1 << reg;
+	colors = (jit_ulong)1 << reg;
 	if(reg_other != _JIT_REG_USAGE_UNNUSED)
 	{
 		assert(reg_other != _JIT_REG_USAGE_UNNAMED);
-		colors |= 1 << reg_other;
+		colors |= (jit_ulong)1 << reg_other;
 	}
 
 	/* Create a dummy range which reserves the register in case @var{range} gets
@@ -652,11 +701,11 @@ handle_constant_in_reg(jit_function_t func, jit_block_t block,
 	}
 	else
 	{
-		colors = 1 << reg;
+		colors = (jit_ulong)1 << reg;
 		if(reg_other != _JIT_REG_USAGE_UNNUSED)
 		{
 			assert(reg_other != _JIT_REG_USAGE_UNNAMED);
-			colors |= 1 << reg_other;
+			colors |= (jit_ulong)1 << reg_other;
 		}
 		*out = create_fixed_live_range(func, block, prev, insn, value, colors);
 	}
@@ -774,7 +823,7 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 			{
 				for(i = 0; i < JIT_NUM_REG_CLASSES; i++)
 				{
-					if((regmap.clobbered_classes & (1 << i)) == 0)
+					if((regmap.clobbered_classes & ((jit_ulong)1 << i)) == 0)
 					{
 						continue;
 					}
@@ -788,7 +837,7 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 					colors = 0;
 					for(j = 0; j < regclass->num_regs; j++)
 					{
-						colors |= 1 << regclass->regs[j];
+						colors |= (jit_ulong)1 << regclass->regs[j];
 					}
 				}
 

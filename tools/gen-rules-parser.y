@@ -1710,6 +1710,7 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 			switch(pattern->option)
 			{
 			case GENSEL_PATT_LOCAL:
+			case GENSEL_PATT_FRAME:
 				if(index_start + index < 3)
 				{
 					can_be_in_mem[index_start + index] = 1;
@@ -1733,15 +1734,9 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 			}
 		}
 
-		if(has_local)
+		if(has_local && clause->next)
 		{
 			previous_had_local_pattern = 1;
-
-			if(!clause->next)
-			{
-				gensel_error(clause->filename, clause->linenum,
-					"A clause which contains a local pattern cannot be the last clause");
-			}
 		}
 		else
 		{
@@ -2065,31 +2060,27 @@ gensel_output_register_usage_for_rule(gensel_clause_t clause, gensel_option_t op
 			printf("\t\tregmap->flags = ");
 			is_first = 1;
 
-			if(previous_had_local_pattern)
+			for(index = 0; index < 3; index++)
 			{
-				for(index = 0; index < 3; index++)
+				if(can_be_in_mem[index])
 				{
-					if(can_be_in_mem[index])
+					if(is_first)
 					{
-						if(is_first)
-						{
-							is_first = 0;
-						}
-						else
-						{
-							printf(" | ");
-						}
-
-						arg = gensel_string_upper(gensel_args[index]);
-						printf("JIT_INSN_%s_CAN_BE_MEM", arg);
-						free(arg);
-
-						can_be_in_mem[index] = 0;
+						is_first = 0;
 					}
-				}
+					else
+					{
+						printf(" | ");
+					}
 
-				previous_had_local_pattern = 0;
+					arg = gensel_string_upper(gensel_args[index]);
+					printf("JIT_INSN_%s_CAN_BE_MEM", arg);
+					free(arg);
+
+					can_be_in_mem[index] = 0;
+				}
 			}
+			previous_had_local_pattern = 0;
 
 			if(gensel_search_option(options, GENSEL_OPT_COMMUTATIVE))
 			{

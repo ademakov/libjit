@@ -673,7 +673,7 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 		{
 			flags = jit_reg_flags(i);
 			is_global = (flags & JIT_REG_GLOBAL) != 0;
-			if(((1 << i) & used) == 0
+			if((((jit_ulong)1 << i) & used) == 0
 				&& (flags & type) != 0
 				&& (flags & JIT_REG_FIXED) == 0
 				&& (curr->preferred_colors == 0
@@ -697,7 +697,7 @@ _jit_regs_graph_select(jit_function_t func, _jit_live_range_t *ranges,
 			spill_live_range(func, ranges, curr);
 			return 0;
 		}
-		curr->colors = 1 << preferred;
+		curr->colors = (jit_ulong)1 << preferred;
 	}
 
 	return 1;
@@ -809,7 +809,7 @@ int find_reg_in_colors(jit_ulong colors)
 	int i;
 	for(i = 0; i < JIT_NUM_REGS; i++)
 	{
-		if(colors & (1 << i))
+		if(colors & ((jit_ulong)1 << i))
 		{
 			return i;
 		}

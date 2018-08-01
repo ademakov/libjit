@@ -178,6 +178,8 @@ int _jit_function_ensure_builder(jit_function_t func)
 	jit_memory_pool_init(&(func->builder->edge_pool), struct _jit_edge);
 	jit_memory_pool_init(&(func->builder->meta_pool), struct _jit_meta);
 
+	func->builder->catcher_label = jit_label_undefined;
+
 	/* Create the entry block */
 	if(!_jit_block_init(func))
 	{

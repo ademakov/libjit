@@ -211,6 +211,30 @@ alloc_edges(jit_function_t func)
 }
 
 static void
+free_edges(jit_function_t func)
+{
+	jit_block_t block;
+	int i;
+
+	for(block = func->builder->entry_block; block; block = block->next)
+	{
+		if(block->num_succs == 0)
+		{
+			continue;
+		}
+
+		for(i = 0; i < block->num_succs; i++)
+		{
+			jit_memory_pool_dealloc(&func->builder->edge_pool, block->succs[i]);
+		}
+		jit_free(block->preds);
+		jit_free(block->succs);
+		block->preds = 0;
+		block->succs = 0;
+	}
+}
+
+static void
 detach_edge_src(_jit_edge_t edge)
 {
 	jit_block_t block;
@@ -749,6 +773,9 @@ _jit_block_free(jit_function_t func)
 void
 _jit_block_build_cfg(jit_function_t func)
 {
+	/* Free edges from a previous run */
+	free_edges(func);
+
 	/* Count the edges */
 	build_edges(func, 0);
 
