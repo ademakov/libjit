@@ -24,15 +24,15 @@
 #include "jit-reg-alloc.h"
 #include <assert.h>
 
-/* num_regs[get_type_flags(value)] returns the amount of registers available in
-   in the architecture which can hold @var{value} */
+/* num_regs[i] returns the amount of registers available in the
+   architecture which can hold values of type index i */
 static jit_ubyte num_regs[6] = {0};
 
 /* interference_map[i][j] is 1 if two values with type index i and j can
    reside in the same register and thus interfere */
 static jit_ubyte interference_map[6][6] = {0};
 
-#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+#ifdef _JIT_DEBUG_GRAPH_REGALLOC
 #include <jit/jit-dump.h>
 
 void dump_live_range(jit_function_t func, _jit_live_range_t range)
@@ -352,10 +352,6 @@ _jit_regs_graph_build(jit_function_t func)
 		}
 	}
 
-#ifdef _JIT_GRAPH_REGALLOC_DEBUG
-	printf("Interference graph:\n");
-#endif
-
 	i = 0;
 	for(a = func->live_ranges; a; a = a->func_next)
 	{
@@ -374,10 +370,6 @@ _jit_regs_graph_build(jit_function_t func)
 		}
 		++i;
 	}
-
-#ifdef _JIT_GRAPH_REGALLOC_DEBUG
-	printf("\n");
-#endif
 }
 
 void
@@ -465,7 +457,7 @@ _jit_regs_graph_simplify(jit_function_t func, _jit_live_range_t *ranges,
 			break;
 		}
 
-#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+#ifdef _JIT_DEBUG_GRAPH_REGALLOC
 		printf("Optimistically pushing ");
 		dump_live_range(func, spill_candidate);
 		printf("\n");
@@ -535,7 +527,7 @@ spill_live_range_in_insn(jit_function_t func, jit_block_t block,
 		++j;
 	}
 
-#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+#ifdef _JIT_DEBUG_GRAPH_REGALLOC
 	printf("    - ");
 	dump_live_range(func, dummy);
 	printf("\n");
@@ -602,7 +594,7 @@ spill_live_range(jit_function_t func, _jit_live_range_t *ranges,
 	int index;
 	int i;
 
-#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+#ifdef _JIT_DEBUG_GRAPH_REGALLOC
 	printf("Spilling ");
 	dump_live_range(func, range);
 	printf(" and creating:\n");
@@ -740,7 +732,7 @@ _jit_regs_graph_compute_coloring(jit_function_t func)
 	_jit_live_range_t *ranges;
 	int pos;
 	int i;	
-#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+#ifdef _JIT_DEBUG_GRAPH_REGALLOC
 	int spill_count;
 	spill_count = -1;
 #endif
@@ -783,7 +775,7 @@ _jit_regs_graph_compute_coloring(jit_function_t func)
 			}
 		}
 		
-#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+#ifdef _JIT_DEBUG_GRAPH_REGALLOC
 		++spill_count;
 #endif
 
@@ -796,11 +788,11 @@ _jit_regs_graph_compute_coloring(jit_function_t func)
 
 	func->registers_graph_allocated = 1;
 
-#ifdef _JIT_GRAPH_REGALLOC_DEBUG
+#ifdef _JIT_DEBUG_GRAPH_REGALLOC
 	printf("Register allocation finished after %d spills\n", spill_count);
 	printf("Registers:\n");
 
-	_jit_dump_live_ranges(func);
+	jit_dump_live_ranges(stdout, func);
 #endif
 }
 

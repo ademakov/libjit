@@ -452,12 +452,12 @@ void jit_dump_insn(FILE *stream, jit_function_t func, jit_insn_t insn)
 		num_labels = jit_value_get_nint_constant(jit_insn_get_value2(insn));
 		fprintf(stream, "%s ", name);
 		dump_value(stream, func, jit_insn_get_dest(insn), flags & JIT_OPCODE_DEST_MASK);
-		printf(" : {");
+		fprintf(stream, " : {");
 		for(label = 0; label < num_labels; label++)
 		{
-			printf(" .L%ld", (long) labels[label]);
+			fprintf(stream, " .L%ld", (long) labels[label]);
 		}
-		printf(" }");
+		fprintf(stream, " }");
 		return;
 	}
 
@@ -690,11 +690,12 @@ static void dump_interp_code(FILE *stream, void **pc, void **end)
 
 #else /* !JIT_BACKEND_INTERP */
 
-/*
- * Dump all live ranges to stdout. Used by jit-flow.c and jit-graph-rel-alloc.c
- * for debugging output.
- */
-void _jit_dump_live_ranges(jit_function_t func)
+ /*@
+ * @deftypefun void jit_dump_live_ranges (FILE *@var{stream}, jit_function_t @var{func})
+ * Dump the live ranges of @var{func} to @var{stream}.
+ * @end deftypefun
+@*/
+void jit_dump_live_ranges(FILE *stream, jit_function_t func)
 {
 	_jit_live_range_t range;
 	_jit_insn_list_t curr;
@@ -705,7 +706,7 @@ void _jit_dump_live_ranges(jit_function_t func)
 	i = 0;
 	for(range = func->live_ranges; range; range = range->func_next)
 	{
-		printf("Live range %d:\n    Value: ", i++);
+		fprintf(stream, "Live range %d:\n    Value: ", i++);
 
 		if(range->value)
 		{
@@ -713,54 +714,54 @@ void _jit_dump_live_ranges(jit_function_t func)
 
 			if(range->is_spill_range)
 			{
-				printf(" <spill range>");
+				fprintf(stream, " <spill range>");
 			}
 		}
 		else
 		{
-			printf("<internal>");
+			fprintf(stream, "<internal>");
 		}
 
 		if(range->preferred_colors != 0)
 		{
-			printf("\n    Preferred Colors: ");
+			fprintf(stream, "\n    Preferred Colors: ");
 
 			for(j = 0; j < JIT_NUM_REGS; j++)
 			{
 				if(range->preferred_colors[j] != 0)
 				{
-					printf("(%d, %s), ", range->preferred_colors[j], jit_reg_name(j));
+					fprintf(stream, "(%d, %s), ", range->preferred_colors[j], jit_reg_name(j));
 				}
 			}
 		}
 
-		printf("\n    Colors: ");
+		fprintf(stream, "\n    Colors: ");
 		if(range->is_spilled)
 		{
-			printf("<spilled>");
+			fprintf(stream, "<spilled>");
 		}
 		else if(range->is_fixed || range->colors != 0)
 		{
 			if(range->is_fixed)
 			{
-				printf("<fixed> ");
+				fprintf(stream, "<fixed> ");
 			}
 
 			for(j = 0; j < JIT_NUM_REGS; j++)
 			{
 				if(range->colors & ((jit_ulong)1 << j))
 				{
-					printf("%s, ", jit_reg_name(j));
+					fprintf(stream, "%s, ", jit_reg_name(j));
 				}
 			}
 		}
 
-		printf("\n    Blocks: ");
+		fprintf(stream, "\n    Blocks: ");
 		if(range->starts != 0 && range->ends != 0
 			&& range->starts->next == 0 && range->ends->next == 0
 			&& range->starts->block == range->ends->block)
 		{
-			printf("(%d, Kill, Local)",
+			fprintf(stream, "(%d, Kill, Local)",
 				range->starts->block->index);
 		}
 		else
@@ -774,65 +775,65 @@ void _jit_dump_live_ranges(jit_function_t func)
 					continue;
 				}
 
-				printf("(%d", block->index);
+				fprintf(stream, "(%d", block->index);
 				if(_jit_bitset_test_bit(&range->touched_block_starts, block->index))
 				{
-					printf(", start");
+					fprintf(stream, ", start");
 				}
 				if(_jit_bitset_test_bit(&range->touched_block_ends, block->index))
 				{
-					printf(", end");
+					fprintf(stream, ", end");
 				}
 
 				if(_jit_bitset_test_bit(&block->upward_exposes, range->value->index))
 				{
-					printf(", UE");
+					fprintf(stream, ", UE");
 				}
 				if(_jit_bitset_test_bit(&block->var_kills, range->value->index))
 				{
-					printf(", Kill");
+					fprintf(stream, ", Kill");
 				}
 				if(_jit_bitset_test_bit(&block->live_out, range->value->index))
 				{
-					printf(", LiveOut");
+					fprintf(stream, ", LiveOut");
 				}
 
-				printf("), ");
+				fprintf(stream, "), ");
 			}
 		}
 
-		printf("\n    Starts:");
+		fprintf(stream, "\n    Starts:");
 		for(curr = range->starts; curr; curr = curr->next)
 		{
-			printf("\n        ");
+			fprintf(stream, "\n        ");
 			jit_dump_insn(stdout, func, curr->insn);
 		}
 
-		printf("\n    Ends:");
+		fprintf(stream, "\n    Ends:");
 		for(curr = range->ends; curr; curr = curr->next)
 		{
-			printf("\n        ");
+			fprintf(stream, "\n        ");
 			jit_dump_insn(stdout, func, curr->insn);
 		}
 
 		if(range->neighbor_count != 0)
 		{
-			printf("\n    Neighbors: ");
+			fprintf(stream, "\n    Neighbors: ");
 			for(j = 0; j < func->live_range_count; j++)
 			{
 				if(_jit_bitset_test_bit(&range->neighbors, j))
 				{
-					printf("%d, ", j);
+					fprintf(stream, "%d, ", j);
 				}
 			}
-			printf("\n");
+			fprintf(stream, "\n");
 		}
 		else
 		{
-			printf("\n");
+			fprintf(stream, "\n");
 		}
 
-		printf("\n");
+		fprintf(stream, "\n");
 	}
 }
 

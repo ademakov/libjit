@@ -866,6 +866,6 @@ _jit_function_add_instruction_live_ranges(jit_function_t func)
 	}
 
 #ifdef _JIT_FLOW_DEBUG
-	_jit_dump_live_ranges(func);
+	jit_dump_live_ranges(stdout, func);
 #endif
 }

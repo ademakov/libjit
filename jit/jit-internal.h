@@ -371,11 +371,6 @@ _jit_live_range_t _jit_function_create_live_range(jit_function_t func,
 	jit_value_t value);
 
 /*
- * Dump all live ranges to stdout
- */
-void _jit_dump_live_ranges(jit_function_t func);
-
-/*
  * Compute live ranges of all values.
  */
 void _jit_function_compute_live_ranges(jit_function_t func);
