@@ -396,7 +396,7 @@ handle_live_range_use(jit_block_t block,
 		_jit_insn_list_add(&range->ends, block, insn);
 		if(prev == 0)
 		{
-			_jit_insn_list_add(&range->ends, block, insn);
+			_jit_insn_list_add(&range->starts, block, insn);
 		}
 		else
 		{
@@ -443,6 +443,12 @@ handle_live_range_use(jit_block_t block,
 	{
 		flood_fill_touched_preds(block, range, value);
 	}
+	else
+	{
+		/* The live range does not really touch the start of the block.
+		   The start will be found later and the bit cleared */
+		_jit_bitset_set_bit(&range->touched_block_starts, block->index);
+	}
 
 	if(_jit_bitset_test_bit(&block->live_out, value->index))
 	{
@@ -477,7 +483,7 @@ handle_live_range_start(jit_block_t block,
 		_jit_insn_list_add(&range->ends, block, insn);
 		if(prev == 0)
 		{
-			_jit_insn_list_add(&range->ends, block, insn);
+			_jit_insn_list_add(&range->starts, block, insn);
 		}
 		else
 		{
@@ -565,18 +571,6 @@ _jit_function_compute_live_ranges(jit_function_t func)
 
 			flags = insn->flags;
 
-			if((flags & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
-			{
-				insn->value1_live = handle_live_range_use(block,
-					prev, insn, insn->value1);
-			}
-
-			if((flags & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
-			{
-				insn->value2_live = handle_live_range_use(block,
-					prev, insn, insn->value2);
-			}
-
 			if((flags & JIT_INSN_DEST_OTHER_FLAGS) == 0)
 			{
 				if((flags & JIT_INSN_DEST_IS_VALUE) == 0)
@@ -591,6 +585,18 @@ _jit_function_compute_live_ranges(jit_function_t func)
 					insn->dest_live = handle_live_range_use(block,
 						prev, insn, insn->dest);
 				}
+			}
+
+			if((flags & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
+			{
+				insn->value1_live = handle_live_range_use(block,
+					prev, insn, insn->value1);
+			}
+
+			if((flags & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
+			{
+				insn->value2_live = handle_live_range_use(block,
+					prev, insn, insn->value2);
 			}
 
 			prev = insn;

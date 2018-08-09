@@ -500,7 +500,7 @@ spill_live_range_in_insn(jit_function_t func, jit_block_t block,
 	_jit_insn_list_add(&dummy->ends, block, insn);
 	if(prev == 0)
 	{
-		_jit_insn_list_add(&dummy->ends, block, insn);
+		_jit_insn_list_add(&dummy->starts, block, insn);
 	}
 	else
 	{
@@ -558,7 +558,7 @@ spill_live_range_in_block(jit_function_t func, jit_block_t block,
 					prev, insn, range);
 			}
 		}
-		else if(insn->value1_live == range)
+		if(insn->value1_live == range)
 		{
 			if(insn->flags & JIT_INSN_VALUE1_CAN_BE_MEM)
 			{
@@ -570,7 +570,7 @@ spill_live_range_in_block(jit_function_t func, jit_block_t block,
 					prev, insn, range);
 			}
 		}
-		else if(insn->value2_live == range)
+		if(insn->value2_live == range)
 		{
 			if(insn->flags & JIT_INSN_VALUE2_CAN_BE_MEM)
 			{
