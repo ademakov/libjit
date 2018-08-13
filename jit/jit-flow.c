@@ -497,7 +497,8 @@ handle_live_range_start(jit_block_t block,
 	{
 		end = _jit_insn_list_get_insn_from_block(range->ends, block);
 		if(end != 0
-			&& _jit_insn_list_get_insn_from_block(range->starts, block) == 0)
+			&& _jit_insn_list_get_insn_from_block(range->starts, block) == 0
+			&& !_jit_bitset_test_bit(&range->touched_block_ends, block->index))
 		{
 			if(range->starts == 0 && range->ends->next == 0)
 			{
