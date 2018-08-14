@@ -1,3 +1,7 @@
+2018-08-15  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-vmem.c (jit_vmem_commit): fix return value.
+
 2018-03-22  Aleksey Demakov  <ademakov@gmail.com>
 
 	* tests/misc/minimal.c: add David Meyer's test for a global register
