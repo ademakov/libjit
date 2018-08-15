@@ -473,6 +473,32 @@ create_dest_note(jit_function_t func, int oper, jit_type_t type)
 }
 
 /*
+ * Create a note instruction, which has a result.
+ */
+static int
+create_unary_dest_note(jit_function_t func, int oper, jit_value_t dest, jit_value_t value1)
+{
+	/* Ensure that we have a function builder */
+	if(!_jit_function_ensure_builder(func))
+	{
+		return 0;
+	}
+
+	jit_insn_t insn = _jit_block_add_insn(func->builder->current_block);
+	if(!insn)
+	{
+		return 0;
+	}
+	insn->opcode = (short) oper;
+	insn->dest = dest;
+	jit_value_ref(func, dest);
+	insn->value1 = value1;
+	jit_value_ref(func, value1);
+
+	return 1;
+}
+
+/*
  * Get the common type to use for a binary operator.
  */
 static jit_type_t
@@ -6169,7 +6195,7 @@ jit_insn_incoming_reg(jit_function_t func, jit_value_t value, int reg)
 	{
 		value->is_reg_parameter = 1;
 	}
-	return create_note(func, JIT_OP_INCOMING_REG, value, reg_value);
+	return create_unary_dest_note(func, JIT_OP_INCOMING_REG, value, reg_value);
 }
 
 /*@
@@ -6192,7 +6218,7 @@ jit_insn_incoming_frame_posn(jit_function_t func, jit_value_t value,
 	{
 		return 0;
 	}
-	return create_note(func, JIT_OP_INCOMING_FRAME_POSN, value, frame_offset_value);
+	return create_unary_dest_note(func, JIT_OP_INCOMING_FRAME_POSN, value, frame_offset_value);
 }
 
 /*@
@@ -6258,7 +6284,7 @@ jit_insn_return_reg(jit_function_t func, jit_value_t value, int reg)
 	{
 		return 0;
 	}
-	return create_note(func, JIT_OP_RETURN_REG, value, reg_value);
+	return create_unary_dest_note(func, JIT_OP_RETURN_REG, value, reg_value);
 }
 
 /*@

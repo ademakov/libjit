@@ -33,19 +33,47 @@ _jit_bitset_init(_jit_bitset_t *bs)
 int
 _jit_bitset_allocate(_jit_bitset_t *bs, int size)
 {
-	bs->size = size;
 	if(size > 0)
 	{
 		size = (size + _JIT_BITSET_WORD_BITS - 1) / _JIT_BITSET_WORD_BITS;
+		bs->size = size;
 		bs->bits = jit_calloc(size, sizeof(_jit_bitset_word_t));
 		if(!bs->bits)
 		{
-			jit_free(bs);
 			return 0;
 		}
 	}
 	else
 	{
+		bs->size = 0;
+		bs->bits = 0;
+	}
+	return 1;
+}
+
+int
+_jit_bitset_resize(_jit_bitset_t *bs, int size)
+{
+	int old_size;
+
+	if(size > 0)
+	{
+		old_size = bs->size;
+		size = (size + _JIT_BITSET_WORD_BITS - 1) / _JIT_BITSET_WORD_BITS;
+		bs->size = size;
+		bs->bits = jit_realloc(bs->bits, size * sizeof(_jit_bitset_word_t));
+		if(!bs->bits)
+		{
+			return 0;
+		}
+		if(size > old_size)
+		{
+			memset(bs->bits + old_size, 0, size - old_size);
+		}
+	}
+	else
+	{
+		bs->size = 0;
 		bs->bits = 0;
 	}
 	return 1;
@@ -68,31 +96,40 @@ _jit_bitset_free(_jit_bitset_t *bs)
 	}
 }
 
+int
+_jit_bitset_size(_jit_bitset_t *bs)
+{
+	return bs->size * _JIT_BITSET_WORD_BITS;
+}
+
 void
 _jit_bitset_set_bit(_jit_bitset_t *bs, int bit)
 {
 	int word;
+	_jit_bitset_word_t pattern;
 	word = bit / _JIT_BITSET_WORD_BITS;
-	bit = bit % _JIT_BITSET_WORD_BITS;
-	bs->bits[word] |= bit;
+	pattern = (_jit_bitset_word_t)1 << (bit % _JIT_BITSET_WORD_BITS);
+	bs->bits[word] |= pattern;
 }
 
 void
 _jit_bitset_clear_bit(_jit_bitset_t *bs, int bit)
 {
 	int word;
+	_jit_bitset_word_t pattern;
 	word = bit / _JIT_BITSET_WORD_BITS;
-	bit = bit % _JIT_BITSET_WORD_BITS;
-	bs->bits[word] &= ~bit;
+	pattern = (_jit_bitset_word_t)1 << (bit % _JIT_BITSET_WORD_BITS);
+	bs->bits[word] &= ~pattern;
 }
 
 int
 _jit_bitset_test_bit(_jit_bitset_t *bs, int bit)
 {
 	int word;
+	_jit_bitset_word_t pattern;
 	word = bit / _JIT_BITSET_WORD_BITS;
-	bit = bit % _JIT_BITSET_WORD_BITS;
-	return (bs->bits[word] & bit) != 0;
+	pattern = (_jit_bitset_word_t)1 << (bit % _JIT_BITSET_WORD_BITS);
+	return (bs->bits[word] & pattern) != 0;
 }
 
 void
@@ -164,6 +201,34 @@ _jit_bitset_equal(_jit_bitset_t *bs1, _jit_bitset_t *bs2)
 	for(i = 0; i < bs1->size; i++)
 	{
 		if(bs1->bits[i] != bs2->bits[i])
+		{
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int
+_jit_bitset_test(_jit_bitset_t *bs1, _jit_bitset_t *bs2)
+{
+	int i;
+	for(i = 0; i < bs1->size; i++)
+	{
+		if((bs1->bits[i] & bs2->bits[i]) != 0)
+		{
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int
+_jit_bitset_contains(_jit_bitset_t *outer, _jit_bitset_t *inner)
+{
+	int i;
+	for(i = 0; i < outer->size; i++)
+	{
+		if(((outer->bits[i] ^ inner->bits[i]) & inner->bits[i]) != 0)
 		{
 			return 0;
 		}

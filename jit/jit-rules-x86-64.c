@@ -102,6 +102,7 @@
  * TODO: Make this a configure switch.
  */
 #define HAVE_RED_ZONE 1
+#define RED_ZONE_SIZE 128
 
 /*
  * Some declarations that should be replaced by querying the cpuinfo
@@ -133,16 +134,6 @@ do { \
  * Set this to 1 for debugging fixups
  */
 #define DEBUG_FIXUPS 0
-
-/*
- * The maximum block size copied inline
- */
-#define _JIT_MAX_MEMCPY_INLINE	0x40
-
-/*
- * The maximum block size set inline
- */
-#define _JIT_MAX_MEMSET_INLINE 0x80
 
 /*
  * va_list type as specified in x86_64 sysv abi version 0.99
@@ -265,6 +256,14 @@ _jit_init_backend(void)
 		X86_64_REG_XMM10, X86_64_REG_XMM11,
 		X86_64_REG_XMM12, X86_64_REG_XMM13,
 		X86_64_REG_XMM14, X86_64_REG_XMM15);
+
+	_jit_regclass_info[0] = x86_64_xreg;
+	_jit_regclass_info[1] = x86_64_freg;
+	_jit_regclass_info[2] = x86_64_sreg;
+	_jit_regclass_info[3] = x86_64_rreg;
+	_jit_regclass_info[4] = x86_64_dreg;
+	_jit_regclass_info[5] = x86_64_creg;
+	_jit_regclass_info[6] = x86_64_reg;
 }
 
 int
@@ -277,6 +276,23 @@ _jit_opcode_is_supported(int opcode)
 	#undef JIT_INCLUDE_SUPPORTED
 	}
 	return 0;
+}
+
+int _jit_insn_get_register_usage(jit_insn_t insn,
+	_jit_insn_register_usage_t regmap)
+{
+	switch(insn->opcode)
+	{
+	#define JIT_INCLUDE_REGISTER_USAGE
+	#include "./jit-rules-x86-64.inc"
+	#undef JIT_INCLUDE_REGISTER_USAGE
+
+	default:
+		return 0;
+		break;
+	}
+
+	return 1;
 }
 
 int
@@ -1705,7 +1721,7 @@ void
 _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value)
 {
 	jit_type_t type;
-	int src_reg, other_src_reg;
+	int src_reg;
 	void *ptr;
 	int offset;
 
@@ -2003,12 +2019,10 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 		if(value->in_register)
 		{
 			src_reg = value->reg;
-			other_src_reg = -1;
 		}
 		else
 		{
 			src_reg = value->global_reg;
-			other_src_reg = -1;
 		}
 
 		switch(type->kind)
@@ -2392,20 +2406,13 @@ _jit_gen_get_elf_info(jit_elf_info_t *info)
 	info->abi_version = 0;
 }
 
-void *
-_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
+static int
+calculate_frame_size(jit_gencode_t gen, jit_function_t func, int *regs_to_save_ptr)
 {
-	unsigned char prolog[JIT_PROLOG_SIZE];
-	unsigned char *inst = prolog;
 	int reg;
 	int frame_size = 0;
 	int regs_to_save = 0;
-
-	/* Push ebp onto the stack */
-	x86_64_push_reg_size(inst, X86_64_RBP, 8);
-
-	/* Initialize EBP for the current frame */
-	x86_64_mov_reg_reg_size(inst, X86_64_RBP, X86_64_RSP, 8);
+	int aligned_frame_size;
 
 	/* Allocate space for the local variable frame */
 	if(func->builder->frame_size > 0)
@@ -2423,43 +2430,87 @@ _jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 			++regs_to_save;
 		}
 	}
+	*regs_to_save_ptr = regs_to_save;
 
-	/* add the register save area to the initial frame size */
-	frame_size += (regs_to_save << 3);
+	/* Add the register save area to the initial frame size */
+	frame_size += regs_to_save * sizeof(void *);
 
 #ifdef JIT_USE_PARAM_AREA
-	/* Add the param area to the frame_size if the additional offset
-	   doesnt cause the offsets in the register saves become 4 bytes */
-	if(func->builder->param_area_size > 0 &&
-	   (func->builder->param_area_size <= 0x50 || regs_to_save == 0))
+	/* Add the param area to the frame size */
+	frame_size += func->builder->param_area_size;
+#endif
+
+	aligned_frame_size = (frame_size + 0xf) & ~0xf;
+
+	if(gen->stack_changed || func->builder->frame_size != 0)
 	{
-		frame_size += func->builder->param_area_size;
+		/* Make sure that the framesize is a multiple of 16 bytes */
+		/* so that the final RSP will be alligned on a 16byte boundary. */
+		frame_size = aligned_frame_size;
 	}
-#endif /* JIT_USE_PARAM_AREA */
-
-	/* Make sure that the framesize is a multiple of 16 bytes */
-	/* so that the final RSP will be alligned on a 16byte boundary. */
-	frame_size = (frame_size + 0xf) & ~0xf;
-
-	if(frame_size > 0)
+	else
 	{
-		x86_64_sub_reg_imm_size(inst, X86_64_RSP, frame_size, 8);
+		/* System V says the stack is 16 byte aligned before the call
+		   instruction. Which means we have to displace by eight bytes to be
+		   aligned again. This is normally done by pushing rbp. When the stack
+		   is not touched rbp is not pushed though */
+		if(aligned_frame_size - 8 >= frame_size)
+		{
+			frame_size = aligned_frame_size - 8;
+		}
+		else
+		{
+			frame_size = aligned_frame_size + 8;
+		}
+	}
+
+	return frame_size;
+}
+
+void *
+_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
+{
+	int reg;
+	int frame_size;
+	int regs_to_save;
+	int current_offset = 0;
+	unsigned char prolog[JIT_PROLOG_SIZE];
+	unsigned char *inst = prolog;
+
+	frame_size = calculate_frame_size(gen, func, &regs_to_save);
+
+	if(gen->stack_changed || func->builder->frame_size != 0)
+	{
+		/* Push ebp onto the stack */
+		x86_64_push_reg_size(inst, X86_64_RBP, 8);
+
+		/* Initialize EBP for the current frame */
+		x86_64_mov_reg_reg_size(inst, X86_64_RBP, X86_64_RSP, 8);
+
+		if(frame_size > 0)
+		{
+			/* Initialize RSP for the current frame */
+			x86_64_sub_reg_imm_size(inst, X86_64_RSP, frame_size, 8);
+		}
+	}
+	else if(!HAVE_RED_ZONE || frame_size > RED_ZONE_SIZE || func->builder->non_leaf)
+	{
+		if(frame_size > 0)
+		{
+			/* Initialize RSP for the current frame */
+			x86_64_sub_reg_imm_size(inst, X86_64_RSP, frame_size, 8);
+		}
+	}
+	else
+	{
+		current_offset = -frame_size;
 	}
 
 	if(regs_to_save > 0)
 	{
-		int current_offset;
 #ifdef JIT_USE_PARAM_AREA
-		if(func->builder->param_area_size > 0 &&
-		   func->builder->param_area_size <= 0x50)
-		{
-			current_offset = func->builder->param_area_size;
-		}
-		else
+		current_offset += func->builder->param_area_size;
 #endif /* JIT_USE_PARAM_AREA */
-		{
-			current_offset = 0;
-		}
 
 		/* Save registers that we need to preserve */
 		for(reg = 0; reg <= 14; ++reg)
@@ -2473,12 +2524,6 @@ _jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 			}
 		}
 	}
-#ifdef JIT_USE_PARAM_AREA
-	if(func->builder->param_area_size > 0x50 && regs_to_save > 0)
-	{
-		x86_64_sub_reg_imm_size(inst, X86_64_RSP, func->builder->param_area_size, 8);
-	}
-#endif /* JIT_USE_PARAM_AREA */
 
 	/* Copy the prolog into place and return the adjusted entry position */
 	reg = (int)(inst - prolog);
@@ -2486,12 +2531,69 @@ _jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)
 	return (void *)(((unsigned char *)buf) + JIT_PROLOG_SIZE - reg);
 }
 
+unsigned char *
+x86_64_prepare_for_return(unsigned char *inst, jit_gencode_t gen, jit_function_t func)
+{
+	int reg;
+	int base_reg;
+	int frame_size;
+	int regs_to_restore;
+	int current_offset;
+
+	frame_size = calculate_frame_size(gen, func, &regs_to_restore);
+
+	if(regs_to_restore > 0)
+	{
+		/* Determine how to access the frame */
+		if(gen->stack_changed || func->builder->frame_size != 0)
+		{
+			/* We use RBP */
+			base_reg = X86_64_RBP;
+			current_offset = -frame_size + func->builder->param_area_size;
+		}
+		else if(!HAVE_RED_ZONE || frame_size > RED_ZONE_SIZE || func->builder->non_leaf)
+		{
+			/* We use RSP which was decremented by frame_size bytes */
+			base_reg = X86_64_RSP;
+			current_offset = func->builder->param_area_size;
+		}
+		else
+		{
+			/* We use RSP which was never changed */
+			base_reg = X86_64_RSP;
+			current_offset = -frame_size + func->builder->param_area_size;
+		}
+
+		for(reg = 0; reg <= 14; ++reg)
+		{
+			if(jit_reg_is_used(gen->touched, reg) &&
+			(_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0)
+			{
+				x86_64_mov_reg_membase_size(inst, _jit_reg_info[reg].cpu_reg,
+								base_reg, current_offset, 8);
+				current_offset += 8;
+			}
+		}
+	}
+
+	if(gen->stack_changed || func->builder->frame_size != 0)
+	{
+		/* Restore stack pointer and frame pointer */
+		x86_64_leave(inst);
+	}
+	else if(!HAVE_RED_ZONE || frame_size > RED_ZONE_SIZE || func->builder->non_leaf)
+	{
+		/* Increment stack pointer */
+		x86_64_add_reg_imm_size(inst, X86_64_RSP, frame_size, 8);
+	}
+
+	return inst;
+}
+
 void
 _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 {
 	unsigned char *inst;
-	int reg;
-	int current_offset;
 	jit_int *fixup;
 	jit_int *next;
 
@@ -2530,73 +2632,9 @@ _jit_gen_epilog(jit_gencode_t gen, jit_function_t func)
 	}
 	gen->alloca_fixup = 0;
 
-	/* Restore the used callee saved registers */
-	if(gen->stack_changed)
-	{
-		int frame_size = func->builder->frame_size;
-		int regs_saved = 0;
+	inst = x86_64_prepare_for_return(inst, gen, func);
 
-		/* Get the number of registers we preserves */
-		for(reg = 0; reg < 14; ++reg)
-		{
-			if(jit_reg_is_used(gen->touched, reg) &&
-			   (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0)
-			{
-				++regs_saved;
-			}
-		}
-
-		/* add the register save area to the initial frame size */
-		frame_size += (regs_saved << 3);
-
-		/* Make sure that the framesize is a multiple of 16 bytes */
-		/* so that the final RSP will be alligned on a 16byte boundary. */
-		frame_size = (frame_size + 0xf) & ~0xf;
-
-		current_offset = -frame_size;
-
-		for(reg = 0; reg <= 14; ++reg)
-		{
-			if(jit_reg_is_used(gen->touched, reg) &&
-			   (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0)
-			{
-				x86_64_mov_reg_membase_size(inst, _jit_reg_info[reg].cpu_reg,
-							    X86_64_RBP, current_offset, 8);
-				current_offset += 8;
-			}
-		}
-	}
-	else
-	{
-#ifdef JIT_USE_PARAM_AREA
-		if(func->builder->param_area_size > 0)
-		{
-			current_offset = func->builder->param_area_size;
-		}
-		else
-		{
-			current_offset = 0;
-		}
-#else /* !JIT_USE_PARAM_AREA */
-		current_offset = 0;
-#endif /* !JIT_USE_PARAM_AREA */
-		for(reg = 0; reg <= 14; ++reg)
-		{
-			if(jit_reg_is_used(gen->touched, reg) &&
-			   (_jit_reg_info[reg].flags & JIT_REG_CALL_USED) == 0)
-			{
-				x86_64_mov_reg_membase_size(inst, _jit_reg_info[reg].cpu_reg,
-							    X86_64_RSP, current_offset, 8);
-				current_offset += 8;
-			}
-		}
-	}
-
-	/* Restore stackpointer and frame register */
-	x86_64_mov_reg_reg_size(inst, X86_64_RSP, X86_64_RBP, 8);
-	x86_64_pop_reg_size(inst, X86_64_RBP, 8);
-
-	/* and return */
+	/* Return */
 	x86_64_ret(inst);
 
 	gen->ptr = inst;

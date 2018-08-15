@@ -24,6 +24,8 @@
 #include "jit-reg-class.h"
 #include <stdarg.h>
 
+_jit_regclass_t *_jit_regclass_info[JIT_NUM_REG_CLASSES];
+
 _jit_regclass_t *
 _jit_regclass_create(const char *name, int flags, int num_regs, ...)
 {

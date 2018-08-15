@@ -3641,9 +3641,15 @@ _jit_regs_select(_jit_regs_t *regs)
 #endif
 
 void
-_jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs)
+_jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn)
 {
 	int reg;
+
+	if(gen->graph_allocated)
+	{
+		_jit_regs_graph_commit(gen, regs, insn);
+		return;
+	}
 
 #ifdef JIT_REG_DEBUG
 	dump_regs(gen, "enter _jit_regs_commit");
@@ -3772,9 +3778,18 @@ _jit_regs_commit(jit_gencode_t gen, _jit_regs_t *regs)
 }
 
 void
-_jit_regs_begin(jit_gencode_t gen, _jit_regs_t *regs, int space)
+_jit_regs_begin(jit_gencode_t gen, _jit_regs_t *regs, jit_insn_t insn,
+	int space)
 {
-	_jit_regs_assign(gen, regs);
-	_jit_regs_gen(gen, regs);
+	if(gen->graph_allocated)
+	{
+		_jit_regs_graph_begin(gen, regs, insn);
+	}
+	else
+	{
+		_jit_regs_assign(gen, regs);
+		_jit_regs_gen(gen, regs);
+	}
+
 	_jit_gen_check_space(gen, space);
 }

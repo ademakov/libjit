@@ -38,6 +38,7 @@ extern	"C" {
 	{"r2", 2, -1, JIT_REG_ALL | JIT_REG_CALL_USED},
 #define	JIT_NUM_REGS		3
 #define	JIT_NUM_GLOBAL_REGS	0
+#define JIT_NUM_REG_CLASSES 1
 
 /*
  * Define to 1 if we should always load values into registers

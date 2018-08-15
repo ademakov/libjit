@@ -117,6 +117,9 @@ void _jit_init_backend(void) {
 		ALPHA_FS5, ALPHA_FS6, ALPHA_FS7, ALPHA_FT0, ALPHA_FT1,
 		ALPHA_FT2, ALPHA_FT3, ALPHA_FT4, ALPHA_FT5
 	);
+
+	_jit_regclass_info[0] = alpha_freg;
+	_jit_regclass_info[1] = alpha_reg;
 }
 
 #define TODO()          \
@@ -374,6 +377,20 @@ int _jit_opcode_is_supported(int opcode) {
 	}
 
 	return 0;
+}
+
+int _jit_insn_get_register_usage(jit_insn_t insn, _jit_insn_register_usage_t regmap) {
+	switch(insn->opcode) {
+	#define JIT_INCLUDE_REGISTER_USAGE
+	#include "./jit-rules-alpha.inc"
+	#undef JIT_INCLUDE_REGISTER_USAGE
+
+	default:
+		return 0;
+		break;
+	}
+
+	return 1;
 }
 
 /*

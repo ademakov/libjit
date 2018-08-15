@@ -87,6 +87,8 @@ extern	"C" {
 
 #endif /* JIT_ARM_HAS_FLOAT_REGS */
 
+#define JIT_NUM_REG_CLASSES	5
+
 /*
  * Definitions in case of FPA
  */

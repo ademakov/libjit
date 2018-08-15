@@ -169,6 +169,7 @@ struct jit_gencode
 	jit_regused_t		inhibit;	/* Temporarily inhibited registers */
 	jit_regcontents_t	contents[JIT_NUM_REGS]; /* Contents of each register */
 	int			current_age;	/* Current age value for registers */
+	unsigned		graph_allocated : 1; /* Registers are pre allocated */
 #ifdef JIT_REG_STACK
 	int			reg_stack_top;	/* Current register stack top */
 #endif
@@ -189,6 +190,31 @@ struct jit_elf_info
 	int			machine;
 	int			abi;
 	int			abi_version;
+};
+
+/*
+ * Constants used by JIT_INCLUDE_REGISTER_USAGE for indicating register usage
+ */
+#define _JIT_REG_USAGE_UNNUSED -2
+#define _JIT_REG_USAGE_UNNAMED -1
+
+/*
+ * Struct filled when including rules files with JIT_INCLUDE_REGISTER_USAGE set
+ */
+typedef struct jit_insn_register_usage *_jit_insn_register_usage_t;
+struct jit_insn_register_usage
+{
+	jit_nuint clobber;
+	jit_nuint early_clobber;
+	unsigned clobbered_classes;
+	int dest;
+	int value1;
+	int value2;
+	int dest_other;
+	int value1_other;
+	int value2_other;
+	unsigned flags;
+	unsigned unnamed[JIT_NUM_REG_CLASSES];
 };
 
 /*
@@ -219,6 +245,8 @@ int _jit_create_call_return_insns
 	 jit_value_t *args, unsigned int num_args,
 	 jit_value_t return_value, int is_nested);
 int _jit_opcode_is_supported(int opcode);
+int _jit_insn_get_register_usage(jit_insn_t insn,
+	_jit_insn_register_usage_t regmap);
 void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf);
 void _jit_gen_epilog(jit_gencode_t gen, jit_function_t func);
 void *_jit_gen_redirector(jit_gencode_t gen, jit_function_t func);

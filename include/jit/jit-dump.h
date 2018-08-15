@@ -34,6 +34,8 @@ void jit_dump_value
 	 jit_value_t value, const char *prefix) JIT_NOTHROW;
 void jit_dump_insn
 	(FILE *stream, jit_function_t func, jit_insn_t insn) JIT_NOTHROW;
+void jit_dump_live_ranges
+	(FILE *stream, jit_function_t func) JIT_NOTHROW;
 void jit_dump_function
 	(FILE *stream, jit_function_t func, const char *name) JIT_NOTHROW;
 

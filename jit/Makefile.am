@@ -28,6 +28,8 @@ libjit_la_SOURCES = \
 	jit-elf-read.c \
 	jit-elf-write.c \
 	jit-except.c \
+	jit-flow.c \
+	jit-graph-reg-alloc.c \
 	jit-function.c \
 	jit-gen-arm.h \
 	jit-gen-arm.c \

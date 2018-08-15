@@ -211,6 +211,30 @@ alloc_edges(jit_function_t func)
 }
 
 static void
+free_edges(jit_function_t func)
+{
+	jit_block_t block;
+	int i;
+
+	for(block = func->builder->entry_block; block; block = block->next)
+	{
+		if(block->num_succs == 0)
+		{
+			continue;
+		}
+
+		for(i = 0; i < block->num_succs; i++)
+		{
+			jit_memory_pool_dealloc(&func->builder->edge_pool, block->succs[i]);
+		}
+		jit_free(block->preds);
+		jit_free(block->succs);
+		block->preds = 0;
+		block->succs = 0;
+	}
+}
+
+static void
 detach_edge_src(_jit_edge_t edge)
 {
 	jit_block_t block;
@@ -221,11 +245,10 @@ detach_edge_src(_jit_edge_t edge)
 	{
 		if(block->succs[index] == edge)
 		{
-			for(block->num_succs--; index < block->num_succs; index++)
-			{
-				block->succs[index] = block->succs[index + 1];
-			}
-			block->succs = jit_realloc(block->succs, block->num_succs * sizeof(_jit_edge_t));
+			--block->num_succs;
+			block->succs[index] = block->succs[block->num_succs];
+			block->succs = jit_realloc(block->succs,
+				block->num_succs * sizeof(_jit_edge_t));
 			return;
 		}
 	}
@@ -242,12 +265,10 @@ detach_edge_dst(_jit_edge_t edge)
 	{
 		if(block->preds[index] == edge)
 		{
-			for(block->num_preds--; index < block->num_preds; index++)
-			{
-				block->preds[index] = block->preds[index + 1];
-			}
+			--block->num_preds;
+			block->preds[index] = block->preds[block->num_preds];
 			block->preds = jit_realloc(block->preds,
-						   block->num_preds * sizeof(_jit_edge_t));
+				block->num_preds * sizeof(_jit_edge_t));
 			return;
 		}
 	}
@@ -752,6 +773,9 @@ _jit_block_free(jit_function_t func)
 void
 _jit_block_build_cfg(jit_function_t func)
 {
+	/* Free edges from a previous run */
+	free_edges(func);
+
 	/* Count the edges */
 	build_edges(func, 0);
 
@@ -762,10 +786,10 @@ _jit_block_build_cfg(jit_function_t func)
 	build_edges(func, 1);
 }
 
-void
+int
 _jit_block_clean_cfg(jit_function_t func)
 {
-	int index, changed;
+	int index, changed, optimized;
 	jit_block_t block;
 	jit_insn_t insn;
 
@@ -787,6 +811,8 @@ _jit_block_clean_cfg(jit_function_t func)
 
 	set_address_of(func);
 	eliminate_unreachable(func);
+
+	optimized = 0;
 
  loop:
 	changed = 0;
@@ -896,8 +922,12 @@ _jit_block_clean_cfg(jit_function_t func)
 			jit_exception_builtin(JIT_RESULT_OUT_OF_MEMORY);
 		}
 		clear_visited(func);
+
+		optimized = 1;
 		goto loop;
 	}
+
+	return optimized;
 }
 
 int
@@ -971,6 +1001,110 @@ _jit_block_compute_postorder(jit_function_t func)
 	return 1;
 }
 
+static void
+update_common_properties(jit_block_t block, jit_value_t value)
+{
+	if(!value)
+	{
+		return;
+	}
+
+	value->usage_count++;
+
+	if(value->is_constant)
+	{
+		return;
+	}
+
+	/* If first_used_in is 0 this is the first time we use value
+	   if it was already used in a different block its a local
+	   not a temporary value */
+	if(!value->first_used_in)
+	{
+		value->first_used_in = block;
+	}
+	else if(value->first_used_in != block)
+	{
+		value->is_temporary = 0;
+		value->is_local = 1;
+	}
+}
+
+void
+_jit_block_recompute_common_properties(jit_function_t func)
+{
+	int i;
+	int flags;
+	jit_block_t block;
+	jit_insn_iter_t iter;
+	jit_insn_t insn;
+	jit_value_t value;
+	jit_nuint count;
+	jit_pool_block_t memblock = func->builder->value_pool.blocks;
+	int num = (int)(func->builder->value_pool.elems_in_last);
+
+	count = 0;
+	while(memblock != 0)
+	{
+		for(i = 0; i < num; ++i)
+		{
+			value = (jit_value_t)(memblock->data + i * sizeof(struct _jit_value));
+
+			value->usage_count = 0;
+			value->index = count;
+			++count;
+
+			if(!value->is_constant)
+			{
+				/* Reset value temproary/local flags */
+				value->is_temporary = 1;
+				value->is_local = 0;
+				value->first_used_in = 0;
+			}
+		}
+		memblock = memblock->next;
+
+		num = (int)(func->builder->value_pool.elems_per_block);
+	}
+
+	func->builder->value_count = count;
+	count = 0;
+
+	for(block = func->builder->entry_block; block; block = block->next)
+	{
+		block->index = count;
+		++count;
+
+		jit_insn_iter_init(&iter, block);
+		while((insn = jit_insn_iter_next(&iter)) != 0)
+		{
+			/* Skip NOP instructions, which may have arguments left
+			   over from when the instruction was replaced, but which
+			   are not used in this block */
+			if(insn->opcode == JIT_OP_NOP)
+			{
+				continue;
+			}
+
+			flags = insn->flags;
+			if((flags & JIT_INSN_DEST_OTHER_FLAGS) == 0)
+			{
+				update_common_properties(block, insn->dest);
+			}
+			if((flags & JIT_INSN_VALUE1_OTHER_FLAGS) == 0)
+			{
+				update_common_properties(block, insn->value1);
+			}
+			if((flags & JIT_INSN_VALUE2_OTHER_FLAGS) == 0)
+			{
+				update_common_properties(block, insn->value2);
+			}
+		}
+	}
+
+	func->builder->block_count = count;
+}
+
 jit_block_t
 _jit_block_create(jit_function_t func)
 {
@@ -986,6 +1120,9 @@ _jit_block_create(jit_function_t func)
 	/* Initialize the block */
 	block->func = func;
 	block->label = jit_label_undefined;
+	_jit_bitset_init(&block->upward_exposes);
+	_jit_bitset_init(&block->var_kills);
+	_jit_bitset_init(&block->live_out);
 
 	return block;
 }
@@ -1000,6 +1137,7 @@ _jit_block_destroy(jit_block_t block)
 	   not freed) separately. However succs and preds arrays are freed,
 	   these contain pointers to edges, not edges themselves. */
 	jit_meta_destroy(&block->meta);
+	_jit_block_free_live_out(block);
 	jit_free(block->succs);
 	jit_free(block->preds);
 	jit_free(block->insns);

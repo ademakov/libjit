@@ -79,6 +79,7 @@ extern	"C" {
 	{"st7", 7, -1, JIT_REG_X86_64_FLOAT | JIT_REG_CALL_USED | JIT_REG_IN_STACK},
 #define	JIT_NUM_REGS		40
 #define	JIT_NUM_GLOBAL_REGS	5
+#define JIT_NUM_REG_CLASSES 7
 
 #define JIT_REG_STACK		1
 #define JIT_REG_STACK_START	32
@@ -133,6 +134,16 @@ extern	"C" {
  * We are using the param area on x86_64
  */
 #define JIT_USE_PARAM_AREA
+
+/*
+ * The maximum block size copied inline
+ */
+#define _JIT_MAX_MEMCPY_INLINE	0x40
+
+/*
+ * The maximum block size set inline
+ */
+#define _JIT_MAX_MEMSET_INLINE 0x80
 
 #ifdef	__cplusplus
 };
