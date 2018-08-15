@@ -1,5 +1,7 @@
 2018-08-15  Aleksey Demakov  <ademakov@gmail.com>
 
+	* configure.ac: bump version to 0.1.4.
+
 	* jit/jit-vmem.c (jit_vmem_commit): fix return value.
 
 2018-03-22  Aleksey Demakov  <ademakov@gmail.com>
