@@ -6308,7 +6308,16 @@ jit_insn_get_frame_pointer(jit_function_t func)
 			break;
 		}
 	}
-	jit_insn_incoming_reg(func, value, reg);
+
+	if(reg < JIT_NUM_REGS)
+	{
+		jit_insn_incoming_reg(func, value, reg);
+	}
+	else
+	{
+		jit_insn_incoming_frame_posn(func, value, 0);
+		value = jit_insn_address_of(func, value);
+	}
 
 	return value;
 }

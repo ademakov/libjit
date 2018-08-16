@@ -179,11 +179,6 @@ opcodes(JIT_INTERP_OP_,
 	op_def("pop_2") { }
 	op_def("pop_3") { }
 	/*
-	 * Nested function call handling.
-	 */
-	op_def("import_local") { "JIT_OPCODE_NINT_ARG_TWO" }
-	op_def("import_arg") { "JIT_OPCODE_NINT_ARG_TWO" }
-	/*
 	 * Marker opcode for the end of a function.
 	 */
 	op_def("end_marker") { }

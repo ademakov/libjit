@@ -287,11 +287,18 @@ int _jit_create_entry_insns(jit_function_t func)
 	   flipped when we output the argument opcodes for interpretation */
 	offset = -1;
 
-	/* If the function is nested, then we need two extra parameters
-	   to pass the pointer to the parent's local variables and arguments */
+	/* If the function is nested, then we an extra parameter
+	   to pass the pointer to the parent's frame */
 	if(func->nested_parent)
 	{
-		offset -= 2;
+		value = jit_value_create(func, jit_type_void_ptr);
+		if(!jit_insn_incoming_frame_posn(func, value, offset))
+		{
+			return 0;
+		}
+
+		jit_function_set_parent_frame(func, value);
+		--offset;
 	}
 
 	/* Allocate the structure return pointer */
@@ -974,7 +981,7 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			default:
 				return;
 			}
-			opcode = _jit_load_opcode(opcode, value->type, value, 0);
+			opcode = _jit_load_opcode(opcode, value->type);
 			offset = value->frame_offset;
 		}
 		else
@@ -994,7 +1001,7 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			default:
 				return;
 			}
-			opcode = _jit_load_opcode(opcode, value->type, value, 0);
+			opcode = _jit_load_opcode(opcode, value->type);
 			offset = -(value->frame_offset + 1);
 		}
 
