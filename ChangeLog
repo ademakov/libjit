@@ -1,3 +1,8 @@
+2018-08-19  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jitdynamic/libjitdynamic.pc.in (Libs): fix Libs to use jitdynamic
+	instead of jitplus (thanks Eli Zaretskii <eliz@gnu.org>).
+
 2018-08-15  Aleksey Demakov  <ademakov@gmail.com>
 
 	* configure.ac: bump version to 0.1.4.
