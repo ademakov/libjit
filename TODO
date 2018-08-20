@@ -3,7 +3,7 @@ Target Release: 0.2.0
 
 * integrate Jakob's register allocator
 * CFG-based liveness analysis and dead code elimination
-* new code memory allocator able to free funtions 
+* new code memory allocator able to free functions 
 
 Target release: 0.2.2
 =====================
