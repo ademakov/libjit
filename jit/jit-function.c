@@ -947,8 +947,7 @@ int jit_function_apply_vararg
 	jit_exception_clear_last();
 
 	/* Apply the function.  If it returns, then there is no exception */
-	jit_apply(signature, func->entry_point, args,
-			  jit_type_num_params(func->signature), return_area);
+	jit_apply(signature, entry, args, jit_type_num_params(func->signature), return_area);
 
 	/* Restore the backtrace and "setjmp" contexts and exit */
 	_jit_unwind_pop_setjmp();
