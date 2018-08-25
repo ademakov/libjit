@@ -2618,6 +2618,7 @@ small_block_copy(jit_gencode_t gen, unsigned char *inst,
 				 int scratch_reg, int scratch_xreg, int is_aligned)
 {
 	jit_nint offset = 0;
+	int i;
 
 	/* Copy all 16 byte blocks of the struct */
 	while(size >= 16)
@@ -2641,7 +2642,7 @@ small_block_copy(jit_gencode_t gen, unsigned char *inst,
 	}
 
 	/* Now copy the rest of the struct */
-	for(int i = 8; i > 0; i /= 2)
+	for(i = 8; i > 0; i /= 2)
 	{
 		if(size >= i)
 		{
@@ -2753,6 +2754,7 @@ small_block_set(jit_gencode_t gen, unsigned char *inst,
 				int is_aligned, int use_sse)
 {
 	jit_nint offset = 0;
+	int i;
 
 	/* Make sure only the least significant byte serves as the filler. */
 	val &= 0xff;
@@ -2804,7 +2806,7 @@ small_block_set(jit_gencode_t gen, unsigned char *inst,
 	}
 
 	/* Now fill the rest */
-	for(int i = 8; i > 0; i /= 2)
+	for(i = 8; i > 0; i /= 2)
 	{
 		while(size >= i)
 		{
