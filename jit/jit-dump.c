@@ -794,7 +794,8 @@ void jit_dump_function(FILE *stream, jit_function_t func, const char *name)
 			putc('[', stream);
 			if(func->nested_parent)
 			{
-				fputs("parent_frame", stream);
+				jit_dump_value(stream, func, func->parent_frame, 0);
+				fputs(" : parent_frame", stream);
 				if(value)
 				{
 					fputs(", ", stream);

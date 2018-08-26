@@ -797,6 +797,7 @@ opcodes(JIT_OP_, "jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES]")
 	op_def("outgoing_reg") { op_type(reg) }
 	op_def("outgoing_frame_posn") { op_values(empty, any, int) }
 	op_def("return_reg") { op_type(reg) }
+	op_def("retrieve_frame_pointer") { op_values(any, empty, empty) }
 	op_def("push_int") { op_values(empty, int) }
 	op_def("push_long") { op_values(empty, long) }
 	op_def("push_float32") { op_values(empty, float32) }

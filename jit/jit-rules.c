@@ -172,7 +172,8 @@ int _jit_create_entry_insns(jit_function_t func)
 		{
 			return 0;
 		}
-		func->builder->parent_frame = value;
+
+		jit_function_set_parent_frame(func, value);
 		if(!alloc_incoming_word(func, &passing, value, 0))
 		{
 			return 0;

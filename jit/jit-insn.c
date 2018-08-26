@@ -6292,34 +6292,8 @@ jit_insn_flush_struct(jit_function_t func, jit_value_t value)
 jit_value_t
 jit_insn_get_frame_pointer(jit_function_t func)
 {
-	int reg;
-	jit_value_t value;
-
-	value = jit_value_create(func, jit_type_void_ptr);
-	if(!value)
-	{
-		return 0;
-	}
-
-	for(reg = 0; reg < JIT_NUM_REGS; reg++)
-	{
-		if(jit_reg_flags(reg) & JIT_REG_FRAME)
-		{
-			break;
-		}
-	}
-
-	if(reg < JIT_NUM_REGS)
-	{
-		jit_insn_incoming_reg(func, value, reg);
-	}
-	else
-	{
-		jit_insn_incoming_frame_posn(func, value, 0);
-		value = jit_insn_address_of(func, value);
-	}
-
-	return value;
+	return create_dest_note(func, JIT_OP_RETRIEVE_FRAME_POINTER,
+		jit_type_void_ptr);
 }
 
 static jit_value_t

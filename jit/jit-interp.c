@@ -4892,6 +4892,14 @@ restart_tail:
 		 * Stack management.
 		 ******************************************************************/
 
+		VMCASE(JIT_OP_RETRIEVE_FRAME_POINTER):
+		{
+			/* Move the frame pointer into the register 0 */
+			VM_R0_PTR = frame;
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
+
 		VMCASE(JIT_OP_POP_STACK):
 		{
 			/* Pop a specific number of items from the stack */
