@@ -6196,6 +6196,11 @@ jit_insn_incoming_frame_posn(jit_function_t func, jit_value_t value,
 	{
 		return 0;
 	}
+	if(value->is_parameter)
+	{
+		value->has_frame_offset = 1;
+		value->frame_offset = frame_offset;
+	}
 	return create_note(func, JIT_OP_INCOMING_FRAME_POSN, value, frame_offset_value);
 }
 
@@ -6381,6 +6386,13 @@ jit_insn_get_parent_frame_pointer_of(jit_function_t func, jit_function_t target)
 jit_value_t
 jit_insn_import(jit_function_t func, jit_value_t value)
 {
+	jit_function_t value_func;
+	jit_value_t value_frame;
+	int value_offset;
+#ifdef JIT_BACKEND_INTERP
+	jit_value_t arguments_pointer;
+#endif
+
 	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
@@ -6388,7 +6400,7 @@ jit_insn_import(jit_function_t func, jit_value_t value)
 	}
 
 	/* If the value is already local, then return the local address */
-	jit_function_t value_func = jit_value_get_function(value);
+	value_func = jit_value_get_function(value);
 	if(value_func == func)
 	{
 		return jit_insn_address_of(func, value);
@@ -6399,23 +6411,55 @@ jit_insn_import(jit_function_t func, jit_value_t value)
 	   frame can be reused as finding it would require multiple memory loads */
 	if(value_func == func->cached_parent)
 	{
-		jit_value_ref(func, value);
-		_jit_gen_fix_value(value);
-		return jit_insn_add_relative(func, func->cached_parent_frame,
-			value->frame_offset);
+		value_frame = func->cached_parent_frame;
+	}
+	else
+	{
+		value_frame = find_frame_of(func, value_func,
+			func->nested_parent, func->parent_frame);
 	}
 
-	jit_value_t value_frame = find_frame_of(func, value_func,
-		func->nested_parent, func->parent_frame);
 	if(!value_frame)
 	{
 		return 0;
 	}
 
-	jit_value_ref(func, value);
 	_jit_gen_fix_value(value);
 
-	return jit_insn_add_relative(func, value_frame, value->frame_offset);
+#ifdef JIT_BACKEND_INTERP
+	/* In the interpreter backend arguments have a negative frame offset, but
+	   lie on in different memory region than local variables. They are imported
+	   by first importing a pointer to the arguments memory region. */
+	if(value->is_parameter)
+	{
+		arguments_pointer = value_func->arguments_pointer;
+		if(!arguments_pointer)
+		{
+			arguments_pointer = jit_value_create(value_func, jit_type_void_ptr);
+			if(!arguments_pointer)
+			{
+				return 0;
+			}
+
+			_jit_gen_fix_value(arguments_pointer);
+			value_func->arguments_pointer = arguments_pointer;
+		}
+
+		value_frame = jit_insn_load_relative(func, value_frame,
+			arguments_pointer->frame_offset, jit_type_void_ptr);
+		value_offset = -(value->frame_offset + 1);
+	}
+	else
+	{
+		value_offset = value->frame_offset;
+	}
+#else
+	value_offset = value->frame_offset;
+#endif
+
+	jit_value_ref(func, value);
+
+	return jit_insn_add_relative(func, value_frame, value_offset);
 }
 
 /*@

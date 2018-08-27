@@ -350,6 +350,11 @@ restart_tail:
 		jbuf = 0;
 	}
 
+	if(func->func->arguments_pointer)
+	{
+		frame[func->func->arguments_pointer->frame_offset].ptr_value = args;
+	}
+
 	/* Enter the instruction dispatch loop */
 	VMSWITCH(pc)
 	{

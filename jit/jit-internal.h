@@ -464,6 +464,9 @@ struct _jit_function
 	/* Containing function in a nested context */
 	jit_function_t		nested_parent;
 	jit_value_t		parent_frame;
+#ifdef JIT_BACKEND_INTERP
+	jit_value_t		arguments_pointer;
+#endif
 	jit_function_t		cached_parent;
 	jit_value_t		cached_parent_frame;
 
