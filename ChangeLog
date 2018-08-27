@@ -1,3 +1,13 @@
+2018-08-28  Jakob Löw  <jakob@m4gnus.de>
+
+	* jit-insn.c, jit-insn.h, jit-function.c, jit-function.h, jit-internal.h:
+	  implement nesting using retrieve_frame_pointer and the frame_offset of
+	  values. The frame pointer can either be passed automatically to child
+	  functions when e.g. using jit_insn_call or manually using the new
+	  functions jit_insn_call_nested_indirect, jit_insn_get_frame_pointer,
+	  jit_insn_get_parent_frame_pointer_of or jit_function_set_parent_frame.
+	* jit-rules-*.ins: implement the retrieve_frame_pointer opcode.
+
 2018-03-22  Aleksey Demakov  <ademakov@gmail.com>
 
 	* tests/misc/minimal.c: add David Meyer's test for a global register
