@@ -26,7 +26,7 @@
 #elif defined(HAVE_MATH_H)
 	#include <math.h>
 #endif
-#ifdef JIT_WIN32_NATIVE
+#ifdef JIT_WIN32_PLATFORM
 #include <float.h>
 #if !defined(isnan)
 #define isnan(value)	_isnan((value))
@@ -1626,7 +1626,7 @@ jit_float32 jit_float32_tanh(jit_float32 value1)
 @*/
 jit_int jit_float32_is_finite(jit_float32 value)
 {
-#if defined(hpux) || defined(JIT_WIN32_NATIVE)
+#if defined(hpux) || defined(JIT_WIN32_PLATFORM)
 	return isfinite(value);
 #else /* !hpux */
 #if defined(HAVE_FINITEF)
@@ -2118,7 +2118,7 @@ jit_float64 jit_float64_tanh(jit_float64 value1)
 @*/
 jit_int jit_float64_is_finite(jit_float64 value)
 {
-#if defined(hpux) || defined(JIT_WIN32_NATIVE)
+#if defined(hpux) || defined(JIT_WIN32_PLATFORM)
 	return isfinite(value);
 #else /* !hpux */
 #if defined(HAVE_FINITE)
@@ -2679,7 +2679,7 @@ jit_nfloat jit_nfloat_tanh(jit_nfloat value1)
 @*/
 jit_int jit_nfloat_is_finite(jit_nfloat value)
 {
-#if defined(hpux) || defined(JIT_WIN32_NATIVE)
+#if defined(hpux) || defined(JIT_WIN32_PLATFORM)
 	return isfinite(value);
 #else /* !hpux */
 #if defined(HAVE_FINITEL) && !defined(JIT_NFLOAT_IS_DOUBLE)

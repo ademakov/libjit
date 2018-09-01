@@ -26,11 +26,6 @@
 #include <config.h>
 #ifdef JIT_WIN32_PLATFORM
 	#include <windows.h>
-	#ifndef JIT_WIN32_NATIVE
-		#ifdef HAVE_SYS_CYGWIN_H
-			#include <sys/cygwin.h>
-		#endif
-	#endif
 #else
 #ifdef HAVE_DLFCN_H
 	#include <dlfcn.h>
@@ -227,7 +222,7 @@ const char *jit_dynlib_get_suffix(void)
 	return "dylib";
 }
 
-#elif defined(JIT_WIN32_PLATFORM)	/* Native Win32 or Cygwin */
+#elif defined(JIT_WIN32_PLATFORM)
 
 jit_dynlib_handle_t jit_dynlib_open(const char *name)
 {

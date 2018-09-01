@@ -28,11 +28,7 @@
 /*
  * Determine what kind of system we are running on.
  */
-#if defined(__CYGWIN__) || defined(__CYGWIN32__)
-# define JIT_WIN32_CYGWIN	1
-# define JIT_WIN32_PLATFORM	1
-#elif defined(_WIN32) || defined(WIN32)
-# define JIT_WIN32_NATIVE	1
+#if defined(_WIN32) || defined(WIN32)
 # define JIT_WIN32_PLATFORM	1
 #elif defined(__APPLE__) && defined(__MACH__)
 # define JIT_DARWIN_PLATFORM	1
