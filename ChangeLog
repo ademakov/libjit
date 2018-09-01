@@ -1,5 +1,12 @@
 2018-09-01  Ken Brown  <kbrown@cornell.edu>
 
+	* jit/jit-apply-x86.h: Remove reference to __CYGWIN32__.  This is
+	deprecated and unnecessary.  It could only cause confusion, since
+	readers of the code might think it's intended to distinguish
+	32-bit Cygwin from 64-bit Cygwin.
+
+2018-09-01  Ken Brown  <kbrown@cornell.edu>
+
 	Don't use Win32 API on Cygwin.
 	* jit/jit-config.h: Don't define JIT_WIN32_PLATFORM on Cygwin.
 	Remove the definitions of JIT_WIN32_NATIVE and JIT_WIN32_CYGWIN,
