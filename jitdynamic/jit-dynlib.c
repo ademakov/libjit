@@ -234,24 +234,6 @@ jit_dynlib_handle_t jit_dynlib_open(const char *name)
 	void *libHandle;
 	char *newName = 0;
 
-#if defined(JIT_WIN32_CYGWIN) && defined(HAVE_SYS_CYGWIN_H) && \
-    defined(HAVE_CYGWIN_CONV_TO_WIN32_PATH)
-
-	/* Use Cygwin to expand the path */
-	{
-		char buf[4096];
-		if(cygwin_conv_to_win32_path(name, buf) == 0)
-		{
-			newName = jit_strdup(buf);
-			if(!newName)
-			{
-				return 0;
-			}
-		}
-	}
-
-#endif
-
 	/* Attempt to load the library */
 	libHandle = (void *)LoadLibrary((newName ? newName : name));
 	if(libHandle == 0)

@@ -1,3 +1,10 @@
+2018-09-01  Ken Brown  <kbrown@cornell.edu>
+
+	* configure.ac: Don't use -mno-cygwin in the Cygwin build.  This
+	has been unsupported since GCC 4 and causes the build to fail.
+	* jit/jit-dump.c (dump_object_code): Remove obsolete comment.
+	* jitdynamic/jit-dynlib.c (jit_dynlib_open): Remove obsolete code.
+
 2018-08-25  Aurelien Aptel  <aaptel@suse.com>
 
 	* jit/jit-rules-x86-64.c (small_block_copy, small_block_set): fix
