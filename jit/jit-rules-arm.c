@@ -115,11 +115,11 @@
 /* 
  * Define the classes of registers
  */
-static _jit_regclass_t *arm_reg;
-static _jit_regclass_t *arm_freg;
-static _jit_regclass_t *arm_freg32;
-static _jit_regclass_t *arm_freg64;
-static _jit_regclass_t *arm_lreg;
+static _jit_regclass_t *arm_reg = NULL;
+static _jit_regclass_t *arm_freg = NULL;
+static _jit_regclass_t *arm_freg32 = NULL;
+static _jit_regclass_t *arm_freg64 = NULL;
+static _jit_regclass_t *arm_lreg = NULL;
 
 /*
  * -------------------- Helper functions --------------------------
@@ -719,6 +719,12 @@ void _jit_init_backend(void)
 	arm_lreg = _jit_regclass_create(
 		"lreg", JIT_REG_LONG, 2,
 		ARM_REG_R0, ARM_REG_R2);
+
+	_jit_regclass_info[0] = arm_lreg;
+	_jit_regclass_info[1] = arm_freg64;
+	_jit_regclass_info[2] = arm_freg32;
+	_jit_regclass_info[3] = arm_freg;
+	_jit_regclass_info[4] = arm_reg;
 }
 
 void _jit_gen_get_elf_info(jit_elf_info_t *info)
@@ -779,6 +785,23 @@ int _jit_opcode_is_supported(int opcode)
 		#undef JIT_INCLUDE_SUPPORTED
 	}
 	return 0;
+}
+
+int _jit_insn_get_register_usage(jit_insn_t insn,
+	_jit_insn_register_usage_t regmap)
+{
+	switch(insn->opcode)
+	{
+	#define JIT_INCLUDE_REGISTER_USAGE
+	#include "./jit-rules-arm.inc"
+	#undef JIT_INCLUDE_REGISTER_USAGE
+
+	default:
+		return 0;
+		break;
+	}
+
+	return 1;
 }
 
 void *_jit_gen_prolog(jit_gencode_t gen, jit_function_t func, void *buf)

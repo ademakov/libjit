@@ -90,7 +90,7 @@ jit_function_create(jit_context_t context, jit_type_t signature)
 	/* Initialize the function block */
 	func->context = context;
 	func->signature = jit_type_copy(signature);
-	func->optimization_level = JIT_OPTLEVEL_NORMAL;
+	func->optimization_level = JIT_OPTLEVEL_MAX;
 
 #if !defined(JIT_BACKEND_INTERP) && defined(jit_redirector_size)
 	/* If we aren't using interpretation, then point the function's
@@ -177,6 +177,8 @@ int _jit_function_ensure_builder(jit_function_t func)
 	jit_memory_pool_init(&(func->builder->value_pool), struct _jit_value);
 	jit_memory_pool_init(&(func->builder->edge_pool), struct _jit_edge);
 	jit_memory_pool_init(&(func->builder->meta_pool), struct _jit_meta);
+
+	func->builder->catcher_label = jit_label_undefined;
 
 	/* Create the entry block */
 	if(!_jit_block_init(func))
@@ -1014,7 +1016,7 @@ jit_function_get_optimization_level(jit_function_t func)
 unsigned int
 jit_function_get_max_optimization_level(void)
 {
-	return JIT_OPTLEVEL_NORMAL;
+	return JIT_OPTLEVEL_MAX;
 }
 
 /*@

@@ -65,17 +65,56 @@ internal_exception_handler(int exception_type)
 static void
 optimize(jit_function_t func)
 {
+	int optimized;
+
 	if(func->is_optimized || func->optimization_level == JIT_OPTLEVEL_NONE)
 	{
 		/* The function is already optimized or does not need optimization */
 		return;
 	}
 
-	/* Build control flow graph */
-	_jit_block_build_cfg(func);
+	while(1)
+	{
+		/* Recalculate value properties like usage count, local or temporary,
+		   index. This is needed when other optimizations remove blocks or
+		   turn instructions into NOPs */
+		_jit_block_recompute_common_properties(func);
 
-	/* Eliminate useless control flow */
-	_jit_block_clean_cfg(func);
+		/* Optimization level 1 */
+
+		/* Build control flow graph */
+		_jit_block_build_cfg(func);
+
+		/* Eliminate useless control flow */
+		if(_jit_block_clean_cfg(func))
+		{
+			continue;
+		}
+
+		/* Optimization level 2 */
+		if(func->optimization_level < 2)
+		{
+			break;
+		}
+
+		/* Compute LiveOut set for each block */
+		_jit_function_compute_live_out(func);
+
+		/* Compute liveness and "next use" information for this function */
+		optimized = _jit_function_compute_liveness(func);
+		func->computed_liveness = 1;
+		if(optimized)
+		{
+			continue;
+		}
+
+		_jit_function_compute_live_ranges(func);
+		_jit_function_add_instruction_live_ranges(func);
+
+		_jit_regs_graph_compute_coloring(func);
+
+		break;
+	}
 
 	/* Optimization is done */
 	func->is_optimized = 1;
@@ -190,6 +229,11 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 		printf("\nStart of binary code: 0x%08x\n", p1);
 #endif
 
+		if(gen->graph_allocated)
+		{
+			_jit_regs_graph_init_for_insn(gen, func, insn);
+		}
+
 		switch(insn->opcode)
 		{
 		case JIT_OP_NOP:
@@ -213,21 +257,40 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 		case JIT_OP_CALL_VTABLE_PTR_TAIL:
 		case JIT_OP_CALL_EXTERNAL:
 		case JIT_OP_CALL_EXTERNAL_TAIL:
-			/* Spill all caller-saved registers before a call */
-			_jit_regs_spill_all(gen);
-			/* Generate code for the instruction with the back end */
-			_jit_gen_insn(gen, func, block, insn);
-			/* Free outgoing registers if any */
-			_jit_regs_clear_all_outgoing(gen);
+			if(gen->graph_allocated)
+			{
+				/* Generate code for the instruction with the back end */
+				_jit_gen_insn(gen, func, block, insn);
+			}
+			else
+			{
+				/* Spill all caller-saved registers before a call */
+				_jit_regs_spill_all(gen);
+				/* Generate code for the instruction with the back end */
+				_jit_gen_insn(gen, func, block, insn);
+				/* Free outgoing registers if any */
+				_jit_regs_clear_all_outgoing(gen);
+			}
 			break;
 #endif
 
 #ifndef JIT_BACKEND_INTERP
 		case JIT_OP_INCOMING_REG:
-			/* Assign a register to an incoming value */
-			_jit_regs_set_incoming(gen,
-					       (int)jit_value_get_nint_constant(insn->value2),
-					       insn->value1);
+			if(gen->graph_allocated)
+			{
+				/* If value1 is not colored with the correct register, move the
+				   incoming register to value1s color */
+				_jit_regs_graph_set_incoming(gen,
+					(int)jit_value_get_nint_constant(insn->value1),
+					insn->dest);
+			}
+			else
+			{
+				/* Assign a register to an incoming value */
+				_jit_regs_set_incoming(gen,
+					(int)jit_value_get_nint_constant(insn->value1),
+					insn->dest);
+			}
 			/* Generate code for the instruction with the back end */
 			_jit_gen_insn(gen, func, block, insn);
 			break;
@@ -235,45 +298,81 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 
 		case JIT_OP_INCOMING_FRAME_POSN:
 			/* Set the frame position for an incoming value */
-			insn->value1->frame_offset = jit_value_get_nint_constant(insn->value2);
-			insn->value1->in_register = 0;
-			insn->value1->has_frame_offset = 1;
-			if(insn->value1->has_global_register)
+			insn->dest->frame_offset = jit_value_get_nint_constant(insn->value1);
+			insn->dest->has_frame_offset = 1;
+			if(gen->graph_allocated && insn->dest->in_register)
 			{
-				insn->value1->in_global_register = 1;
-				_jit_gen_load_global(gen, insn->value1->global_reg, insn->value1);
+				insn->dest->in_register = 0;
+				_jit_gen_load_value(gen, insn->dest->reg, -1, insn->dest);
+				insn->dest->in_register = 1;
+			}
+			else if(insn->dest->has_global_register)
+			{
+				insn->dest->in_register = 0;
+				insn->dest->in_global_register = 1;
+				_jit_gen_load_global(gen, insn->dest->global_reg, insn->dest);
 			}
 			else
 			{
+				insn->value1->in_register = 0;
 				insn->value1->in_frame = 1;
 			}
 			break;
 
 #ifndef JIT_BACKEND_INTERP
 		case JIT_OP_OUTGOING_REG:
-			/* Copy a value into an outgoing register */
-			_jit_regs_set_outgoing(gen,
-					       (int)jit_value_get_nint_constant(insn->value2),
-					       insn->value1);
+			if(gen->graph_allocated)
+			{
+				/* If value1 is not coloured with tie correct register move
+				   the value from value1 to the register */
+				_jit_regs_graph_set_outgoing(gen,
+					(int)jit_value_get_nint_constant(insn->value2),
+					insn->value1);
+			}
+			else
+			{
+				/* Copy a value into an outgoing register */
+				_jit_regs_set_outgoing(gen,
+					(int)jit_value_get_nint_constant(insn->value2),
+					insn->value1);
+			}
 			break;
 #endif
 
 		case JIT_OP_OUTGOING_FRAME_POSN:
 			/* Set the frame position for an outgoing value */
-			insn->value1->frame_offset = jit_value_get_nint_constant(insn->value2);
-			insn->value1->in_register = 0;
-			insn->value1->in_global_register = 0;
-			insn->value1->in_frame = 0;
 			insn->value1->has_frame_offset = 1;
-			insn->value1->has_global_register = 0;
+			insn->value1->frame_offset = jit_value_get_nint_constant(insn->value2);
+			if(gen->graph_allocated && insn->value1->in_register)
+			{
+				_jit_gen_spill_reg(gen, insn->value1->reg, -1, insn->value1);
+			}
+			else
+			{
+				insn->value1->in_register = 0;
+				insn->value1->in_global_register = 0;
+				insn->value1->in_frame = 0;
+				insn->value1->has_global_register = 0;
+			}
 			break;
 
 #ifndef JIT_BACKEND_INTERP
 		case JIT_OP_RETURN_REG:
-			/* Assign a register to a return value */
-			_jit_regs_set_incoming(gen,
-					       (int)jit_value_get_nint_constant(insn->value2),
-					       insn->value1);
+			if(gen->graph_allocated)
+			{
+				/* If value1 is not colored with the correct register, move the
+				   incoming register to value1s color */
+				_jit_regs_graph_set_incoming(gen,
+					(int)jit_value_get_nint_constant(insn->value1),
+					insn->dest);
+			}
+			else
+			{
+				/* Assign a register to a return value */
+				_jit_regs_set_incoming(gen,
+					(int)jit_value_get_nint_constant(insn->value1),
+					insn->dest);
+			}
 			/* Generate code for the instruction with the back end */
 			_jit_gen_insn(gen, func, block, insn);
 			break;
@@ -607,12 +706,17 @@ codegen_prepare(_jit_compile_t *state)
 		state->func->no_return = 1;
 	}
 
-	/* Compute liveness and "next use" information for this function */
-	_jit_function_compute_liveness(state->func);
+	if(!state->func->computed_liveness)
+	{
+		_jit_function_compute_liveness(state->func);
+	}
 
 	/* Allocate global registers to variables within the function */
 #ifndef JIT_BACKEND_INTERP
-	_jit_regs_alloc_global(&state->gen, state->func);
+	if(!state->func->registers_graph_allocated)
+	{
+		_jit_regs_alloc_global(&state->gen, state->func);
+	}
 #endif
 }
 
@@ -630,6 +734,8 @@ codegen(_jit_compile_t *state)
 	   the available space start - gen->start) */
 	gen->code_start = gen->ptr;
 
+	gen->graph_allocated = func->registers_graph_allocated;
+
 #ifdef JIT_PROLOG_SIZE
 	/* Output space for the function prolog */
 	_jit_gen_check_space(gen, JIT_PROLOG_SIZE);
@@ -644,16 +750,27 @@ codegen(_jit_compile_t *state)
 		_jit_gen_start_block(gen, block);
 
 #ifndef JIT_BACKEND_INTERP
-		/* Clear the local register assignments */
-		_jit_regs_init_for_block(gen);
+		if(gen->graph_allocated)
+		{
+			/* Initialize register assignments */
+			_jit_regs_graph_init_for_block(gen, func, block);
+		}
+		else
+		{
+			/* Clear the local register assignments */
+			_jit_regs_init_for_block(gen);
+		}
 #endif
 
 		/* Generate the block's code */
 		compile_block(gen, func, block);
 
 #ifndef JIT_BACKEND_INTERP
-		/* Spill all live register values back to their frame positions */
-		_jit_regs_spill_all(gen);
+		if(!gen->graph_allocated)
+		{
+			/* Spill all live register values back to their frame positions */
+			_jit_regs_spill_all(gen);
+		}
 #endif
 
 		/* Notify the back end that the block is finished */

@@ -77,6 +77,11 @@
  */
 #include "jit-varint.h"
 
+/*
+ * Include bitset for live_out data
+ */
+#include "jit-bitset.h"
+
 #ifdef	__cplusplus
 extern	"C" {
 #endif
@@ -248,10 +253,22 @@ struct _jit_block
 	_jit_edge_t		*preds;
 	int			num_preds;
 
+	/* Values which the block uses before setting them */
+	_jit_bitset_t upward_exposes;
+
+	/* Values which the block sets */
+	_jit_bitset_t var_kills;
+
+	/* Values which are used by sucessors */
+	_jit_bitset_t live_out;
+
 	/* Control flow flags */
 	unsigned		visited : 1;
 	unsigned		ends_in_dead : 1;
 	unsigned		address_of : 1;
+
+	/* Unique index of the block */
+	unsigned index;
 
 	/* Metadata */
 	jit_meta_t		meta;
@@ -262,13 +279,121 @@ struct _jit_block
 	void			*fixup_absolute_list;
 };
 
+typedef struct _jit_insn_list *_jit_insn_list_t;
+struct _jit_insn_list
+{
+	jit_block_t block;
+	jit_insn_t insn;
+	_jit_insn_list_t next;
+};
+
+/*
+ * Add an instruction to @var{list}
+ */
+void _jit_insn_list_add(_jit_insn_list_t *list, jit_block_t block,
+	jit_insn_t insn);
+
+/*
+ * Remove an instruction from @var{list}
+ */
+void _jit_insn_list_remove(_jit_insn_list_t *list, jit_insn_t insn);
+
+/*
+ * Get the first instruction in @var{list} which is from block @var{block}
+ */
+jit_insn_t _jit_insn_list_get_insn_from_block(_jit_insn_list_t list,
+	jit_block_t block);
+
+/*
+ * Represents a live range of @var{value}
+ */
+typedef struct _jit_live_range *_jit_live_range_t;
+struct _jit_live_range
+{
+	/* Value for which this live range is */
+	jit_value_t value;
+
+	/* For internal live ranges this holds the JIT_REG_* flags of the required
+	   register kind */
+	int regflags;
+
+	/* List of instructions where the live range starts/ends */
+	_jit_insn_list_t starts;
+	_jit_insn_list_t ends;
+
+	/* One bit for each block set if the range is alive at the start of the block */
+	_jit_bitset_t touched_block_starts;
+
+	/* One bit for each block set if the range is alive at the end of the block */
+	_jit_bitset_t touched_block_ends;
+
+	/* Bitset of registers used */
+	jit_ulong colors;
+
+	/* When a value is required in a specific registers its preferred color
+	   is incremented. preferred_colors might be 0 when the live range is never
+	   required in a specific register */
+	jit_ushort *preferred_colors;
+
+	/* Live ranges this live range interferes with */
+	_jit_bitset_t neighbors;
+	unsigned neighbor_count;
+	unsigned curr_neighbor_count;
+
+	/* Count of registers used. This is 1 for most live ranges, but might be
+	   more for fixed live ranges */
+	unsigned register_count;
+
+	/* Wether the live range is already on stack in the simplify step of
+	   Chaitin/Briggs algorithm */
+	unsigned on_stack : 1;
+
+	/* The live ranges color is pre defined and shall not be changed */
+	unsigned is_fixed : 1;
+
+	/* The live range was spilled and replaced by (multiple) smaller ones */
+	unsigned is_spilled : 1;
+
+	/* The live range is a tiny range created when spilling another */
+	unsigned is_spill_range : 1;
+
+	/* Next live range of @var{value} */
+	_jit_live_range_t value_next;
+
+	/* Previous & Next live ranges of the function */
+	_jit_live_range_t func_next;
+};
+
+/*
+ * Create a live range
+ */
+_jit_live_range_t _jit_function_create_live_range(jit_function_t func,
+	jit_value_t value);
+
+/*
+ * Compute live ranges of all values.
+ */
+void _jit_function_compute_live_ranges(jit_function_t func);
+
+/*
+ * Add internal live ranges which reserve registers for instructions etc.
+ */
+void _jit_function_add_instruction_live_ranges(jit_function_t func);
+
+/*
+ * Allocate registers for all live ranges
+ */
+void _jit_regs_graph_compute_coloring(jit_function_t func);
+
 /*
  * Internal structure of a value.
  */
 struct _jit_value
 {
 	jit_block_t		block;
+	jit_block_t		first_used_in;
 	jit_type_t		type;
+	_jit_live_range_t live_ranges;
 	unsigned		is_temporary : 1;
 	unsigned		is_local : 1;
 	unsigned		is_volatile : 1;
@@ -314,32 +439,41 @@ void _jit_value_ref_params(jit_function_t func);
 struct _jit_insn
 {
 	short			opcode;
-	short			flags;
+	unsigned		flags;
 	jit_value_t		dest;
 	jit_value_t		value1;
 	jit_value_t		value2;
+	_jit_live_range_t dest_live;
+	_jit_live_range_t value1_live;
+	_jit_live_range_t value2_live;
+	_jit_live_range_t scratch_live;
 };
 
 /*
  * Instruction flags.
  */
-#define	JIT_INSN_DEST_LIVE		0x0001
-#define	JIT_INSN_DEST_NEXT_USE		0x0002
-#define	JIT_INSN_VALUE1_LIVE		0x0004
-#define	JIT_INSN_VALUE1_NEXT_USE	0x0008
-#define	JIT_INSN_VALUE2_LIVE		0x0010
-#define	JIT_INSN_VALUE2_NEXT_USE	0x0020
-#define	JIT_INSN_LIVENESS_FLAGS		0x003F
-#define	JIT_INSN_DEST_IS_LABEL		0x0040
-#define	JIT_INSN_DEST_IS_FUNCTION	0x0080
-#define	JIT_INSN_DEST_IS_NATIVE		0x0100
-#define	JIT_INSN_DEST_OTHER_FLAGS	0x01C0
-#define	JIT_INSN_VALUE1_IS_NAME		0x0200
-#define	JIT_INSN_VALUE1_IS_LABEL	0x0400
-#define	JIT_INSN_VALUE1_OTHER_FLAGS	0x0600
-#define	JIT_INSN_VALUE2_IS_SIGNATURE	0x0800
-#define	JIT_INSN_VALUE2_OTHER_FLAGS	0x0800
-#define	JIT_INSN_DEST_IS_VALUE		0x1000
+#define	JIT_INSN_DEST_LIVE		0x00001
+#define	JIT_INSN_DEST_NEXT_USE		0x00002
+#define	JIT_INSN_VALUE1_LIVE		0x00004
+#define	JIT_INSN_VALUE1_NEXT_USE	0x00008
+#define	JIT_INSN_VALUE2_LIVE		0x00010
+#define	JIT_INSN_VALUE2_NEXT_USE	0x00020
+#define	JIT_INSN_LIVENESS_FLAGS		0x0003F
+#define	JIT_INSN_DEST_IS_LABEL		0x00040
+#define	JIT_INSN_DEST_IS_FUNCTION	0x00080
+#define	JIT_INSN_DEST_IS_NATIVE		0x00100
+#define	JIT_INSN_DEST_OTHER_FLAGS	0x001C0
+#define	JIT_INSN_VALUE1_IS_NAME		0x00200
+#define	JIT_INSN_VALUE1_IS_LABEL	0x00400
+#define	JIT_INSN_VALUE1_OTHER_FLAGS	0x00600
+#define	JIT_INSN_VALUE2_IS_SIGNATURE	0x00800
+#define	JIT_INSN_VALUE2_OTHER_FLAGS	0x00800
+#define	JIT_INSN_DEST_IS_VALUE		0x01000
+#define JIT_INSN_DEST_CAN_BE_MEM	0x02000
+#define JIT_INSN_VALUE1_CAN_BE_MEM	0x04000
+#define JIT_INSN_VALUE2_CAN_BE_MEM	0x08000
+#define JIT_INSN_COMMUTATIVE		0x10000
+#define JIT_INSN_DEST_INTERFERES_VALUE2	0x20000
 
 /*
  * Information about each label associated with a function.
@@ -386,7 +520,7 @@ struct _jit_builder
 	/* The list of deleted blocks */
 	jit_block_t		deleted_blocks;
 
-	/* Blocks sorted in order required by an optimization pass */
+	/* Blocks sorted in postorder */
 	jit_block_t		*block_order;
 	int			num_block_order;
 
@@ -445,8 +579,13 @@ struct _jit_builder
 	/* Size of the outgoing parameter area in the frame */
 	jit_nint		param_area_size;
 
+	/* Count of values in the function */
+	jit_nuint		value_count;
+
+	/* Count of blocks in the function */
+	jit_nuint		block_count;
+
 #ifdef _JIT_COMPILE_DEBUG
-	int			block_count;
 	int			insn_count;
 #endif
 };
@@ -479,12 +618,19 @@ struct _jit_function
 	/* Cookie value for this function */
 	void			*cookie;
 
+	/* Live ranges in this function */
+	_jit_live_range_t live_ranges;
+	_jit_live_range_t last_live_range;
+	unsigned live_range_count;
+
 	/* Flag bits for this function */
 	unsigned		is_recompilable : 1;
 	unsigned		is_optimized : 1;
 	unsigned		no_throw : 1;
 	unsigned		no_return : 1;
 	unsigned		has_try : 1;
+	unsigned		computed_liveness : 1;
+	unsigned		registers_graph_allocated : 1;
 	unsigned		optimization_level : 8;
 
 	/* Flag set once the function is compiled */
@@ -527,9 +673,24 @@ void _jit_function_free_builder(jit_function_t func);
 void _jit_function_destroy(jit_function_t func);
 
 /*
+ * Compute LiveOut sets for a function.
+ */
+void _jit_function_compute_live_out(jit_function_t func);
+
+/*
+ * Free LiveOut and corresponding fields of @var{block}
+ */
+void _jit_block_free_live_out(jit_block_t block);
+
+/*
+ * Check if @var{value} is in LiveOut of @var{block}
+ */
+int _jit_value_in_live_out(jit_block_t block, jit_value_t value);
+
+/*
  * Compute value liveness and "next use" information for a function.
  */
-void _jit_function_compute_liveness(jit_function_t func);
+int _jit_function_compute_liveness(jit_function_t func);
 
 /*
  * Compile a function on-demand.  Returns the entry point.
@@ -659,6 +820,11 @@ struct jit_thread_control
 };
 
 /*
+ * Recompute block, instruction and value properties index, usage_count etc.
+ */
+void _jit_block_recompute_common_properties(jit_function_t func);
+
+/*
  * Initialize the block list for a function.
  */
 int _jit_block_init(jit_function_t func);
@@ -677,7 +843,7 @@ void _jit_block_build_cfg(jit_function_t func);
 /*
  * Eliminate useless control flow between blocks in a function.
  */
-void _jit_block_clean_cfg(jit_function_t func);
+int _jit_block_clean_cfg(jit_function_t func);
 
 /*
  * Compute block postorder for control flow graph depth first traversal.

@@ -37,8 +37,10 @@ struct _jit_bitset
 
 void _jit_bitset_init(_jit_bitset_t *bs);
 int _jit_bitset_allocate(_jit_bitset_t *bs, int size);
+int _jit_bitset_resize(_jit_bitset_t *bs, int size);
 int _jit_bitset_is_allocated(_jit_bitset_t *bs);
 void _jit_bitset_free(_jit_bitset_t *bs);
+int _jit_bitset_size(_jit_bitset_t *bs);
 void _jit_bitset_set_bit(_jit_bitset_t *bs, int bit);
 void _jit_bitset_clear_bit(_jit_bitset_t *bs, int bit);
 int _jit_bitset_test_bit(_jit_bitset_t *bs, int bit);
@@ -48,5 +50,7 @@ void _jit_bitset_add(_jit_bitset_t *dest, _jit_bitset_t *src);
 void _jit_bitset_sub(_jit_bitset_t *dest, _jit_bitset_t *src);
 int _jit_bitset_copy(_jit_bitset_t *dest, _jit_bitset_t *src);
 int _jit_bitset_equal(_jit_bitset_t *bs1, _jit_bitset_t *bs2);
+int _jit_bitset_test(_jit_bitset_t *bs1, _jit_bitset_t *bs2);
+int _jit_bitset_contains(_jit_bitset_t *outer, _jit_bitset_t *inner);
 
 #endif
