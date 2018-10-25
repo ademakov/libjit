@@ -1,3 +1,8 @@
+2018-09-17  Jakob Löw  <jakob@m4gnus.de>
+
+	* jit/jit-rules-interp.c: Fix the call to _jit_load_opcode passing
+	more arguments than needed.
+
 2018-09-01  Ken Brown  <kbrown@cornell.edu>
 
 	* jit/jit-apply-x86.h: Remove reference to __CYGWIN32__.  This is

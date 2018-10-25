@@ -975,7 +975,7 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			default:
 				return;
 			}
-			opcode = _jit_load_opcode(opcode, value->type, value, 0);
+			opcode = _jit_load_opcode(opcode, value->type);
 			offset = value->frame_offset;
 		}
 		else
@@ -995,7 +995,7 @@ load_value(jit_gencode_t gen, jit_value_t value, int index)
 			default:
 				return;
 			}
-			opcode = _jit_load_opcode(opcode, value->type, value, 0);
+			opcode = _jit_load_opcode(opcode, value->type);
 			offset = -(value->frame_offset + 1);
 		}
 
