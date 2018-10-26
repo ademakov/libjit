@@ -210,19 +210,24 @@ jit_vmem_commit(void *addr, jit_uint size, jit_prot_t prot)
 	DWORD nprot;
 
 	nprot = convert_prot(prot);
-	return VirtualAlloc(addr, size, MEM_COMMIT, nprot);
+	return VirtualAlloc(addr, size, MEM_COMMIT, nprot) != 0;
 
 #elif defined(JIT_VMEM_MMAP)
 
 	int nprot;
+	void *raddr;
 
 	nprot = convert_prot(prot);
-	addr = mmap(0, size, nprot, MAP_FIXED|MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-	if(addr == MAP_FAILED)
+	raddr = mmap(addr, size, nprot, MAP_FIXED|MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+	if(raddr != addr)
 	{
-		return (void *) 0;
+		if(raddr != MAP_FAILED)
+		{
+			munmap(raddr, size);
+		}
+		return 0;
 	}
-	return addr;
+	return 1;
 
 #else
 	return 0;
@@ -237,20 +242,23 @@ jit_vmem_decommit(void *addr, jit_uint size)
 	return VirtualFree(addr, size, MEM_DECOMMIT) != 0;
 
 #elif defined(JIT_VMEM_MMAP)
+# if defined(MADV_FREE)
 
-#if defined(MADV_FREE)
 	int result = madvise(addr, size, MADV_FREE);
 	if(result < 0)
 	{
 		return 0;
 	}
-#elif defined(MADV_DONTNEED) && defined(JIT_LINUX_PLATFORM)
+
+# elif defined(MADV_DONTNEED) && defined(JIT_LINUX_PLATFORM)
+
 	int result = madvise(addr, size, MADV_DONTNEED);
 	if(result < 0)
 	{
 		return 0;
 	}
-#endif
+
+# endif
 
 	addr = mmap(addr, size, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS|MAP_NORESERVE, -1, 0);
 	if(addr == MAP_FAILED)

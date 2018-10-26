@@ -30,12 +30,12 @@
  * code instead.
  *
  * There are three versions here: gcc/non-Win32, gcc/Win32, and msvc/Win32.
+ * Cygwin is included in the gcc/Win32 case.
  */
 
 #if defined(__GNUC__)
 
-#if !defined(__CYGWIN__) && !defined(__CYGWIN32__) && \
-	!defined(_WIN32) && !defined(WIN32)
+#if !defined(__CYGWIN__) && !defined(_WIN32) && !defined(WIN32)
 
 /* Mac OS X prefixes static symbols with an underscore, and external symbol
    references are late-bound through a PIC stub by the dynamic linker */

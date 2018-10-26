@@ -120,7 +120,7 @@ existing format was better than inventing a completely new one.
 /*
  * Deal with platform differences in the file descriptor routines.
  */
-#ifdef JIT_WIN32_NATIVE
+#ifdef JIT_WIN32_PLATFORM
 	#define sys_open		_open
 	#define	sys_close		_close
 	#define	sys_read		_read

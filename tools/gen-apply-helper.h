@@ -30,8 +30,7 @@
 #endif
 #if defined(__i386) || defined(__i386__) || defined(_M_IX86)
 # define PLATFORM_IS_X86	1
-# if defined(__CYGWIN__) || defined(__CYGWIN32__) \
-  || defined(_WIN32) || defined(WIN32)
+# if defined(_WIN32) || defined(WIN32)
 #  define PLATFORM_IS_WIN32	1
 #  include <malloc.h>
 #  ifndef alloca

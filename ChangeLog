@@ -1,3 +1,35 @@
+2018-09-17  Jakob Löw  <jakob@m4gnus.de>
+
+	* jit/jit-rules-interp.c: Fix the call to _jit_load_opcode passing
+	more arguments than needed.
+
+2018-09-01  Ken Brown  <kbrown@cornell.edu>
+
+	* jit/jit-apply-x86.h: Remove reference to __CYGWIN32__.  This is
+	deprecated and unnecessary.  It could only cause confusion, since
+	readers of the code might think it's intended to distinguish
+	32-bit Cygwin from 64-bit Cygwin.
+
+2018-09-01  Ken Brown  <kbrown@cornell.edu>
+
+	Don't use Win32 API on Cygwin.
+	* jit/jit-config.h: Don't define JIT_WIN32_PLATFORM on Cygwin.
+	Remove the definitions of JIT_WIN32_NATIVE and JIT_WIN32_CYGWIN,
+	which are no longer needed.
+	* jit/jit-elf-read.c:
+	* jit/jit-intrinsic.c:
+	* jitdynamic/jit-dynlib.c: Replace all uses of JIT_WIN32_NATIVE by
+	JIT_WIN32_PLATFORM.
+	* tools/gen-apply-helper.h: Don't define PLATFORM_IS_WIN32 on
+	Cygwin.
+
+2018-09-01  Ken Brown  <kbrown@cornell.edu>
+
+	* configure.ac: Don't use -mno-cygwin in the Cygwin build.  This
+	has been unsupported since GCC 4 and causes the build to fail.
+	* jit/jit-dump.c (dump_object_code): Remove obsolete comment.
+	* jitdynamic/jit-dynlib.c (jit_dynlib_open): Remove obsolete code.
+
 2018-08-28  Jakob Löw  <jakob@m4gnus.de>
 
 	* jit-insn.c, jit-insn.h, jit-function.c, jit-function.h, jit-internal.h:
@@ -7,6 +39,27 @@
 	  functions jit_insn_call_nested_indirect, jit_insn_get_frame_pointer,
 	  jit_insn_get_parent_frame_pointer_of or jit_function_set_parent_frame.
 	* jit-rules-*.ins: implement the retrieve_frame_pointer opcode.
+
+2018-08-25  Aurelien Aptel  <aaptel@suse.com>
+
+	* jit/jit-rules-x86-64.c (small_block_copy, small_block_set): fix
+	the build on compilers older than C99.
+
+2018-08-21  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jit/jit-function.c (jit_function_apply_vararg): fix a warning
+	(thanks Eli Zaretskii <eliz@gnu.org>).
+
+2018-08-19  Aleksey Demakov  <ademakov@gmail.com>
+
+	* jitdynamic/libjitdynamic.pc.in (Libs): fix Libs to use jitdynamic
+	instead of jitplus (thanks Eli Zaretskii <eliz@gnu.org>).
+
+2018-08-15  Aleksey Demakov  <ademakov@gmail.com>
+
+	* configure.ac: bump version to 0.1.4.
+
+	* jit/jit-vmem.c (jit_vmem_commit): fix return value.
 
 2018-03-22  Aleksey Demakov  <ademakov@gmail.com>
 
