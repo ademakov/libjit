@@ -5518,8 +5518,7 @@ jit_insn_call(jit_function_t func, const char *name, jit_function_t jit_func,
 
 		if(!parent_frame)
 		{
-			/* TODO should we return 0 instead? */
-			jit_exception_builtin(JIT_RESULT_CALLED_NESTED);
+			return 0;
 		}
 	}
 	else
@@ -5629,7 +5628,7 @@ jit_insn_call_nested_indirect(jit_function_t func, jit_value_t value,
 	jit_value_t parent_frame, jit_type_t signature, jit_value_t *args,
 	unsigned int num_args, int flags)
 {
-	int is_nested = parent_frame != NULL;
+	int is_nested = parent_frame ? 1 : 0;
 
 	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
@@ -6196,11 +6195,6 @@ jit_insn_incoming_frame_posn(jit_function_t func, jit_value_t value,
 	{
 		return 0;
 	}
-	if(value->is_parameter)
-	{
-		value->has_frame_offset = 1;
-		value->frame_offset = frame_offset;
-	}
 	return create_note(func, JIT_OP_INCOMING_FRAME_POSN, value, frame_offset_value);
 }
 
@@ -6322,6 +6316,21 @@ find_frame_of(jit_function_t func, jit_function_t target,
 			return 0;
 		}
 
+#ifdef JIT_BACKEND_INTERP
+		if(!current_func->arguments_pointer)
+		{
+			/* Make sure the ancestor has an arguments_pointer, in case we are
+			   importing a parameter */
+			current_func->arguments_pointer = jit_value_create(current_func,
+				jit_type_void_ptr);
+
+			if(!current_func->arguments_pointer)
+			{
+				return 0;
+			}
+		}
+#endif
+
 		current_func = current_func->nested_parent;
 		nesting_level++;
 	}
@@ -6331,16 +6340,20 @@ find_frame_of(jit_function_t func, jit_function_t target,
 		return 0;
 	}
 
+	/* When we are importing a multi level nested value we need to import the
+	   frame pointer of the next nesting level using the frame pointer of the
+	   current level, until we reach our target function */
 	current_func = func_start;
 	while(frame_start != 0 && nesting_level-- > 0)
 	{
-		jit_value_ref(func, current_func->parent_frame);
-		_jit_gen_fix_value(current_func->parent_frame);
-		frame_start = jit_insn_load_relative(func, frame_start,
-			current_func->parent_frame->frame_offset, jit_type_void_ptr);
+		frame_start = apply_binary(func, JIT_OP_IMPORT, frame_start,
+			current_func->parent_frame, jit_type_void_ptr);
+		frame_start = jit_insn_load_relative(func, frame_start, 0,
+			jit_type_void_ptr);
 
 		current_func = current_func->nested_parent;
 	}
+
 	if(!frame_start)
 	{
 		return 0;
@@ -6363,13 +6376,13 @@ jit_insn_get_parent_frame_pointer_of(jit_function_t func, jit_function_t target)
 	if(func == target->nested_parent)
 	{
 		/* target is a child of the current function. We just need return
-		 * our frame pointer */
+		   our frame pointer */
 		return jit_insn_get_frame_pointer(func);
 	}
 	else
 	{
 		/* target is a sibling or a sibling of one of the ancestors of func.
-		 * We need to find the parent of target in the ancestor tree of func */
+		   We need to find the parent of target in the ancestor tree of func */
 		return find_frame_of(func, target->nested_parent,
 			func->nested_parent, func->parent_frame);
 	}
@@ -6388,10 +6401,8 @@ jit_insn_import(jit_function_t func, jit_value_t value)
 {
 	jit_function_t value_func;
 	jit_value_t value_frame;
-	int value_offset;
-#ifdef JIT_BACKEND_INTERP
-	jit_value_t arguments_pointer;
-#endif
+	jit_type_t result_type;
+	jit_value_t result;
 
 	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
@@ -6406,10 +6417,31 @@ jit_insn_import(jit_function_t func, jit_value_t value)
 		return jit_insn_address_of(func, value);
 	}
 
+#ifdef JIT_BACKEND_INTERP
+	if(!value_func->arguments_pointer)
+	{
+		/* Make sure the ancestor has an arguments_pointer, in case we are
+		   importing a parameter */
+		value_func->arguments_pointer = jit_value_create(value_func,
+			jit_type_void_ptr);
+
+		if(!value_func->arguments_pointer)
+		{
+			return 0;
+		}
+	}
+#endif
+
+	result_type = jit_type_create_pointer(jit_value_get_type(value), 1);
+	if(!result_type)
+	{
+		return 0;
+	}
+
 	/* Often there are multiple values imported from the same ancestor in a row,
 	   thats why the last ancestor a value was imported from is cached so its
 	   frame can be reused as finding it would require multiple memory loads */
-	if(value_func == func->cached_parent)
+	if(value_func == func->cached_parent && func->cached_parent_frame)
 	{
 		value_frame = func->cached_parent_frame;
 	}
@@ -6417,49 +6449,21 @@ jit_insn_import(jit_function_t func, jit_value_t value)
 	{
 		value_frame = find_frame_of(func, value_func,
 			func->nested_parent, func->parent_frame);
+
+		func->cached_parent = value_func;
+		func->cached_parent_frame = value_frame;
 	}
 
 	if(!value_frame)
 	{
+		jit_type_free(result_type);
 		return 0;
 	}
 
-	_jit_gen_fix_value(value);
+	result = apply_binary(func, JIT_OP_IMPORT, value_frame, value, result_type);
+	jit_type_free(result_type);
 
-#ifdef JIT_BACKEND_INTERP
-	/* In the interpreter backend arguments have a negative frame offset, but
-	   lie on in different memory region than local variables. They are imported
-	   by first importing a pointer to the arguments memory region. */
-	if(value->is_parameter)
-	{
-		arguments_pointer = value_func->arguments_pointer;
-		if(!arguments_pointer)
-		{
-			arguments_pointer = jit_value_create(value_func, jit_type_void_ptr);
-			if(!arguments_pointer)
-			{
-				return 0;
-			}
-
-			_jit_gen_fix_value(arguments_pointer);
-			value_func->arguments_pointer = arguments_pointer;
-		}
-
-		value_frame = jit_insn_load_relative(func, value_frame,
-			arguments_pointer->frame_offset, jit_type_void_ptr);
-		value_offset = -(value->frame_offset + 1);
-	}
-	else
-	{
-		value_offset = value->frame_offset;
-	}
-#else
-	value_offset = value->frame_offset;
-#endif
-
-	jit_value_ref(func, value);
-
-	return jit_insn_add_relative(func, value_frame, value_offset);
+	return result;
 }
 
 /*@

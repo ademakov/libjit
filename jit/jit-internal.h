@@ -466,6 +466,7 @@ struct _jit_function
 	jit_value_t		parent_frame;
 #ifdef JIT_BACKEND_INTERP
 	jit_value_t		arguments_pointer;
+	jit_nint		arguments_pointer_offset;
 #endif
 	jit_function_t		cached_parent;
 	jit_value_t		cached_parent_frame;

@@ -758,6 +758,7 @@ opcodes(JIT_OP_, "jit_opcode_info_t const jit_opcodes[JIT_OP_NUM_OPCODES]")
 	op_def("return_float64") { op_values(empty, float64) }
 	op_def("return_nfloat") { op_values(empty, nfloat) }
 	op_def("return_small_struct") { op_values(empty, ptr, ptr), "NINT_ARG" }
+	op_def("import") { op_values(ptr, any, any) }
 	/*
 	 * Exception handling.
 	 */

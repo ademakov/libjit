@@ -309,6 +309,7 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 	jit_nint temparg;
 	void *tempptr;
 	void *tempptr2;
+	jit_nint arguments_pointer_offset;
 	jit_function_t call_func;
 	struct jit_backtrace call_trace;
 	void *entry;
@@ -350,9 +351,10 @@ restart_tail:
 		jbuf = 0;
 	}
 
-	if(func->func->arguments_pointer)
+	arguments_pointer_offset = func->func->arguments_pointer_offset;
+	if(arguments_pointer_offset >= 0)
 	{
-		frame[func->func->arguments_pointer->frame_offset].ptr_value = args;
+		frame[arguments_pointer_offset].ptr_value = args;
 	}
 
 	/* Enter the instruction dispatch loop */
@@ -4964,6 +4966,7 @@ restart_tail:
 		 * by more specific instructions during function compilation.
 		 ******************************************************************/
 
+		VMCASE(JIT_OP_IMPORT):
 		VMCASE(JIT_OP_COPY_LOAD_SBYTE):
 		VMCASE(JIT_OP_COPY_LOAD_UBYTE):
 		VMCASE(JIT_OP_COPY_LOAD_SHORT):

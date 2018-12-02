@@ -223,6 +223,22 @@ compile_block(jit_gencode_t gen, jit_function_t func, jit_block_t block)
 #endif
 
 #ifndef JIT_BACKEND_INTERP
+		case JIT_OP_IMPORT:
+			/* Make sure the import target has a frame_offset */
+			_jit_gen_fix_value(insn->value2);
+
+			/* change the current instruction to an instruction calculating the
+			   address of the import target */
+			insn->opcode = JIT_OP_ADD_RELATIVE;
+			insn->value2 = jit_value_create_nint_constant(func, jit_type_nint,
+				insn->value2->frame_offset);
+
+			/* generate the instruction */
+			_jit_gen_insn(gen, func, block, insn);
+			break;
+#endif
+
+#ifndef JIT_BACKEND_INTERP
 		case JIT_OP_INCOMING_REG:
 			/* Assign a register to an incoming value */
 			_jit_regs_set_incoming(gen,

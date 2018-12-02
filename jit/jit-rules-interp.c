@@ -292,6 +292,13 @@ int _jit_create_entry_insns(jit_function_t func)
 	if(func->nested_parent)
 	{
 		value = jit_value_create(func, jit_type_void_ptr);
+		if(!value)
+		{
+			return 0;
+		}
+
+		value->is_parameter = 1;
+
 		if(!jit_insn_incoming_frame_posn(func, value, offset))
 		{
 			return 0;
@@ -1046,6 +1053,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 				   jit_block_t block, jit_insn_t insn)
 {
 	jit_label_t label;
+	jit_function_t target_func;
 	void **pc;
 	jit_nint offset;
 	jit_nint size;
@@ -1259,6 +1267,51 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		load_value(gen, insn->value1, 1);
 		jit_cache_opcode(gen, insn->opcode);
 		jit_cache_native(gen, jit_value_get_nint_constant(insn->value2));
+		break;
+
+	case JIT_OP_IMPORT:
+		/* make sure the target value has a frame offset */
+		_jit_gen_fix_value(insn->value2);
+		offset = insn->value2->frame_offset;
+
+		if(offset >= 0)
+		{
+			/* load the pointer to the stack frame the target value resides in
+			   into r0 */
+			load_value(gen, insn->value1, 1);
+		}
+		else
+		{
+			/* The target value is in the argument frame of its function. We
+			   have to load the argument frame pointer first */
+			target_func = insn->value2->block->func;
+			_jit_gen_fix_value(target_func->arguments_pointer);
+			target_func->arguments_pointer_offset =
+				target_func->arguments_pointer->frame_offset;
+
+			/* This will load the argument frame pointer into r0 */
+			load_value(gen, insn->value1, 1);
+			jit_cache_native(gen, JIT_OP_LOAD_RELATIVE_LONG);
+			jit_cache_native(gen,
+				target_func->arguments_pointer_offset * sizeof(jit_item));
+
+			offset = -(offset + 1);
+
+			if(offset != 0)
+			{
+				/* We need the argument frame pointer in r1 but it is in r0.
+				   There does not seem to be a r1 <- r0 op though. */
+				store_value(gen, insn->dest);
+				load_value(gen, insn->dest, 1);
+			}
+		}
+
+		if(offset != 0)
+		{
+			jit_cache_opcode(gen, JIT_OP_ADD_RELATIVE);
+			jit_cache_native(gen, offset * sizeof(jit_item));
+		}
+		store_value(gen, insn->dest);
 		break;
 
 	case JIT_OP_THROW:
