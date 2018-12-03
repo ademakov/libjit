@@ -3679,6 +3679,19 @@ _jit_create_entry_insns(jit_function_t func)
 	/* Let the specific backend initialize it's part of the params */
 	_jit_init_args(abi, &passing);
 
+	/* Allocate the structure return pointer */
+	if((value = jit_value_get_struct_pointer(func)))
+	{
+		jit_memset(&struct_return_param, 0, sizeof(_jit_param_t));
+		if(!(_jit_classify_param(&passing, &struct_return_param,
+								 jit_type_void_ptr)))
+		{
+			return 0;
+		}
+		struct_return_param.value = value;
+		has_struct_return = 1;
+	}
+
 	/* If the function is nested, then we need an extra parameter
 	   to pass the pointer to the parent's local variable frame */
 	if(func->nested_parent)
@@ -3692,19 +3705,6 @@ _jit_create_entry_insns(jit_function_t func)
 
 		nested_param.value = jit_value_create(func, jit_type_void_ptr);
 		jit_function_set_parent_frame(func, nested_param.value);
-	}
-
-	/* Allocate the structure return pointer */
-	if((value = jit_value_get_struct_pointer(func)))
-	{
-		jit_memset(&struct_return_param, 0, sizeof(_jit_param_t));
-		if(!(_jit_classify_param(&passing, &struct_return_param,
-								 jit_type_void_ptr)))
-		{
-			return 0;
-		}
-		struct_return_param.value = value;
-		has_struct_return = 1;
 	}
 
 	/* Let the backend classify the parameters */
@@ -3741,17 +3741,17 @@ _jit_create_entry_insns(jit_function_t func)
 		}
 	}
 
-	if(has_struct_return)
+	if(func->nested_parent)
 	{
-		if(!_jit_setup_incoming_param(func, &struct_return_param, jit_type_void_ptr))
+		if(!_jit_setup_incoming_param(func, &nested_param, jit_type_void_ptr))
 		{
 			return 0;
 		}
 	}
 
-	if(func->nested_parent)
+	if(has_struct_return)
 	{
-		if(!_jit_setup_incoming_param(func, &nested_param, jit_type_void_ptr))
+		if(!_jit_setup_incoming_param(func, &struct_return_param, jit_type_void_ptr))
 		{
 			return 0;
 		}
@@ -3903,12 +3903,12 @@ int _jit_create_call_setup_insns
 		}
 	}
 
-	/* Handle the parent's frame pointer if it's passed on the stack */
-	if(is_nested)
+	/* Handle the structure return pointer if it's passed on the stack */
+	if(return_ptr)
 	{
-		if(nested_param.arg_class == JIT_ARG_CLASS_STACK)
+		if(struct_return_param.arg_class == JIT_ARG_CLASS_STACK)
 		{
-			if(!_jit_setup_outgoing_param(func, &nested_param,
+			if(!_jit_setup_outgoing_param(func, &struct_return_param,
 										  jit_type_void_ptr))
 			{
 				return 0;
@@ -3916,12 +3916,12 @@ int _jit_create_call_setup_insns
 		}
 	}
 
-	/* Handle the structure return pointer if it's passed on the stack */
-	if(return_ptr)
+	/* Handle the parent's frame pointer if it's passed on the stack */
+	if(is_nested)
 	{
-		if(struct_return_param.arg_class == JIT_ARG_CLASS_STACK)
+		if(nested_param.arg_class == JIT_ARG_CLASS_STACK)
 		{
-			if(!_jit_setup_outgoing_param(func, &struct_return_param,
+			if(!_jit_setup_outgoing_param(func, &nested_param,
 										  jit_type_void_ptr))
 			{
 				return 0;

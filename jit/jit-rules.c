@@ -506,6 +506,10 @@ int _jit_create_call_setup_insns
 
 	/* Determine how many parameters are going to end up in word registers,
 	   and compute the largest stack size needed to pass stack parameters */
+	if(is_nested)
+	{
+		need_outgoing_word(&passing);
+	}
 	type = jit_type_get_return(signature);
 	if(jit_type_return_via_pointer(type))
 	{
@@ -526,10 +530,6 @@ int _jit_create_call_setup_insns
 	{
 		*struct_return = 0;
 		return_ptr = 0;
-	}
-	if(is_nested)
-	{
-		need_outgoing_word(&passing);
 	}
 	partial = 0;
 	for(param = 0; param < num_args; ++param)

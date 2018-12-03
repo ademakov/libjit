@@ -287,6 +287,17 @@ int _jit_create_entry_insns(jit_function_t func)
 	   flipped when we output the argument opcodes for interpretation */
 	offset = -1;
 
+	/* Allocate the structure return pointer */
+	value = jit_value_get_struct_pointer(func);
+	if(value)
+	{
+		if(!jit_insn_incoming_frame_posn(func, value, offset))
+		{
+			return 0;
+		}
+		--offset;
+	}
+
 	/* If the function is nested, then we an extra parameter
 	   to pass the pointer to the parent's frame */
 	if(func->nested_parent)
@@ -305,17 +316,6 @@ int _jit_create_entry_insns(jit_function_t func)
 		}
 
 		jit_function_set_parent_frame(func, value);
-		--offset;
-	}
-
-	/* Allocate the structure return pointer */
-	value = jit_value_get_struct_pointer(func);
-	if(value)
-	{
-		if(!jit_insn_incoming_frame_posn(func, value, offset))
-		{
-			return 0;
-		}
 		--offset;
 	}
 
@@ -489,12 +489,12 @@ int _jit_create_call_setup_insns
 	{
 		/* Copy the arguments into our own parameter slots */
 		offset = -1;
-		if(func->nested_parent)
-		{
-			offset -= 2;
-		}
 		type = jit_type_get_return(signature);
 		if(jit_type_return_via_pointer(type))
+		{
+			--offset;
+		}
+		if(func->nested_parent)
 		{
 			--offset;
 		}
@@ -1274,13 +1274,13 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		_jit_gen_fix_value(insn->value2);
 		offset = insn->value2->frame_offset;
 
-		if(offset >= 0)
+		if(offset > 0)
 		{
 			/* load the pointer to the stack frame the target value resides in
 			   into r0 */
 			load_value(gen, insn->value1, 1);
 		}
-		else
+		else if(offset < 0)
 		{
 			/* The target value is in the argument frame of its function. We
 			   have to load the argument frame pointer first */
@@ -1289,7 +1289,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 			target_func->arguments_pointer_offset =
 				target_func->arguments_pointer->frame_offset;
 
-			/* This will load the argument frame pointer into r0 */
+			/* This will load the argument frame pointer into r1 */
 			load_value(gen, insn->value1, 1);
 			jit_cache_native(gen, JIT_OP_LOAD_RELATIVE_LONG);
 			jit_cache_native(gen,
@@ -1304,6 +1304,12 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 				store_value(gen, insn->dest);
 				load_value(gen, insn->dest, 1);
 			}
+		}
+		else
+		{
+			/* The import targets address is 0 bytes off the frame pointer. This
+			   means the import basically becomes an dest <- value1 op */
+			load_value(gen, insn->value1, 0);
 		}
 
 		if(offset != 0)
