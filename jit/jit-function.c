@@ -130,9 +130,7 @@ jit_function_create(jit_context_t context, jit_type_t signature)
  * @var{parent} function and is able to access its parent's
  * (and grandparent's) local variables.
  *
- * The front end is responsible for ensuring that the nested function can
- * never be called by anyone except its parent and sibling functions.
- * The front end is also responsible for ensuring that the nested function
+ * The front end is responsible for ensuring that the nested function
  * is compiled before its parent.
  * @end deftypefun
 @*/

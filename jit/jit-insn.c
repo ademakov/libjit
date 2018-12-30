@@ -6178,8 +6178,9 @@ jit_insn_incoming_reg(jit_function_t func, jit_value_t value, int reg)
 /*@
  * @deftypefun int jit_insn_incoming_frame_posn (jit_function_t @var{func}, jit_value_t @var{value}, jit_nint @var{frame_offset})
  * Output an instruction that notes that the contents of @var{value}
- * can be found in the stack frame at @var{frame_offset} at this point
- * in the code.
+ * can be found in the stack frame at @var{frame_offset}. This should only be
+ * called once per value, to prevent values from changing their address when
+ * they might be addressable.
  *
  * You normally wouldn't call this yourself - it is used internally
  * by the CPU back ends to set up the function's entry frame.
@@ -6189,7 +6190,18 @@ int
 jit_insn_incoming_frame_posn(jit_function_t func, jit_value_t value,
 			     jit_nint frame_offset)
 {
-	jit_value_t frame_offset_value
+	jit_value_t frame_offset_value;
+
+	/* We need to set the value's frame_offset right now. As children have to be
+	   compiled before their parents there would otherwise be no way for a child
+	   to know the frame_offset the value will be in. */
+	if(!value->has_frame_offset)
+	{
+		value->has_frame_offset = 1;
+		value->frame_offset = frame_offset;
+	}
+
+	frame_offset_value
 		= jit_value_create_nint_constant(func, jit_type_int, frame_offset);
 	if(!frame_offset_value)
 	{
@@ -6221,9 +6233,8 @@ jit_insn_outgoing_reg(jit_function_t func, jit_value_t value, int reg)
 
 /*@
  * @deftypefun int jit_insn_outgoing_frame_posn (jit_function_t @var{func}, jit_value_t @var{value}, jit_nint @var{frame_offset})
- * Output an instruction that notes that the contents of @var{value}
- * should be stored in the stack frame at @var{frame_offset} at this point
- * in the code.
+ * Output an instruction that stores the contents of @var{value} in
+ * the stack frame at @var{frame_offset}.
  *
  * You normally wouldn't call this yourself - it is used internally
  * by the CPU back ends to set up an outgoing frame for tail calls.
@@ -6233,13 +6244,15 @@ int
 jit_insn_outgoing_frame_posn(jit_function_t func, jit_value_t value,
 			     jit_nint frame_offset)
 {
-	jit_value_t frame_offset_value
-		= jit_value_create_nint_constant(func, jit_type_int, frame_offset);
-	if(!frame_offset_value)
+	jit_value_t frame_pointer;
+
+	frame_pointer = jit_insn_get_frame_pointer(func);
+	if(!frame_pointer)
 	{
 		return 0;
 	}
-	return create_note(func, JIT_OP_OUTGOING_FRAME_POSN, value, frame_offset_value);
+
+	return jit_insn_store_relative(func, frame_pointer, frame_offset, value);
 }
 
 /*@
