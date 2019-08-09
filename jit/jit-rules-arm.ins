@@ -1037,51 +1037,6 @@ JIT_OP_RETURN_SMALL_STRUCT: note
 		jump_to_epilog(gen, &inst, block);
 	}
 
-JIT_OP_SETUP_FOR_NESTED: /*spill_before*/
-	[] -> {
-		jit_nint nest_reg = jit_value_get_nint_constant(insn->value1);
-		if(nest_reg == -1)
-		{
-			arm_push_reg(inst, ARM_FP);
-		}
-		else
-		{
-			arm_mov_reg_reg(inst, _jit_reg_info[nest_reg].cpu_reg, ARM_FP);
-		}
-	}
-
-JIT_OP_SETUP_FOR_SIBLING: /*spill_before*/
-	[] -> {
-		jit_nint level = jit_value_get_nint_constant(insn->value1);
-		jit_nint nest_reg = jit_value_get_nint_constant(insn->value2);
-		int cpu_reg;
-		if(nest_reg == -1)
-		{
-			cpu_reg = ARM_R0;
-		}
-		else
-		{
-			cpu_reg = _jit_reg_info[nest_reg].cpu_reg;
-		}
-		arm_load_membase(inst, cpu_reg, ARM_FP, JIT_APPLY_PARENT_FRAME_OFFSET);
-		while(level > 0)
-		{
-			arm_load_membase(inst, cpu_reg, cpu_reg,
-							 JIT_APPLY_PARENT_FRAME_OFFSET);
-			--level;
-		}
-		if(nest_reg == -1)
-		{
-			arm_push_reg(inst, cpu_reg);
-		}
-	}
-
-JIT_OP_IMPORT:
-	[] -> {
-		/* TODO */
-		TODO();
-	}
-
 /*
  * Exception handling
  */
@@ -1365,6 +1320,11 @@ JIT_OP_INCOMING_REG, JIT_OP_RETURN_REG: note
 		 * it allows the allocator to check the liveness flags
 		 * and free the register if the value is dead.
 		 */
+	}
+
+JIT_OP_RETRIEVE_FRAME_POINTER: note
+	[=reg] -> {
+		arm_mov_reg_reg(inst, $1, ARM_FP);
 	}
 	
 JIT_OP_PUSH_INT: note

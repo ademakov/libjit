@@ -450,6 +450,11 @@ JIT_OP_RETURN_REG: manual
 		/* Nothing to do here */;
 	}
 
+JIT_OP_RETRIEVE_FRAME_POINTER: note
+	[=reg] -> {
+		alpha_mov(inst,$1,ALPHA_FP);
+	}
+
 JIT_OP_PUSH_INT: note
 	[imm] -> {
 		alpha_li(inst,ALPHA_AT,$1);

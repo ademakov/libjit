@@ -172,7 +172,8 @@ int _jit_create_entry_insns(jit_function_t func)
 		{
 			return 0;
 		}
-		func->builder->parent_frame = value;
+
+		jit_function_set_parent_frame(func, value);
 		if(!alloc_incoming_word(func, &passing, value, 0))
 		{
 			return 0;
@@ -472,7 +473,7 @@ static int alloc_outgoing_word
 int _jit_create_call_setup_insns
 	(jit_function_t func, jit_type_t signature,
 	 jit_value_t *args, unsigned int num_args,
-	 int is_nested, int nesting_level, jit_value_t *struct_return, int flags)
+	 int is_nested, jit_value_t parent_frame, jit_value_t *struct_return, int flags)
 {
 	jit_type_t type;
 	jit_value_t value;
@@ -690,6 +691,26 @@ int _jit_create_call_setup_insns
 		}
 	}
 
+	/* Add nested scope information if required */
+	if(is_nested)
+	{
+		if(passing.index > 0)
+		{
+			if(!alloc_outgoing_word(func, &passing, parent_frame))
+			{
+				return 0;
+			}
+		}
+		else
+		{
+			if(!push_param
+				(func, &passing, parent_frame, jit_type_void_ptr))
+			{
+				return 0;
+			}
+		}
+	}
+
 	/* Add the structure return pointer if required */
 	if(return_ptr)
 	{
@@ -704,27 +725,6 @@ int _jit_create_call_setup_insns
 		{
 			if(!push_param
 				(func, &passing, return_ptr, jit_type_void_ptr))
-			{
-				return 0;
-			}
-		}
-	}
-
-	/* Add nested scope information if required */
-	if(is_nested)
-	{
-		if(passing.index > 0)
-		{
-			--(passing.index);
-			if(!jit_insn_setup_for_nested
-					(func, nesting_level, passing.word_regs[passing.index]))
-			{
-				return 0;
-			}
-		}
-		else
-		{
-			if(!jit_insn_setup_for_nested(func, nesting_level, -1))
 			{
 				return 0;
 			}

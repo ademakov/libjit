@@ -130,9 +130,7 @@ jit_function_create(jit_context_t context, jit_type_t signature)
  * @var{parent} function and is able to access its parent's
  * (and grandparent's) local variables.
  *
- * The front end is responsible for ensuring that the nested function can
- * never be called by anyone except its parent and sibling functions.
- * The front end is also responsible for ensuring that the nested function
+ * The front end is responsible for ensuring that the nested function
  * is compiled before its parent.
  * @end deftypefun
 @*/
@@ -500,6 +498,19 @@ jit_function_t jit_function_get_nested_parent(jit_function_t func)
 	}
 }
 
+/*@
+ * @deftypefun jit_function_t jit_function_get_nested_parent (jit_function_t @var{func}, jit_value_t @var{parent_frame})
+ * Set the frame pointer of the parent of a nested function
+ * @end deftypefun
+@*/
+void jit_function_set_parent_frame(jit_function_t func,
+	jit_value_t parent_frame)
+{
+	func->parent_frame = parent_frame;
+	func->cached_parent = NULL;
+	func->cached_parent_frame = NULL;
+}
+
 /*
  * Information that is stored for an exception region in the cache.
  */
@@ -645,7 +656,7 @@ void *jit_function_to_closure(jit_function_t func)
  * closure does not correspond to a function in the specified context.
  * @end deftypefun
 @*/
-jit_function_t 
+jit_function_t
 jit_function_from_closure(jit_context_t context, void *closure)
 {
 	void *func_info;

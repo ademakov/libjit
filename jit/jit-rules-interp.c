@@ -287,13 +287,6 @@ int _jit_create_entry_insns(jit_function_t func)
 	   flipped when we output the argument opcodes for interpretation */
 	offset = -1;
 
-	/* If the function is nested, then we need two extra parameters
-	   to pass the pointer to the parent's local variables and arguments */
-	if(func->nested_parent)
-	{
-		offset -= 2;
-	}
-
 	/* Allocate the structure return pointer */
 	value = jit_value_get_struct_pointer(func);
 	if(value)
@@ -302,6 +295,27 @@ int _jit_create_entry_insns(jit_function_t func)
 		{
 			return 0;
 		}
+		--offset;
+	}
+
+	/* If the function is nested, then we an extra parameter
+	   to pass the pointer to the parent's frame */
+	if(func->nested_parent)
+	{
+		value = jit_value_create(func, jit_type_void_ptr);
+		if(!value)
+		{
+			return 0;
+		}
+
+		value->is_parameter = 1;
+
+		if(!jit_insn_incoming_frame_posn(func, value, offset))
+		{
+			return 0;
+		}
+
+		jit_function_set_parent_frame(func, value);
 		--offset;
 	}
 
@@ -370,7 +384,7 @@ int _jit_create_entry_insns(jit_function_t func)
 }
 
 /*@
- * @deftypefun int _jit_create_call_setup_insns (jit_function_t @var{func}, jit_type_t @var{signature}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{is_nested}, int @var{nested_level}, jit_value_t *@var{struct_return}, int @var{flags})
+ * @deftypefun int _jit_create_call_setup_insns (jit_function_t @var{func}, jit_type_t @var{signature}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{is_nested}, jit_value_t @var{parent_frame}, jit_value_t *@var{struct_return}, int @var{flags})
  * Create instructions within @var{func} necessary to set up for a
  * function call to a function with the specified @var{signature}.
  * Use @code{jit_insn_push} to push values onto the system stack,
@@ -378,10 +392,8 @@ int _jit_create_entry_insns(jit_function_t func)
  *
  * If @var{is_nested} is non-zero, then it indicates that we are calling a
  * nested function within the current function's nested relationship tree.
- * The @var{nested_level} value will be -1 to call a child, zero to call a
- * sibling of @var{func}, 1 to call a sibling of the parent, 2 to call
- * a sibling of the grandparent, etc.  The @code{jit_insn_setup_for_nested}
- * instruction should be used to create the nested function setup code.
+ * The @var{parent_frame} value will be a pointer to the start of the frame
+ * of the parent of the callee.
  *
  * If the function returns a structure by pointer, then @var{struct_return}
  * must be set to a new local variable that will contain the returned
@@ -391,7 +403,8 @@ int _jit_create_entry_insns(jit_function_t func)
 int _jit_create_call_setup_insns
 	(jit_function_t func, jit_type_t signature,
 	 jit_value_t *args, unsigned int num_args,
-	 int is_nested, int nested_level, jit_value_t *struct_return, int flags)
+	 int is_nested, jit_value_t parent_frame,
+	 jit_value_t *struct_return, int flags)
 {
 	jit_type_t type;
 	jit_type_t vtype;
@@ -424,6 +437,15 @@ int _jit_create_call_setup_insns
 				}
 			}
 			if(!jit_insn_push(func, args[num_args]))
+			{
+				return 0;
+			}
+		}
+
+		/* Do we need to add nested function scope information? */
+		if(is_nested)
+		{
+			if(!jit_insn_push(func, parent_frame))
 			{
 				return 0;
 			}
@@ -462,26 +484,17 @@ int _jit_create_call_setup_insns
 		{
 			*struct_return = 0;
 		}
-
-		/* Do we need to add nested function scope information? */
-		if(is_nested)
-		{
-			if(!jit_insn_setup_for_nested(func, nested_level, -1))
-			{
-				return 0;
-			}
-		}
 	}
 	else
 	{
 		/* Copy the arguments into our own parameter slots */
 		offset = -1;
-		if(func->nested_parent)
-		{
-			offset -= 2;
-		}
 		type = jit_type_get_return(signature);
 		if(jit_type_return_via_pointer(type))
+		{
+			--offset;
+		}
+		if(func->nested_parent)
 		{
 			--offset;
 		}
@@ -1040,6 +1053,7 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 				   jit_block_t block, jit_insn_t insn)
 {
 	jit_label_t label;
+	jit_function_t target_func;
 	void **pc;
 	jit_nint offset;
 	jit_nint size;
@@ -1255,35 +1269,53 @@ void _jit_gen_insn(jit_gencode_t gen, jit_function_t func,
 		jit_cache_native(gen, jit_value_get_nint_constant(insn->value2));
 		break;
 
-	case JIT_OP_SETUP_FOR_NESTED:
-		/* TODO!!! */
-		/* Set up to call a nested child */
-		jit_cache_opcode(gen, insn->opcode);
-		adjust_working(gen, 2);
-		break;
-
-	case JIT_OP_SETUP_FOR_SIBLING:
-		/* TODO!!! */
-		/* Set up to call a nested sibling */
-		jit_cache_opcode(gen, insn->opcode);
-		jit_cache_native(gen, jit_value_get_nint_constant(insn->value1));
-		adjust_working(gen, 2);
-		break;
-
 	case JIT_OP_IMPORT:
-		/* Import a local variable from an outer nested scope */
-		_jit_gen_fix_value(insn->value1);
-		if(insn->value1->frame_offset >= 0)
+		/* make sure the target value has a frame offset */
+		_jit_gen_fix_value(insn->value2);
+		offset = insn->value2->frame_offset;
+
+		if(offset > 0)
 		{
-			jit_cache_opcode(gen, JIT_INTERP_OP_IMPORT_LOCAL);
-			jit_cache_native(gen, insn->value1->frame_offset);
-			jit_cache_native(gen, jit_value_get_nint_constant(insn->value2));
+			/* load the pointer to the stack frame the target value resides in
+			   into r0 */
+			load_value(gen, insn->value1, 1);
+		}
+		else if(offset < 0)
+		{
+			/* The target value is in the argument frame of its function. We
+			   have to load the argument frame pointer first */
+			target_func = insn->value2->block->func;
+			_jit_gen_fix_value(target_func->arguments_pointer);
+			target_func->arguments_pointer_offset =
+				target_func->arguments_pointer->frame_offset;
+
+			/* This will load the argument frame pointer into r1 */
+			load_value(gen, insn->value1, 1);
+			jit_cache_native(gen, JIT_OP_LOAD_RELATIVE_LONG);
+			jit_cache_native(gen,
+				target_func->arguments_pointer_offset * sizeof(jit_item));
+
+			offset = -(offset + 1);
+
+			if(offset != 0)
+			{
+				/* We need the argument frame pointer in r1 but it is in r0.
+				   There does not seem to be a r1 <- r0 op though. */
+				store_value(gen, insn->dest);
+				load_value(gen, insn->dest, 1);
+			}
 		}
 		else
 		{
-			jit_cache_opcode(gen, JIT_INTERP_OP_IMPORT_ARG);
-			jit_cache_native(gen, -(insn->value1->frame_offset + 1));
-			jit_cache_native(gen, jit_value_get_nint_constant(insn->value2));
+			/* The import targets address is 0 bytes off the frame pointer. This
+			   means the import basically becomes an dest <- value1 op */
+			load_value(gen, insn->value1, 0);
+		}
+
+		if(offset != 0)
+		{
+			jit_cache_opcode(gen, JIT_OP_ADD_RELATIVE);
+			jit_cache_native(gen, offset * sizeof(jit_item));
 		}
 		store_value(gen, insn->dest);
 		break;

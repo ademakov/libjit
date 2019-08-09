@@ -388,6 +388,11 @@ JIT_OP_INCOMING_REG, JIT_OP_RETURN_REG: note
 		 */
 	}
 
+JIT_OP_RETRIEVE_FRAME_POINTER: note
+	[=reg] -> {
+		x86_64_mov_reg_reg_size(inst, $1, X86_64_RBP, 8);
+	}
+
 JIT_OP_PUSH_INT: note
 	[imm] -> {
 		x86_64_push_imm(inst, $1);

@@ -3786,7 +3786,7 @@ jit_insn_branch_if_not(jit_function_t func, jit_value_t value, jit_label_t *labe
 	int opcode;
 	jit_value_t value1;
 	jit_value_t value2;
-	jit_block_t block = func->builder->current_block;	
+	jit_block_t block = func->builder->current_block;
 	jit_insn_t prev = _jit_block_get_last(block);
 	if(value->is_temporary && prev && prev->dest == value)
 	{
@@ -5330,7 +5330,7 @@ static int
 create_call_setup_insns(jit_function_t func, jit_function_t callee,
 			jit_type_t signature,
 			jit_value_t *args, unsigned int num_args,
-			int is_nested, int nesting_level,
+			int is_nested, jit_value_t parent_frame,
 			jit_value_t *struct_return, int flags)
 {
 	jit_value_t *new_args;
@@ -5375,7 +5375,7 @@ create_call_setup_insns(jit_function_t func, jit_function_t callee,
 
 	/* Let the back end do the work */
 	return _jit_create_call_setup_insns(func, signature, args, num_args,
-					    is_nested, nesting_level, struct_return,
+					    is_nested, parent_frame, struct_return,
 					    flags);
 }
 
@@ -5478,8 +5478,7 @@ jit_insn_call(jit_function_t func, const char *name, jit_function_t jit_func,
 	      int flags)
 {
 	int is_nested;
-	int nesting_level;
-	jit_function_t temp_func;
+	jit_value_t parent_frame;
 	jit_value_t return_value;
 	jit_label_t entry_point;
 	jit_label_t label_end;
@@ -5515,32 +5514,17 @@ jit_insn_call(jit_function_t func, const char *name, jit_function_t jit_func,
 	if(jit_func->nested_parent)
 	{
 		is_nested = 1;
-		if(jit_func->nested_parent == func)
+		parent_frame = jit_insn_get_parent_frame_pointer_of(func, jit_func);
+
+		if(!parent_frame)
 		{
-			/* We are calling one of our children */
-			nesting_level = -1;
-		}
-		else if(jit_func->nested_parent == func->nested_parent)
-		{
-			/* We are calling one of our direct siblings */
-			nesting_level = 0;
-		}
-		else
-		{
-			/* Search up to find the actual nesting level */
-			temp_func = func->nested_parent;
-			nesting_level = 1;
-			while(temp_func != 0 && temp_func != jit_func)
-			{
-				++nesting_level;
-				temp_func = temp_func->nested_parent;
-			}
+			return 0;
 		}
 	}
 	else
 	{
 		is_nested = 0;
-		nesting_level = 0;
+		parent_frame = 0;
 	}
 
 	/* Convert the arguments to the actual parameter types */
@@ -5576,7 +5560,7 @@ jit_insn_call(jit_function_t func, const char *name, jit_function_t jit_func,
 
 	/* Create the instructions to push the parameters onto the stack */
 	if(!create_call_setup_insns(func, jit_func, signature, new_args, num_args,
-				    is_nested, nesting_level, &return_value, flags))
+				    is_nested, parent_frame, &return_value, flags))
 	{
 		return 0;
 	}
@@ -5640,9 +5624,12 @@ jit_insn_call(jit_function_t func, const char *name, jit_function_t jit_func,
  * @end deftypefun
 @*/
 jit_value_t
-jit_insn_call_indirect(jit_function_t func, jit_value_t value, jit_type_t signature,
-		       jit_value_t *args, unsigned int num_args, int flags)
+jit_insn_call_nested_indirect(jit_function_t func, jit_value_t value,
+	jit_value_t parent_frame, jit_type_t signature, jit_value_t *args,
+	unsigned int num_args, int flags)
 {
+	int is_nested = parent_frame ? 1 : 0;
+
 	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
@@ -5655,7 +5642,7 @@ jit_insn_call_indirect(jit_function_t func, jit_value_t value, jit_type_t signat
 #else
 	if((flags & JIT_CALL_TAIL) != 0)
 	{
-		if(func->nested_parent)
+		if(is_nested || func->nested_parent)
 		{
 			flags &= ~JIT_CALL_TAIL;
 		}
@@ -5692,8 +5679,8 @@ jit_insn_call_indirect(jit_function_t func, jit_value_t value, jit_type_t signat
 
 	/* Create the instructions to push the parameters onto the stack */
 	jit_value_t return_value;
-	if(!create_call_setup_insns(func, 0, signature, new_args, num_args, 0, 0,
-				    &return_value, flags))
+	if(!create_call_setup_insns(func, 0, signature, new_args, num_args,
+		is_nested, parent_frame, &return_value, flags))
 	{
 		return 0;
 	}
@@ -5728,7 +5715,23 @@ jit_insn_call_indirect(jit_function_t func, jit_value_t value, jit_type_t signat
 	insn->value2 = (jit_value_t) jit_type_copy(signature);
 
 	/* Handle return to the caller */
-	return handle_return(func, signature, flags, 0, new_args, num_args, return_value);
+	return handle_return(func, signature, flags, is_nested, new_args, num_args,
+		return_value);
+}
+
+/*@
+ * @deftypefun jit_value_t jit_insn_call_nested_indirect (jit_function_t @var{func}, jit_value_t @var{value}, jit_value_t @var{parent_frame}, jit_type_t @var{signature}, jit_value_t *@var{args}, unsigned int @var{num_args}, int @var{flags})
+ * Call a jit function that is nested via an indirect pointer.
+ * @var{parent_frame} should be a pointer to the frame of the parent of *value.
+ * @end deftypefun
+@*/
+jit_value_t
+jit_insn_call_indirect(jit_function_t func, jit_value_t value,
+	jit_type_t signature, jit_value_t *args,
+	unsigned int num_args, int flags)
+{
+	return jit_insn_call_nested_indirect(func, value, 0, signature,
+		args, num_args, flags);
 }
 
 /*@
@@ -6175,8 +6178,9 @@ jit_insn_incoming_reg(jit_function_t func, jit_value_t value, int reg)
 /*@
  * @deftypefun int jit_insn_incoming_frame_posn (jit_function_t @var{func}, jit_value_t @var{value}, jit_nint @var{frame_offset})
  * Output an instruction that notes that the contents of @var{value}
- * can be found in the stack frame at @var{frame_offset} at this point
- * in the code.
+ * can be found in the stack frame at @var{frame_offset}. This should only be
+ * called once per value, to prevent values from changing their address when
+ * they might be addressable.
  *
  * You normally wouldn't call this yourself - it is used internally
  * by the CPU back ends to set up the function's entry frame.
@@ -6186,7 +6190,18 @@ int
 jit_insn_incoming_frame_posn(jit_function_t func, jit_value_t value,
 			     jit_nint frame_offset)
 {
-	jit_value_t frame_offset_value
+	jit_value_t frame_offset_value;
+
+	/* We need to set the value's frame_offset right now. As children have to be
+	   compiled before their parents there would otherwise be no way for a child
+	   to know the frame_offset the value will be in. */
+	if(!value->has_frame_offset)
+	{
+		value->has_frame_offset = 1;
+		value->frame_offset = frame_offset;
+	}
+
+	frame_offset_value
 		= jit_value_create_nint_constant(func, jit_type_int, frame_offset);
 	if(!frame_offset_value)
 	{
@@ -6218,9 +6233,8 @@ jit_insn_outgoing_reg(jit_function_t func, jit_value_t value, int reg)
 
 /*@
  * @deftypefun int jit_insn_outgoing_frame_posn (jit_function_t @var{func}, jit_value_t @var{value}, jit_nint @var{frame_offset})
- * Output an instruction that notes that the contents of @var{value}
- * should be stored in the stack frame at @var{frame_offset} at this point
- * in the code.
+ * Output an instruction that stores the contents of @var{value} in
+ * the stack frame at @var{frame_offset}.
  *
  * You normally wouldn't call this yourself - it is used internally
  * by the CPU back ends to set up an outgoing frame for tail calls.
@@ -6230,13 +6244,15 @@ int
 jit_insn_outgoing_frame_posn(jit_function_t func, jit_value_t value,
 			     jit_nint frame_offset)
 {
-	jit_value_t frame_offset_value
-		= jit_value_create_nint_constant(func, jit_type_int, frame_offset);
-	if(!frame_offset_value)
+	jit_value_t frame_pointer;
+
+	frame_pointer = jit_insn_get_frame_pointer(func);
+	if(!frame_pointer)
 	{
 		return 0;
 	}
-	return create_note(func, JIT_OP_OUTGOING_FRAME_POSN, value, frame_offset_value);
+
+	return jit_insn_store_relative(func, frame_pointer, frame_offset, value);
 }
 
 /*@
@@ -6262,42 +6278,6 @@ jit_insn_return_reg(jit_function_t func, jit_value_t value, int reg)
 }
 
 /*@
- * @deftypefun int jit_insn_setup_for_nested (jit_function_t @var{func}, int @var{nested_level}, int @var{reg})
- * Output an instruction to set up for a nested function call.
- * The @var{nested_level} value will be -1 to call a child, zero to call a
- * sibling of @var{func}, 1 to call a sibling of the parent, 2 to call
- * a sibling of the grandparent, etc.  If @var{reg} is not -1, then
- * it indicates the register to receive the parent frame information.
- * If @var{reg} is -1, then the frame information will be pushed on the stack.
- *
- * You normally wouldn't call this yourself - it is used internally by the
- * CPU back ends to set up the parameters for a nested subroutine call.
- * @end deftypefun
-@*/
-int
-jit_insn_setup_for_nested(jit_function_t func, int nested_level, int reg)
-{
-	jit_value_t reg_value = jit_value_create_nint_constant(func, jit_type_int, reg);
-	if(!reg_value)
-	{
-		return 0;
-	}
-
-	if(nested_level < 0)
-	{
-		return create_unary_note(func, JIT_OP_SETUP_FOR_NESTED, reg_value);
-	}
-
-	jit_value_t nested_level_value =
-		jit_value_create_nint_constant(func, jit_type_int, nested_level);
-	if(!nested_level_value)
-	{
-		return 0;
-	}
-	return create_note(func, JIT_OP_SETUP_FOR_SIBLING, nested_level_value, reg_value);
-}
-
-/*@
  * @deftypefun int jit_insn_flush_struct (jit_function_t @var{func}, jit_value_t @var{value})
  * Flush a small structure return value out of registers and back
  * into the local variable frame.  You normally wouldn't call this
@@ -6316,6 +6296,112 @@ jit_insn_flush_struct(jit_function_t func, jit_value_t value)
 }
 
 /*@
+ * @deftypefun jit_value_t jit_insn_get_frame_pointer (jit_function_t @var{func})
+ * Retrieve the frame pointer of function @var{func}
+ * Returns NULL if out of memory.
+ * @end deftypefun
+@*/
+jit_value_t
+jit_insn_get_frame_pointer(jit_function_t func)
+{
+	return create_dest_note(func, JIT_OP_RETRIEVE_FRAME_POINTER,
+		jit_type_void_ptr);
+}
+
+static jit_value_t
+find_frame_of(jit_function_t func, jit_function_t target,
+	jit_function_t func_start, jit_value_t frame_start)
+{
+	/* Find the nesting level */
+	int nesting_level = 0;
+	jit_function_t current_func = func_start;
+	while(current_func != 0 && current_func != target)
+	{
+		/* Ensure that current_func has a function builder */
+		if(!_jit_function_ensure_builder(current_func))
+		{
+			return 0;
+		}
+
+		if(!current_func->parent_frame)
+		{
+			/* One of the ancestors is not correctly set up */
+			return 0;
+		}
+
+#ifdef JIT_BACKEND_INTERP
+		if(!current_func->arguments_pointer)
+		{
+			/* Make sure the ancestor has an arguments_pointer, in case we are
+			   importing a parameter */
+			current_func->arguments_pointer = jit_value_create(current_func,
+				jit_type_void_ptr);
+
+			if(!current_func->arguments_pointer)
+			{
+				return 0;
+			}
+		}
+#endif
+
+		current_func = current_func->nested_parent;
+		nesting_level++;
+	}
+	if(!current_func)
+	{
+		/* The value is not accessible from this scope */
+		return 0;
+	}
+
+	/* When we are importing a multi level nested value we need to import the
+	   frame pointer of the next nesting level using the frame pointer of the
+	   current level, until we reach our target function */
+	current_func = func_start;
+	while(frame_start != 0 && nesting_level-- > 0)
+	{
+		frame_start = apply_binary(func, JIT_OP_IMPORT, frame_start,
+			current_func->parent_frame, jit_type_void_ptr);
+		frame_start = jit_insn_load_relative(func, frame_start, 0,
+			jit_type_void_ptr);
+
+		current_func = current_func->nested_parent;
+	}
+
+	if(!frame_start)
+	{
+		return 0;
+	}
+
+	return frame_start;
+}
+
+/*@
+ * @deftypefun jit_value_t jit_insn_get_parent_frame_pointer_of (jit_function_t @var{func}, jit_function_t @var{target})
+ * Retrieve the frame pointer of the parent of @var{target}. Returns NULL when
+ * @var{target} is not a sibling, an ancestor, or a sibling of one of the
+ * ancestors of @var{func}.
+ * Returns NULL if out of memory.
+ * @end deftypefun
+@*/
+jit_value_t
+jit_insn_get_parent_frame_pointer_of(jit_function_t func, jit_function_t target)
+{
+	if(func == target->nested_parent)
+	{
+		/* target is a child of the current function. We just need return
+		   our frame pointer */
+		return jit_insn_get_frame_pointer(func);
+	}
+	else
+	{
+		/* target is a sibling or a sibling of one of the ancestors of func.
+		   We need to find the parent of target in the ancestor tree of func */
+		return find_frame_of(func, target->nested_parent,
+			func->nested_parent, func->parent_frame);
+	}
+}
+
+/*@
  * @deftypefun jit_value_t jit_insn_import (jit_function_t @var{func}, jit_value_t @var{value})
  * Import @var{value} from an outer nested scope into @var{func}.  Returns
  * the effective address of the value for local access via a pointer.
@@ -6326,6 +6412,11 @@ jit_insn_flush_struct(jit_function_t func, jit_value_t value)
 jit_value_t
 jit_insn_import(jit_function_t func, jit_value_t value)
 {
+	jit_function_t value_func;
+	jit_value_t value_frame;
+	jit_type_t result_type;
+	jit_value_t result;
+
 	/* Ensure that we have a function builder */
 	if(!_jit_function_ensure_builder(func))
 	{
@@ -6333,34 +6424,59 @@ jit_insn_import(jit_function_t func, jit_value_t value)
 	}
 
 	/* If the value is already local, then return the local address */
-	jit_function_t value_func = jit_value_get_function(value);
+	value_func = jit_value_get_function(value);
 	if(value_func == func)
 	{
 		return jit_insn_address_of(func, value);
 	}
 
-	/* Find the nesting level of the value, where 1 is our parent */
-	int level = 1;
-	jit_function_t current_func = func->nested_parent;
-	while(current_func != 0 && current_func != value_func)
+#ifdef JIT_BACKEND_INTERP
+	if(!value_func->arguments_pointer)
 	{
-		++level;
-		current_func = current_func->nested_parent;
+		/* Make sure the ancestor has an arguments_pointer, in case we are
+		   importing a parameter */
+		value_func->arguments_pointer = jit_value_create(value_func,
+			jit_type_void_ptr);
+
+		if(!value_func->arguments_pointer)
+		{
+			return 0;
+		}
 	}
-	if(!current_func)
+#endif
+
+	result_type = jit_type_create_pointer(jit_value_get_type(value), 1);
+	if(!result_type)
 	{
-		/* The value is not accessible from this scope */
 		return 0;
 	}
 
-	/* Output the relevant import instruction, which will also cause
-	   it to be marked as a non-local addressable by "jit_value_ref" */
-	jit_value_t level_value = jit_value_create_nint_constant(func, jit_type_int, level);
-	if(!level_value)
+	/* Often there are multiple values imported from the same ancestor in a row,
+	   thats why the last ancestor a value was imported from is cached so its
+	   frame can be reused as finding it would require multiple memory loads */
+	if(value_func == func->cached_parent && func->cached_parent_frame)
 	{
+		value_frame = func->cached_parent_frame;
+	}
+	else
+	{
+		value_frame = find_frame_of(func, value_func,
+			func->nested_parent, func->parent_frame);
+
+		func->cached_parent = value_func;
+		func->cached_parent_frame = value_frame;
+	}
+
+	if(!value_frame)
+	{
+		jit_type_free(result_type);
 		return 0;
 	}
-	return apply_binary(func, JIT_OP_IMPORT, value, level_value, jit_type_void_ptr);
+
+	result = apply_binary(func, JIT_OP_IMPORT, value_frame, value, result_type);
+	jit_type_free(result_type);
+
+	return result;
 }
 
 /*@

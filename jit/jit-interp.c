@@ -309,6 +309,7 @@ void _jit_run_function(jit_function_interp_t func, jit_item *args,
 	jit_nint temparg;
 	void *tempptr;
 	void *tempptr2;
+	jit_nint arguments_pointer_offset;
 	jit_function_t call_func;
 	struct jit_backtrace call_trace;
 	void *entry;
@@ -348,6 +349,12 @@ restart_tail:
 	else
 	{
 		jbuf = 0;
+	}
+
+	arguments_pointer_offset = func->func->arguments_pointer_offset;
+	if(arguments_pointer_offset >= 0)
+	{
+		frame[arguments_pointer_offset].ptr_value = args;
 	}
 
 	/* Enter the instruction dispatch loop */
@@ -3595,68 +3602,6 @@ restart_tail:
 		}
 		/* Not reached */
 
-		VMCASE(JIT_OP_SETUP_FOR_NESTED):
-		{
-			/* TODO!!! */
-			/* Set up to call a nested function who is our child */
-			stacktop[-1].ptr_value = args;
-			stacktop[-2].ptr_value = frame;
-			VM_MODIFY_PC_AND_STACK(1, -2);
-		}
-		VMBREAK;
-
-		VMCASE(JIT_OP_SETUP_FOR_SIBLING):
-		{
-			/* TODO!!! */
-			/* Set up to call a nested function who is our sibling, a sibling
-			   of one of our ancestors, or one of our ancestors directly */
-			temparg = VM_NINT_ARG;
-			tempptr = &(args[0]);
-			while(temparg > 0)
-			{
-				tempptr = (((jit_item *)tempptr)[1]).ptr_value;
-				--temparg;
-			}
-			stacktop[-1].ptr_value = (((jit_item *)tempptr)[1]).ptr_value;
-			stacktop[-2].ptr_value = (((jit_item *)tempptr)[0]).ptr_value;
-			VM_MODIFY_PC_AND_STACK(1, -2);
-		}
-		VMBREAK;
-
-		VMCASE(JIT_INTERP_OP_IMPORT_LOCAL):
-		{
-			/* TODO!!! */
-			/* Import the address of a local variable from an outer scope */
-			temparg = VM_NINT_ARG2;
-			tempptr = args[0].ptr_value;
-			tempptr2 = args[1].ptr_value;
-			while(temparg > 1)
-			{
-				tempptr = ((jit_item *)tempptr2)[0].ptr_value;
-				tempptr2 = ((jit_item *)tempptr2)[1].ptr_value;
-				--temparg;
-			}
-			VM_R0_PTR = ((jit_item *)tempptr) + VM_NINT_ARG;
-			VM_MODIFY_PC(3);
-		}
-		VMBREAK;
-
-		VMCASE(JIT_INTERP_OP_IMPORT_ARG):
-		{
-			/* TODO!!! */
-			/* Import the address of an argument from an outer scope */
-			temparg = VM_NINT_ARG2;
-			tempptr = args[1].ptr_value;
-			while(temparg > 1)
-			{
-				tempptr = ((jit_item *)tempptr)[1].ptr_value;
-				--temparg;
-			}
-			VM_R0_PTR = ((jit_item *)tempptr) + VM_NINT_ARG;
-			VM_MODIFY_PC(3);
-		}
-		VMBREAK;
-
 		VMCASE(JIT_OP_PUSH_INT):
 		{
 			VM_STK_INTP = VM_R1_INT;
@@ -4953,6 +4898,14 @@ restart_tail:
 		/******************************************************************
 		 * Stack management.
 		 ******************************************************************/
+
+		VMCASE(JIT_OP_RETRIEVE_FRAME_POINTER):
+		{
+			/* Move the frame pointer into the register 0 */
+			VM_R0_PTR = frame;
+			VM_MODIFY_PC(1);
+		}
+		VMBREAK;
 
 		VMCASE(JIT_OP_POP_STACK):
 		{
