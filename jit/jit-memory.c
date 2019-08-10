@@ -42,7 +42,7 @@ _jit_memory_ensure(jit_context_t context)
 	return (context->memory_context != 0);
 }
 
-void 
+void
 _jit_memory_destroy(jit_context_t context)
 {
 	if(!context->memory_context)

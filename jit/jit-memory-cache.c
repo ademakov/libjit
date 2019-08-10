@@ -279,23 +279,23 @@ CacheRotate(jit_cache_t cache, unsigned char *key, jit_cache_node_t around)
 /*
  * Split a red-black tree at the current position.
  */
-#define	Split()		\
-			do { \
-				SetRed(temp); \
-				SetBlack(GetLeft(temp)); \
-				SetBlack(GetRight(temp)); \
-				if(GetRed(parent)) \
-				{ \
-					SetRed(grandParent); \
-					if((CacheCompare(cache, key, grandParent) < 0) != \
-							(CacheCompare(cache, key, parent) < 0)) \
-					{ \
-						parent = CacheRotate(cache, key, grandParent); \
-					} \
-					temp = CacheRotate(cache, key, greatGrandParent); \
-					SetBlack(temp); \
-				} \
-			} while (0)
+#define	Split()								\
+	do {								\
+		SetRed(temp);						\
+		SetBlack(GetLeft(temp));				\
+		SetBlack(GetRight(temp));				\
+		if(GetRed(parent))					\
+		{							\
+			SetRed(grandParent);				\
+			if((CacheCompare(cache, key, grandParent) < 0) != \
+			   (CacheCompare(cache, key, parent) < 0))	\
+			{						\
+				parent = CacheRotate(cache, key, grandParent); \
+			}						\
+			temp = CacheRotate(cache, key, greatGrandParent); \
+			SetBlack(temp);					\
+		}							\
+	} while (0)
 
 /*
  * Add a method region block to the red-black lookup tree
@@ -379,7 +379,7 @@ _jit_cache_create(jit_context_t context)
 		jit_context_get_meta_numeric(context, JIT_OPTION_CACHE_MAX_PAGE_FACTOR);
 
 	/* Allocate space for the cache control structure */
-	if((cache = (jit_cache_t )jit_malloc(sizeof(struct jit_cache))) == 0)
+	if((cache = (jit_cache_t) jit_malloc(sizeof(struct jit_cache))) == 0)
 	{
 		return 0;
 	}
@@ -528,7 +528,6 @@ _jit_cache_start_function(jit_cache_t cache, jit_function_t func)
 	{
 		return JIT_MEMORY_ERROR;
 	}
-
 	/* Bail out if the cache is already full */
 	if(!cache->free_start)
 	{
@@ -671,7 +670,7 @@ alloc_code(jit_cache_t cache, unsigned int size, unsigned int align)
 		return 0;
 	}
 
-	/* Allocate aligned memory. */
+	/* Allocate aligned memory */
 	ptr = cache->free_start;
 	if(align > 1)
 	{
@@ -750,7 +749,7 @@ _jit_cache_alloc_no_method(jit_cache_t cache, unsigned long size, unsigned long 
 		return 0;
 	}
 	/* Bail out if the request is too big to ever be satisfiable */
-	if ((size + align - 1) > (cache->pageSize * cache->maxPageFactor))
+	if((size + align - 1) > (cache->pageSize * cache->maxPageFactor))
 	{
 		return 0;
 	}
@@ -815,7 +814,7 @@ _jit_cache_find_function_info(jit_cache_t cache, void *pc)
 jit_function_t
 _jit_cache_get_function(jit_cache_t cache, void *func_info)
 {
-	if (func_info)
+	if(func_info)
 	{
 		jit_cache_node_t node = (jit_cache_node_t) func_info;
 		return node->func;
@@ -826,7 +825,7 @@ _jit_cache_get_function(jit_cache_t cache, void *func_info)
 void *
 _jit_cache_get_function_start(jit_memory_context_t memctx, void *func_info)
 {
-	if (func_info)
+	if(func_info)
 	{
 		jit_cache_node_t node = (jit_cache_node_t) func_info;
 		return node->start;
@@ -837,7 +836,7 @@ _jit_cache_get_function_start(jit_memory_context_t memctx, void *func_info)
 void *
 _jit_cache_get_function_end(jit_memory_context_t memctx, void *func_info)
 {
-	if (func_info)
+	if(func_info)
 	{
 		jit_cache_node_t node = (jit_cache_node_t) func_info;
 		return node->end;

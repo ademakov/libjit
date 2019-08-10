@@ -145,8 +145,7 @@ jit_vmem_reserve(jit_uint size)
 
 	void *addr;
 
-	addr = mmap(0, size, PROT_NONE,
-		    MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
+	addr = mmap(0, size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
 	if(addr == MAP_FAILED)
 	{
 		return (void *) 0;
@@ -218,7 +217,7 @@ jit_vmem_commit(void *addr, jit_uint size, jit_prot_t prot)
 	void *raddr;
 
 	nprot = convert_prot(prot);
-	raddr = mmap(addr, size, nprot, MAP_FIXED|MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+	raddr = mmap(addr, size, nprot, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if(raddr != addr)
 	{
 		if(raddr != MAP_FAILED)
@@ -260,7 +259,7 @@ jit_vmem_decommit(void *addr, jit_uint size)
 
 # endif
 
-	addr = mmap(addr, size, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS|MAP_NORESERVE, -1, 0);
+	addr = mmap(addr, size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
 	if(addr == MAP_FAILED)
 	{
 		return 0;
