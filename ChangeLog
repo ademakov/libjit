@@ -1,3 +1,9 @@
+2019-08-10  Aleksey Demakov  <ademakov@gmail.com>
+
+	* configure.ac, include/jit/jit-defs.h.in: remove JITINT64CPP macro.
+	* include/jit/jit-defs.h.in: define jit_size_t as a jit_nuint alias.
+	* include/jit/jit-memory.h: remove jit_size_t definition.
+
 2018-09-17  Jakob Löw  <jakob@m4gnus.de>
 
 	* jit/jit-rules-interp.c: Fix the call to _jit_load_opcode passing

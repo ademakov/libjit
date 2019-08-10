@@ -233,28 +233,17 @@ else
 fi
 AC_MSG_RESULT([$JITINT32, unsigned $JITINT32])
 AC_MSG_CHECKING(for the 64-bit integer types)
-JITINT64CXX=
-if test "$ac_cv_sizeof___int64" = 8 ; then
-	if test "x$JIT_INT64_INCLUDE" = "x" ; then
-		JITINT64='long long'
-	else
-		dnl __int64 doesn't work with g++, although it does with gcc.
-		JITINT64='__int64'
-		JITINT64CXX='long long'
-	fi
-elif test "$ac_cv_sizeof_int" = 8 ; then
-	JITINT64=int
-elif test "$ac_cv_sizeof_long" = 8 ; then
+if test "$ac_cv_sizeof_long" = 8 ; then
 	JITINT64=long
 elif test "$ac_cv_sizeof_long_long" = 8 ; then
 	JITINT64='long long'
+elif test "$ac_cv_sizeof_int" = 8 ; then
+	JITINT64=int
+elif test "$ac_cv_sizeof___int64" = 8 ; then
+	JITINT64='__int64'
 else
 	AC_MSG_ERROR(unknown)
 fi
-if test "x$JITINT64CXX" = "x" ; then
-	JITINT64CXX="$JITINT64"
-fi
-AC_MSG_RESULT([$JITINT64, unsigned $JITINT64])
 AC_MSG_CHECKING(for the native integer types)
 if test "$ac_cv_sizeof_void_p" = 4 ; then
 	JITNATIVEINT="$JITINT32"

@@ -35,10 +35,6 @@ extern "C" {
 #define	JIT_MEMORY_TOO_BIG	2	/* Function is too big for the cache */
 #define JIT_MEMORY_ERROR	3	/* Other error */
 
-
-/* TODO: the proper place for this is jit-def.h and it's going to depend on the platform. */
-typedef unsigned int jit_size_t;
-
 typedef void *jit_memory_context_t;
 typedef void *jit_function_info_t;
 

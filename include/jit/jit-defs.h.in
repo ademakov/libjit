@@ -41,13 +41,8 @@ typedef @JITINT32@ jit_int;
 typedef unsigned @JITINT32@ jit_uint;
 typedef @JITNATIVEINT@ jit_nint;
 typedef unsigned @JITNATIVEINT@ jit_nuint;
-#if defined(__cplusplus) && defined(__GNUC__)
-typedef @JITINT64CXX@ jit_long;
-typedef unsigned @JITINT64CXX@ jit_ulong;
-#else
 typedef @JITINT64@ jit_long;
 typedef unsigned @JITINT64@ jit_ulong;
-#endif
 typedef @JITFLOAT32@ jit_float32;
 typedef @JITFLOAT64@ jit_float64;
 typedef @JITNATIVEFLOAT@ jit_nfloat;
@@ -56,18 +51,20 @@ typedef void *jit_ptr;
 #define	@JITNATIVEINTDEFINE@ 1
 @JITNFLOATISDOUBLE@
 
+typedef jit_nuint jit_size_t;
+
 #if defined(__cplusplus) && defined(__GNUC__)
-#define	JIT_NOTHROW		@JITTHROWIDIOM@
+# define JIT_NOTHROW		@JITTHROWIDIOM@
 #else
-#define	JIT_NOTHROW
+# define JIT_NOTHROW
 #endif
 
-#define	jit_min_int		(((jit_int)1) << (sizeof(jit_int) * 8 - 1))
-#define	jit_max_int		((jit_int)(~jit_min_int))
-#define	jit_max_uint	((jit_uint)(~((jit_uint)0)))
-#define	jit_min_long	(((jit_long)1) << (sizeof(jit_long) * 8 - 1))
-#define	jit_max_long	((jit_long)(~jit_min_long))
-#define	jit_max_ulong	((jit_ulong)(~((jit_ulong)0)))
+#define	jit_min_int		(((jit_int) 1) << (sizeof(jit_int) * 8 - 1))
+#define	jit_max_int		((jit_int) (~jit_min_int))
+#define	jit_max_uint		((jit_uint) (~((jit_uint) 0)))
+#define	jit_min_long		(((jit_long) 1) << (sizeof(jit_long) * 8 - 1))
+#define	jit_max_long		((jit_long) (~jit_min_long))
+#define	jit_max_ulong		((jit_ulong) (~((jit_ulong) 0)))
 
 #ifdef	__cplusplus
 };
