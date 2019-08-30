@@ -4236,7 +4236,8 @@ apply_conversion(jit_function_t func, int oper, jit_value_t value,
 		       jit_type_t result_type)
 {
 	/* Set the "may_throw" flag if the conversion may throw an exception */
-	if(convert_intrinsics[oper - 1].descr.ptr_result_type)
+	if(oper < sizeof(convert_intrinsics) / sizeof(jit_convert_intrinsic_t)
+		&& convert_intrinsics[oper - 1].descr.ptr_result_type)
 	{
 		func->builder->may_throw = 1;
 	}
