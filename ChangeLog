@@ -1,5 +1,10 @@
 2019-08-10  Aleksey Demakov  <ademakov@gmail.com>
 
+	* tools/Makefile.am (gen_ops_SOURCES): reorder targtes wich seems
+	to mysteriously fix out-of-tree builds
+
+2019-08-10  Aleksey Demakov  <ademakov@gmail.com>
+
 	* configure.ac, include/jit/jit-defs.h.in: remove JITINT64CPP macro.
 	* include/jit/jit-defs.h.in: define jit_size_t as a jit_nuint alias.
 	* include/jit/jit-memory.h: remove jit_size_t definition.

@@ -12,8 +12,7 @@ dist_gen_apply_SOURCES = \
 nodist_gen_apply_SOURCES = jit-arch.h
 
 gen_rules_SOURCES = gen-rules-parser.y gen-rules-scanner.l
-
-gen_ops_SOURCES = gen-ops-scanner.l gen-ops-parser.y
+gen_ops_SOURCES = gen-ops-parser.y gen-ops-scanner.l
 
 AM_YFLAGS = -d
 
