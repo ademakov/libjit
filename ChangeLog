@@ -2,6 +2,9 @@
 
 	* include/jit/jit.h: Include jit-dump.h and jit-memory.h headers.
 
+	* jit/jit-memory-cache.c: make all _jit_cache_* functions static
+	and remove the prefix. Remove commented out code.
+
 2020-01-09  Tom Tromey  <tom@tromey.com>
 
 	* include/jit/jit-function.h (jit_optimize, jit_compile)
@@ -54,7 +57,7 @@
 2019-08-10  Aleksey Demakov  <ademakov@gmail.com>
 
 	* tools/Makefile.am (gen_ops_SOURCES): reorder targtes wich seems
-	to mysteriously fix out-of-tree builds
+	to mysteriously fix out-of-tree builds.
 
 2019-08-10  Aleksey Demakov  <ademakov@gmail.com>
 

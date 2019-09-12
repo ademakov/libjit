@@ -119,8 +119,8 @@ struct jit_cache
 #define	SetBlack(node)	\
 	((node)->left = (jit_cache_node_t)(((jit_nuint)(node)->left) & ~((jit_nuint)1)))
 
-void _jit_cache_destroy(jit_cache_t cache);
-void * _jit_cache_alloc_data(jit_cache_t cache, unsigned long size, unsigned long align);
+static void cache_destroy(jit_cache_t cache);
+static void * alloc_data(jit_cache_t cache, unsigned long size, unsigned long align);
 
 /*
  * Allocate a cache page and add it to the cache.
@@ -363,8 +363,8 @@ AddToLookupTree(jit_cache_t cache, jit_cache_node_t method)
 	SetBlack(cache->head.right);
 }
 
-jit_cache_t
-_jit_cache_create(jit_context_t context)
+static jit_cache_t
+cache_create(jit_context_t context)
 {
 	jit_cache_t cache;
 	long limit, cache_page_size;
@@ -437,7 +437,7 @@ _jit_cache_create(jit_context_t context)
 	AllocCachePage(cache, 0);
 	if(!cache->free_start)
 	{
-		_jit_cache_destroy(cache);
+		cache_destroy(cache);
 		return 0;
 	}
 
@@ -445,8 +445,8 @@ _jit_cache_create(jit_context_t context)
 	return cache;
 }
 
-void
-_jit_cache_destroy(jit_cache_t cache)
+static void
+cache_destroy(jit_cache_t cache)
 {
 	unsigned long page;
 
@@ -465,8 +465,8 @@ _jit_cache_destroy(jit_cache_t cache)
 	jit_free(cache);
 }
 
-int
-_jit_cache_extend(jit_cache_t cache, int count)
+static int
+cache_extend(jit_cache_t cache, int count)
 {
 	/* Compute the page size factor */
 	int factor = 1 << count;
@@ -508,20 +508,20 @@ _jit_cache_extend(jit_cache_t cache, int count)
 	return JIT_MEMORY_OK;
 }
 
-jit_function_t
-_jit_cache_alloc_function(jit_cache_t cache)
+static jit_function_t
+alloc_function(jit_cache_t cache)
 {
 	return jit_cnew(struct _jit_function);
 }
 
-void
-_jit_cache_free_function(jit_cache_t cache, jit_function_t func)
+static void
+free_function(jit_cache_t cache, jit_function_t func)
 {
 	jit_free(func);
 }
 
-int
-_jit_cache_start_function(jit_cache_t cache, jit_function_t func)
+static int
+start_function(jit_cache_t cache, jit_function_t func)
 {
 	/* Bail out if there is a started function already */
 	if(cache->node)
@@ -539,8 +539,7 @@ _jit_cache_start_function(jit_cache_t cache, jit_function_t func)
 	cache->prev_end = cache->free_end;
 
 	/* Allocate a new cache node */
-	cache->node = _jit_cache_alloc_data(
-		cache, sizeof(struct jit_cache_node), sizeof(void *));
+	cache->node = alloc_data(cache, sizeof(struct jit_cache_node), sizeof(void *));
 	if(!cache->node)
 	{
 		return JIT_MEMORY_RESTART;
@@ -556,8 +555,8 @@ _jit_cache_start_function(jit_cache_t cache, jit_function_t func)
 	return JIT_MEMORY_OK;
 }
 
-int
-_jit_cache_end_function(jit_cache_t cache, int result)
+static int
+end_function(jit_cache_t cache, int result)
 {
 	/* Bail out if there is no started function */
 	if(!cache->node)
@@ -585,8 +584,8 @@ _jit_cache_end_function(jit_cache_t cache, int result)
 	return JIT_MEMORY_OK;
 }
 
-void *
-_jit_cache_get_code_break(jit_cache_t cache)
+static void *
+get_code_break(jit_cache_t cache)
 {
 	/* Bail out if there is no started function */
 	if(!cache->node)
@@ -598,8 +597,8 @@ _jit_cache_get_code_break(jit_cache_t cache)
 	return cache->free_start;
 }
 
-void
-_jit_cache_set_code_break(jit_cache_t cache, void *ptr)
+static void
+set_code_break(jit_cache_t cache, void *ptr)
 {
 	/* Bail out if there is no started function */
 	if(!cache->node)
@@ -620,8 +619,8 @@ _jit_cache_set_code_break(jit_cache_t cache, void *ptr)
 	cache->free_start = ptr;
 }
 
-void *
-_jit_cache_get_code_limit(jit_cache_t cache)
+static void *
+get_code_limit(jit_cache_t cache)
 {
 	/* Bail out if there is no started function */
 	if(!cache->node)
@@ -633,8 +632,8 @@ _jit_cache_get_code_limit(jit_cache_t cache)
 	return cache->free_end;
 }
 
-void *
-_jit_cache_alloc_data(jit_cache_t cache, unsigned long size, unsigned long align)
+static void *
+alloc_data(jit_cache_t cache, unsigned long size, unsigned long align)
 {
 	unsigned char *ptr;
 
@@ -704,93 +703,36 @@ alloc_code(jit_cache_t cache, unsigned int size, unsigned int align)
 	return (void *) ptr;
 }
 
-void *
-_jit_cache_alloc_trampoline(jit_cache_t cache)
+static void *
+alloc_trampoline(jit_cache_t cache)
 {
 	return alloc_code(cache,
 			  jit_get_trampoline_size(),
 			  jit_get_trampoline_alignment());
 }
 
-void
-_jit_cache_free_trampoline(jit_cache_t cache, void *trampoline)
+static void
+free_trampoline(jit_cache_t cache, void *trampoline)
 {
 	/* not supported yet */
 }
 
-void *
-_jit_cache_alloc_closure(jit_cache_t cache)
+static void *
+alloc_closure(jit_cache_t cache)
 {
 	return alloc_code(cache,
 			  jit_get_closure_size(),
 			  jit_get_closure_alignment());
 }
 
-void
-_jit_cache_free_closure(jit_cache_t cache, void *closure)
+static void
+free_closure(jit_cache_t cache, void *closure)
 {
 	/* not supported yet */
 }
 
-#if 0
-void *
-_jit_cache_alloc_no_method(jit_cache_t cache, unsigned long size, unsigned long align)
-{
-	unsigned char *ptr;
-
-	/* Bail out if there is a started function */
-	if(cache->method)
-	{
-		return 0;
-	}
-	/* Bail out if there is no cache available */
-	if(!cache->free_start)
-	{
-		return 0;
-	}
-	/* Bail out if the request is too big to ever be satisfiable */
-	if((size + align - 1) > (cache->pageSize * cache->maxPageFactor))
-	{
-		return 0;
-	}
-
-	/* Allocate memory from the top of the current free region, so
-	 * that it does not overlap with the method code being written
-	 * at the bottom of the free region */
-	ptr = cache->free_end - size;
-	ptr = (unsigned char *) (((jit_nuint) ptr) & ~((jit_nuint) align - 1));
-
-	/* Do we need to allocate a new cache page? */
-	if(ptr < cache->free_start)
-	{
-		/* Find the appropriate page size */
-		int factor = 1;
-		while((size + align - 1) > (factor * cache->pageSize)) {
-			factor <<= 1;
-		}
-
-		/* Try to allocate it */
-		AllocCachePage(cache, factor);
-
-		/* Bail out if the cache is full */
-		if(!cache->free_start)
-		{
-			return 0;
-		}
-
-		/* Allocate memory from the new page */
-		ptr = cache->free_end - size;
-		ptr = (unsigned char *) (((jit_nuint) ptr) & ~((jit_nuint) align - 1));
-	}
-
-	/* Allocate the block and return it */
-	cache->free_end = ptr;
-	return (void *)ptr;
-}
-#endif
-
-void *
-_jit_cache_find_function_info(jit_cache_t cache, void *pc)
+static void *
+find_function_info(jit_cache_t cache, void *pc)
 {
 	jit_cache_node_t node = cache->head.right;
 	while(node != &(cache->nil))
@@ -811,8 +753,8 @@ _jit_cache_find_function_info(jit_cache_t cache, void *pc)
 	return 0;
 }
 
-jit_function_t
-_jit_cache_get_function(jit_cache_t cache, void *func_info)
+static jit_function_t
+get_function(jit_cache_t cache, void *func_info)
 {
 	if(func_info)
 	{
@@ -822,8 +764,8 @@ _jit_cache_get_function(jit_cache_t cache, void *func_info)
 	return 0;
 }
 
-void *
-_jit_cache_get_function_start(jit_memory_context_t memctx, void *func_info)
+static void *
+get_function_start(jit_memory_context_t memctx, void *func_info)
 {
 	if(func_info)
 	{
@@ -833,8 +775,8 @@ _jit_cache_get_function_start(jit_memory_context_t memctx, void *func_info)
 	return 0;
 }
 
-void *
-_jit_cache_get_function_end(jit_memory_context_t memctx, void *func_info)
+static void *
+get_function_end(jit_memory_context_t memctx, void *func_info)
 {
 	if(func_info)
 	{
@@ -850,61 +792,61 @@ jit_default_memory_manager(void)
 	static const struct jit_memory_manager mm = {
 
 		(jit_memory_context_t (*)(jit_context_t))
-		&_jit_cache_create,
+		&cache_create,
 
 		(void (*)(jit_memory_context_t))
-		&_jit_cache_destroy,
+		&cache_destroy,
 
 		(jit_function_info_t (*)(jit_memory_context_t, void *))
-		&_jit_cache_find_function_info,
+		&find_function_info,
 
 		(jit_function_t (*)(jit_memory_context_t, jit_function_info_t))
-		&_jit_cache_get_function,
+		&get_function,
 
 		(void * (*)(jit_memory_context_t, jit_function_info_t))
-		&_jit_cache_get_function_start,
+		&get_function_start,
 
 		(void * (*)(jit_memory_context_t, jit_function_info_t))
-		&_jit_cache_get_function_end,
+		&get_function_end,
 
 		(jit_function_t (*)(jit_memory_context_t))
-		&_jit_cache_alloc_function,
+		&alloc_function,
 
 		(void (*)(jit_memory_context_t, jit_function_t))
-		&_jit_cache_free_function,
+		&free_function,
 
 		(int (*)(jit_memory_context_t, jit_function_t))
-		&_jit_cache_start_function,
+		&start_function,
 
 		(int (*)(jit_memory_context_t, int))
-		&_jit_cache_end_function,
+		&end_function,
 
 		(int (*)(jit_memory_context_t, int))
-		&_jit_cache_extend,
+		&cache_extend,
 
 		(void * (*)(jit_memory_context_t))
-		&_jit_cache_get_code_limit,
+		&get_code_limit,
 
 		(void * (*)(jit_memory_context_t))
-		&_jit_cache_get_code_break,
+		&get_code_break,
 
 		(void (*)(jit_memory_context_t, void *))
-		&_jit_cache_set_code_break,
+		&set_code_break,
 
 		(void * (*)(jit_memory_context_t))
-		&_jit_cache_alloc_trampoline,
+		&alloc_trampoline,
 
 		(void (*)(jit_memory_context_t, void *))
-		&_jit_cache_free_trampoline,
+		&free_trampoline,
 
 		(void * (*)(jit_memory_context_t))
-		&_jit_cache_alloc_closure,
+		&alloc_closure,
 
 		(void (*)(jit_memory_context_t, void *))
-		&_jit_cache_free_closure,
+		&free_closure,
 
 		(void * (*)(jit_memory_context_t, jit_size_t, jit_size_t))
-		&_jit_cache_alloc_data
+		&alloc_data
 	};
 	return &mm;
 }
