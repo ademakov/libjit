@@ -925,11 +925,10 @@ JIT_OP_STORE_RELATIVE_STRUCT: ternary
 	}
 
 JIT_OP_ADD_RELATIVE:
-	[reg, imms32] -> {
-		if($2 != 0)
-		{
-			x86_64_add_reg_imm_size(inst, $1, $2, 8);
-		}
+	[reg, immzero] -> {
+	}
+	[=reg, reg, imms32] -> {
+		x86_64_lea_membase_size(inst, $1, $2, $3, 8);
 	}
 
 /*
@@ -1028,14 +1027,24 @@ JIT_OP_STORE_ELEMENT_FLOAT64: ternary
  */
 
 JIT_OP_IADD: commutative
-	[reg, imm] -> {
-		if($2 == 1)
+	[reg, immzero] -> {
+	}
+	[=reg, reg, imms32] -> {
+		if($1 != $2)
+		{
+			x86_64_lea_membase_size(inst, $1, $2, $3, 4);
+		}
+		else if($3 == 1)
 		{
 			x86_64_inc_reg_size(inst, $1, 4);
 		}
+		else if($3 == -1)
+		{
+			x86_64_dec_reg_size(inst, $1, 4);
+		}
 		else
 		{
-			x86_64_add_reg_imm_size(inst, $1, $2, 4);
+			x86_64_add_reg_imm_size(inst, $1, $3, 4);
 		}
 	}
 	[reg, local] -> {
@@ -1046,14 +1055,24 @@ JIT_OP_IADD: commutative
 	}
 
 JIT_OP_ISUB:
-	[reg, imm] -> {
-		if($2 == 1)
+	[reg, immzero] -> {
+	}
+	[=reg, reg, imms32] -> {
+		if($1 != $2)
+		{
+			x86_64_lea_membase_size(inst, $1, $2, -$3, 4);
+		}
+		else if($3 == 1)
 		{
 			x86_64_dec_reg_size(inst, $1, 4);
 		}
+		else if($3 == -1)
+		{
+			x86_64_inc_reg_size(inst, $1, 4);
+		}
 		else
 		{
-			x86_64_sub_reg_imm_size(inst, $1, $2, 4);
+			x86_64_sub_reg_imm_size(inst, $1, $3, 4);
 		}
 	}
 	[reg, local] -> {
@@ -1284,14 +1303,24 @@ JIT_OP_IREM_UN: more_space
  */
 
 JIT_OP_LADD: commutative
-	[reg, imms32] -> {
-		if($2 == 1)
+	[reg, immzero] -> {
+	}
+	[=reg, reg, imms32] -> {
+		if($1 != $2)
+		{
+			x86_64_lea_membase_size(inst, $1, $2, $3, 8);
+		}
+		else if($3 == 1)
 		{
 			x86_64_inc_reg_size(inst, $1, 8);
 		}
+		else if($3 == -1)
+		{
+			x86_64_dec_reg_size(inst, $1, 8);
+		}
 		else
 		{
-			x86_64_add_reg_imm_size(inst, $1, $2, 8);
+			x86_64_add_reg_imm_size(inst, $1, $3, 8);
 		}
 	}
 	[reg, local] -> {
@@ -1302,14 +1331,24 @@ JIT_OP_LADD: commutative
 	}
 
 JIT_OP_LSUB:
-	[reg, imms32] -> {
-		if($2 == 1)
+	[reg, immzero] -> {
+	}
+	[=reg, reg, imms32] -> {
+		if($1 != $2)
+		{
+			x86_64_lea_membase_size(inst, $1, $2, -$3, 8);
+		}
+		else if($3 == 1)
 		{
 			x86_64_dec_reg_size(inst, $1, 8);
 		}
+		else if($3 == -1)
+		{
+			x86_64_inc_reg_size(inst, $1, 8);
+		}
 		else
 		{
-			x86_64_sub_reg_imm_size(inst, $1, $2, 8);
+			x86_64_sub_reg_imm_size(inst, $1, $3, 8);
 		}
 	}
 	[reg, local] -> {
