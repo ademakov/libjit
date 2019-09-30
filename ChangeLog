@@ -1,3 +1,12 @@
+2019-10-01  Jakob Löw  <jakob@m4gnus.de>
+
+	* jit/jit-insn.c: Fix a segmentation fault bug when converting byte/short
+	values to larger ints.
+	* jit/jit-unwind.c: make sure the address of the next base pointer is
+	actually on the stack
+	* jit-rules-x86-64.ins: use lea, inc, dec in the jit instruction
+	add_relative, add and sub
+
 2019-08-10  Aleksey Demakov  <ademakov@gmail.com>
 
 	* tools/Makefile.am (gen_ops_SOURCES): reorder targtes wich seems
