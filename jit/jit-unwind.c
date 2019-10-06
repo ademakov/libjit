@@ -111,6 +111,8 @@ jit_unwind_next(jit_unwind_context_t *unwind)
 int
 jit_unwind_next_pc(jit_unwind_context_t *unwind)
 {
+	void *next;
+
 	if(!unwind || !unwind->frame)
 	{
 		return 0;
@@ -119,10 +121,19 @@ jit_unwind_next_pc(jit_unwind_context_t *unwind)
 	unwind->cache = 0;
 
 #if defined(JIT_BACKEND_INTERP) || JIT_APPLY_BROKEN_FRAME_BUILTINS != 0
-	unwind->frame =  ((jit_backtrace_t) unwind->frame)->parent;
+	next = ((jit_backtrace_t) unwind->frame)->parent;
 #else
-	unwind->frame = jit_get_next_frame_address(unwind->frame);
+	next = jit_get_next_frame_address(unwind->frame);
 #endif
+
+	if(next <= unwind->frame)
+	{
+		unwind->frame = 0;
+	}
+	else
+	{
+		unwind->frame = next;
+	}
 	return (unwind->frame != 0);
 }
 
