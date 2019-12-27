@@ -1,3 +1,14 @@
+2019-12-27  Tom Tromey  <tom@tromey.com>
+
+	* jit/jit-rules-x86-64.c (_jit_gen_load_value): Remove unused
+	variable.
+	* jit/jit-elf-read.c (jit_readelf_num_needed)
+	(jit_readelf_get_needed): Change type of "type".
+	* jit/jit-apply-x86-64.c (_jit_create_closure): Remove unused
+	variable.
+	* jit/jit-apply.c (jit_apply_builder_get_return): Make "size"
+	conditional.
+
 2019-10-01  Jakob Löw  <jakob@m4gnus.de>
 
 	* jit/jit-insn.c: Fix a segmentation fault bug when converting byte/short

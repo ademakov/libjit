@@ -1363,7 +1363,7 @@ unsigned int jit_readelf_num_needed(jit_readelf_t readelf)
 {
 	jit_dynamic_iter_t iter;
 	unsigned int count = 0;
-	jit_int type;
+	jit_uint type;
 	Elf_Addr value;
 	dynamic_iter_init(&iter, readelf);
 	while(dynamic_iter_next(&iter, &type, &value))
@@ -1386,7 +1386,7 @@ unsigned int jit_readelf_num_needed(jit_readelf_t readelf)
 const char *jit_readelf_get_needed(jit_readelf_t readelf, unsigned int index)
 {
 	jit_dynamic_iter_t iter;
-	jit_int type;
+	jit_uint type;
 	Elf_Addr value;
 	dynamic_iter_init(&iter, readelf);
 	while(dynamic_iter_next(&iter, &type, &value))

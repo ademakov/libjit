@@ -47,7 +47,6 @@ void _jit_create_closure(unsigned char *buf, void *func,
                          void *closure, void *_type)
 {
 	jit_nint offset;
-	jit_type_t signature = (jit_type_t)_type;
 
 	/* Set up the local stack frame */
 	x86_64_push_reg_size(buf, X86_64_RBP, 8);

@@ -1705,7 +1705,7 @@ void
 _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value)
 {
 	jit_type_t type;
-	int src_reg, other_src_reg;
+	int src_reg;
 	void *ptr;
 	int offset;
 
@@ -2003,12 +2003,10 @@ _jit_gen_load_value(jit_gencode_t gen, int reg, int other_reg, jit_value_t value
 		if(value->in_register)
 		{
 			src_reg = value->reg;
-			other_src_reg = -1;
 		}
 		else
 		{
 			src_reg = value->global_reg;
-			other_src_reg = -1;
 		}
 
 		switch(type->kind)
