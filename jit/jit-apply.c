@@ -239,7 +239,9 @@ static void
 jit_apply_builder_get_return(jit_apply_builder *builder, void *rv,
 			     jit_type_t type, jit_apply_return *result)
 {
+#ifndef HAVE_JIT_BUILTIN_APPLY_STRUCT_RETURN
 	unsigned int size;
+#endif
 
 	switch(type->kind)
 	{
