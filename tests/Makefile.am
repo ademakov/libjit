@@ -1,4 +1,4 @@
-SUBDIRS = misc
+SUBDIRS = misc unit
 
 TESTS = coerce.pas \
 		loop.pas \
