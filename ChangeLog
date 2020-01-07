@@ -1,3 +1,10 @@
+2020-01-06  Tom Tromey  <tom@tromey.com>
+
+	* tests/unit/Makefile.am (jitlib, AM_CFLAGS, check_PROGRAMS)
+	(cfg_tests_SOURCES, cfg_tests_LDADD): New variables.
+	* tests/unit/unit-tests.h: New file.
+	* tests/unit/cfg-tests.c: New file.
+
 2019-12-27  Tom Tromey  <tom@tromey.com>
 
 	* jit/jit-block.c (_jit_invert_condition): New function.
