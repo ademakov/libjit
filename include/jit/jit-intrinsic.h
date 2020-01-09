@@ -43,6 +43,10 @@ jit_int jit_int_sub_ovf
 	(jit_int *result, jit_int value1, jit_int value2) JIT_NOTHROW;
 jit_int jit_int_mul_ovf
 	(jit_int *result, jit_int value1, jit_int value2) JIT_NOTHROW;
+jit_int jit_int_div_ovf
+	(jit_int *result, jit_int value1, jit_int value2) JIT_NOTHROW;
+jit_int jit_int_rem_ovf
+	(jit_int *result, jit_int value1, jit_int value2) JIT_NOTHROW;
 jit_int jit_int_neg(jit_int value1) JIT_NOTHROW;
 jit_int jit_int_and(jit_int value1, jit_int value2) JIT_NOTHROW;
 jit_int jit_int_or(jit_int value1, jit_int value2) JIT_NOTHROW;
@@ -78,6 +82,10 @@ jit_int jit_uint_sub_ovf
 	(jit_uint *result, jit_uint value1, jit_uint value2) JIT_NOTHROW;
 jit_int jit_uint_mul_ovf
 	(jit_uint *result, jit_uint value1, jit_uint value2) JIT_NOTHROW;
+jit_int jit_uint_div_ovf
+	(jit_uint *result, jit_uint value1, jit_uint value2) JIT_NOTHROW;
+jit_int jit_uint_rem_ovf
+	(jit_uint *result, jit_uint value1, jit_uint value2) JIT_NOTHROW;
 jit_uint jit_uint_neg(jit_uint value1) JIT_NOTHROW;
 jit_uint jit_uint_and(jit_uint value1, jit_uint value2) JIT_NOTHROW;
 jit_uint jit_uint_or(jit_uint value1, jit_uint value2) JIT_NOTHROW;
@@ -110,6 +118,10 @@ jit_int jit_long_add_ovf
 jit_int jit_long_sub_ovf
 	(jit_long *result, jit_long value1, jit_long value2) JIT_NOTHROW;
 jit_int jit_long_mul_ovf
+	(jit_long *result, jit_long value1, jit_long value2) JIT_NOTHROW;
+jit_int jit_long_div_ovf
+	(jit_long *result, jit_long value1, jit_long value2) JIT_NOTHROW;
+jit_int jit_long_rem_ovf
 	(jit_long *result, jit_long value1, jit_long value2) JIT_NOTHROW;
 jit_long jit_long_neg(jit_long value1) JIT_NOTHROW;
 jit_long jit_long_and(jit_long value1, jit_long value2) JIT_NOTHROW;
@@ -145,6 +157,10 @@ jit_int jit_ulong_add_ovf
 jit_int jit_ulong_sub_ovf
 	(jit_ulong *result, jit_ulong value1, jit_ulong value2) JIT_NOTHROW;
 jit_int jit_ulong_mul_ovf
+	(jit_ulong *result, jit_ulong value1, jit_ulong value2) JIT_NOTHROW;
+jit_int jit_ulong_div_ovf
+	(jit_ulong *result, jit_ulong value1, jit_ulong value2) JIT_NOTHROW;
+jit_int jit_ulong_rem_ovf
 	(jit_ulong *result, jit_ulong value1, jit_ulong value2) JIT_NOTHROW;
 jit_ulong jit_ulong_neg(jit_ulong value1) JIT_NOTHROW;
 jit_ulong jit_ulong_and(jit_ulong value1, jit_ulong value2) JIT_NOTHROW;

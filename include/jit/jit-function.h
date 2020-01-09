@@ -82,6 +82,9 @@ unsigned int jit_function_get_optimization_level
 unsigned int jit_function_get_max_optimization_level(void) JIT_NOTHROW;
 jit_label_t jit_function_reserve_label(jit_function_t func) JIT_NOTHROW;
 int jit_function_labels_equal(jit_function_t func, jit_label_t label, jit_label_t label2);
+int jit_optimize(jit_function_t func);
+int jit_compile(jit_function_t func);
+int jit_compile_entry(jit_function_t func, void **entry_point);
 
 #ifdef	__cplusplus
 };

@@ -1,0 +1,31 @@
+#!/bin/sh
+
+srcdir="$1"
+FILE="$2"
+
+echo "#include <jit/jit.h>" > $FILE
+echo "#include <jit/jit-dump.h>" >> $FILE
+echo "#include <jit/jit-intrinsic.h>" >> $FILE
+
+for file in $srcdir/*.c; do
+    # We filter out _jit functions because it isn't clear that these
+    # should be exported.  We also filter out a few documented things
+    # that aren't really functions.
+    grep '@deftypefun' $file | \
+	sed -e 's/^.*@deftypefun/@deftypefun/' \
+	    -e 's/^[^ ]* \({[^}]*}\|[^ {]\)* \([^ ]*\) .*$/\2/' | \
+	grep -v '^_jit' | \
+	grep -v jit_get_frame_address | \
+	grep -v jit_get_current_frame | \
+	grep -v jit_get_next_frame_address | \
+	grep -v jit_get_return_address | \
+	grep -v jit_get_current_return | \
+	grep -v jit_new | \
+	grep -v jit_cnew
+done | \
+    nl -s " = " | \
+    sed -e "s/^ */void *x_$name/" -e 's/$/;/' >> $FILE
+
+# Just compiling is enough, so we make the test program always
+# succeed.
+echo "int main() { return 0; }" >> $FILE

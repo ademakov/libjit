@@ -9,3 +9,8 @@ TESTS = $(check_PROGRAMS)
 
 cfg_tests_SOURCES = cfg-tests.c
 cfg_tests_LDADD = $(jitlib)
+
+# It's enough for this program to compile.
+check-local:
+	$(srcdir)/make-includes-test $(top_srcdir)/jit test-includes.c
+	$(CC) $(AM_CFLAGS) -c test-includes.c

@@ -1,3 +1,14 @@
+2020-01-09  Tom Tromey  <tom@tromey.com>
+
+	* include/jit/jit-function.h (jit_optimize, jit_compile)
+	(jit_compile_entry): Declare.
+	* include/jit/jit-intrinsic.h (jit_int_div_ovf, jit_int_rem_ovf)
+	(jit_uint_div_ovf, jit_uint_rem_ovf, jit_long_div_ovf)
+	(jit_long_rem_ovf, jit_ulong_div_ovf, jit_ulong_rem_ovf):
+	Declare.
+	* tests/unit/Makefile.am (check-local): New target.
+	* tests/unit/make-includes-test: New file.
+
 2020-01-06  Tom Tromey  <tom@tromey.com>
 
 	* tests/unit/Makefile.am (jitlib, AM_CFLAGS, check_PROGRAMS)
