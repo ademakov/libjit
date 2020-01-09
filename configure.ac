@@ -473,5 +473,6 @@ AC_CONFIG_FILES([
   tutorial/Makefile
   tests/Makefile
   tests/misc/Makefile
+  tests/unit/Makefile
   doc/Makefile])
 AC_OUTPUT
