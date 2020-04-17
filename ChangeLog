@@ -1,4 +1,4 @@
-2020-04-17  mainframe  <avd@mainframe.localdomain>
+2020-04-17  Aleksey Demakov  <ademakov@gmail.com>
 
 	* include/jit/jit.h: Include jit-dump.h and jit-memory.h headers.
 
