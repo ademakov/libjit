@@ -1,3 +1,7 @@
+2020-04-17  mainframe  <avd@mainframe.localdomain>
+
+	* include/jit/jit.h: Include jit-dump.h and jit-memory.h headers.
+
 2020-01-09  Tom Tromey  <tom@tromey.com>
 
 	* include/jit/jit-function.h (jit_optimize, jit_compile)
