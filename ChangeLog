@@ -1,3 +1,8 @@
+2020-05-10  Jakob Löw  <jakob@m4gnus.de>
+
+	* jit/jit-block.c: add missing inversions of OP_BR_IFALSE and
+	OP_BR_ITRUE to _jit_invert_condition.
+
 2020-04-17  Aleksey Demakov  <ademakov@gmail.com>
 
 	* include/jit/jit.h: Include jit-dump.h and jit-memory.h headers.
