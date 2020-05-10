@@ -768,6 +768,8 @@ _jit_invert_condition (int opcode)
 {
 	switch(opcode)
 	{
+	case JIT_OP_BR_IFALSE:	opcode = JIT_OP_BR_ITRUE;   break;
+	case JIT_OP_BR_ITRUE:	opcode = JIT_OP_BR_IFALSE;   break;
 	case JIT_OP_BR_IEQ:	opcode = JIT_OP_BR_INE;      break;
 	case JIT_OP_BR_INE:	opcode = JIT_OP_BR_IEQ;      break;
 	case JIT_OP_BR_ILT:	opcode = JIT_OP_BR_IGE;      break;
